@@ -1653,11 +1653,16 @@ Return JSON:
           });
       }
 
-      // ─── 4. SANITIZE MATH BREAKDOWN STRINGS ──────────────────────────────────
-      if (parsed.mathBreakdown) {
+      // ─── 4. ENRICH MATH BREAKDOWN WITH EXACT RAW SCORES ──────────────────────
+      if (jambScore > 0 || postUtmeScore > 0 || score > 0) {
+        const jambPts = jambScore > 0 ? (jambScore / 8).toFixed(1) : 'N/A';
+        const postPts = postUtmeScore > 0 && usesPostUtme ? `${(postUtmeScore * 0.3).toFixed(1)} (from ${postUtmeScore}%)` : 'N/A';
+        const olevelSummary = oLevels ? `O'Level: ${oLevels}` : '';
+        parsed.mathBreakdown = `Aggregate Score: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400 (contributes ~${jambPts} points). Raw Post-UTME: ${postUtmeScore > 0 ? postUtmeScore : 'Pending'} / 100. ${olevelSummary}`;
+      } else if (parsed.mathBreakdown) {
         const mb = String(parsed.mathBreakdown);
         if (mb.includes('ewsigen') || mb.includes('lippping') || mb.includes('Oandto') || mb.length > 300) {
-          parsed.mathBreakdown = `Aggregate score calculated based on the institution's official screening formula (JAMB score + O'Level screening points).`;
+          parsed.mathBreakdown = `Aggregate score calculated based on the institution's official screening formula (${university} - ${course}).`;
         }
       }
     }
