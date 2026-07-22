@@ -156,7 +156,7 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClos
                   C
                 </div>
                 <div>
-                  <h1 className="text-xl font-black uppercase tracking-tight text-gray-900">CampusAI.ng</h1>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-gray-900">CampusAI.ng</h2>
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Official Admission Aggregate & Screening Report</p>
                 </div>
               </div>

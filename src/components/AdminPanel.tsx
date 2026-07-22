@@ -770,7 +770,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <ShieldAlert size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-black uppercase tracking-widest">Admin Console</h1>
+              <h2 className="text-xl font-black uppercase tracking-widest">Admin Console</h2>
               <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Architect Level Access</p>
             </div>
           </div>

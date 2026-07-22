@@ -141,7 +141,7 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
                 C
               </div>
               <div>
-                <h1 className="text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white">CampusAI.<span className="text-blue-600">ng</span></h1>
+                <h2 className="text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white">CampusAI.<span className="text-blue-600">ng</span></h2>
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Official Admission Aggregate & Screening Report</p>
               </div>
             </div>

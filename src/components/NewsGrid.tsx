@@ -246,7 +246,13 @@ export const NewsCard: React.FC<{
       </div>
 
       <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2">
-        {news.title}
+        <a 
+          href={`/news/${news.slug || slugify(news.title)}`} 
+          onClick={e => { e.preventDefault(); onRead(); }}
+          className="hover:underline focus:outline-hidden"
+        >
+          {news.title}
+        </a>
       </h3>
       <p className="text-gray-500 text-sm leading-relaxed font-medium line-clamp-3 mb-6 select-text">{news.excerpt}</p>
 
@@ -266,9 +272,13 @@ export const NewsCard: React.FC<{
 
       <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-3">
         <div className="flex gap-2">
-          <button onClick={onRead} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-900 text-white dark:bg-white dark:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all">
+          <a 
+            href={`/news/${news.slug || slugify(news.title)}`}
+            onClick={e => { e.preventDefault(); onRead(); }} 
+            className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-900 text-white dark:bg-white dark:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all"
+          >
             Read Report <ArrowRight size={14} />
-          </button>
+          </a>
           {onDiscuss && (
             <button onClick={e => { e.stopPropagation(); onDiscuss(); }} className="p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-cyan-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center gap-2">
               <Brain size={16} /> Discuss

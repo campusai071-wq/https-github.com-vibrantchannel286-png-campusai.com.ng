@@ -9,8 +9,8 @@ const AboutSection: React.FC = () => {
           
           {/* Who We Are */}
           <div className="text-center space-y-6">
-            <h2 className="text-sm font-black text-blue-600 uppercase tracking-[0.2em]">Who We Are</h2>
-            <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tight">Your Admissions Strategist</h1>
+            <p className="text-sm font-black text-blue-600 uppercase tracking-[0.2em]">Who We Are</p>
+            <h2 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tight">Your Admissions Strategist</h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto font-medium">
               <strong>Campusai.com.ng</strong> is an independent Nigerian student technology platform founded in 2026, created and developed by <strong>Emmanuel "Manny" Iweh</strong>, a metallurgical and materials engineering student at the Federal University of Technology, Akure (FUTA).
             </p>
