@@ -1,0 +1,235 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      // Hardcoded admin for bootstrapping or check against admins collection
+      return isSignedIn() && (
+        request.auth.token.email == 'eiweh123@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- ENTITY VALIDATORS ---
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             (data.role is string && data.role.size() <= 50) &&
+             (data.is_premium == false || data.is_premium == true) &&
+             (data.daily_requests is int && data.daily_requests >= 0) &&
+             (!('scholarCredits' in data) || data.scholarCredits is int) &&
+             (!('meritUsageCount' in data) || data.meritUsageCount is int);
+    }
+
+    function isValidNews(data) {
+      return data.title is string && data.title.size() <= 500 &&
+             data.content is string && data.content.size() <= 20000 &&
+             data.slug is string && data.slug.size() <= 500;
+    }
+
+    function isValidComment(data) {
+      return data.newsId is string && isValidId(data.newsId) &&
+             data.userId == request.auth.uid &&
+             data.content is string && data.content.size() <= 2000 &&
+             data.content.size() > 0;
+    }
+
+    function isValidSchoolUgc(data) {
+      return data.schoolSlug is string && data.schoolSlug.size() <= 100 &&
+             data.userId == request.auth.uid &&
+             data.userName is string && data.userName.size() <= 100 &&
+             data.content is string && data.content.size() <= 2000 && data.content.size() > 0 &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+             (!('rating' in data) || (data.rating is int && data.rating >= 1 && data.rating <= 5)) &&
+             (!('likes' in data) || (data.likes is int && data.likes >= 0)) &&
+             (!('likedBy' in data) || (data.likedBy is list && data.likedBy.size() <= 500));
+    }
+
+    function isValidAd(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.status in ['pending', 'active', 'expired'];
+    }
+
+    function isValidFeedback(data) {
+      return data.type in ['bug', 'feature', 'correction', 'general'] &&
+             data.content is string && data.content.size() <= 10000;
+    }
+
+    function isValidTestimonial(data) {
+      return data.name is string && data.name.size() <= 100 &&
+             data.content is string && data.content.size() <= 2000 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5;
+    }
+
+    // --- COLLECTIONS ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && 
+                     incoming().keys().hasAll(['uid', 'email', 'role']);
+      
+      allow update: if isOwner(userId) && (
+        // Action: User self-update including premium activation
+        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount'])) ||
+        // Action: Admin override
+        isAdmin()
+      );
+
+      match /profile/data {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /chatHistory/data {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /payments/{paymentId} {
+      allow create: if isSignedIn() && incoming().uid == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && existing().uid == request.auth.uid);
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && isValidComment(incoming());
+      allow update: if (isAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId)) &&
+                       isValidComment(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['content']);
+      allow delete: if isAdmin() || isOwner(existing().userId);
+    }
+
+    match /school_ugc/{ugcId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidSchoolUgc(incoming());
+      allow update: if (isAdmin() || isSignedIn()) &&
+                       isValidSchoolUgc(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['content', 'rating', 'category', 'likes', 'likedBy']);
+      allow delete: if isAdmin() || isOwner(existing().userId);
+    }
+
+    match /billboard/{adId} {
+      allow read: if existing().status == 'active' || isAdmin() || isOwner(existing().userId);
+      allow create: if isEmailVerified() && isValidAd(incoming()) && 
+                      incoming().status == 'pending' &&
+                      incoming().userId == request.auth.uid;
+      allow update: if isAdmin() || (isOwner(existing().userId) && 
+                      incoming().status == 'pending' &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'image', 'link']));
+      allow delete: if isAdmin() || isOwner(existing().userId);
+    }
+
+    match /feedback/{feedbackId} {
+      allow create: if isValidFeedback(incoming());
+      allow read: if isAdmin();
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow create: if isSignedIn() && incoming().uid == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && existing().uid == request.auth.uid);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subscribers/{email} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update: if isAdmin();
+    }
+
+    match /institutional_logic/{slug} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /premium_subscriptions/{subId} {
+      allow read: if isAdmin();
+      allow create: if true; // Verification happens on server or via Admin manually
+    }
+
+    match /user_activities/{activityId} {
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+    }
+
+    match /broadcasts/{broadcastId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /mail/{mailId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin(); // Only admins or specific triggers should create mail queue
+    }
+
+    match /knowledge_fragments/{fragmentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /site_analytics/{docId} {
+      allow read: if true;
+      allow write: if true; // Tracking traffic requires any visitor to update stats
+    }
+
+    match /cached_university_courses/{institutionId} {
+      allow read: if true;
+      allow write: if true; // Caching course lists can be done by visitors
+    }
+
+    match /cached_course_cutoff_info/{infoId} {
+      allow read: if true;
+      allow write: if true; // Caching cutoff info can be done by visitors
+    }
+
+    match /cutoff_overrides/{overrideId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

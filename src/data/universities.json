@@ -1,0 +1,425 @@
+[
+  {
+    "name": "University of Lagos",
+    "slug": "unilag",
+    "category": "Federal",
+    "url": "https://www.unilag.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 200,
+      "merit_cutoffs_2025_2026": {
+        "Medicine & Surgery": 85.025,
+        "Nursing Science": 79.8,
+        "Computer Science": 83.425,
+        "Law": 78.225,
+        "Accounting": 75.7,
+        "Architecture": 75.575
+      }
+    },
+    "general_jamb_cutoff": 200
+  },
+  {
+    "name": "University of Ibadan",
+    "slug": "ui",
+    "category": "Federal",
+    "url": "https://www.ui.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 200,
+      "merit_cutoffs_2024_2025": {
+        "Medicine and Surgery": 78.125,
+        "Nursing Science": 71.875,
+        "Computer Science": 71.0,
+        "Law": 67.25,
+        "Accounting": 65.25,
+        "Pharmacy": 68.0
+      }
+    },
+    "general_jamb_cutoff": 200
+  },
+  {
+    "name": "Ahmadu Bello University",
+    "slug": "abu-zaria",
+    "category": "Federal",
+    "url": "https://www.abu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180,
+      "competitive_courses_note": "Medicine, Law, Pharmacy usually require 220-240+"
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "University of Nigeria, Nsukka",
+    "slug": "unn",
+    "category": "Federal",
+    "url": "https://www.unn.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160,
+      "competitive_courses_note": "Average score of 200+ (JAMB/PUTME) required for primary admission."
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Obafemi Awolowo University",
+    "slug": "oau",
+    "category": "Federal",
+    "url": "https://www.oauife.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 200,
+      "aggregate_merit_2024_2025": {
+        "Medicine & Surgery": 80.3,
+        "Nursing Science": 79.225,
+        "Pharmacy": 73.825,
+        "Dentistry": 71.525,
+        "Architecture": 67.5
+      }
+    },
+    "general_jamb_cutoff": 200
+  },
+  {
+    "name": "University of Benin",
+    "slug": "uniben",
+    "category": "Federal",
+    "url": "https://www.uniben.edu",
+    "verified_data": {
+      "jamb_cutoff": 200,
+      "aggregate_note": "Weighted average (JAMB 50% + PUTME 50%) of 60-75+ required for competitive courses."
+    },
+    "general_jamb_cutoff": 200
+  },
+  {
+    "name": "University of Ilorin",
+    "slug": "unilorin",
+    "category": "Federal",
+    "url": "https://www.unilorin.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180,
+      "competitive_courses_note": "Medicine, Law, Nursing usually require 220-240+"
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "University of Jos",
+    "slug": "unijos",
+    "category": "Federal",
+    "url": "https://www.unijos.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180,
+      "competitive_courses_note": "Medicine: 250, Law: 230, Nursing: 220, Comp Sci: 200+"
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "University of Calabar",
+    "slug": "unical",
+    "category": "Federal",
+    "url": "https://www.unical.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "University of Port Harcourt",
+    "slug": "uniport",
+    "category": "Federal",
+    "url": "https://www.uniport.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160,
+      "competitive_courses_note": "Post-UTME minimum is 120."
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Bayero University Kano",
+    "slug": "buk",
+    "category": "Federal",
+    "url": "https://www.buk.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "University of Maiduguri",
+    "slug": "unimaid",
+    "category": "Federal",
+    "url": "https://www.unimaid.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 140
+    },
+    "general_jamb_cutoff": 140
+  },
+  {
+    "name": "Federal University of Technology, Akure",
+    "slug": "futa",
+    "category": "Federal",
+    "url": "https://www.futa.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180,
+      "aggregate_merit_note": "Architecture: 72.87, Computer Science: 70+, Software Engineering: 70+"
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "Federal University of Technology, Minna",
+    "slug": "futminna",
+    "category": "Federal",
+    "url": "https://www.futminna.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "Federal University of Technology, Owerri",
+    "slug": "futo",
+    "category": "Federal",
+    "url": "https://www.futo.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "Nnamdi Azikiwe University",
+    "slug": "unizik",
+    "category": "Federal",
+    "url": "https://www.unizik.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "University of Uyo",
+    "slug": "uniuyo",
+    "category": "Federal",
+    "url": "https://www.uniuyo.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Federal University, Oye-Ekiti",
+    "slug": "fuoye",
+    "category": "Federal",
+    "url": "https://www.fuoye.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Federal University, Otuoke",
+    "slug": "fuotuoke",
+    "category": "Federal",
+    "url": "https://www.fuotuoke.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Lagos State University",
+    "slug": "lasu",
+    "category": "State",
+    "url": "https://www.lasu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 195
+    },
+    "general_jamb_cutoff": 195
+  },
+  {
+    "name": "Rivers State University",
+    "slug": "rsu",
+    "category": "State",
+    "url": "https://www.rsu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "Delta State University",
+    "slug": "delsu",
+    "category": "State",
+    "url": "https://www.delsu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 170
+    },
+    "general_jamb_cutoff": 170
+  },
+  {
+    "name": "Kwara State University",
+    "slug": "kwasu",
+    "category": "State",
+    "url": "https://www.kwasu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 140
+    },
+    "general_jamb_cutoff": 140
+  },
+  {
+    "name": "Osun State University",
+    "slug": "uniosun",
+    "category": "State",
+    "url": "https://www.uniosun.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Olabisi Onabanjo University",
+    "slug": "oou",
+    "category": "State",
+    "url": "https://www.oou.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Covenant University",
+    "slug": "covenant",
+    "category": "Private",
+    "url": "https://www.covenantuniversity.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 200,
+      "competitive_courses_note": "Engineering & Science: 220-240+ recommended."
+    },
+    "general_jamb_cutoff": 200
+  },
+  {
+    "name": "Babcock University",
+    "slug": "babcock",
+    "category": "Private",
+    "url": "https://www.babcock.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 170
+    },
+    "general_jamb_cutoff": 170
+  },
+  {
+    "name": "Afe Babalola University",
+    "slug": "abuad",
+    "category": "Private",
+    "url": "https://www.abuad.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 180
+    },
+    "general_jamb_cutoff": 180
+  },
+  {
+    "name": "Baze University",
+    "slug": "baze",
+    "category": "Private",
+    "url": "https://www.bazeuniversity.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Nile University of Nigeria",
+    "slug": "nile",
+    "category": "Private",
+    "url": "https://www.nileuniversity.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Usmanu Danfodiyo University Sokoto",
+    "slug": "udusok",
+    "category": "Federal",
+    "url": "https://www.udusok.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Abubakar Tafawa Balewa University",
+    "slug": "atbu",
+    "category": "Federal",
+    "url": "https://www.atbu.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Federal University of Technology, Minna",
+    "slug": "futminna",
+    "category": "Federal",
+    "url": "https://www.futminna.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Federal University of Agriculture, Abeokuta",
+    "slug": "funaab",
+    "category": "Federal",
+    "url": "https://www.funaab.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 160
+    },
+    "general_jamb_cutoff": 160
+  },
+  {
+    "name": "Federal University of Petroleum Resources Effurun",
+    "slug": "fupre",
+    "category": "Federal",
+    "url": "https://www.fupre.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Alex Ekwueme Federal University Ndufu-Alike",
+    "slug": "funai",
+    "category": "Federal",
+    "url": "https://www.funai.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Federal University Birnin Kebbi",
+    "slug": "fubk",
+    "category": "Federal",
+    "url": "https://www.fubk.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 140
+    },
+    "general_jamb_cutoff": 140
+  },
+  {
+    "name": "Federal University Kasere",
+    "slug": "fukashere",
+    "category": "Federal",
+    "url": "https://www.fukashere.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 150
+    },
+    "general_jamb_cutoff": 150
+  },
+  {
+    "name": "Federal University Dutsin-Ma",
+    "slug": "fudma",
+    "category": "Federal",
+    "url": "https://www.fudutsinma.edu.ng",
+    "verified_data": {
+      "jamb_cutoff": 140
+    },
+    "general_jamb_cutoff": 140
+  }
+]
+
+

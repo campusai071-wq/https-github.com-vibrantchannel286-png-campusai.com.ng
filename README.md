@@ -1,11 +1,32 @@
-<div align="center">
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+# 🏗️ CampusAI.ng Deployment Guide
 
-  <h1>Built with AI Studio</h2>
+This is a production-ready React application powered by Google Gemini and Firebase.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 🚀 Pre-Deployment Checklist
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+1.  **Gemini API:**
+    *   Get a key from [Google AI Studio](https://aistudio.google.com/).
+    *   Add it as `API_KEY` in your hosting environment variables.
 
-</div>
+2.  **Paystack Integration:**
+    *   Get your Public Key from the [Paystack Dashboard](https://dashboard.paystack.com/#/settings/developer).
+    *   Add it as `VITE_PAYSTACK_PUBLIC_KEY` in your hosting environment variables.
+
+3.  **Firebase Setup:**
+    *   Create a project at [console.firebase.google.com](https://console.firebase.google.com/).
+    *   Add a Web App and copy the `firebaseConfig` object.
+    *   Enable **Auth** (Google/Email) and **Firestore**.
+
+4.  **Admin Initialization:**
+    *   Deploy the code.
+    *   Sign in as `5ej852963@gmail.com`.
+    *   Open the **Admin Panel** (Shield Icon).
+    *   Paste your Firebase JSON config into the **Infrastructure** tab and click **Apply Changes**.
+
+## 🛠️ Tech Stack
+*   **Frontend:** React 19 + Tailwind CSS
+*   **Intelligence:** Google Gemini 3 (Flash & Pro)
+*   **Payments:** Paystack (react-paystack)
+*   **Database/Auth:** Firebase (Plug-and-play via Admin UI)
+*   **Animations:** Framer Motion

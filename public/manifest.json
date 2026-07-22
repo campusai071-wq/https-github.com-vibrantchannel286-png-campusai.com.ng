@@ -1,0 +1,75 @@
+{
+  "short_name": "CampusAI",
+  "name": "Campusai.com.ng - 2026 Admission Intelligence",
+  "description": "Calculate official UTME target aggregate scores, estimate realistic tuition fees, and analyze catchment area and ELDS admission quota policies in Nigeria.",
+  "lang": "en",
+  "dir": "ltr",
+  "id": "campusai-pwa-id",
+  "categories": [
+    "education",
+    "utilities"
+  ],
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1e3a8a",
+  "background_color": "#030712",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "type": "image/png",
+      "sizes": "714x1280",
+      "form_factor": "narrow",
+      "label": "CampusAI Mobile Admissions Dashboard"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "type": "image/png",
+      "sizes": "1280x714",
+      "form_factor": "wide",
+      "label": "CampusAI Desktop Admissions Center"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Aggregate Calculator",
+      "short_name": "Calculator",
+      "description": "Calculate university aggregate scores instantly",
+      "url": "/index.html?tab=calculator",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Live AI Admissions Chat",
+      "short_name": "AI Chat",
+      "description": "Chat with our advanced Admissions AI strategist",
+      "url": "/index.html?chat=open",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

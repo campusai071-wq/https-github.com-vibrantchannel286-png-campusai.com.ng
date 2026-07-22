@@ -1,0 +1,293 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and status record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "is_premium": { "type": "boolean" },
+        "daily_requests": { "type": "integer" },
+        "last_active": { "type": "string" },
+        "referral_code": { "type": "string" },
+        "referral_count": { "type": "integer" },
+        "journey_progress": { "type": "array", "items": { "type": "integer" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "News": {
+      "title": "News Item",
+      "description": "Admission updates and university news.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "slug": { "type": "string" },
+        "isLive": { "type": "boolean" },
+        "archivedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "image": { "type": "string" }
+      },
+      "required": ["title", "content", "slug"]
+    },
+    "Comment": {
+      "title": "News Comment",
+      "description": "User comment on a news item.",
+      "type": "object",
+      "properties": {
+        "newsId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["newsId", "userId", "content"]
+    },
+    "Ad": {
+      "title": "Billboard Ad",
+      "description": "Promotional billboard banners.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "link": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "expired"] },
+        "userId": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "status"]
+    },
+    "Feedback": {
+      "title": "User Feedback",
+      "description": "User feedback, bug reports, and feature requests.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "type": { "type": "string", "enum": ["bug", "feature", "correction", "general"] },
+        "subject": { "type": "string" },
+        "content": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "content"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "User testimonial or review for display.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "content": { "type": "string" },
+        "rating": { "type": "integer" },
+        "school": { "type": "string" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "content", "rating"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Log of user AI chat interactions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "messages": { "type": "array" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "messages"]
+    },
+    "ChatHistory": {
+      "title": "Persistent Chat History",
+      "description": "Last few messages for UI persistence.",
+      "type": "object",
+      "properties": {
+        "messages": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GlobalConfig": {
+      "title": "Global Settings",
+      "description": "System-wide configuration.",
+      "type": "object",
+      "properties": {
+        "socials": { "type": "object" },
+        "whatsapp": { "type": "string" },
+        "supportEmail": { "type": "string" },
+        "googleAdsEnabled": { "type": "boolean" },
+        "flutterwaveKey": { "type": "string" },
+        "geminiKey": { "type": "string" },
+        "featureKeys": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "KnowledgeFragment": {
+      "title": "Knowledge Fragment",
+      "description": "Data point learned from chat.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "learnedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "value"]
+    },
+    "TrafficStats": {
+      "title": "Traffic Stats",
+      "description": "Site-wide traffic analytics.",
+      "type": "object",
+      "properties": {
+        "pageViews": { "type": "integer" },
+        "uniqueVisitors": { "type": "integer" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CachedUniversityCourses": {
+      "title": "Cached University Courses",
+      "description": "List of courses offered by an institution.",
+      "type": "object",
+      "properties": {
+        "institution": { "type": "string" },
+        "courses": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CachedCourseCutoffInfo": {
+      "title": "Cached Course Cutoff Info",
+      "description": "Detailed cutoff info for a specific course.",
+      "type": "object",
+      "properties": {
+        "institution": { "type": "string" },
+        "course": { "type": "string" },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CutoffOverride": {
+      "title": "Cutoff Override",
+      "description": "Manual override for course cutoffs.",
+      "type": "object",
+      "properties": {
+        "institution": { "type": "string" },
+        "course": { "type": "string" },
+        "departmentalCutoff": { "type": "string" },
+        "institutionalCutoff": { "type": "string" },
+        "explanation": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SchoolUgc": {
+      "title": "School User Generated Content",
+      "description": "Student questions, reviews, tips, and screening experiences for specific schools.",
+      "type": "object",
+      "properties": {
+        "schoolSlug": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "rating": { "type": "integer" },
+        "likes": { "type": "integer" },
+        "likedBy": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["schoolSlug", "userId", "content"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Primary user profiles."
+    },
+    "users/{userId}/profile/data": {
+      "schema": "object",
+      "description": "Extended user profile data."
+    },
+    "users/{userId}/chatHistory/data": {
+      "schema": "ChatHistory",
+      "description": "User's persistent chat history."
+    },
+    "news": {
+      "schema": "News",
+      "description": "University news and admission updates."
+    },
+    "comments": {
+      "schema": "Comment",
+      "description": "User comments on news items."
+    },
+    "billboard": {
+      "schema": "Ad",
+      "description": "Marketplace and billboard advertisements."
+    },
+    "feedback": {
+      "schema": "Feedback",
+      "description": "User feedback submissions."
+    },
+    "testimonials": {
+      "schema": "Testimonial",
+      "description": "Curated user testimonials."
+    },
+    "chats": {
+      "schema": "ChatSession",
+      "description": "History of AI chat sessions."
+    },
+    "settings": {
+      "schema": "object",
+      "description": "General system settings (ticker, sync, global, asuu)."
+    },
+    "subscribers": {
+      "schema": "object",
+      "description": "Email newsletter subscribers."
+    },
+    "institutional_logic": {
+      "schema": "object",
+      "description": "Custom aggregate scoring logic for specific schools."
+    },
+    "premium_subscriptions": {
+      "schema": "object",
+      "description": "Records of premium tool payments."
+    },
+    "broadcasts": {
+      "schema": "object",
+      "description": "Records of sent email broadcasts."
+    },
+    "mail": {
+      "schema": "object",
+      "description": "Queue for Firestore Trigger Email extension."
+    },
+    "knowledge_fragments": {
+      "schema": "KnowledgeFragment",
+      "description": "Data learned from chats."
+    },
+    "site_analytics/{docId}": {
+      "schema": "TrafficStats",
+      "description": "Site traffic metrics."
+    },
+    "cached_university_courses/{institutionId}": {
+      "schema": "CachedUniversityCourses",
+      "description": "Cached course lists."
+    },
+    "cached_course_cutoff_info/{infoId}": {
+      "schema": "CachedCourseCutoffInfo",
+      "description": "Cached cutoff details."
+    },
+    "cutoff_overrides/{overrideId}": {
+      "schema": "CutoffOverride",
+      "description": "Manual cutoff overrides."
+    },
+    "school_ugc/{id}": {
+      "schema": "SchoolUgc",
+      "description": "Student generated questions, tips, reviews and screening guides."
+    }
+  }
+}

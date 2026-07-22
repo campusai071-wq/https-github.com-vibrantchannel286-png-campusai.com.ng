@@ -1,0 +1,10 @@
+{
+  "name": "Remix: Remix: CampusAI.ng - 2026 Admission Intelligence",
+  "description": "The official Nigerian higher education companion. Real-time JAMB 2026 updates, university aggregate calculators, cutoff marks, and AI-powered admission guidance.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

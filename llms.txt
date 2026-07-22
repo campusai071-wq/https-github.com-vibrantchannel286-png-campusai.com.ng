@@ -1,0 +1,20 @@
+# CampusAI
+> Official 2026 JAMB News, Admission Intelligence & Live AI Chat Support portal for prospective higher education students in Nigeria.
+
+CampusAI provides real-time admission guidance for prospective Nigerian university students, helping them navigate complex admission requirements and post-UTME processes through AI-driven tools.
+
+## Capabilities
+- **Admission Strategist**: Calculate target aggregate scores, estimate realistic tuition costs, and compare catchment area cutoff quotas.
+- **AI Admissions Assistant**: Interactive live support chat for JAMB, Post-UTME, and NUC policies.
+- **News Aggregator**: Curated news for Nigerian education (JAMB, ASUU, Scholarships, Jobs).
+- **Resources**: Calculator for aggregates (UNILAG, FUTA, LASU, etc.), institution-specific policies.
+
+## Key Endpoints
+- [Dashboard](https://campusai.com.ng/): Central portal for aggregate calculation, fee estimating, and quota comparison.
+- [AI Chat](https://campusai.com.ng/chat): Direct access to the live AI admission assistant.
+- [Post-UTME Hub](https://campusai.com.ng/postutme): Curated admission guidance and news updates.
+
+## Data Sources
+- Official University portals (.edu.ng)
+- JAMB CAPS Guidelines
+- Official Nigerian newspaper reports

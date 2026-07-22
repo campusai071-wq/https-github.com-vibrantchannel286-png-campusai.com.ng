@@ -1,0 +1,10 @@
+# CampusAI.ng
+
+CampusAI.ng provides real-time admission updates, aggregate calculators, and educational news for Nigerian universities.
+
+## Important Links
+
+- [Home](https://campusai.com.ng)
+- [Admission Calculator](https://campusai.com.ng/calculator)
+- [Latest News](https://campusai.com.ng/jamb)
+
