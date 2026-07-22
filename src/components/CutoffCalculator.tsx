@@ -29,7 +29,7 @@ import {
 import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc } from '../services/dbService';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
-import { PdfPreviewModal } from './PdfPreviewModal';
+import { PdfExportModal } from './PdfExportModal';
 import { FileUploadHubModal } from './FileUploadHubModal';
 import { AdmissionChecklist } from './AdmissionChecklist';
 
@@ -1970,7 +1970,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const result = await getCourseCutoffInfo(
         activeUni.name, activeCourse, aggregateScore,
         subjects.map(s => `${s.name}: ${s.grade}`).join(', '),
-        [jambSubject1, jambSubject2, jambSubject3],
+        Array.from(new Set(['English Language', jambSubject1, jambSubject2, jambSubject3].map(s => String(s || '').trim()).filter(Boolean))),
         user?.role, isAR, isPostUtmePending, formulaText,
         stateOfOrigin, isELDSState, isCatchmentState, computedDiscount,
         parseFloat(jambScore) || 0,
@@ -4490,7 +4490,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       <Testimonials />
 
-      <PdfPreviewModal
+      <PdfExportModal
         isOpen={isPdfExportModalOpen}
         onClose={() => setIsPdfExportModalOpen(false)}
         resultData={{

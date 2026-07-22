@@ -1296,7 +1296,12 @@ export const getCourseCutoffInfo = async (
   postUtmeScore = 0
 ) => {
   try {
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${jambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v3`;
+    // ─── DEDUPLICATE AND NORMALIZE JAMB SUBJECTS ──────────────────────────────
+    const cleanJambSubjects = Array.from(
+      new Set((jambSubjects || []).map(s => String(s || '').trim()).filter(Boolean))
+    );
+
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v3`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -1347,10 +1352,20 @@ export const getCourseCutoffInfo = async (
         cachedResult.verdict = enforced.verdict;
         cachedResult.probability = enforced.probability;
 
-        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined") {
+        // Check for tone mismatch in cached detailedStrategy
+        const cacheTextLower = String(cachedResult.detailedStrategy || '').toLowerCase();
+        const isCacheContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
+          cacheTextLower.includes("strong position") ||
+          cacheTextLower.includes("strong candidate") ||
+          cacheTextLower.includes("excellent position") ||
+          cacheTextLower.includes("winning position") ||
+          cacheTextLower.includes("high probability") ||
+          cacheTextLower.includes("well positioned") ||
+          cacheTextLower.includes("competitive position")
+        );
+
+        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40) {
           cachedResult.detailedStrategy = enforced.detailedStrategy;
-        }
-        if (!cachedResult.recommendation || cachedResult.recommendation.trim() === "" || cachedResult.recommendation === "undefined") {
           cachedResult.recommendation = enforced.recommendation;
         }
 
@@ -1591,15 +1606,15 @@ Return JSON:
       }
 
       // ─── 1. MANDATORY SUBJECT COMBINATION VALIDATION HARD FAILURE GATE ───────────
-      const subjectCheck = validateMandatorySubjects(course, jambSubjects);
+      const subjectCheck = validateMandatorySubjects(course, cleanJambSubjects);
       if (!subjectCheck.valid) {
         parsed.subjectCombinationValidation = subjectCheck;
         parsed.probability = 0;
         parsed.verdict = "Disqualified / Invalid Subject Combination";
-        parsed.recommendation = `CRITICAL JAMB SUBJECT MISMATCH: Your written JAMB subjects (${jambSubjects.join(', ')}) do not meet the compulsory requirements for ${course} at ${university}. ${subjectCheck.reason} You MUST perform an immediate JAMB Change of Course.`;
-        parsed.detailedStrategy = `### 1. Verdict Summary\n- **Verdict Status:** **Disqualified / Invalid Subject Combination**\n- **Admission Probability:** **0%**\n\n### 2. The Reality Check\nYour written JAMB subject combination of **${jambSubjects.join(', ')}** does **NOT** meet the compulsory subject requirements for **${course}** at **${university}**. ${subjectCheck.reason}\n\nUnder official JAMB CAPS regulations, institutional screening algorithms will automatically reject your application due to subject mismatch, regardless of your aggregate score.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Log into your JAMB CAPS portal and change your course choice to a department that strictly accepts your written JAMB subjects (${jambSubjects.join(', ')}).\n*   **Consult JAMB Brochure:** Verify subject requirements for alternative departments before submitting your change of course.\n*   **Verify O'Level Upload:** Confirm your WAEC/NECO grades are uploaded correctly on JAMB CAPS to ensure a smooth transition once you switch to a valid program.`;
+        parsed.recommendation = `CRITICAL JAMB SUBJECT MISMATCH: Your written JAMB subjects (${cleanJambSubjects.join(', ')}) do not meet the compulsory requirements for ${course} at ${university}. ${subjectCheck.reason} You MUST perform an immediate JAMB Change of Course.`;
+        parsed.detailedStrategy = `### 1. Verdict Summary\n- **Verdict Status:** **Disqualified / Invalid Subject Combination**\n- **Admission Probability:** **0%**\n\n### 2. The Reality Check\nYour written JAMB subject combination of **${cleanJambSubjects.join(', ')}** does **NOT** meet the compulsory subject requirements for **${course}** at **${university}**. ${subjectCheck.reason}\n\nUnder official JAMB CAPS regulations, institutional screening algorithms will automatically reject your application due to subject mismatch, regardless of your aggregate score.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Log into your JAMB CAPS portal and change your course choice to a department that strictly accepts your written JAMB subjects (${cleanJambSubjects.join(', ')}).\n*   **Consult JAMB Brochure:** Verify subject requirements for alternative departments before submitting your change of course.\n*   **Verify O'Level Upload:** Confirm your WAEC/NECO grades are uploaded correctly on JAMB CAPS to ensure a smooth transition once you switch to a valid program.`;
       } else {
-        // ─── DEFENSIVE BACKUPS FOR EMPTY/UNDEFINED AI FIELDS ────────────────────────
+        // ─── DEFENSIVE BACKUPS & TONE ALIGNMENT FOR AI FIELDS ────────────────────────
         const cutoffStr = parsed.departmentalCutoff || parsed.cutoff || "55";
         const parsedCutoffMatch = cutoffStr.toString().match(/(\d+(\.\d+)?)/);
         const parsedCutoffVal = parsedCutoffMatch ? parseFloat(parsedCutoffMatch[1]) : 55;
@@ -1611,8 +1626,21 @@ Return JSON:
         
         parsed.verdict = enforced.verdict;
         parsed.probability = enforced.probability;
-        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined") {
+
+        const strategyTextLower = String(parsed.detailedStrategy || '').toLowerCase();
+        const isContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
+          strategyTextLower.includes("strong position") ||
+          strategyTextLower.includes("strong candidate") ||
+          strategyTextLower.includes("excellent position") ||
+          strategyTextLower.includes("winning position") ||
+          strategyTextLower.includes("high probability") ||
+          strategyTextLower.includes("well positioned") ||
+          strategyTextLower.includes("competitive position")
+        );
+
+        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40) {
           parsed.detailedStrategy = enforced.detailedStrategy;
+          parsed.recommendation = enforced.recommendation;
         }
         if (!parsed.recommendation || parsed.recommendation.trim() === "" || parsed.recommendation === "undefined") {
           parsed.recommendation = enforced.recommendation;
@@ -1653,16 +1681,18 @@ Return JSON:
           });
       }
 
-      // ─── 4. ENRICH MATH BREAKDOWN WITH EXACT RAW SCORES ──────────────────────
+      // ─── 4. ENRICH MATH BREAKDOWN WITH EXACT RAW SCORES AND PROJECTED LABELS ───
+      const isPendingState = isPostUtmePending || isAwaitingResult;
+      const scoreLabel = isPendingState ? 'Projected Aggregate Score' : 'Aggregate Score';
       if (jambScore > 0 || postUtmeScore > 0 || score > 0) {
         const jambPts = jambScore > 0 ? (jambScore / 8).toFixed(1) : 'N/A';
-        const postPts = postUtmeScore > 0 && usesPostUtme ? `${(postUtmeScore * 0.3).toFixed(1)} (from ${postUtmeScore}%)` : 'N/A';
+        const postPts = postUtmeScore > 0 && usesPostUtme ? `${(postUtmeScore * 0.3).toFixed(1)} (from ${postUtmeScore}%)` : (isPostUtmePending ? 'Pending (Projected)' : 'N/A');
         const olevelSummary = oLevels ? `O'Level: ${oLevels}` : '';
-        parsed.mathBreakdown = `Aggregate Score: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400 (contributes ~${jambPts} points). Raw Post-UTME: ${postUtmeScore > 0 ? postUtmeScore : 'Pending'} / 100. ${olevelSummary}`;
+        parsed.mathBreakdown = `${scoreLabel}: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400 (contributes ~${jambPts} points). Raw Post-UTME: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : (isPostUtmePending ? 'Pending (70/100 projected score)' : 'N/A')}. ${olevelSummary}`;
       } else if (parsed.mathBreakdown) {
         const mb = String(parsed.mathBreakdown);
         if (mb.includes('ewsigen') || mb.includes('lippping') || mb.includes('Oandto') || mb.length > 300) {
-          parsed.mathBreakdown = `Aggregate score calculated based on the institution's official screening formula (${university} - ${course}).`;
+          parsed.mathBreakdown = `${scoreLabel} calculated based on the institution's official screening formula (${university} - ${course}).`;
         }
       }
     }
