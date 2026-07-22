@@ -204,6 +204,55 @@ app.get("/api/health", (req, res) => {
 // Essential Middlewares
 app.use(express.json());
 
+// IndexNow Proxy Endpoint (bypasses browser CORS restrictions)
+app.post("/api/indexnow", async (req: any, res: any) => {
+  try {
+    const { host, key, keyLocation, urlList } = req.body;
+    const targetHost = host || "campusai.com.ng";
+    const targetKey = key || "14fbbbae19ab4b788d8153edd1d2550e";
+    const targetKeyLocation = keyLocation || `https://${targetHost}/${targetKey}.txt`;
+    const targetUrls = Array.isArray(urlList) ? urlList : [];
+
+    if (targetUrls.length === 0) {
+      return res.status(400).json({ success: false, message: "No URLs provided for submission." });
+    }
+
+    console.log(`[IndexNow Server Proxy] Submitting ${targetUrls.length} URLs for host ${targetHost}`);
+
+    const payload = {
+      host: targetHost,
+      key: targetKey,
+      keyLocation: targetKeyLocation,
+      urlList: targetUrls
+    };
+
+    // Server-to-server request to IndexNow API endpoint
+    const response = await axios.post("https://api.indexnow.org/IndexNow", payload, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      timeout: 12000
+    });
+
+    return res.json({
+      success: true,
+      status: response.status,
+      message: `Successfully submitted ${targetUrls.length} URL(s) to IndexNow (Microsoft Bing, Yandex, Seznam, Naver)!`
+    });
+  } catch (err: any) {
+    console.error("[IndexNow Proxy Error]:", err.response?.data || err.message);
+    const statusCode = err.response?.status || 500;
+    const errorMessage = err.response?.data 
+      ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) 
+      : (err.message || 'Error submitting to IndexNow');
+    
+    return res.status(statusCode).json({
+      success: false,
+      message: `IndexNow submission failed: ${errorMessage}`
+    });
+  }
+});
+
 app.post("/api/proxy-firestore", async (req: any, res: any) => {
   try {
     const { collectionName, orderByField, orderDirection, limitCount, whereField, whereOperator, whereValue, startAfterValue } = req.body;

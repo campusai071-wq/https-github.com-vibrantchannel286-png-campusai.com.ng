@@ -986,6 +986,129 @@ const calculateMaxAndTarget = (
   };
 };
 
+export const validateMandatorySubjects = (
+  courseName: string,
+  subjects: string[]
+): { valid: boolean; reason: string } => {
+  if (!courseName || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
+    return { valid: true, reason: "Candidate has the required JAMB subject combination." };
+  }
+
+  const c = courseName.toLowerCase().trim();
+  const subList = subjects.map(s => s.toLowerCase().trim());
+  const has = (kw: string) => subList.some(s => s.includes(kw));
+
+  // 1. Medicine & Allied Medical Sciences
+  const isMedicineGroup = ['medicine', 'mbbs', 'dentistry', 'nursing', 'pharmacy', 'medical lab', 'radiography', 'physiotherapy', 'anatomy', 'physiology', 'veterinary'].some(k => c.includes(k));
+
+  if (isMedicineGroup) {
+    const hasBio = has('bio') || has('life');
+    const hasChem = has('chem');
+    const hasPhy = has('phy');
+
+    const missing: string[] = [];
+    if (!hasBio) missing.push('Biology');
+    if (!hasChem) missing.push('Chemistry');
+    if (!hasPhy) missing.push('Physics');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for ${courseName} in JAMB.`
+      };
+    }
+  }
+
+  // 2. Engineering & Technology Disciplines
+  const isEngineering = c.includes('engineer');
+  if (isEngineering) {
+    const hasMath = has('math');
+    const hasPhy = has('phy');
+    const hasChem = has('chem');
+
+    const missing: string[] = [];
+    if (!hasMath) missing.push('Mathematics');
+    if (!hasPhy) missing.push('Physics');
+    if (!hasChem) missing.push('Chemistry');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for Engineering courses in JAMB.`
+      };
+    }
+  }
+
+  // 3. Economics
+  const isEconomics = c.includes('economics') && !c.includes('home economics');
+  if (isEconomics) {
+    const hasMath = has('math');
+    const hasEcon = has('econ');
+
+    const missing: string[] = [];
+    if (!hasMath) missing.push('Mathematics');
+    if (!hasEcon) missing.push('Economics');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for Economics in JAMB.`
+      };
+    }
+  }
+
+  // 4. Computing / Computer Science / Cyber Security / Software Engineering
+  const isComputing = ['computer science', 'cyber', 'software engineer', 'data science', 'information technology'].some(k => c.includes(k));
+  if (isComputing) {
+    const hasMath = has('math');
+    const hasPhy = has('phy');
+
+    const missing: string[] = [];
+    if (!hasMath) missing.push('Mathematics');
+    if (!hasPhy) missing.push('Physics');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for Computing/Computer Science in JAMB.`
+      };
+    }
+  }
+
+  // 5. Law (LL.B)
+  const isLaw = c.includes('law') || c.includes('ll.b') || c.includes('jurisprudence');
+  if (isLaw) {
+    const hasLit = has('literat') || has('lit in eng') || has('literature');
+
+    if (!hasLit) {
+      return {
+        valid: false,
+        reason: `Literature-in-English is strictly compulsory for Law (LL.B) in JAMB.`
+      };
+    }
+  }
+
+  // 6. Biological Sciences
+  const isBioScience = ['biology', 'microbiology', 'biochemistry', 'biotechnology', 'botany', 'zoology'].some(k => c.includes(k));
+  if (isBioScience) {
+    const hasBio = has('bio') || has('life');
+    const hasChem = has('chem');
+
+    const missing: string[] = [];
+    if (!hasBio) missing.push('Biology');
+    if (!hasChem) missing.push('Chemistry');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for Biological Sciences in JAMB.`
+      };
+    }
+  }
+
+  return { valid: true, reason: "Candidate has the required JAMB subject combination." };
+};
+
 const enforceAdmissionTiers = (
   score: number,
   cutoffVal: number,
@@ -1384,7 +1507,9 @@ Perform an exhaustive admission probability check under these STRICT architectur
 
 - Institution: ${university}
 - Program: ${course}
-- Candidate Score: ${score}% (aggregate out of 100)
+- Candidate Aggregate Score: ${score}% (out of 100)
+- Raw JAMB Score: ${jambScore > 0 ? `${jambScore} / 400` : 'Not explicitly provided'}
+- Raw Post-UTME / Screening Score: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : 'N/A or Pending'}
 - O-Level Profile: ${oLevels}
 - JAMB Subjects: ${jambSubjects.join(', ')}
 - Role: ${role || 'Standard'}
@@ -1465,23 +1590,75 @@ Return JSON:
         if (manualOverride.explanation) parsed.cutoff = `${manualOverride.departmentalCutoff} (${manualOverride.explanation})`;
       }
 
-      // ─── DEFENSIVE BACKUPS FOR EMPTY/UNDEFINED AI FIELDS ────────────────────────
-      const cutoffStr = parsed.departmentalCutoff || parsed.cutoff || "55";
-      const parsedCutoffMatch = cutoffStr.toString().match(/(\d+(\.\d+)?)/);
-      const parsedCutoffVal = parsedCutoffMatch ? parseFloat(parsedCutoffMatch[1]) : 55;
+      // ─── 1. MANDATORY SUBJECT COMBINATION VALIDATION HARD FAILURE GATE ───────────
+      const subjectCheck = validateMandatorySubjects(course, jambSubjects);
+      if (!subjectCheck.valid) {
+        parsed.subjectCombinationValidation = subjectCheck;
+        parsed.probability = 0;
+        parsed.verdict = "Disqualified / Invalid Subject Combination";
+        parsed.recommendation = `CRITICAL JAMB SUBJECT MISMATCH: Your written JAMB subjects (${jambSubjects.join(', ')}) do not meet the compulsory requirements for ${course} at ${university}. ${subjectCheck.reason} You MUST perform an immediate JAMB Change of Course.`;
+        parsed.detailedStrategy = `### 1. Verdict Summary\n- **Verdict Status:** **Disqualified / Invalid Subject Combination**\n- **Admission Probability:** **0%**\n\n### 2. The Reality Check\nYour written JAMB subject combination of **${jambSubjects.join(', ')}** does **NOT** meet the compulsory subject requirements for **${course}** at **${university}**. ${subjectCheck.reason}\n\nUnder official JAMB CAPS regulations, institutional screening algorithms will automatically reject your application due to subject mismatch, regardless of your aggregate score.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Log into your JAMB CAPS portal and change your course choice to a department that strictly accepts your written JAMB subjects (${jambSubjects.join(', ')}).\n*   **Consult JAMB Brochure:** Verify subject requirements for alternative departments before submitting your change of course.\n*   **Verify O'Level Upload:** Confirm your WAEC/NECO grades are uploaded correctly on JAMB CAPS to ensure a smooth transition once you switch to a valid program.`;
+      } else {
+        // ─── DEFENSIVE BACKUPS FOR EMPTY/UNDEFINED AI FIELDS ────────────────────────
+        const cutoffStr = parsed.departmentalCutoff || parsed.cutoff || "55";
+        const parsedCutoffMatch = cutoffStr.toString().match(/(\d+(\.\d+)?)/);
+        const parsedCutoffVal = parsedCutoffMatch ? parseFloat(parsedCutoffMatch[1]) : 55;
 
-      const enforced = enforceAdmissionTiers(
-        score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
-        isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
-      );
-      
-      parsed.verdict = enforced.verdict;
-      parsed.probability = enforced.probability;
-      if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined") {
-        parsed.detailedStrategy = enforced.detailedStrategy;
+        const enforced = enforceAdmissionTiers(
+          score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
+          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
+        );
+        
+        parsed.verdict = enforced.verdict;
+        parsed.probability = enforced.probability;
+        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined") {
+          parsed.detailedStrategy = enforced.detailedStrategy;
+        }
+        if (!parsed.recommendation || parsed.recommendation.trim() === "" || parsed.recommendation === "undefined") {
+          parsed.recommendation = enforced.recommendation;
+        }
       }
-      if (!parsed.recommendation || parsed.recommendation.trim() === "" || parsed.recommendation === "undefined") {
-        parsed.recommendation = enforced.recommendation;
+
+      // ─── 2. PRIVATE UNIVERSITY QUOTA SANITIZATION ─────────────────────────────
+      const isPrivateUni = ['covenant', 'babcock', 'afe babalola', 'bowen', 'pan-atlantic', 'redeemer', 'lead city', 'nile', 'caleb', 'al-hikmah', 'jabu', 'landmark', 'bells'].some(p => normalizedUni.includes(p));
+      if (isPrivateUni && parsed.detailedStrategy) {
+        // Remove erroneous catchment/ELDS quota references for private universities
+        parsed.detailedStrategy = parsed.detailedStrategy.replace(/under the \*\*(ELDS|Catchment) quota\*\*/gi, 'under general merit evaluation');
+        parsed.detailedStrategy = parsed.detailedStrategy.replace(/Since you are not a catchment candidate/gi, 'As a private university applicant');
+        parsed.detailedStrategy = parsed.detailedStrategy.replace(/strict state quotas/gi, 'competitive merit standards');
+      }
+
+      // ─── 3. SANITIZE ALTERNATIVE COURSE RECOMMENDATIONS ──────────────────────
+      if (Array.isArray(parsed.alternatives) && parsed.alternatives.length > 0) {
+        const isTechUni = ['futa', 'futo', 'futminna', 'lautech', 'mautech', 'fupre'].some(t => normalizedUni.includes(t));
+        
+        parsed.alternatives = parsed.alternatives
+          .map((alt: any) => {
+            let altName = String(alt.name || '').trim();
+            // Clean unwanted prefixes
+            altName = altName.replace(/^(adequate|change course to|change institution to|opt for)\s+/i, '');
+            return {
+              ...alt,
+              name: altName
+            };
+          })
+          .filter((alt: any) => {
+            const nameLower = String(alt.name || '').toLowerCase();
+            if (!nameLower) return false;
+            // Filter out non-existent programs at Tech Universities
+            if (isTechUni && (nameLower.includes('law') || nameLower.includes('ll.b') || nameLower.includes('mass comm') || nameLower.includes('theatre'))) {
+              return false;
+            }
+            return true;
+          });
+      }
+
+      // ─── 4. SANITIZE MATH BREAKDOWN STRINGS ──────────────────────────────────
+      if (parsed.mathBreakdown) {
+        const mb = String(parsed.mathBreakdown);
+        if (mb.includes('ewsigen') || mb.includes('lippping') || mb.includes('Oandto') || mb.length > 300) {
+          parsed.mathBreakdown = `Aggregate score calculated based on the institution's official screening formula (JAMB score + O'Level screening points).`;
+        }
       }
     }
 

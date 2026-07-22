@@ -1,3 +1,5 @@
+import { getApiUrl } from './utils';
+
 export const INDEXNOW_KEY = '14fbbbae19ab4b788d8153edd1d2550e';
 export const INDEXNOW_HOST = 'campusai.com.ng';
 export const INDEXNOW_KEY_LOCATION = `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`;
@@ -27,22 +29,28 @@ export async function submitToIndexNow(urls: string[]): Promise<{ success: boole
   };
 
   try {
-    const response = await fetch('https://api.indexnow.org/IndexNow', {
+    const apiUrl = getApiUrl('/api/indexnow');
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json; charset=utf-8'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
 
-    if (response.ok || response.status === 200 || response.status === 202) {
-      return { success: true, status: response.status, message: 'URLs submitted to IndexNow successfully!' };
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok && data.success !== false) {
+      return { 
+        success: true, 
+        status: response.status, 
+        message: data.message || 'URLs submitted to IndexNow successfully!' 
+      };
     } else {
-      const errorText = await response.text().catch(() => '');
       return {
         success: false,
         status: response.status,
-        message: `IndexNow returned status ${response.status}: ${errorText || response.statusText}`
+        message: data.message || `IndexNow submission returned status ${response.status}`
       };
     }
   } catch (err: any) {
@@ -50,7 +58,7 @@ export async function submitToIndexNow(urls: string[]): Promise<{ success: boole
     return {
       success: false,
       status: 0,
-      message: `Failed to connect to IndexNow API: ${err?.message || 'Network error'}`
+      message: `Failed to submit to IndexNow: ${err?.message || 'Network error'}`
     };
   }
 }
