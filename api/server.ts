@@ -2717,6 +2717,51 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
   }
 });
 
+// Helper to notify IndexNow (Bing, Yandex, Seznam, etc.) of updated URLs
+async function notifyIndexNow(urls: string[]) {
+  try {
+    const payload = {
+      host: "campusai.com.ng",
+      key: "c557dadad68347b8e26939a56c132027",
+      keyLocation: "https://campusai.com.ng/c557dadad68347b8e26939a56c132027.txt",
+      urlList: urls
+    };
+    const response = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    console.log(`[IndexNow] Pinged ${urls.length} URLs to IndexNow. Status: ${response.status}`);
+    return response.status;
+  } catch (err) {
+    console.error("[IndexNow Error]", err);
+    return false;
+  }
+}
+
+// Endpoint to trigger IndexNow submission manually or via admin
+app.get("/api/indexnow/submit", async (req: any, res: any) => {
+  try {
+    const newsRef = db.collection("news");
+    const snap = await newsRef.orderBy("date", "desc").limit(50).get();
+    const urls: string[] = [
+      "https://campusai.com.ng/",
+      "https://campusai.com.ng/news",
+      "https://campusai.com.ng/postutme",
+      "https://campusai.com.ng/calculator"
+    ];
+    snap.forEach((doc: any) => {
+      const data = doc.data();
+      const slug = data.slug || doc.id;
+      urls.push(`https://campusai.com.ng/news/${slug}`);
+    });
+    const status = await notifyIndexNow(urls);
+    res.json({ success: true, count: urls.length, indexNowStatus: status, key: "c557dadad68347b8e26939a56c132027" });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.route("/api/news/sync")
   .all((req: any, res: any, next: any) => {
     console.log(`[API News Sync] Method: ${req.method} | Origin: ${req.headers.origin || 'none'}`);
