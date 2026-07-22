@@ -371,6 +371,9 @@ const AppContent: React.FC = () => {
            setUser((curr: any) => curr ? { ...curr, ...updatedProfile } : null);
         });
       } else {
+        localStorage.removeItem('campusai_user_profile');
+        window.dispatchEvent(new Event('campusai_clear_chat'));
+        setUser(null);
         // If we are on dashboard but not logged in, go to home
         if (window.location.pathname === '/dashboard') {
           navigate('/');
@@ -565,6 +568,13 @@ const AppContent: React.FC = () => {
     await signOut(auth);
     localStorage.removeItem('campusai_user_session');
     localStorage.removeItem('campusai_user_profile');
+    try {
+      sessionStorage.removeItem('campusai_chat_messages');
+      if (user?.uid) {
+        sessionStorage.removeItem(`campusai_chat_messages_${user.uid}`);
+      }
+    } catch (e) {}
+    window.dispatchEvent(new Event('campusai_clear_chat'));
     setUser(null);
     setAdminAuth({ isLoggedIn: false, email: null });
     setCurrentPage('home');

@@ -22,6 +22,10 @@ const WELCOME_MESSAGE: ChatMessage = {
   text: "Hi there! I'm **CampusAI**, your official 2026 Academic Strategist. I have live access to verified university portals, cutoff trends, and JAMB CAPS guidelines. What can I help you calculate or verify today?"
 };
 
+const getChatStorageKey = (uid?: string) => {
+  return uid ? `campusai_chat_messages_${uid}` : 'campusai_chat_messages_guest';
+};
+
 const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -71,15 +75,48 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
-      const stored = sessionStorage.getItem('campusai_chat_messages');
-      return stored ? JSON.parse(stored) : [WELCOME_MESSAGE];
-    } catch {
-      return [WELCOME_MESSAGE];
-    }
+      const key = getChatStorageKey(user?.uid);
+      const stored = sessionStorage.getItem(key);
+      if (stored) return JSON.parse(stored);
+      if (!user?.uid) {
+        const legacy = sessionStorage.getItem('campusai_chat_messages');
+        if (legacy) return JSON.parse(legacy);
+      }
+    } catch {}
+    return [WELCOME_MESSAGE];
   });
 
   const messagesRef = useRef<ChatMessage[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // ── Sync chat history whenever user UID changes (account login / logout / switch) ──
+  useEffect(() => {
+    try {
+      const key = getChatStorageKey(user?.uid);
+      const stored = sessionStorage.getItem(key);
+      if (stored) {
+        setMessages(JSON.parse(stored));
+      } else {
+        setMessages([WELCOME_MESSAGE]);
+      }
+    } catch {
+      setMessages([WELCOME_MESSAGE]);
+    }
+  }, [user?.uid]);
+
+  // ── Sync chat clear event ──
+  useEffect(() => {
+    const handleClearEvent = () => {
+      setMessages([WELCOME_MESSAGE]);
+      try {
+        const key = getChatStorageKey(user?.uid);
+        sessionStorage.removeItem(key);
+        sessionStorage.removeItem('campusai_chat_messages');
+      } catch {}
+    };
+    window.addEventListener('campusai_clear_chat', handleClearEvent);
+    return () => window.removeEventListener('campusai_clear_chat', handleClearEvent);
+  }, [user?.uid]);
 
   const scanSteps = [
     "Grounding active portal registries...",
@@ -116,17 +153,24 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
     return () => clearInterval(timer);
   }, [isLoading]);
 
-  // ── Persist messages + scroll after DOM paint ──
+  // ── Persist messages per account UID + scroll after DOM paint ──
   useEffect(() => {
-    try { sessionStorage.setItem('campusai_chat_messages', JSON.stringify(messages)); } catch {}
+    try {
+      const key = getChatStorageKey(user?.uid);
+      sessionStorage.setItem(key, JSON.stringify(messages));
+    } catch {}
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [messages]);
+  }, [messages, user?.uid]);
 
   // ── Clear chat ──
   const handleClearChat = useCallback(() => {
     setMessages([WELCOME_MESSAGE]);
-    try { sessionStorage.removeItem('campusai_chat_messages'); } catch {}
-  }, []);
+    try {
+      const key = getChatStorageKey(user?.uid);
+      sessionStorage.removeItem(key);
+      sessionStorage.removeItem('campusai_chat_messages');
+    } catch {}
+  }, [user?.uid]);
 
   // ── Core send function — wrapped in useCallback to avoid stale closures ──
   const handleSendMessage = useCallback(async (textToSend?: string) => {

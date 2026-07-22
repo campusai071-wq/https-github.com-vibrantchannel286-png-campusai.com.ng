@@ -111,6 +111,7 @@ export const getLocalProfile = (): UserProfile => {
  */
 export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> => {
   const local = getLocalProfile();
+  const isSameUser = local.uid === uid;
 
   if (!db || !isRealUser(uid)) return local;
 
@@ -120,33 +121,37 @@ export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> 
     
     if (snap && snap.exists()) {
       const cloud = snap.data();
-      const merged: UserProfile = { 
-        ...local, 
+      const baseLocal: Partial<UserProfile> = isSameUser ? local : {};
+      const merged: any = { 
+        ...baseLocal, 
         ...cloud,
         uid: uid,
       };
 
-      // Ensure we don't accidentally wipe progress if local is ahead
-      const finalCalculations = Math.max(local.lifetime_calculations || 0, cloud.lifetime_calculations || 0);
-      merged.lifetime_calculations = finalCalculations;
+      // Ensure we don't accidentally wipe progress if local is ahead for same user
+      if (isSameUser) {
+        const finalCalculations = Math.max(local.lifetime_calculations || 0, cloud.lifetime_calculations || 0);
+        merged.lifetime_calculations = finalCalculations;
+      }
 
       const validation = validateUserProfile(merged);
       if (!validation.success) {
           console.error("Cloud data invalid, not syncing:", validation.error);
-          return local;
+          return (cloud as UserProfile) || local;
       }
       const finalProfile = validation.data as UserProfile;
       localStorage.setItem(QUOTA_KEY, stringify(finalProfile));
       return finalProfile;
     } else {
       // Create new user in cloud
+      const baseLocal: Partial<UserProfile> = isSameUser ? local : {};
       const newProfile: UserProfile = {
-        ...local,
+        ...baseLocal,
         uid: uid,
         email: auth.currentUser?.email || '',
-        displayName: auth.currentUser?.displayName || local.displayName || 'Scholar',
+        displayName: auth.currentUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar',
         photoURL: auth.currentUser?.photoURL || '',
-        role: (local.role as UserRole) || 'Pre-Admission',
+        role: (baseLocal.role as UserRole) || 'Pre-Admission',
         is_premium: false,
         daily_requests: 0,
         scholarCredits: 0,
