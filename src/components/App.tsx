@@ -768,7 +768,7 @@ const AppContent: React.FC = () => {
                         💡 How can I calculate my 2026 university aggregate score?
                       </h2>
                       <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
-                        To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio and O'Level point grading—while ensuring your results comply with the current 150-score national minimum threshold.
+                        To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O'Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold.
                       </p>
                     </div>
                   </div>

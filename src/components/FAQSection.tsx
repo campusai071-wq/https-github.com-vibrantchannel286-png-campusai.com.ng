@@ -13,7 +13,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Admission',
     question: "How can I calculate my 2026 university aggregate score?",
-    answer: "To calculate your aggregate score for the 2026 admission cycle, use the Campusai.com.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio and O’Level point grading—while ensuring your results comply with the current 150-score national minimum threshold."
+    answer: "To calculate your aggregate score for the 2026 admission cycle, use the Campusai.com.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O’Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold."
   },
   {
     category: 'Admission',
