@@ -34,7 +34,6 @@ import StatusPage from './StatusPage';
 import NotFound from './NotFound';
 import FeedbackModal from './FeedbackModal';
 import AdmissionChecklistPage from './AdmissionChecklistPage';
-import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import SEO from './SEO';
@@ -142,7 +141,6 @@ const AppContent: React.FC = () => {
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isInviteEarnOpen, setIsInviteEarnOpen] = useState(false);
@@ -664,7 +662,6 @@ const AppContent: React.FC = () => {
         onLoginRequest={() => setIsAuthModalOpen(true)}
         onShareRequest={() => setIsShareOpen(true)}
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
-        onOpenWorkspace={() => setIsWorkspaceOpen(true)}
       />
 
       <SEO 
@@ -913,7 +910,6 @@ const AppContent: React.FC = () => {
       <CookieConsent />
       <InstallPrompt />
       <Tour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
-      {isWorkspaceOpen && <GoogleWorkspaceHub user={user} onClose={() => setIsWorkspaceOpen(false)} />}
     </div>
   );
 };
