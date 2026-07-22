@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2 } from 'lucide-react';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, HardDrive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
 import { searchWebRaw, SearchResultItem } from '../services/searchService';
@@ -16,11 +16,12 @@ interface NavbarProps {
   onLoginRequest: () => void;
   onShareRequest: () => void;
   onInviteEarnRequest: () => void;
+  onOpenWorkspace: () => void;
   theme?: 'light' | 'dark';
   onThemeToggle?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, theme, onThemeToggle }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, onOpenWorkspace, theme, onThemeToggle }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [asuuStatus, setAsuuStatus] = useState<string | null>(null);
@@ -213,6 +214,17 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                </button>
             )}
 
+            {/* Google Workspace Hub Button */}
+            <button 
+              onClick={onOpenWorkspace} 
+              aria-label="Google Workspace Hub" 
+              className={`p-2.5 rounded-xl transition-all flex items-center gap-1.5 ${isScrolled ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-cyan-400' : 'bg-blue-600/20 text-cyan-300 border border-blue-500/30'}`}
+              title="Google Workspace Hub (Drive, Gmail, Sheets)"
+            >
+              <HardDrive size={18} />
+              <span className="text-[9px] font-black uppercase tracking-widest hidden xl:inline">Workspace</span>
+            </button>
+
             <button onClick={onThemeToggle} aria-label="Toggle theme" className={`p-2.5 rounded-xl transition-all ${isScrolled ? 'bg-gray-100 text-gray-600 dark:bg-gray-900' : 'bg-white/10 text-white'}`}>
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -258,6 +270,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                <ShieldAlert size={18} />
              </button>
           )}
+          <button 
+            onClick={onOpenWorkspace} 
+            className="p-2 bg-blue-600 text-white rounded-lg"
+            title="Google Workspace"
+          >
+            <HardDrive size={18} />
+          </button>
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
             className={`p-2 rounded-lg ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}
