@@ -24,6 +24,7 @@ import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySum
 import { auth } from '../services/firebaseConfig';
 import { getApiUrl } from '../services/utils';
 import { SystemHealthStatus } from './SystemHealthStatus';
+import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -125,6 +126,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [socialWhatsapp, setSocialWhatsapp]   = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, currentUni: '' });
+
+  // ── IndexNow ─────────────────────────────────────────────────────────────────
+  const [indexNowUrls, setIndexNowUrls] = useState('https://campusai.com.ng/\nhttps://campusai.com.ng/news\nhttps://campusai.com.ng/resultslip');
+  const [isSubmittingIndexNow, setIsSubmittingIndexNow] = useState(false);
+  const [indexNowResult, setIndexNowResult] = useState<{ success?: boolean; message?: string } | null>(null);
+
+  const handleIndexNowSubmit = async () => {
+    const urls = indexNowUrls
+      .split('\n')
+      .map(u => u.trim())
+      .filter(u => u.length > 0);
+
+    if (urls.length === 0) {
+      alert('Please enter at least one URL to submit to IndexNow.');
+      return;
+    }
+
+    setIsSubmittingIndexNow(true);
+    setIndexNowResult(null);
+    try {
+      const res = await submitToIndexNow(urls);
+      setIndexNowResult({ success: res.success, message: res.message });
+    } catch (err: any) {
+      setIndexNowResult({ success: false, message: err?.message || 'Error pinging IndexNow' });
+    } finally {
+      setIsSubmittingIndexNow(false);
+    }
+  };
 
   // ── Content ─────────────────────────────────────────────────────────────────
   const [publishedNews, setPublishedNews] = useState<NewsItem[]>([]);
@@ -1137,6 +1166,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     )}
                     <button onClick={handleSyncScoring} disabled={isSyncing} className="w-full py-4 bg-gray-900 dark:bg-gray-700 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2">
                       {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Sync Scoring Matrix
+                    </button>
+                  </div>
+
+                  {/* IndexNow Instant Search Engine Indexing */}
+                  <div className="p-6 bg-gradient-to-br from-blue-900/10 to-teal-900/10 dark:from-blue-950/30 dark:to-teal-950/30 rounded-3xl space-y-4 border border-blue-500/20">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                        <Globe size={16} /> IndexNow Real-time Search Engine Indexer
+                      </h3>
+                      <span className="text-[9px] font-black uppercase bg-blue-500/10 text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/20">
+                        Bing / Yandex / Naver
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Submit updated pages directly to Microsoft Bing & partner search engines for immediate crawling. Key file hosted at <code className="bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded text-[11px] font-mono">/14fbbbae19ab4b788d8153edd1d2550e.txt</code>.
+                    </p>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">URLs to submit (One per line)</label>
+                      <textarea
+                        rows={3}
+                        value={indexNowUrls}
+                        onChange={e => setIndexNowUrls(e.target.value)}
+                        placeholder="https://campusai.com.ng/..."
+                        className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl font-mono text-xs dark:text-white border border-gray-200 dark:border-gray-800 outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    {indexNowResult && (
+                      <div className={`p-3 rounded-xl text-xs font-bold ${indexNowResult.success ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                        {indexNowResult.success ? '✅ ' : '❌ '}{indexNowResult.message}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleIndexNowSubmit}
+                      disabled={isSubmittingIndexNow}
+                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white rounded-xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-md"
+                    >
+                      {isSubmittingIndexNow ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />} Submit URLs to IndexNow
                     </button>
                   </div>
                 </div>
