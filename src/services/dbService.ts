@@ -1504,3 +1504,66 @@ export const likeSchoolUgc = async (ugcId: string, userId: string): Promise<void
     handleFirestoreError(e, OperationType.WRITE, path);
   }
 };
+
+// ── Article Views Tracker ─────────────────────────────────────────────────────
+const getDeterministicBaselineViews = (newsId: string): number => {
+  return 1;
+};
+
+export const incrementAndGetArticleViews = async (newsId: string, initialViews?: number): Promise<number> => {
+  if (!newsId) return 1;
+  
+  const localKey = `campusai_article_views_${newsId}`;
+  let localViews = 0;
+  try {
+    const stored = localStorage.getItem(localKey);
+    if (stored) {
+      localViews = parseInt(stored, 10) || 0;
+    }
+  } catch (e) {}
+
+  localViews += 1;
+  try {
+    localStorage.setItem(localKey, localViews.toString());
+  } catch (e) {}
+
+  const baseViews = (typeof initialViews === 'number' && initialViews > 0) ? initialViews : 0;
+
+  if (db) {
+    const ref = doc(db, "article_views", newsId);
+    try {
+      await setDoc(ref, { views: increment(1), lastViewed: Timestamp.now() }, { merge: true });
+      const snap = await getDoc(ref);
+      if (snap.exists() && typeof snap.data().views === 'number') {
+        return baseViews + snap.data().views;
+      }
+    } catch (e) {
+      console.warn("Failed to update article views in Firestore:", e);
+    }
+  }
+
+  return Math.max(1, baseViews + localViews);
+};
+
+export const getArticleViews = async (newsId: string, initialViews?: number): Promise<number> => {
+  if (!newsId) return 1;
+  const localKey = `campusai_article_views_${newsId}`;
+  let localViews = 0;
+  try {
+    const stored = localStorage.getItem(localKey);
+    if (stored) localViews = parseInt(stored, 10) || 0;
+  } catch (e) {}
+
+  const baseViews = (typeof initialViews === 'number' && initialViews > 0) ? initialViews : 0;
+
+  if (db) {
+    try {
+      const snap = await getDoc(doc(db, "article_views", newsId));
+      if (snap.exists() && typeof snap.data().views === 'number') {
+        return baseViews + snap.data().views;
+      }
+    } catch (e) {}
+  }
+
+  return Math.max(1, baseViews + localViews);
+};

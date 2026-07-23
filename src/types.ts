@@ -22,6 +22,7 @@ export interface NewsItem {
   videoScript?: string;
   tags?: string[];
   isImportant?: boolean;
+  views?: number;
   createdAt?: any;
   updatedAt?: any;
   archivedAt?: any;

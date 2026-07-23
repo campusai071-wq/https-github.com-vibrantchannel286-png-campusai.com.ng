@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, Share2, Bookmark, ThumbsUp, ShieldCheck, Sparkles,
   User, Send, MessageSquare, Trash2, Loader2, LogIn, Check, RefreshCw,
-  Wand2, Brain, Edit3, Zap
+  Wand2, Brain, Edit3, Zap, Eye, Copy, Link, CheckCircle2
 } from 'lucide-react';
 import { NewsItem, Comment } from '../types';
 import {
   fetchNewsComments, postNewsComment, deleteNewsComment,
   getNewsItemBySlug, updateNewsArticleContent, logUserActivity,
-  deleteNewsUpdate, enhanceNewsArticleContent
+  deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews
 } from '../services/dbService';
 import { expandNewsArticle } from '../services/geminiService';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
@@ -84,6 +84,15 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [editableContent, setEditableContent] = useState('');
   const [localRelatedNews, setLocalRelatedNews] = useState<NewsItem[]>(relatedNews || []);
   const [restoreError, setRestoreError]   = useState<string | null>(null);
+  const [readCount, setReadCount]         = useState<number>(news?.views || 1);
+  const [copiedLink, setCopiedLink]       = useState(false);
+
+  useEffect(() => {
+    if (!news?.id) return;
+    incrementAndGetArticleViews(news.id, news.views)
+      .then(views => setReadCount(views))
+      .catch(err => console.error("Error logging article read:", err));
+  }, [news?.id]);
 
   useEffect(() => {
     const fetchRelated = async () => {
@@ -372,21 +381,45 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     }
   }, [news, isExpanding]);
 
-  // ── Share ─────────────────────────────────────────────────────────────────
+  // ── Share & Copy Link ──────────────────────────────────────────────────────
+  const handleCopyLink = useCallback(async () => {
+    try {
+      const shareUrl = window.location.href;
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedLink(true);
+      setShowShareSuccess(true);
+      setTimeout(() => {
+        setCopiedLink(false);
+        setShowShareSuccess(false);
+      }, 2500);
+    } catch (err) {
+      console.error('Copy link error:', err);
+    }
+  }, []);
+
   const handleShare = useCallback(async () => {
     if (!news) return;
     try {
       if (navigator.share) {
         await navigator.share({ title: news.title, text: news.excerpt, url: window.location.href });
       } else {
-        await navigator.clipboard.writeText(window.location.href);
-        setShowShareSuccess(true);
-        setTimeout(() => setShowShareSuccess(false), 2000);
+        await handleCopyLink();
       }
     } catch (err) {
       console.error('Share error:', err);
     }
-  }, [news]);
+  }, [news, handleCopyLink]);
 
   // ── Comment submit ────────────────────────────────────────────────────────
   const handlePostComment = async (e: React.FormEvent) => {
@@ -493,13 +526,17 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
           <span className="px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest">{news.category}</span>
-          <div className="w-1 h-1 rounded-full bg-gray-300" />
+          <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
             <Clock size={12} /> {readTime} MIN READ
           </span>
+          <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
+            <Eye size={13} className="text-emerald-500" /> {readCount.toLocaleString()} READS
+          </span>
           {news.sourceUrl && (
             <a href={news.sourceUrl} target="_blank" rel="noopener noreferrer"
-              className="ml-4 hover:underline text-blue-800 text-[10px] font-black uppercase tracking-widest break-all">
+              className="ml-auto hover:underline text-blue-800 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest break-all">
               Source
             </a>
           )}
@@ -529,6 +566,31 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           <a href={`https://reddit.com/submit?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(news.title)}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-[#FF4500] text-white hover:opacity-80 transition-opacity" title="Share on Reddit">
              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 11.779c0-1.459-1.192-2.645-2.657-2.645-.715 0-1.363.275-1.866.729-1.424-1.012-3.372-1.644-5.532-1.73l1.18-5.524 3.791.803c.032 1.053.901 1.899 1.968 1.899 1.085 0 1.968-.876 1.968-1.956 0-1.077-.883-1.954-1.968-1.954-.852 0-1.58.541-1.852 1.306l-4.22-.897a.475.475 0 0 0-.547.369l-1.31 6.136c-2.228.06-4.246.687-5.711 1.714-.505-.461-1.164-.741-1.888-.741-1.464 0-2.656 1.186-2.656 2.645 0 .963.53 1.8 1.308 2.275-.021.206-.036.417-.036.634 0 3.844 4.542 6.969 10.134 6.969s10.134-3.125 10.134-6.969c0-.214-.015-.422-.034-.627.766-.481 1.288-1.311 1.288-2.268zm-16.745 2.115c0-.853.696-1.545 1.554-1.545.857 0 1.554.692 1.554 1.545 0 .851-.697 1.544-1.554 1.544-.858 0-1.554-.693-1.554-1.544zm9.356 5.163c-1.284 1.28-3.415 1.285-4.526 1.285-1.111 0-3.246-.005-4.53-1.285a.473.473 0 0 1 .669-.667c.883.882 2.628 1.002 3.861 1.002 1.231 0 2.978-.12 3.86-.998a.471.471 0 1 1 .666.663zm-.407-3.619c-.858 0-1.554-.693-1.554-1.544 0-.853.696-1.545 1.554-1.545.856 0 1.553.692 1.553 1.545 0 .851-.697 1.544-1.553 1.544z"/></svg>
           </a>
+
+          {/* Copy Link Button */}
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className={`h-9 px-3.5 flex items-center gap-2 rounded-full font-black text-[11px] uppercase tracking-wider transition-all shadow-sm ${
+              copiedLink
+                ? 'bg-emerald-600 text-white shadow-emerald-500/30'
+                : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
+            }`}
+            title="Copy Article Link"
+          >
+            {copiedLink ? (
+              <>
+                <CheckCircle2 size={15} className="text-white" />
+                <span>Link Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={14} />
+                <span>Copy Link</span>
+              </>
+            )}
+          </button>
+
           <div className="flex items-center gap-1.5 ml-2 cursor-pointer" onClick={() => document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })}>
             <MessageSquare size={20} className="text-gray-900 dark:text-gray-300" />
             <span className="text-sm font-bold text-gray-900 dark:text-gray-300">{comments.length}</span>
@@ -536,21 +598,33 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         </div>
 
         {/* Author / actions row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 mb-12">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 mb-12 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-gray-600 dark:text-gray-400">
              <Clock size={14} className="shrink-0" />
              <span>Published {getFallbackDateStr(news)}</span>
-             <span className="mx-1"></span>
+             <span className="mx-1">•</span>
              <User size={14} className="shrink-0" />
              <span>By <span className="text-[#0eb38c] font-bold">Emmanuel Iweh</span></span>
-             <span className="mx-1"></span>
-             <span className="flex items-center gap-1.5">
-               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-               3 min read
+             <span className="mx-1">•</span>
+             <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+               <Eye size={14} className="shrink-0" />
+               <span>{readCount.toLocaleString()} times read</span>
              </span>
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleCopyLink}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                copiedLink
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title="Copy Link"
+            >
+              {copiedLink ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
+            </button>
             <button
               onClick={() => setIsLiked(!isLiked)}
               className={`p-2 rounded-xl transition-all active:scale-75 ${isLiked ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-400 hover:text-blue-600'}`}
@@ -891,6 +965,21 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Floating Share / Copy Toast Notification */}
+      <AnimatePresence>
+        {showShareSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-8 right-8 z-50 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-black uppercase tracking-widest border border-emerald-400/40"
+          >
+            <CheckCircle2 size={20} className="text-white shrink-0 animate-bounce" />
+            <span>Article Link Copied to Clipboard!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
