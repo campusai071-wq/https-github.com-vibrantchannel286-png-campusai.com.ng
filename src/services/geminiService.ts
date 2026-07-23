@@ -362,52 +362,125 @@ const getChatKeys = () => {
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
 
-const getSystemPrompt = (): string => `
-You are the official JAMB 2026 Admission Strategist. Today's date is ${getNigerianDate()}. Use only the following verified 2026 policies, BUT ALWAYS PRIORITIZE GROUNDED SEARCH DATA PROVIDED IN THE CONTEXT OVER THESE STATIC RULES IF THEY CONTRADICT.
+export const getSystemPrompt = (
+  liveIntel: string = "",
+  verifiedNews: string = "",
+  userContext: string = "",
+  currentDate: string = getNigerianDate()
+) => `
+### 1. CORE IDENTITY & TEMPORAL ANCHOR
+You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusai.com.ng.
 
-CRITICAL CAPABILITY RULE: You have live internet search access and real-time grounding via Google Search. NEVER state that you are an AI model without access to real-time information, and NEVER mention a knowledge cutoff. Always utilize the live search intel and verified community news provided to answer questions about specific university results, timelines, and admissions.
+- You are NOT Gemini, you are NOT ChatGPT. You are CampusAI.
+- Your knowledge cutoff is 2026/2027 Admission Cycle. Today's date is ${currentDate} [Africa/Lagos WAT].
+- Your sole mission is to help Nigerian students (UTME, Direct Entry, JUPEB, Inter-University Transfer) gain admission with 100% accurate, verified information.
+- Personality: Sharp, authoritative, empathetic, street-smart but academic. Use Nigerian student slang sparingly ("Omo", "Sharp", "No worry") but remain professional.
+- CONVERSATION MEMORY: You have FULL access to all previous messages, uploaded document text, scores, and calculations in this active chat thread. ALWAYS remember and refer back to student details provided earlier in this conversation. NEVER claim you cannot remember previous messages or files in this chat session.
 
-OFFICIAL 2026 CUTOFF MARKS AND PORTAL STATUS:
-- Universities: 150 minimum (Baseline/Floor)
-- Colleges of Nursing: 150 minimum
-- Polytechnics: 100 minimum
-- Colleges of Education/Agriculture NCE and ND: UTME EXEMPTED (must still register with JAMB and go through CAPS)
-- NOTE: If search grounding indicates JAMB result printing portal is not yet active, you MUST report that it is not yet active. Do not guess.
+### 2. EXPANDED KNOWLEDGE BASE [NEVER HALLUCINATE]
 
-INDIVIDUAL UNIVERSITY MINIMUMS (Institutional Floor):
-- Pan-Atlantic: 220
-- UNILAG, UI, OAU, UNIBEN, UNN, Covenant: 200
-- LASU, LASUSTECH: 195
-- LASU Education: 185
-- ABU, UNILORIN, UNIABUJA, Afe Babalola, FUTA, FUTMS: 180
-- UNIJOS, Babcock, LAUTECH, Nasarawa: 170
-- IBB University: 160
+**A. STATUTORY JAMB RULES (2026)**
+- Minimum age for admission: 16 years by October 31, 2026.
+- JAMB CAPS: Student must accept admission within 4 WEEKS of offer or it auto-reverts.
+- Post-UTME Screening Fee Cap: ₦2,000 (excluding bank charges). If a school charges more, flag it as "Bank/Portal charges inclusive".
+- Change of Institution/Course: max 3 times.
+- O'Level Upload is MANDATORY – no upload = no admission on CAPS.
 
-MOST SELECTED UNIVERSITIES 2026:
-- LASU: #1 (84,426)
-- OAU: #3 (60,370)
-- UI: #4 (58,895)
-- UNIBEN: #5 (55,425)
-- FUOYE: #9 (48,272)
+**B. CRITICAL: O'LEVEL GRADE-TO-POINT MAPPING — NEVER GUESS THIS**
 
-KEY POLICY CHANGES:
-- 4 weeks to accept admission on CAPS or lose it
-- Post-UTME fee capped at ₦2,000
-- Public universities admission deadline: October 31, 2026
-- Private universities: November 30, 2026
-- Polytechnics and COE: December 31, 2026
-- HND to BSc conversion: Discontinued
-- Minimum age: 16 years
-- All admissions must go through CAPS (outside CAPS is illegal)
+**FUTA Official Scale (75:25 Point System):**
+| Grade | Points |
+|-------|--------|
+| A1    | 6      |
+| B2    | 5      |
+| B3    | 4      |
+| C4    | 3      |
+| C5    | 2      |
+| C6    | 1      |
+| D7-F9 | 0      |
 
-IMPORTANT: For the provided program/course, you MUST estimate the specific *departmental* competitive cutoff.
-- Departmental cutoffs are almost always higher than the institutional baseline.
-- Treat the "Institutional Floor" listed above only as the absolute minimum.
-- For highly competitive courses (Medicine, Nursing, Pharmacy, Law, Computer Science, Software Engineering, Architecture, and Professional Engineering programs such as Mechanical, Electrical, Chemical, and Civil Engineering) in major institutions, the departmental cutoff is typically significantly higher.
-- UNIVERSAL SCALES:
-  a. If the school conducts screening based on raw JAMB score (0-400) (e.g. UNIBEN, UNN, FUTO, UniUyo), competitive cutoffs are normally 240-310+ for professional courses.
-  b. If the school conducts screening based on an aggregate percentage/point score out of 100% (e.g. UNILAG, FUTA, LASU, UI, OAU), competitive merit cutoffs range between 67% and 78%+ for high-demand professional programs.
-- Be realistic and objective. Highlight when they are in a borderline or highly competitive position based on their specific origin quota (National Merit vs Catchment vs ELDS).
+**Standard 4.0 Scale (for UNILAG, UNIBEN, etc.):**
+| Grade | Points |
+|-------|--------|
+| A1    | 4.0    |
+| B2    | 3.6    |
+| B3    | 3.2    |
+| C4    | 2.8    |
+| C5    | 2.4    |
+| C6    | 2.0    |
+| D7-F9 | 0      |
+
+**C. INSTITUTIONAL FORMULAS (APPLY EXACTLY)**
+- **FUTA (75:25):** UTME = (Score/400×75); O'Level = Sum of best 5 using A1=6, B2=5, B3=4, C4=3, C5=2, C6=1; Aggregate = UTME + O'Level (max 100)
+- **UNILAG (50:30:20):** (UTME/400×50) + (Post-UTME/100×30) + (O'Level Points×2)
+- **UI (50:50):** (UTME/400×50) + (Post-UTME/100×50)
+- **LASU (15:45:40):** (JAMB×0.15) + O'Level (A1=8, B2=7, B3=6, C4=5, C5=4, C6=3) + Post-UTME
+- **OAU, ABU, UNIBEN, UNN, UNILORIN** – use their specific weightings; if unsure, clearly state the assumption.
+
+**D. INSTITUTIONAL CUT-OFF FLOORS**
+- UNILAG, UI, UNN, OAU, UNIBEN: 200
+- FUTA, FUTO, UNILORIN, LASU: 180-195 (FUTA: 180, LASU: 195)
+- State Universities: 160-180
+- Private Universities / Polytechnics: 140-160
+- Colleges of Education: 100
+
+**E. ADMISSION QUOTAS — YOU MUST ASK FOR STATE OF ORIGIN**
+- **Merit (45%)** – highest aggregates nationwide (toughest).
+- **Catchment Area (35%)** – candidates from specific states/zones (often 3-8% lower cutoff).
+- **ELDS (20%)** – Educationally Less Developed States.
+
+**CRITICAL:** When a user provides their state of origin, immediately assess if they are in the target school's catchment. If NOT, warn them that they compete under Merit only, which has higher cutoffs.
+
+**F. JAMB CAPS STATUSES**
+- **Admitted** – offer made; accept/reject within 4 weeks.
+- **Proposed** – institution recommended you; wait for JAMB approval.
+- **Transfer** – alternative course offered; accept/reject on CAPS.
+- **Not Admitted** – still under screening or didn't meet criteria.
+- **Awaiting O'Level Upload** – URGENT: upload results on CAPS immediately.
+
+### 3. REAL-TIME GROUNDING ENGINE — OBEY THIS HIERARCHY
+1. **Level 1 (Highest): ${verifiedNews}** – Admin-Verified Knowledge (OVERRIDES everything).
+2. **Level 2: ${liveIntel}** – Live from MySchoolGist, JAMB portal, official .edu.ng sites.
+3. **Level 3: ${userContext}** – User corrections (prioritise for this session).
+4. **Level 4 (Lowest):** Your baseline training.
+
+**ANTI-HALLUCINATION:** If Level 1 and 2 lack a specific date/link/price, NEVER invent it. Say: "As of ${currentDate}, [School] has NOT officially announced [X]. Based on 2025 patterns, expect around [Month]."
+
+### 4. MANDATORY RESPONSE ARCHITECTURE (FOLLOW EVERY TIME)
+**A. Direct Answer First** – immediate yes/no, figure, or verdict.
+**B. Complete Calculation** – show ALL steps: UTME component + O'Level component = final aggregate.
+**C. Quota Analysis** – always state: "If you're from [state], you're [Catchment/Non-Catchment]. This means..."
+**D. Feasibility Verdict** – use: "Strong / Competitive / Borderline / Low" with reasoning.
+**E. Backup Strategy** – if borderline or low, suggest 2-3 alternative courses or schools immediately.
+**F. Next Steps** – 2-3 actionable actions (e.g., "Upload O'Level on CAPS", "Check Post-UTME date", "Generate PDF report").
+
+### 5. OCR & DOCUMENT HANDLING
+When a user uploads a WAEC/NECO result, JAMB slip, or screening slip:
+1. Extract ALL data (name, scores, grades, state of origin, course).
+2. Check subject combinations — flag missing compulsory subjects.
+3. Calculate O'Level points using the CORRECT scale for their target school.
+4. If ANY data is missing (e.g., O'Level grades), ASK for it immediately.
+5. NEVER proceed with a half-calculation — complete the aggregate first.
+
+### 6. PLATFORM FEATURES — CONFIDENTLY GUIDE USERS
+When a user asks about CampusAI tools, respond with enthusiasm:
+- **"Absolutely! Let me use the CampusAI calculator right now. I'll apply the verified [School] formula and give you your exact aggregate."**
+- **"For a detailed breakdown, generate your PDF Feasibility Report — it includes risk assessment and 3 backup strategies."**
+- **"Track all open Post-UTME forms on our Release Hub with live fees and deadlines."**
+
+### 7. STRICT PROHIBITIONS
+- NEVER advise paying individuals for admission.
+- NEVER claim scores can be upgraded.
+- NEVER help with malpractice or fraud.
+- Politely decline and redirect to legitimate prep.
+
+### 8. DYNAMIC CONTEXT
+Current Date: ${currentDate}
+Live Intel: ${liveIntel}
+Verified News: ${verifiedNews}
+User Memory: ${userContext}
+
+You are ready. Answer using the hierarchy above.
 `;
 
 // ─── AI Fallback Runner ────────────────────────────────────────────────────────
@@ -1957,6 +2030,47 @@ Return JSON:
 
 // ─── AI Chat ───────────────────────────────────────────────────────────────────
 
+export function buildCleanChatContents(history: ChatMessage[], newMessage: string) {
+  const validMessages = (history || []).filter(m => m && m.text && m.text.trim() !== '');
+
+  const formattedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+
+  for (const msg of validMessages) {
+    const role = msg.role === 'model' ? 'model' : 'user';
+
+    // Ignore initial welcome model message if starting array
+    if (formattedContents.length === 0 && role === 'model') {
+      continue;
+    }
+
+    if (formattedContents.length > 0 && formattedContents[formattedContents.length - 1].role === role) {
+      const lastIndex = formattedContents.length - 1;
+      formattedContents[lastIndex].parts[0].text += '\n\n' + msg.text.substring(0, 4000);
+    } else {
+      formattedContents.push({
+        role,
+        parts: [{ text: msg.text.substring(0, 4000) }]
+      });
+    }
+  }
+
+  if (formattedContents.length > 0 && formattedContents[formattedContents.length - 1].role === 'user') {
+    formattedContents.pop();
+  }
+
+  let sliced = formattedContents.slice(-12);
+  if (sliced.length > 0 && sliced[0].role === 'model') {
+    sliced = sliced.slice(1);
+  }
+
+  sliced.push({
+    role: 'user',
+    parts: [{ text: newMessage }]
+  });
+
+  return sliced;
+}
+
 export const executeAiChat = async (
   message: string,
   history: ChatMessage[]
@@ -2011,7 +2125,7 @@ Optimized Search Query:`,
         .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
         .slice(0, 8);
       if (activeNews.length > 0) {
-        newsContext += "\n\nVERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
+        newsContext += "VERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
         activeNews.forEach((news, idx) => {
           newsContext += `[News ${idx + 1}] Date: ${news.date} | Category: ${news.category}\nTitle: ${news.title}\nExcerpt: ${news.excerpt}\n\n`;
         });
@@ -2020,49 +2134,23 @@ Optimized Search Query:`,
       console.warn("[Grounding Engine] Could not load cloud news:", e);
     }
 
-    const cutoffFormulas = `
-VERIFIED 2026 CUTOFF CALCULATOR KNOWLEDGE & AGGREGATE FORMULAS:
-
-1. UNILAG — 50:30:20. Formula: (JAMB/8) + Post-UTME(out of 30) + O'Level(out of 20). Min UTME: 200.
-2. UI — 50:50 Average. Formula: ((JAMB/8) + Post-UTME) / 2. Min UTME: 200.
-3. OAU — 50:10:40. Formula: Weighted JAMB (50%) + CBT Screening (10%) + O'Level Best 5 subjects scaled (40%). Min UTME: 200.
-4. FUTA — Point-Based, NO written Post-UTME. Formula: 75:25 ratio. (JAMB / 400 * 75) + (O'Level Points / 50 * 25). Min UTME: 180.
-5. LASU — Point-Based, NO Post-UTME. Formula: (JAMB/8) + O'Level Verification points. Min UTME: 160.
-6. UNIBEN — 50:50. JAMB/50 + Post-UTME/50. Min UTME: 200.
-7. UNN — 50:50. JAMB/50 + Post-UTME/50. Min UTME: 200.
-8. ABU, UNILORIN, UNIPORT, FUTO, FUTMINNA — 50% JAMB + 50% Post-UTME CBT. Min UTME: ABU/UNILORIN 180; UNIPORT/FUTO/FUTMINNA 160.
-`;
-
-    let systemInstruction = getSystemPrompt()
-      + "\nYou are CampusAI, a highly intelligent and supportive Nigerian higher education strategist."
-      + cutoffFormulas
-      + newsContext
-      + `\n\nTEMPORAL ANCHOR (CRITICAL):`
-      + `\n- The current date is ${todayStr}. This is the 2026/2027 admission cycle.`
-      + `\n- Be extremely sensitive to dates. Do NOT confuse older 2024 or 2025 news with the current 2026/2027 session.`
-      + `\n- STRICT RULE: NEVER output placeholder templates, raw placeholders, or draft fields like "[Insert dates]", "[Insert fee]", "[insert date]", "[Insert price]", or "[Insert Link]". If specific values (such as registration dates, links, or fees) are not present in the provided Live Intel search results, explicitly state that the official values are "Not yet specified" or "Pending official announcement". NEVER use empty brackets or placeholder tags.`;
-
-    if (searchResults.length > 0) {
-      systemInstruction += "\n\nCRITICAL LIVE INTEL FROM ACCREDITED PORTALS:\n";
-      searchResults.forEach((r, idx) => {
-        systemInstruction += `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}\n\n`;
-      });
-      systemInstruction += "Use this live intel to craft a definitive, factual answer. Cite these sources where appropriate.";
-    }
-
     let learnedKnowledge = "";
     try {
       const knowledge = await getAllKnowledgeFragments();
       if (knowledge.length > 0) {
-        learnedKnowledge = "\n\nADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n"
-          + knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n')
-          + "\n";
+        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n"
+          + knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
       }
     } catch (e) {
       console.warn("Could not load knowledge fragments:", e);
     }
 
-    systemInstruction += learnedKnowledge;
+    const verifiedNewsStr = [newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+
+    let liveIntelStr = "";
+    if (searchResults.length > 0) {
+      liveIntelStr = searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+    }
 
     const userCorrections: string[] = [];
     for (let i = 0; i < history.length - 1; i++) {
@@ -2092,23 +2180,17 @@ VERIFIED 2026 CUTOFF CALCULATOR KNOWLEDGE & AGGREGATE FORMULAS:
         userCorrections.push(`User corrected: "${msg.text}"`);
       }
     }
+    const userContextStr = userCorrections.join('\n');
 
-    if (userCorrections.length > 0) {
-      systemInstruction +=
-        "\n\nUSER CORRECTIONS FROM THIS CONVERSATION (YOU MUST RESPECT THESE):\n"
-        + userCorrections.join('\n')
-        + "\nIf any of the above corrections conflict with your training data, ALWAYS side with the user's correction.\n";
-    }
+    let systemInstruction = getSystemPrompt(
+      liveIntelStr,
+      verifiedNewsStr,
+      userContextStr,
+      todayStr
+    );
 
     const response = await runAIWithFallback(async (ai) => {
-      const historyToSend = history.filter((_, idx) => idx > 0).slice(-8);
-
-      const contents = historyToSend.map(msg => ({
-        role: msg.role === 'model' ? 'model' : 'user',
-        parts: [{ text: msg.text.substring(0, 4000) }]
-      }));
-
-      contents.push({ role: 'user', parts: [{ text: sanitizedMessage }] });
+      const contents = buildCleanChatContents(history, sanitizedMessage);
 
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
@@ -2160,6 +2242,198 @@ VERIFIED 2026 CUTOFF CALCULATOR KNOWLEDGE & AGGREGATE FORMULAS:
     return {
       text: "I encountered an error connecting to the AI neural network or processing your request. Please try asking your question again."
     };
+  }
+};
+
+export const executeAiChatStream = async (
+  message: string,
+  history: ChatMessage[],
+  onChunk: (accumulatedText: string, groundingChunks?: GroundingChunk[]) => void
+): Promise<{ text: string; groundingChunks?: GroundingChunk[] }> => {
+  try {
+    let sanitizedMessage = message;
+    if (sanitizedMessage.length > 25000) {
+      sanitizedMessage = sanitizedMessage.substring(0, 25000) + "\n\n[Message truncated to prevent payload size limits]";
+    }
+
+    const chatKeys = getChatKeys();
+    const todayStr = getNigerianDate();
+
+    let optimizedQuery = `${sanitizedMessage.substring(0, 100)} 2026 Nigeria`;
+    try {
+      const optResponse = await runAIWithFallback(async (ai) => {
+        return await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
+Rewrite the user's message into a concise, highly effective Google Search query.
+Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
+Output ONLY the search query string (3-7 words).
+
+User Message: "${sanitizedMessage.substring(0, 200)}"
+Optimized Search Query:`,
+        });
+      }, undefined, chatKeys);
+
+      if (optResponse?.text) {
+        optimizedQuery = optResponse.text.trim().replace(/^["']|["']$/g, "");
+      }
+    } catch (optErr) {
+      console.error("[Grounding Engine] Query optimization error:", optErr);
+    }
+
+    let searchResults: any[] = [];
+    try {
+      searchResults = await searchWebRaw(optimizedQuery);
+    } catch (err) {
+      console.warn("[Grounding Engine] Search error:", err);
+    }
+
+    let newsContext = "";
+    try {
+      const newsItems = await getCloudNews();
+      const activeNews = [...newsItems]
+        .sort((a: any, b: any) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
+        .slice(0, 8);
+      if (activeNews.length > 0) {
+        newsContext += "VERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
+        activeNews.forEach((news: any, idx: number) => {
+          newsContext += `[News ${idx + 1}] Date: ${news.date} | Category: ${news.category}\nTitle: ${news.title}\nExcerpt: ${news.excerpt}\n\n`;
+        });
+      }
+    } catch (e) {
+      console.warn("[Grounding Engine] Could not load cloud news:", e);
+    }
+
+    let learnedKnowledge = "";
+    try {
+      const knowledge = await getAllKnowledgeFragments();
+      if (knowledge.length > 0) {
+        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n"
+          + knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+      }
+    } catch (e) {
+      console.warn("Could not load knowledge fragments:", e);
+    }
+
+    const verifiedNewsStr = [newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+
+    let liveIntelStr = "";
+    if (searchResults.length > 0) {
+      liveIntelStr = searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+    }
+
+    const userCorrections: string[] = [];
+    for (let i = 0; i < history.length - 1; i++) {
+      const msg = history[i];
+      if (
+        msg.role === 'user' &&
+        (
+          msg.text.toLowerCase().includes("it is not") ||
+          msg.text.toLowerCase().includes("it's not") ||
+          msg.text.toLowerCase().includes("wrong,") ||
+          msg.text.toLowerCase().includes("stop saying") ||
+          msg.text.toLowerCase().includes("i told you") ||
+          msg.text.toLowerCase().includes("already told")
+        )
+      ) {
+        userCorrections.push(`User corrected: "${msg.text}"`);
+      }
+    }
+    const userContextStr = userCorrections.join('\n');
+
+    let systemInstruction = getSystemPrompt(
+      liveIntelStr,
+      verifiedNewsStr,
+      userContextStr,
+      todayStr
+    );
+
+    const uniqueChunksMap = new Map<string, GroundingChunk>();
+    searchResults.forEach((r: any) => {
+      if (r.url) {
+        uniqueChunksMap.set(r.url, {
+          web: { uri: r.url, title: r.title || "Portal Update" }
+        });
+      }
+    });
+
+    let fullText = "";
+
+    await runAIWithFallback(async (ai) => {
+      const contents = buildCleanChatContents(history, sanitizedMessage);
+
+      try {
+        const responseStream = await ai.models.generateContentStream({
+          model: "gemini-1.5-flash",
+          contents,
+          config: { 
+            systemInstruction,
+            tools: [{ googleSearch: {} }]
+          }
+        });
+
+        for await (const chunk of responseStream) {
+          if (chunk.text) {
+            fullText += chunk.text;
+          }
+          const nativeChunks = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+          nativeChunks.forEach((c: any) => {
+            if (c.web?.uri) {
+              uniqueChunksMap.set(c.web.uri, {
+                web: { uri: c.web.uri, title: c.web.title || "Search Result" }
+              });
+            }
+          });
+          const chunksArr = Array.from(uniqueChunksMap.values());
+          onChunk(fullText, chunksArr.length > 0 ? chunksArr : undefined);
+        }
+      } catch (streamErr) {
+        console.warn("generateContentStream fallback to generateContent:", streamErr);
+        const singleResp = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents,
+          config: { 
+            systemInstruction,
+            tools: [{ googleSearch: {} }]
+          }
+        });
+        fullText = singleResp.text || "";
+        const nativeChunks = singleResp.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        nativeChunks.forEach((c: any) => {
+          if (c.web?.uri) {
+            uniqueChunksMap.set(c.web.uri, {
+              web: { uri: c.web.uri, title: c.web.title || "Search Result" }
+            });
+          }
+        });
+        const chunksArr = Array.from(uniqueChunksMap.values());
+        
+        const words = fullText.split(" ");
+        let currentTyped = "";
+        for (let i = 0; i < words.length; i++) {
+          currentTyped += (i === 0 ? "" : " ") + words[i];
+          onChunk(currentTyped, chunksArr.length > 0 ? chunksArr : undefined);
+          await new Promise(r => setTimeout(r, 12));
+        }
+      }
+
+      return { text: fullText };
+    }, undefined, chatKeys);
+
+    const finalGroundingChunks = Array.from(uniqueChunksMap.values());
+    return {
+      text: fullText,
+      groundingChunks: finalGroundingChunks.length > 0 ? finalGroundingChunks : undefined
+    };
+  } catch (e: any) {
+    console.error("AI Chat streaming error:", e);
+    const errStr = e?.message || e?.toString() || "";
+    const errorText = errStr.includes("413") || errStr.includes("Payload Too Large")
+      ? "The uploaded file or message exceeds the maximum payload size (413 Payload Too Large). Please upload a smaller document excerpt or shorter text and try again."
+      : "I encountered an error connecting to the AI neural network or processing your request. Please try asking your question again.";
+    
+    onChunk(errorText);
+    return { text: errorText };
   }
 };
 

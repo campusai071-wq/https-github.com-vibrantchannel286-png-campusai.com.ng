@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Brain, Sparkles, Loader2, ArrowUpRight,
-  ShieldCheck, Zap, Trash2, Paperclip, FileText
+  ShieldCheck, Zap, Trash2, Paperclip, FileText,
+  Copy, Check, ThumbsUp, ThumbsDown, RotateCcw,
+  Share2, Volume2, VolumeX, ExternalLink, MessageSquare
 } from 'lucide-react';
-import { executeAiChat } from '../services/geminiService';
+import { executeAiChat, executeAiChatStream } from '../services/geminiService';
 import { checkAndIncrementChats, getLocalProfile, isRealUser, getChatLimits } from '../services/userService';
 import { ChatMessage } from '../types';
 import QuotaModal from './QuotaModal';
@@ -36,7 +38,19 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Gemini prototype action states
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [likes, setLikes] = useState<Record<number, 'like' | 'dislike' | null>>({});
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+  const [shareModalMsg, setShareModalMsg] = useState<ChatMessage | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const handleChatFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -196,29 +210,162 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
     // messagesRef.current always holds the latest messages — safe even in stale closures
     const latestMessages = messagesRef.current;
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage, { role: 'model', text: '' }]);
     setInput('');
     setAttachedFile(null);
     setIsLoading(true);
 
     try {
-      // Pass full history (excluding new message) + new message to the AI
-      const result = await executeAiChat(currentInput, latestMessages);
-      setMessages(prev => [...prev, {
-        role: 'model',
-        text: result.text,
-        groundingChunks: result.groundingChunks
-      }]);
+      await executeAiChatStream(
+        currentInput,
+        latestMessages,
+        (streamedText, groundingChunks) => {
+          setMessages(prev => {
+            const newArr = [...prev];
+            const lastIdx = newArr.length - 1;
+            if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
+              newArr[lastIdx] = {
+                ...newArr[lastIdx],
+                text: streamedText,
+                groundingChunks: groundingChunks || newArr[lastIdx].groundingChunks
+              };
+            }
+            return newArr;
+          });
+        }
+      );
     } catch {
-      setMessages(prev => [...prev, {
-        role: 'model',
-        text: "I encountered a synchronization hiccup reading the university matrix. Let's try sending that question again in a moment."
-      }]);
+      setMessages(prev => {
+        const newArr = [...prev];
+        const lastIdx = newArr.length - 1;
+        if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
+          newArr[lastIdx] = {
+            role: 'model',
+            text: "I encountered a synchronization hiccup reading the university matrix. Let's try sending that question again in a moment."
+          };
+        }
+        return newArr;
+      });
     } finally {
       setIsLoading(false);
     }
   // Removed `messages` from deps — messagesRef handles freshness without re-creating the fn
   }, [input, isLoading, user]);
+
+  // ── Gemini Prototype Message Actions ──
+  const handleCopyMessage = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    showToast("Response copied to clipboard");
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleToggleLike = (index: number, type: 'like' | 'dislike') => {
+    setLikes(prev => {
+      const current = prev[index];
+      const newRating = current === type ? null : type;
+      if (newRating === 'like') showToast("Response marked as good");
+      if (newRating === 'dislike') showToast("Feedback recorded. We'll improve this!");
+      return { ...prev, [index]: newRating };
+    });
+  };
+
+  const handleRegenerate = async (msgIndex: number) => {
+    if (isLoading) return;
+
+    const currentMessages = messagesRef.current;
+    let userQuery = "";
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (currentMessages[i]?.role === 'user') {
+        userQuery = currentMessages[i].text;
+        break;
+      }
+    }
+
+    if (!userQuery) {
+      showToast("No query found to regenerate.");
+      return;
+    }
+
+    setIsLoading(true);
+    showToast("Regenerating response...");
+
+    const historyForRegen = currentMessages.slice(0, msgIndex);
+
+    setMessages(prev => {
+      const next = [...prev];
+      next[msgIndex] = { role: 'model', text: '' };
+      return next;
+    });
+
+    try {
+      await executeAiChatStream(
+        userQuery,
+        historyForRegen,
+        (streamedText, groundingChunks) => {
+          setMessages(prev => {
+            const next = [...prev];
+            if (next[msgIndex]) {
+              next[msgIndex] = {
+                ...next[msgIndex],
+                text: streamedText,
+                groundingChunks: groundingChunks || next[msgIndex].groundingChunks
+              };
+            }
+            return next;
+          });
+        }
+      );
+    } catch {
+      setMessages(prev => {
+        const next = [...prev];
+        if (next[msgIndex]) {
+          next[msgIndex] = {
+            role: 'model',
+            text: "Failed to regenerate response. Please check your connection and try again."
+          };
+        }
+        return next;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShareMessage = async (msg: ChatMessage) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'CampusAI Response',
+          text: `${msg.text}\n\n— Generated by CampusAI (https://campusai.ng)`
+        });
+        return;
+      } catch {
+        // Fall back to modal
+      }
+    }
+    setShareModalMsg(msg);
+  };
+
+  const handleToggleSpeech = (text: string, index: number) => {
+    if (!('speechSynthesis' in window)) {
+      showToast("Speech synthesis is not supported on this browser.");
+      return;
+    }
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+    } else {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[*_#`~[\]()]/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.onend = () => setSpeakingIndex(null);
+      utterance.onerror = () => setSpeakingIndex(null);
+      window.speechSynthesis.speak(utterance);
+      setSpeakingIndex(index);
+    }
+  };
 
   // ── Open drawer + auto-send external message ──
   useEffect(() => {
@@ -268,7 +415,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-lg h-full bg-white dark:bg-gray-950 shadow-2xl flex flex-col z-10 border-l border-gray-100 dark:border-gray-800"
+              className="relative w-full max-w-lg h-full h-[100dvh] bg-white dark:bg-gray-950 shadow-2xl flex flex-col z-10 border-l border-gray-100 dark:border-gray-800 overflow-hidden"
             >
               {/* Header */}
               <div className="p-6 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shrink-0">
@@ -347,6 +494,21 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-white dark:bg-gray-950">
 
+                    {/* Toast message notification */}
+                    <AnimatePresence>
+                      {toastMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-xl text-xs font-bold shadow-xl border border-gray-700 dark:border-gray-200 flex items-center gap-2 pointer-events-none"
+                        >
+                          <Sparkles size={12} className="text-blue-400 dark:text-blue-600 shrink-0" />
+                          <span>{toastMessage}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {/* Starter prompts — only show when no conversation yet */}
                     {messages.length === 1 && (
                       <div className="mb-6 space-y-4">
@@ -376,9 +538,9 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                     {messages.map((msg, i) => (
                       <div
                         key={i}
-                        className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} space-y-2`}
+                        className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} space-y-1.5`}
                       >
-                        <div className={`max-w-[85%] p-4 rounded-3xl shadow-sm ${
+                        <div className={`max-w-[88%] sm:max-w-[85%] p-4 rounded-3xl shadow-sm ${
                           msg.role === 'user'
                             ? 'bg-blue-600 text-white rounded-tr-none font-semibold text-sm'
                             : 'bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-800 rounded-tl-none font-medium'
@@ -409,6 +571,72 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                             </div>
                           )}
                         </div>
+
+                        {/* Gemini Prototype Action Toolbar for Model Messages */}
+                        {msg.role === 'model' && msg.text && (
+                          <div className="flex items-center gap-1 pl-1 pt-0.5 text-gray-400 dark:text-gray-500">
+                            {/* Copy */}
+                            <button
+                              onClick={() => handleCopyMessage(msg.text, i)}
+                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+                              title="Copy response"
+                            >
+                              {copiedIndex === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                            </button>
+
+                            {/* Good response (Like) */}
+                            <button
+                              onClick={() => handleToggleLike(i, 'like')}
+                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+                                likes[i] === 'like' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                              }`}
+                              title="Good response"
+                            >
+                              <ThumbsUp size={14} className={likes[i] === 'like' ? 'fill-current' : ''} />
+                            </button>
+
+                            {/* Bad response (Dislike) */}
+                            <button
+                              onClick={() => handleToggleLike(i, 'dislike')}
+                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+                                likes[i] === 'dislike' ? 'text-red-500 bg-red-50 dark:bg-red-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                              }`}
+                              title="Bad response"
+                            >
+                              <ThumbsDown size={14} className={likes[i] === 'dislike' ? 'fill-current' : ''} />
+                            </button>
+
+                            {/* Regenerate / Reload */}
+                            <button
+                              onClick={() => handleRegenerate(i)}
+                              disabled={isLoading}
+                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:opacity-40"
+                              title="Regenerate / Reload response"
+                            >
+                              <RotateCcw size={14} className={isLoading ? 'animate-spin' : ''} />
+                            </button>
+
+                            {/* Share */}
+                            <button
+                              onClick={() => handleShareMessage(msg)}
+                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer"
+                              title="Share response"
+                            >
+                              <Share2 size={14} />
+                            </button>
+
+                            {/* Read Aloud Speech */}
+                            <button
+                              onClick={() => handleToggleSpeech(msg.text, i)}
+                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+                                speakingIndex === i ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                              }`}
+                              title={speakingIndex === i ? 'Stop reading' : 'Read aloud'}
+                            >
+                              {speakingIndex === i ? <VolumeX size={14} className="animate-pulse" /> : <Volume2 size={14} />}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -438,7 +666,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                   </div>
 
                   {/* Input bar */}
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-3">
+                  <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     {attachedFile && (
                       <div className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-xs">
                         <div className="flex items-center gap-2 truncate text-blue-800 dark:text-blue-300">
@@ -453,7 +681,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                         </button>
                       </div>
                     )}
-                    <div className="relative flex items-center">
+                    <div className="relative flex items-end bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 focus-within:border-blue-500 rounded-2xl transition-all p-1.5 shadow-sm">
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -463,23 +691,33 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                       />
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute left-3 p-2.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                        className="p-2.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all shrink-0 mb-0.5"
                         title="Upload Document / Result Slip"
                       >
                         <Paperclip size={18} />
                       </button>
-                      <input
-                        type="text"
+                      <textarea
+                        rows={1}
                         value={input}
                         onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
+                        onFocus={() => {
+                          setTimeout(() => {
+                            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                          }, 200);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
                         placeholder="Ask about cutoffs, CAPS status, or upload slip..."
-                        className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 focus:border-blue-500 p-4 pl-12 pr-16 rounded-2xl outline-none text-sm font-bold transition-all text-gray-900 dark:text-white placeholder:text-gray-400"
+                        className="w-full bg-transparent p-2.5 text-sm font-bold outline-none text-gray-900 dark:text-white placeholder:text-gray-400 resize-none min-h-[40px] max-h-32 overflow-y-auto leading-relaxed"
                       />
                       <button
                         onClick={() => handleSendMessage()}
                         disabled={(!input.trim() && !attachedFile) || isLoading}
-                        className="absolute right-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white p-3 rounded-xl transition-all cursor-pointer shadow-md"
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 text-white p-2.5 rounded-xl transition-all cursor-pointer shadow-md shrink-0 mb-0.5 ml-1"
                       >
                         <Send size={16} />
                       </button>
@@ -487,6 +725,69 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                   </div>
                 </>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {shareModalMsg && (
+          <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-extrabold text-sm uppercase tracking-wider">
+                  <Share2 size={18} /> Share CampusAI Guidance
+                </div>
+                <button
+                  onClick={() => setShareModalMsg(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-3.5 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 max-h-44 overflow-y-auto text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed">
+                {shareModalMsg.text}
+              </div>
+
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${shareModalMsg.text}\n\n— Generated by CampusAI (https://campusai.ng)`);
+                    showToast("Full response copied to clipboard!");
+                    setShareModalMsg(null);
+                  }}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+                >
+                  <Copy size={16} /> Copy Full Response
+                </button>
+
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareModalMsg.text.substring(0, 500)}...\n\nRead full strategy on CampusAI: https://campusai.ng`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShareModalMsg(null)}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all text-center"
+                >
+                  <MessageSquare size={16} /> Share on WhatsApp
+                </a>
+
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareModalMsg.text.substring(0, 200)}...\n\nVerified via @CampusAI`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShareModalMsg(null)}
+                  className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all text-center"
+                >
+                  <ExternalLink size={16} /> Share on X / Twitter
+                </a>
+              </div>
             </motion.div>
           </div>
         )}
