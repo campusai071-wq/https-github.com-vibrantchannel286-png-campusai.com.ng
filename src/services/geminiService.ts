@@ -1106,6 +1106,24 @@ export const validateMandatorySubjects = (
     }
   }
 
+  // 7. Architecture & Environmental Design
+  const isArchitecture = c.includes('architecture') || c.includes('architectural');
+  if (isArchitecture) {
+    const hasMath = has('math');
+    const hasPhy = has('phy');
+
+    const missing: string[] = [];
+    if (!hasMath) missing.push('Mathematics');
+    if (!hasPhy) missing.push('Physics');
+
+    if (missing.length > 0) {
+      return {
+        valid: false,
+        reason: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} strictly compulsory for Architecture in JAMB.`
+      };
+    }
+  }
+
   return { valid: true, reason: "Candidate has the required JAMB subject combination." };
 };
 
@@ -1298,7 +1316,12 @@ export const getCourseCutoffInfo = async (
   try {
     // ─── DEDUPLICATE AND NORMALIZE JAMB SUBJECTS ──────────────────────────────
     const cleanJambSubjects = Array.from(
-      new Set((jambSubjects || []).map(s => String(s || '').trim()).filter(Boolean))
+      new Set(
+        (jambSubjects || [])
+          .flatMap(s => String(s || '').split(/[_,\/\+]+/))
+          .map(s => String(s || '').trim())
+          .filter(Boolean)
+      )
     );
 
     const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v3`;
@@ -1354,6 +1377,7 @@ export const getCourseCutoffInfo = async (
 
         // Check for tone mismatch in cached detailedStrategy
         const cacheTextLower = String(cachedResult.detailedStrategy || '').toLowerCase();
+        const cacheRecLower = String(cachedResult.recommendation || '').toLowerCase();
         const isCacheContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
           cacheTextLower.includes("strong position") ||
           cacheTextLower.includes("strong candidate") ||
@@ -1361,10 +1385,15 @@ export const getCourseCutoffInfo = async (
           cacheTextLower.includes("winning position") ||
           cacheTextLower.includes("high probability") ||
           cacheTextLower.includes("well positioned") ||
-          cacheTextLower.includes("competitive position")
+          cacheTextLower.includes("competitive position") ||
+          cacheTextLower.includes("strong chance") ||
+          cacheTextLower.includes("favourable position") ||
+          cacheTextLower.includes("favorable position") ||
+          cacheRecLower.includes("strong position") ||
+          cacheRecLower.includes("strong candidate")
         );
 
-        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40) {
+        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40 || score < parsedCutoffVal) {
           cachedResult.detailedStrategy = enforced.detailedStrategy;
           cachedResult.recommendation = enforced.recommendation;
         }
@@ -1628,6 +1657,7 @@ Return JSON:
         parsed.probability = enforced.probability;
 
         const strategyTextLower = String(parsed.detailedStrategy || '').toLowerCase();
+        const recTextLower = String(parsed.recommendation || '').toLowerCase();
         const isContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
           strategyTextLower.includes("strong position") ||
           strategyTextLower.includes("strong candidate") ||
@@ -1635,10 +1665,15 @@ Return JSON:
           strategyTextLower.includes("winning position") ||
           strategyTextLower.includes("high probability") ||
           strategyTextLower.includes("well positioned") ||
-          strategyTextLower.includes("competitive position")
+          strategyTextLower.includes("competitive position") ||
+          strategyTextLower.includes("strong chance") ||
+          strategyTextLower.includes("favourable position") ||
+          strategyTextLower.includes("favorable position") ||
+          recTextLower.includes("strong position") ||
+          recTextLower.includes("strong candidate")
         );
 
-        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40) {
+        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40 || score < parsedCutoffVal) {
           parsed.detailedStrategy = enforced.detailedStrategy;
           parsed.recommendation = enforced.recommendation;
         }

@@ -1188,25 +1188,42 @@ export const saveCachedUniversityCourses = async (institution: string, courses: 
 };
 
 export const getCachedCourseCutoffInfo = async (institution: string, course: string): Promise<any | null> => {
+  const key = slugify(`${institution}_${course}`);
+  try {
+    const local = localStorage.getItem(`campusai_cutoff_cache_${key}`);
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (parsed && parsed.data) return parsed.data;
+    }
+  } catch (e) {}
+
   if (!db) return null;
   try {
-    const key = slugify(`${institution}_${course}`);
     const snap = await getDoc(doc(db, "cached_course_cutoff_info", key));
     if (snap.exists()) {
       const d = snap.data();
-      return d.data || d;
+      const resData = d.data || d;
+      try {
+        localStorage.setItem(`campusai_cutoff_cache_${key}`, JSON.stringify({ data: resData, timestamp: Date.now() }));
+      } catch (e) {}
+      return resData;
     }
     return null;
   } catch (e) {
-    console.warn("Error reading cached cutoff info:", e);
+    console.warn("Error reading cached cutoff info from DB:", e);
     return null;
   }
 };
 
 export const saveCachedCourseCutoffInfo = async (institution: string, course: string, data: any) => {
-  if (!db || !data) return;
+  if (!data) return;
+  const key = slugify(`${institution}_${course}`);
   try {
-    const key = slugify(`${institution}_${course}`);
+    localStorage.setItem(`campusai_cutoff_cache_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {}
+
+  if (!db) return;
+  try {
     await setDoc(doc(db, "cached_course_cutoff_info", key), {
       institution,
       course,
@@ -1315,6 +1332,7 @@ export const savePostUtmeReleases = async (releases: any[]) => {
 };
 
 export interface CalculationAttemptDoc {
+  id?: string;
   uniName: string;
   courseName: string;
   jambScore: string;
@@ -1324,6 +1342,7 @@ export interface CalculationAttemptDoc {
   isAR: boolean;
   isPostUtmePending: boolean;
   timestamp: number;
+  aiResult?: any;
 }
 
 // Save a new calculation attempt for a logged-in user

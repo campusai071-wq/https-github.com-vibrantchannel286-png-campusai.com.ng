@@ -182,7 +182,9 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
               <p className="text-[9px] text-gray-500 mt-0.5">{isPostUtmePending ? 'Estimated 70' : 'Screening Score'}</p>
             </div>
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-center">
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Aggregate Score</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                {(isPostUtmePending || aiResult?.isAwaitingResult) ? 'Projected Aggregate' : 'Aggregate Score'}
+              </span>
               <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{aggregateScore}%</p>
               <p className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 mt-0.5">{confidenceLevel} Confidence</p>
             </div>

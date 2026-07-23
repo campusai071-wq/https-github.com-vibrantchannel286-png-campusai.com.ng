@@ -13,7 +13,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
@@ -153,6 +153,7 @@ interface SavedProfile {
   isAR: boolean;
   isPostUtmePending: boolean;
   timestamp: number;
+  aiResult?: any;
 }
 
 interface PostUtmeStatusInfo {
@@ -1361,32 +1362,55 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     }
   }, [initialSchoolName, currentSchoolSlug, onClearInitialSchool, targetUni]);
 
-  // Load saved profiles
+  // Load saved profiles & calculation attempts with local storage persistence
   useEffect(() => {
+    // 1. Instantly load local storage attempts for immediate offline display
+    try {
+      const storedAttempts = localStorage.getItem('campusai_calculation_attempts');
+      if (storedAttempts) {
+        const parsed = JSON.parse(storedAttempts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCalculationAttempts(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Error reading local calculation attempts:', e);
+    }
+
+    // 2. Hydrate previous active result if present in local storage
+    try {
+      const lastResultStr = localStorage.getItem('campusai_last_calculation_result');
+      if (lastResultStr) {
+        const lastRes = JSON.parse(lastResultStr);
+        if (lastRes && lastRes.aiResult) {
+          setAiResult(lastRes.aiResult);
+          if (lastRes.uniName) {
+            const u = universityData.find((x: any) => x.name === lastRes.uniName);
+            if (u) { setTargetUni(u); setUniSearch(u.name); }
+          }
+          if (lastRes.courseName) { setTargetCourse(lastRes.courseName); setCourseSearch(lastRes.courseName); }
+          if (lastRes.jambScore) setJambScore(lastRes.jambScore);
+          if (lastRes.postUtmeScore) setPostUtmeScore(lastRes.postUtmeScore);
+          if (lastRes.stateOfOrigin) setStateOfOrigin(lastRes.stateOfOrigin);
+        }
+      }
+    } catch (e) {}
+
     if (user) {
-      // Logged in: pull history from the account (works across devices/browsers)
-      getCalculationAttempts(user.uid, 5)
+      // Logged in: pull history from account and sync to local storage
+      getCalculationAttempts(user.uid, 10)
         .then(attempts => {
           if (attempts && attempts.length > 0) {
             setCalculationAttempts(attempts as any);
-          } else {
-            // Fallback to localStorage if Firestore is empty
             try {
-              const storedAttempts = localStorage.getItem('campusai_calculation_attempts');
-              if (storedAttempts) setCalculationAttempts(JSON.parse(storedAttempts));
+              localStorage.setItem('campusai_calculation_attempts', JSON.stringify(attempts));
             } catch {}
           }
         })
-        .catch(err => console.error('Failed to load calculation attempts:', err));
-    } else {
-      // Guest: fall back to localStorage as before
-      try {
-        const storedAttempts = localStorage.getItem('campusai_calculation_attempts');
-        if (storedAttempts) setCalculationAttempts(JSON.parse(storedAttempts));
-      } catch {}
+        .catch(err => console.error('Failed to load calculation attempts from network:', err));
     }
 
-    // Saved scenarios can stay local-only, or be migrated the same way later
+    // Saved scenarios
     try {
       const stored = localStorage.getItem('campusai_saved_profiles');
       if (stored) setSavedProfiles(JSON.parse(stored));
@@ -1776,9 +1800,25 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const uni = universityData.find((u: any) => u.name === p.uniName);
     if (uni) { setTargetUni(uni); setUniSearch(uni.name); } else { setUniSearch(p.uniName); }
     setTargetCourse(p.courseName); setCourseSearch(p.courseName);
-    setJambScore(p.jambScore); setPostUtmeScore(p.postUtmeScore);
-    setStateOfOrigin(p.stateOfOrigin); setIsAR(p.isAR);
-    setIsPostUtmePending(p.isPostUtmePending); setShowResults(false);
+    setJambScore(p.jambScore || ''); setPostUtmeScore(p.postUtmeScore || '');
+    setStateOfOrigin(p.stateOfOrigin || ''); setIsAR(p.isAR || false);
+    setIsPostUtmePending(p.isPostUtmePending || false);
+
+    if (p.aiResult) {
+      setAiResult(p.aiResult);
+      setShowResults(true);
+    } else {
+      setShowResults(false);
+    }
+  };
+
+  const handleClearHistory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCalculationAttempts([]);
+    try {
+      localStorage.removeItem('campusai_calculation_attempts');
+      localStorage.removeItem('campusai_last_calculation_result');
+    } catch (err) {}
   };
 
   const handleCheckHandbookCourse = async (courseName: string) => {
@@ -1970,7 +2010,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const result = await getCourseCutoffInfo(
         activeUni.name, activeCourse, aggregateScore,
         subjects.map(s => `${s.name}: ${s.grade}`).join(', '),
-        Array.from(new Set(['English Language', jambSubject1, jambSubject2, jambSubject3].map(s => String(s || '').trim()).filter(Boolean))),
+        Array.from(
+          new Set(
+            ['English Language', jambSubject1, jambSubject2, jambSubject3]
+              .flatMap(s => String(s || '').split(/[_,\/\+]+/))
+              .map(s => String(s || '').trim())
+              .filter(Boolean)
+          )
+        ),
         user?.role, isAR, isPostUtmePending, formulaText,
         stateOfOrigin, isELDSState, isCatchmentState, computedDiscount,
         parseFloat(jambScore) || 0,
@@ -1979,7 +2026,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       setAiResult(result);
       setShowResults(true);
 
-      // Automatically save this calculation attempt to the history
+      // Automatically save this calculation attempt to history with local storage persistence
       const newAttempt: SavedProfile = {
         id: Math.random().toString(36).substring(2, 9),
         uniName: targetUni.name,
@@ -1991,20 +2038,41 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         isAR,
         isPostUtmePending,
         timestamp: Date.now(),
+        aiResult: result,
       };
-      setCalculationAttempts(prev => [newAttempt, ...prev].slice(0, 5));
+
+      setCalculationAttempts(prev => {
+        const filtered = prev.filter(p => !(p.uniName === newAttempt.uniName && p.courseName === newAttempt.courseName));
+        const updated = [newAttempt, ...filtered].slice(0, 10);
+        try {
+          localStorage.setItem('campusai_calculation_attempts', JSON.stringify(updated));
+        } catch (e) {
+          console.error('Failed to save calculation attempts to localStorage:', e);
+        }
+        return updated;
+      });
+
+      // Save active calculation result to localStorage
+      try {
+        localStorage.setItem('campusai_last_calculation_result', JSON.stringify({
+          uniName: targetUni.name,
+          courseName: targetCourse || courseSearch,
+          jambScore,
+          postUtmeScore,
+          stateOfOrigin,
+          aggregateScore,
+          isAR,
+          isPostUtmePending,
+          aiResult: result,
+          timestamp: Date.now(),
+        }));
+      } catch (e) {}
 
       if (user) {
-        // Persist to the account so it shows up on any device/browser
+        // Persist to account so it shows up on any device/browser
         saveCalculationAttempt(user.uid, newAttempt).catch(err =>
           console.error('Failed to save calculation attempt:', err)
         );
-      } else {
-        // Guests still just get localStorage
-        try {
-          const updated = [newAttempt, ...calculationAttempts].slice(0, 5);
-          localStorage.setItem('campusai_calculation_attempts', JSON.stringify(updated));
-        } catch {}
       }
 
       if (user) {
@@ -2345,6 +2413,51 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       >
                         <X size={10} />
                       </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Calculated Scores (Saved Offline) */}
+            {calculationAttempts.length > 0 && (
+              <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[7.5px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
+                    <Clock size={11} className="text-cyan-400" /> Recent Calculated Scores (Saved Offline)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    className="text-[7.5px] font-bold text-gray-500 hover:text-rose-400 transition-colors"
+                  >
+                    Clear History
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {calculationAttempts.map(p => (
+                    <div
+                      key={p.id || p.timestamp}
+                      onClick={() => handleLoadScenario(p)}
+                      className="group flex items-center justify-between p-2.5 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all select-none"
+                    >
+                      <div className="flex flex-col text-left overflow-hidden pr-2">
+                        <span className="text-[9.5px] font-black text-white group-hover:text-cyan-400 transition-colors truncate">
+                          {p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
+                        </span>
+                        <span className="text-[8px] text-gray-400 font-bold truncate">
+                          {p.courseName} • UTME: {p.jambScore || 'N/A'} {p.postUtmeScore ? `| Post: ${p.postUtmeScore}` : ''}
+                        </span>
+                        <span className="text-[7px] text-gray-500 mt-0.5">
+                          {new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs font-black text-cyan-300">{p.aggregateScore}%</div>
+                        <span className="text-[6.5px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          Offline Available
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
