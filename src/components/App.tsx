@@ -1,42 +1,44 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import PolicySection from './PolicySection';
-import AboutSection from './AboutSection';
-import Dashboard from './Dashboard';
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import Navbar from './Navbar';
+import HeroSection from './HeroSection';
 import NewsGrid from './NewsGrid';
-import RecentActivity from './RecentActivity';
-import AdminPanel from './AdminPanel';
-import UserSettingsModal from './UserSettingsModal';
-import NewsDetailView from './NewsDetailView';
-import AuthModal from './AuthModal';
-import ShareModal from './ShareModal';
-import InviteEarnModal from './InviteEarnModal';
-import ScholarPackModal from './ScholarPackModal';
-import SupportModal from './SupportModal';
-import LegalModal from './LegalModal';
-import CookieConsent from './CookieConsent';
-import LegalSection from './LegalSection';
-import CutoffCalculator from './CutoffCalculator';
-import InviteEarn from './InviteEarn';
-import PostUtmeReleaseHub from './PostUtmeReleaseHub';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
-import AIChatDrawer from './AIChatDrawer';
-import FAQSection from './FAQSection';
-import Tour from './Tour';
-import InstallPrompt from './InstallPrompt';
+import SEO from './SEO';
+
+// Code-split heavy secondary views & modals for faster initial load (LCP & TTFB)
+const PolicySection = lazy(() => import('./PolicySection'));
+const AboutSection = lazy(() => import('./AboutSection'));
+const Dashboard = lazy(() => import('./Dashboard'));
+const RecentActivity = lazy(() => import('./RecentActivity'));
+const AdminPanel = lazy(() => import('./AdminPanel'));
+const UserSettingsModal = lazy(() => import('./UserSettingsModal'));
+const NewsDetailView = lazy(() => import('./NewsDetailView'));
+const AuthModal = lazy(() => import('./AuthModal'));
+const ShareModal = lazy(() => import('./ShareModal'));
+const InviteEarnModal = lazy(() => import('./InviteEarnModal'));
+const ScholarPackModal = lazy(() => import('./ScholarPackModal'));
+const SupportModal = lazy(() => import('./SupportModal'));
+const LegalModal = lazy(() => import('./LegalModal'));
+const CookieConsent = lazy(() => import('./CookieConsent'));
+const LegalSection = lazy(() => import('./LegalSection'));
+const CutoffCalculator = lazy(() => import('./CutoffCalculator'));
+const InviteEarn = lazy(() => import('./InviteEarn'));
+const PostUtmeReleaseHub = lazy(() => import('./PostUtmeReleaseHub'));
+const AIChatDrawer = lazy(() => import('./AIChatDrawer'));
+const FAQSection = lazy(() => import('./FAQSection'));
+const Tour = lazy(() => import('./Tour'));
+const InstallPrompt = lazy(() => import('./InstallPrompt'));
+const CalculationAnimation = lazy(() => import('./CalculationAnimation'));
+const Testimonials = lazy(() => import('./Testimonials'));
+const StatusPage = lazy(() => import('./StatusPage'));
+const NotFound = lazy(() => import('./NotFound'));
+const FeedbackModal = lazy(() => import('./FeedbackModal'));
+const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
 import { useNotificationManager } from '../hooks/useNotificationManager';
 import { useStandalone } from '../hooks/useStandalone';
-import CalculationAnimation from './CalculationAnimation';
-import HeroSection from './HeroSection';
-import Testimonials from './Testimonials';
-import StatusPage from './StatusPage';
-import NotFound from './NotFound';
-import FeedbackModal from './FeedbackModal';
-import AdmissionChecklistPage from './AdmissionChecklistPage';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import SEO from './SEO';
 import { auth } from '../services/firebaseConfig';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { initializeUserProfile, subscribeToUserProfile, isRealUser } from '../services/userService';
@@ -672,7 +674,8 @@ const AppContent: React.FC = () => {
       />
 
       <main className="pb-40">
-        <Routes>
+        <Suspense fallback={<div className="min-h-[50vh] bg-gray-950 flex items-center justify-center text-emerald-500 font-medium text-xs tracking-widest uppercase">Loading CampusAI...</div>}>
+          <Routes>
           <Route path="/dashboard" element={
             <Dashboard 
               user={user} 
@@ -856,6 +859,7 @@ const AppContent: React.FC = () => {
           <Route path="/calculator" element={<Navigate to="/" state={{ scrollTo: 'calculator' }} replace />} />
           <Route path="*" element={<NotFound onGoHome={() => handleNavigate('home')} />} />
         </Routes>
+        </Suspense>
       </main>
 
       {/* WHATSAPP STICKY BANNER */}
@@ -887,29 +891,31 @@ const AppContent: React.FC = () => {
       
       <MobileBottomNav activeTab={currentPage} user={user} onNavigate={handleNavigate} />
       
-      <SupportModal 
-        isOpen={isSupportOpen} 
-        onClose={() => setIsSupportOpen(false)} 
-        onNavigateAI={() => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: 'Hello CampusAI, I have some questions about the 2026 admission cycle requirements.' }))} 
-      />
-      
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
-      <UserSettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        theme={theme} onThemeChange={setTheme} onLogout={handleLogout}
-        onLoginRequest={() => setIsAuthModalOpen(true)}
-        onStartTour={() => setIsTourOpen(true)}
-      />
-      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
-      <InviteEarnModal isOpen={isInviteEarnOpen} onClose={() => setIsInviteEarnOpen(false)} user={user} />
-      <ScholarPackModal isOpen={isScholarPackOpen} onClose={() => setIsScholarPackOpen(false)} user={user} paymentConfig={paymentConfig} />
-      <LegalModal isOpen={legalModal.isOpen} type={legalModal.type} onClose={() => setLegalModal({ ...legalModal, isOpen: false })} />
-      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} user={user} />
-      <AIChatDrawer user={user} />
-      <CookieConsent />
-      <InstallPrompt />
-      <Tour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
+      <Suspense fallback={null}>
+        <SupportModal 
+          isOpen={isSupportOpen} 
+          onClose={() => setIsSupportOpen(false)} 
+          onNavigateAI={() => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: 'Hello CampusAI, I have some questions about the 2026 admission cycle requirements.' }))} 
+        />
+        
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
+        <UserSettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+          theme={theme} onThemeChange={setTheme} onLogout={handleLogout}
+          onLoginRequest={() => setIsAuthModalOpen(true)}
+          onStartTour={() => setIsTourOpen(true)}
+        />
+        <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
+        <InviteEarnModal isOpen={isInviteEarnOpen} onClose={() => setIsInviteEarnOpen(false)} user={user} />
+        <ScholarPackModal isOpen={isScholarPackOpen} onClose={() => setIsScholarPackOpen(false)} user={user} paymentConfig={paymentConfig} />
+        <LegalModal isOpen={legalModal.isOpen} type={legalModal.type} onClose={() => setLegalModal({ ...legalModal, isOpen: false })} />
+        <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} user={user} />
+        <AIChatDrawer user={user} />
+        <CookieConsent />
+        <InstallPrompt />
+        <Tour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
+      </Suspense>
     </div>
   );
 };

@@ -57,7 +57,9 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -145,273 +147,25 @@
     </noscript>
 
     <div id="root">
-      <!-- STATIC FALLBACK PORTAL FOR BROWSERS WITHOUT REACT / RESTRICTED JAVASCRIPT -->
-      <!-- Styled in a beautiful, high-contrast dark layout, keeping pages crawlable and accessible -->
-      <div class="static-fallback-container" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #030712; color: #f3f4f6; min-height: 100vh; padding: 32px 16px; box-sizing: border-box;">
-        
-        <!-- Header / Logo -->
-        <div style="max-width: 600px; margin: 0 auto; text-align: center; padding-top: 10px; padding-bottom: 32px;">
-          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #10b981 100%); width: 64px; height: 64px; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);">
-            <span style="font-size: 28px;">🎓</span>
+      <!-- Minimal Zero-CLS App Shell Skeleton -->
+      <div style="min-height: 100vh; background-color: #030712; color: #f3f4f6; font-family: 'Inter', system-ui, sans-serif;">
+        <!-- Skeleton Navbar -->
+        <div style="height: 64px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; max-width: 1280px; margin: 0 auto;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #1e3a8a, #3b82f6);"></div>
+            <div style="height: 18px; width: 120px; background: rgba(255,255,255,0.1); border-radius: 4px;"></div>
           </div>
-          <div style="font-size: 28px; font-weight: 900; letter-spacing: -0.025em; margin: 0 0 8px 0; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Campusai.com.ng</div>
-          <p style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #10b981; margin: 0;">2026/2027 Admission Intelligence Hub</p>
-        </div>
-
-        <!-- In-App Browser Warning / External Browser CTA -->
-        <div style="max-width: 600px; margin: 0 auto 24px auto; background-color: #0b0f19; border: 1px solid #1e3a8a; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); box-sizing: border-box;">
-          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
-            <span style="font-size: 20px; line-height: 1;">⚠️</span>
-            <div>
-              <h3 style="font-size: 14px; font-weight: 700; color: #e5e7eb; margin: 0 0 4px 0;">Restricted Environment Detected?</h3>
-              <p style="font-size: 12px; color: #9ca3af; line-height: 1.5; margin: 0;">
-                If you are viewing inside Facebook, Instagram, or Google Search App in-app browsers, login popups and advanced interactive aggregate systems are often disabled by social media platform parent policies.
-              </p>
-            </div>
-          </div>
-          
-          <div style="background-color: #111827; border-radius: 10px; padding: 12px; font-size: 11px; color: #10b981; line-height: 1.5; margin-bottom: 16px; border-left: 3px solid #10b981;">
-            <strong>💡 Highly Recommended:</strong> Tap the <strong>three dots (⋮ or •••)</strong> in the top-right corner of your screen and select <strong>"Open in Browser"</strong> (Chrome or Safari). If you are using <strong>Opera Mini</strong>, tap the bottom red icon, enter <strong>Data Savings</strong> settings and turn change saving mode from <strong>"Extreme"</strong> to <strong>"Automatic"</strong> or <strong>"High"</strong> to activate the fully interactive AI admissions strategist!
-          </div>
-
-          <div style="text-align: center;">
-            <a href="https://campusai.com.ng/" target="_blank" rel="noopener noreferrer" style="background-color: #2563eb; color: #ffffff; text-decoration: none; display: inline-block; font-size: 13px; font-weight: 700; padding: 12px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: background-color 0.2s;">
-              Refresh in External Browser 📲
-            </a>
+          <div style="display: flex; gap: 16px;">
+            <div style="height: 32px; width: 80px; background: rgba(255,255,255,0.08); border-radius: 8px;"></div>
+            <div style="height: 32px; width: 90px; background: rgba(37,99,235,0.3); border-radius: 8px;"></div>
           </div>
         </div>
-
-        <!-- Interactive Vanilla Fallback Admissions Suite -->
-        <div style="max-width: 600px; margin: 0 auto 24px auto; background-color: #0b0f19; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; box-sizing: border-box;">
-          <h2 style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px;">
-            <span>⚡</span> Lite Admissions Calibrator (No-JS/Vanilla Fallback)
-          </h2>
-          <p style="font-size: 11px; color: #9ca3af; margin: 0 0 20px 0; line-height: 1.4;">
-            This responsive sandbox widget executes calculations instantly even if React scripts are blocked by your browser container.
-          </p>
-          
-          <form id="fallback-calc-form" style="display: grid; gap: 16px;" onsubmit="event.preventDefault(); return false;">
-            <!-- Select School -->
-            <div>
-              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #e5e7eb; margin-bottom: 6px;">Target University Formula</label>
-              <select id="fb-university" style="width: 100%; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; color: #ffffff; font-size: 13px; font-weight: 600; outline: none;" onchange="updateFallbackFields()">
-                <option value="unilag">University of Lagos (UNILAG) (50:30:20)</option>
-                <option value="lasu">Lagos State University (LASU) (60:40)</option>
-                <option value="futa">Fed Uni of Technology Akure (FUTA) (75:25)</option>
-                <option value="ui">University of Ibadan (UI) (50:50)</option>
-              </select>
-            </div>
-
-            <!-- Score inputs grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #e5e7eb; margin-bottom: 6px;">JAMB score (0 - 400)</label>
-                <input id="fb-jamb" type="number" min="0" max="400" placeholder="e.g. 280" style="width: 100%; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; color: #ffffff; font-size: 13px; outline: none;" />
-              </div>
-              <div id="fb-postutme-container">
-                <label id="fb-postutme-label" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #e5e7eb; margin-bottom: 6px;">Post-UTME Exam (0 - 30)</label>
-                <input id="fb-postutme" type="number" min="0" max="100" placeholder="e.g. 22" style="width: 100%; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; color: #ffffff; font-size: 13px; outline: none;" />
-              </div>
-            </div>
-
-            <!-- O-level Grades Box -->
-            <div id="fb-olevel-container" style="background-color: #050811; border: 1px solid rgba(255,255,255,0.02); padding: 14px; border-radius: 12px;">
-              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #10b981; margin: 0 0 10px 0;">O'Level Core Grades (Best 5 Subjects)</p>
-              <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
-                <select class="fb-sub" style="background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 4px; color: #fff; font-size: 11px; text-align: center;"><option>A1</option><option>B2</option><option>B3</option><option>C4</option><option>C5</option><option>C6</option></select>
-                <select class="fb-sub" style="background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 4px; color: #fff; font-size: 11px; text-align: center;"><option>A1</option><option>B2</option><option>B3</option><option>C4</option><option>C5</option><option>C6</option></select>
-                <select class="fb-sub" style="background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 4px; color: #fff; font-size: 11px; text-align: center;"><option>A1</option><option>B2</option><option>B3</option><option>C4</option><option>C5</option><option>C6</option></select>
-                <select class="fb-sub" style="background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 4px; color: #fff; font-size: 11px; text-align: center;"><option>A1</option><option>B2</option><option>B3</option><option>C4</option><option>C5</option><option>C6</option></select>
-                <select class="fb-sub" style="background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 4px; color: #fff; font-size: 11px; text-align: center;"><option>A1</option><option>B2</option><option>B3</option><option>C4</option><option>C5</option><option>C6</option></select>
-              </div>
-            </div>
-
-            <button type="button" onclick="calculateFallbackAggregate()" style="width: 100%; border: none; background: linear-gradient(to right, #3b82f6, #10b981); color: #ffffff; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-              Calculate Admission Quota 📊
-            </button>
-          </form>
-
-          <!-- Fallback Output Display -->
-          <div id="fb-result-box" style="margin-top: 16px; background-color: #111827; padding: 16px; border-radius: 12px; border-left: 4px solid #3b82f6; display: none; box-sizing: border-box;">
-            <p style="font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px 0;">Calculated Aggregate</p>
-            <div id="fb-aggregate-score" style="font-size: 32px; font-weight: 900; color: #10b981; margin: 0 0 8px 0; line-height: 1;">00.00%</div>
-            <p id="fb-cutoff-status" style="font-size: 12px; color: #e5e7eb; line-height: 1.5; margin: 0;"></p>
-          </div>
+        <!-- Skeleton Hero Section -->
+        <div style="max-width: 1280px; margin: 40px auto; padding: 0 24px; text-align: center;">
+          <div style="height: 24px; width: 220px; background: rgba(16,185,129,0.15); border-radius: 20px; margin: 0 auto 20px auto;"></div>
+          <div style="height: 44px; max-width: 680px; background: rgba(255,255,255,0.08); border-radius: 8px; margin: 0 auto 16px auto;"></div>
+          <div style="height: 20px; max-width: 480px; background: rgba(255,255,255,0.05); border-radius: 6px; margin: 0 auto 32px auto;"></div>
         </div>
-
-        <!-- Static Fallback Admissions Cheat-Sheet -->
-        <div style="max-width: 600px; margin: 0 auto 24px auto; background-color: #0b0f19; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; box-sizing: border-box;">
-          <h2 style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin: 0 0 16px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px;">📊 2026 Competitive Admission Rulebook</h2>
-          
-          <div style="display: grid; gap: 12px;">
-            <div style="background-color: #111827; padding: 12px; border-radius: 10px;">
-              <p style="font-size: 12px; font-weight: 700; color: #ffffff; margin: 0 0 4px 0;">Catchment Area System Advantage</p>
-              <p style="font-size: 11px; color: #9ca3af; line-height: 1.5; margin: 0;">Federal universities lower target cutoffs (often by 3-8%) for candidates applying from states within the host institution's designated geographical zone.</p>
-            </div>
-            
-            <div style="background-color: #111827; padding: 12px; border-radius: 10px;">
-              <p style="font-size: 12px; font-weight: 700; color: #ffffff; margin: 0 0 4px 0;">ELDS Allocation Rules</p>
-              <p style="font-size: 11px; color: #9ca3af; line-height: 1.5; margin: 0;">Educationally Less Developed States (ELDS) receive 20% of admission quotas. Bypasses competitive state scores for eligible state origins inside Nigeria.</p>
-            </div>
-          </div>
-        </div>
-
-        <script>
-          function updateFallbackFields() {
-            var uniEl = document.getElementById('fb-university');
-            if (!uniEl || typeof uniEl.value === 'undefined') return;
-            var uni = uniEl.value;
-            
-            var container = document.getElementById('fb-postutme-container');
-            var label = document.getElementById('fb-postutme-label');
-            var pInput = document.getElementById('fb-postutme');
-            var oLevelCont = document.getElementById('fb-olevel-container');
-
-            if (uni === 'unilag') {
-              if (container) container.style.display = 'block';
-              if (label) label.innerText = 'Post-UTME Exam (0 - 30)';
-              if (pInput) {
-                pInput.placeholder = 'e.g. 22';
-                pInput.max = 30;
-              }
-              if (oLevelCont) oLevelCont.style.display = 'block';
-            } else if (uni === 'lasu') {
-              if (container) container.style.display = 'none';
-              if (oLevelCont) oLevelCont.style.display = 'block';
-            } else if (uni === 'futa') {
-              if (container) container.style.display = 'none';
-              if (pInput) pInput.value = '';
-              if (oLevelCont) oLevelCont.style.display = 'block';
-            } else if (uni === 'ui') {
-              if (container) container.style.display = 'block';
-              if (label) label.innerText = 'Post-UTME Exam (0 - 100)';
-              if (pInput) {
-                pInput.placeholder = 'e.g. 64';
-                pInput.max = 100;
-              }
-              if (oLevelCont) oLevelCont.style.display = 'none';
-            }
-          }
-
-          function getGradeValue(g, uni) {
-            if (!g) return 0;
-            if (uni === 'lasu') {
-              switch(g) {
-                case 'A1': return 10;
-                case 'B2': return 9;
-                case 'B3': return 8;
-                case 'C4': return 7;
-                case 'C5': return 6;
-                case 'C6': return 5;
-                default: return 0;
-              }
-            } else if (uni === 'unilag' || uni === 'futa') {
-              switch(g) {
-                case 'A1': return 4.0;
-                case 'B2': return 3.6;
-                case 'B3': return 3.2;
-                case 'C4': return 2.8;
-                case 'C5': return 2.4;
-                case 'C6': return 2.0;
-                default: return 0;
-              }
-            }
-            return 0;
-          }
-
-          function calculateFallbackAggregate() {
-            var uniEl = document.getElementById('fb-university');
-            if (!uniEl || typeof uniEl.value === 'undefined') return;
-            var uni = uniEl.value;
-
-            var jambEl = document.getElementById('fb-jamb');
-            var pInputEl = document.getElementById('fb-postutme');
-            if (!jambEl || !pInputEl) return;
-
-            var jamb = parseFloat(jambEl.value) || 0;
-            var postUtme = parseFloat(pInputEl.value) || 0;
-            
-            var aggregate = 0;
-            var explanation = "";
-
-            if (uni === 'unilag') {
-              // JAMB / 8 (weighted out of 50%)
-              var weightedJamb = (jamb / 400) * 50;
-              // PostUtme directly (weighted out of 30%)
-              var weightedPutme = Math.min(postUtme, 30);
-              // Olevels = SUM of best 5 grades (Max 20 marks where A1=4.0)
-              var oSum = 0;
-              var selects = document.querySelectorAll('.fb-sub');
-              selects.forEach(function(sel) {
-                oSum += getGradeValue(sel.value, 'unilag');
-              });
-              aggregate = weightedJamb + weightedPutme + oSum;
-              explanation = "UNILAG Formula: JAMB: " + weightedJamb.toFixed(2) + "% | Post-UTME: " + weightedPutme.toFixed(2) + "% | O'level: " + oSum.toFixed(2) + "%";
-            } else if (uni === 'lasu') {
-              // JAMB / 400 * 60 (weighted out of 60%)
-              var weightedJamb = (jamb / 400) * 60;
-              // Olevel points (Max 40 points where A1=10)
-              var oSum = 0;
-              var selects = document.querySelectorAll('.fb-sub');
-              selects.forEach(function(sel) {
-                oSum += getGradeValue(sel.value, 'lasu');
-              });
-              // LASU divides the grading sum of 5 subjects by 1.25 to get a score over 40 (i.e. 50 / 1.25 = 40)
-              var weightedOlevel = oSum / 1.25;
-              aggregate = weightedJamb + weightedOlevel;
-              explanation = "LASU 60:40 Formula (No written screening): JAMB: " + weightedJamb.toFixed(2) + "% | O'Level Points: " + weightedOlevel.toFixed(2) + "% (O'Level grades sum of " + oSum + " scaled by 1.25)";
-            } else if (uni === 'futa') {
-              // FUTA aggregate = (JAMB / 4) * 0.75 + (O'Level Points * 5)
-              // Wait, let's use the statutory 75:25 ratio
-              var weightedJamb = (jamb / 400) * 75;
-              // O'Level point aggregate: A1=4, B2=3.6 etc. (Sum of best five grades, max 20, scaled up to 25)
-              var oSum = 0;
-              var selects = document.querySelectorAll('.fb-sub');
-              selects.forEach(function(sel) {
-                oSum += getGradeValue(sel.value, 'futa');
-              });
-              var weightedOlevel = (oSum / 20) * 25;
-              aggregate = weightedJamb + weightedOlevel;
-              explanation = "FUTA Point-Based Formula (75:25): JAMB UTME Weight: " + weightedJamb.toFixed(2) + "% | O'Level Points: " + weightedOlevel.toFixed(2) + "%";
-            } else if (uni === 'ui') {
-              // UI Formula (50:50) of JAMB and written Post-UTME
-              var weightedJamb = (jamb / 8); // Scaled out of 50
-              var weightedPutme = (postUtme / 2); // Scaled out of 50 (input Post-UTME is out of 100)
-              aggregate = weightedJamb + weightedPutme;
-              explanation = "University of Ibadan (UI) Formula (50:50): JAMB: " + weightedJamb.toFixed(2) + "% | Written Post-UTME Portion: " + weightedPutme.toFixed(2) + "% (Input out of 100)";
-            }
-
-            var resultBox = document.getElementById('fb-result-box');
-            var scoreText = document.getElementById('fb-aggregate-score');
-            var cutoffStatusText = document.getElementById('fb-cutoff-status');
-
-            if (scoreText) scoreText.innerText = aggregate.toFixed(2) + "%";
-            if (cutoffStatusText) cutoffStatusText.innerHTML = "<strong>Status:</strong> Calibrated successfully.<br/>" + explanation + "<br/><br/><span style='color: #3b82f6; font-size: 11px;'>🚀 Re-open inside Chrome or Safari to run professional admissions matching across 12,000 course combinations!</span>";
-            if (resultBox) {
-              resultBox.style.display = 'block';
-              resultBox.scrollIntoView({ behavior: 'smooth' });
-            }
-          }
-
-          // Initial load call
-          document.addEventListener("DOMContentLoaded", function() {
-            updateFallbackFields();
-          });
-          // Also immediately run update just in case DOMContentLoaded has already passed in slow sandboxes
-          setTimeout(updateFallbackFields, 300);
-        </script>
-
-        <!-- Quick Resources -->
-        <div style="max-width: 600px; margin: 0 auto; background-color: #0b0f19; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; text-align: center; box-sizing: border-box;">
-          <h2 style="font-size: 14px; font-weight: 700; color: #ffffff; margin: 0 0 12px 0;">Official Quick Ports</h2>
-          <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
-            <a href="https://jamb.gov.ng/" target="_blank" rel="noopener noreferrer" style="border: 1px solid rgba(255,255,255,0.1); background-color: #111827; color: #9ca3af; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 600;">Official JAMB Registry</a>
-            <a href="https://lidc.lasu.edu.ng/" target="_blank" rel="noopener noreferrer" style="border: 1px solid rgba(255,255,255,0.1); background-color: #111827; color: #9ca3af; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 600;">LASU Admissions</a>
-            <a href="https://unilag.edu.ng/" target="_blank" rel="noopener noreferrer" style="border: 1px solid rgba(255,255,255,0.1); background-color: #111827; color: #9ca3af; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: 600;">UNILAG Website</a>
-          </div>
-          <p style="font-size: 10px; color: #4b5563; margin-top: 16px; margin-bottom: 0;">© 2026 Campusai.com.ng. Factual data sourced directly from JAMB and institution senate notifications.</p>
-        </div>
-
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
