@@ -103,6 +103,20 @@ export const triggerBrowserNotification = async (title: string, body: string, sl
     };
 
     // Mobile browsers require showing notifications via Service Worker
+    const fallbackNotification = () => {
+      try {
+        const n = new Notification(title, options);
+        n.onclick = (e) => {
+          e.preventDefault();
+          window.focus();
+          if (slug) {
+            window.location.href = `/news/${slug}`;
+          }
+        };
+      } catch (e) {
+        console.error("Failed to trigger browser Notification API:", e);
+      }
+    };
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready
         .then((registration) => {
@@ -120,20 +134,6 @@ export const triggerBrowserNotification = async (title: string, body: string, sl
       fallbackNotification();
     }
 
-    function fallbackNotification() {
-      try {
-        const n = new Notification(title, options);
-        n.onclick = (e) => {
-          e.preventDefault();
-          window.focus();
-          if (slug) {
-            window.location.href = `/news/${slug}`;
-          }
-        };
-      } catch (e) {
-        console.error("Failed to trigger browser Notification API:", e);
-      }
-    }
   }
 };
 

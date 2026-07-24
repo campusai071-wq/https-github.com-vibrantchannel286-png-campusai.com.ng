@@ -13,7 +13,8 @@ import {
   getCloudNews, archiveNewsItems, getGlobalSyncMetadata, 
   updateGlobalSyncMetadata, updateNewsItem, deleteNewsUpdate,
   logUserActivity, getStableNewsKey, normalizeCategory,
-  getCloudNewsCount, getUserActivities
+  getCloudNewsCount, getUserActivities, getSyncTime,
+  getEffectiveDateMs, sortNewsBySyncAndDate, getNewsSortTimestamp
 } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
 import QuotaModal from './QuotaModal';
@@ -53,34 +54,6 @@ const toMs = (val: any): number => {
 
 // ─── Sort / Score helpers ─────────────────────────────────────────────────────
 
-const getSyncTime = (item: NewsItem, now: number = Date.now()): number => {
-  if (!item) return 0;
-  const dateStr = item.date ? item.date.trim() : "";
-  const isBracketed = dateStr.includes("[") || dateStr.includes("]");
-  const pub = isBracketed ? 0 : toMs(dateStr);
-  
-  const createdVal = toMs(item.createdAt);
-  const archivedVal = toMs(item.archivedAt);
-  const updatedVal = toMs(item.updatedAt);
-
-  const created = createdVal ? Math.min(now, createdVal) : 0;
-  const archived = archivedVal ? Math.min(now, archivedVal) : 0;
-  const updated = updatedVal ? Math.min(now, updatedVal) : 0;
-  
-  // Prioritize original created time over last-synced archived time to prevent
-  // old re-synced items from jumping to the top of the feed.
-  return created || archived || updated || (pub ? Math.min(now, pub) : 0);
-};
-
-const getEffectiveDateMs = (item: NewsItem): number => {
-  if (!item) return 0;
-  const dateStr = item.date ? item.date.trim() : "";
-  const isBracketed = dateStr.includes("[") || dateStr.includes("]");
-  const pub = isBracketed ? 0 : toMs(dateStr);
-  if (pub > 0) return pub;
-  return toMs(item.createdAt) || toMs(item.archivedAt) || toMs(item.updatedAt) || 0;
-};
-
 const formatFallbackDate = (item: NewsItem): string => {
   if (!item) return "RECENT UPDATE";
   const ms = getSyncTime(item);
@@ -91,31 +64,6 @@ const formatFallbackDate = (item: NewsItem): string => {
     });
   }
   return "RECENT UPDATE";
-};
-
-/**
- * Primary sort: when the article was synced or created (newest first).
- * Secondary: actual article publish date or fallback effective date (newest first).
- * Float important items to the top for the same date/sync.
- */
-const sortNewsBySyncAndDate = (a: NewsItem, b: NewsItem, now: number = Date.now()): number => {
-  if (!a || !b) return 0;
-  // 1. Live news (isLive: true) always before mock news (isLive: false/undefined)
-  const aLive = !!a.isLive;
-  const bLive = !!b.isLive;
-  if (aLive !== bLive) return aLive ? -1 : 1;
-
-  // 2. Primary: Cloud Synchronization Time (newest first)
-  const syncA = getSyncTime(a, now);
-  const syncB = getSyncTime(b, now);
-  if (syncB !== syncA) return syncB - syncA;
-
-  // 3. Secondary: effective date of the article (newest first)
-  const dateA = getEffectiveDateMs(a);
-  const dateB = getEffectiveDateMs(b);
-  if (dateB !== dateA) return dateB - dateA;
-
-  return 0;
 };
 
 const getHotIndexScore = (item: NewsItem): number => {
@@ -765,47 +713,13 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       return catMatch && searchMatch;
     });
 
-    if (filter !== 'All' && filter !== 'Bookmarks') {
-      base = [...base].sort((a, b) => {
-        const aNew = newlySyncedIds.has(a.id);
-        const bNew = newlySyncedIds.has(b.id);
-        if (aNew && !bNew) return -1;
-        if (!aNew && bNew) return 1;
-        return sortNewsBySyncAndDate(a, b);
-      });
-    }
-
-    if (user?.role && filter === 'All' && !searchQuery.trim()) {
-      const rel      = getRelevantCategories(user.role);
-      
-      // 1. Prioritize newly synced items in the current UI session OR articles synced within the last 48 hours
-      const isNewOrRecent = (n: NewsItem) => {
-        if (newlySyncedIds.has(n.id)) return true;
-        if (!n.isLive) return false;
-        const syncTime = getSyncTime(n);
-        return (Date.now() - syncTime) < 48 * 60 * 60 * 1000; // 48 hours
-      };
-
-      const newAndRecent = base.filter(isNewOrRecent);
-      const remaining    = base.filter(n => !isNewOrRecent(n));
-
-      const relevant = remaining.filter(n => rel.includes(n.category));
-      const others   = remaining.filter(n => !rel.includes(n.category));
-      
-      const sortWithNew = (a: NewsItem, b: NewsItem) => {
-        const aNew = newlySyncedIds.has(a.id);
-        const bNew = newlySyncedIds.has(b.id);
-        if (aNew && !bNew) return -1;
-        if (!aNew && bNew) return 1;
-        return sortNewsBySyncAndDate(a, b);
-      };
-
-      return [
-        ...newAndRecent.sort(sortWithNew),
-        ...relevant.sort(sortWithNew),
-        ...others.sort(sortWithNew)
-      ];
-    }
+    base = [...base].sort((a, b) => {
+      const aNew = newlySyncedIds.has(a.id);
+      const bNew = newlySyncedIds.has(b.id);
+      if (aNew && !bNew) return -1;
+      if (!aNew && bNew) return 1;
+      return sortNewsBySyncAndDate(a, b);
+    });
 
     return base;
   }, [newsList, filter, bookmarks, searchQuery, user?.role, newlySyncedIds]);

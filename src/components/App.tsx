@@ -337,15 +337,11 @@ const AppContent: React.FC = () => {
         window.dispatchEvent(new Event('storage'));
       }
       
-      const { getCloudNews } = await import('../services/dbService');
+      const { getCloudNews, sortNewsBySyncAndDate } = await import('../services/dbService');
       const newsItems = await getCloudNews(true);
       
       // Sort news by date descending to ensure latest are at the top
-      const sortedNews = [...newsItems].sort((a, b) => {
-        const timeA = toMs(a.archivedAt) || toMs(a.createdAt) || toMs(a.updatedAt) || (a.date ? toMs(a.date) : 0);
-        const timeB = toMs(b.archivedAt) || toMs(b.createdAt) || toMs(b.updatedAt) || (b.date ? toMs(b.date) : 0);
-        return timeB - timeA;
-      });
+      const sortedNews = [...newsItems].sort((a, b) => sortNewsBySyncAndDate(a, b));
 
       setNews(sortedNews);
     };
@@ -359,13 +355,9 @@ const AppContent: React.FC = () => {
 
     const reloadNews = async () => {
       try {
-        const { getCloudNews } = await import('../services/dbService');
+        const { getCloudNews, sortNewsBySyncAndDate } = await import('../services/dbService');
         const newsItems = await getCloudNews(true);
-        const sortedNews = [...newsItems].sort((a, b) => {
-          const timeA = toMs(a.archivedAt) || toMs(a.createdAt) || toMs(a.updatedAt) || (a.date ? toMs(a.date) : 0);
-          const timeB = toMs(b.archivedAt) || toMs(b.createdAt) || toMs(b.updatedAt) || (b.date ? toMs(b.date) : 0);
-          return timeB - timeA;
-        });
+        const sortedNews = [...newsItems].sort((a, b) => sortNewsBySyncAndDate(a, b));
         setNews(sortedNews);
       } catch (err) {
         console.error("App: reloadNews error:", err);

@@ -631,7 +631,7 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
         📌 Editor's Note: Always verify dates, fees, and guidelines on the official portal (www.jamb.gov.ng) before initiating payments or registering.`;
 
       let enhancedText = "";
-      const modelToUse = gemini.type === 'AIP' ? 'gemini-3.1-pro-preview' : 'gemini-1.5-pro';
+      const modelToUse = gemini.type === 'AIP' ? 'gemini-3.1-pro-preview' : 'gemini-3.1-pro-preview';
       
       try {
         console.log(`[Admin API] Attempting enhancement with primary model: ${modelToUse}`);
@@ -657,7 +657,7 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
         }
       } catch (primaryErr: any) {
         console.warn(`[Admin API] Primary model ${modelToUse} failed, trying fallback model...`, primaryErr.message || primaryErr);
-        const fallbackModel = gemini.type === 'AIP' ? 'gemini-3.5-flash' : 'gemini-1.5-flash';
+        const fallbackModel = gemini.type === 'AIP' ? 'gemini-flash-latest' : 'gemini-flash-latest';
         try {
           if (gemini.type === 'AIP') {
             const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
@@ -956,6 +956,14 @@ function generateSovereignGeminiFallback(promptText: string, params: any): any {
     const verdict = score >= 75 ? "Strong" : score >= 65 ? "Borderline" : "Low";
     const probability = score >= 75 ? Math.min(98, Math.round(score + 10)) : score >= 65 ? Math.round(score - 5) : Math.max(15, Math.round(score - 20));
 
+    const isAgricScience = /agric|crop|soil|animal|forestry|fisheries|food|botany|zoology|microbio|biochem|chem|phys|bio/i.test(courseName);
+    const isEng = /eng|tech|arch|survey|build/i.test(courseName);
+    const isHealth = /med|surg|nurs|pharm|dent|physio|anat|radiog/i.test(courseName);
+    const altCourseTitle = isAgricScience ? `Agricultural Economics / Soil Science at ${uniName}`
+                         : isEng ? `Industrial Physics / Chemical Sciences at ${uniName}`
+                         : isHealth ? `Human Anatomy / Physiology at ${uniName}`
+                         : `Related Departmental Program at ${uniName}`;
+
     const fallbackProbability = {
       institutionalCutoff: "200",
       departmentalCutoff: `${cutoff}`,
@@ -971,9 +979,9 @@ function generateSovereignGeminiFallback(promptText: string, params: any): any {
       verdict,
       alternatives: [
         { 
-          name: `Related Science/Arts Course at ${uniName}`, 
-          typicalCutoff: "60.0%", 
-          reasoning: "A highly related program with competitive career prospects and a lower entry cutoff score." 
+          name: altCourseTitle, 
+          typicalCutoff: "50.0%", 
+          reasoning: "A highly related program within the same academic faculty family with a lower entry cutoff score matching your core subject background." 
         }
       ],
       isOffered: true,
@@ -1470,17 +1478,17 @@ app.post("/api/gemini", async (req: any, res: any) => {
   // Map deprecated/unsupported models to modern ones
   let modelToTry = requestedModel;
   if (modelToTry.includes("flash")) {
-    modelToTry = "gemini-3.5-flash"; 
+    modelToTry = "gemini-flash-latest"; 
   } else if (modelToTry.includes("pro")) {
     modelToTry = "gemini-3.1-pro-preview";
   } else {
-    modelToTry = "gemini-3.5-flash"; // Default to latest flash
+    modelToTry = "gemini-flash-latest"; // Default to latest flash
   }
 
   // Create a priority list of models to try
   const modelPool = [modelToTry];
-  if (modelToTry !== "gemini-3.5-flash") modelPool.push("gemini-3.5-flash");
-  if (modelToTry !== "gemini-2.5-flash") modelPool.push("gemini-2.5-flash");
+  if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
+  if (modelToTry !== "gemini-3.6-flash") modelPool.push("gemini-3.6-flash");
 
   let lastErr: any = null;
   let successResult: any = null;
@@ -2467,46 +2475,130 @@ app.post("/api/search", async (req: any, res: any) => {
     console.log("[API Search] Local Firestore search failed:", e.message);
   }
 
-  // 2. Try Search API
+  // 2. Try Gemini for Search Grounding (Primary)
   const isPostUtme = query.toLowerCase().includes("post-utme") || query.toLowerCase().includes("screening");
   let searchSuccess = false;
 
-  if (isPostUtme) {
-    // Try Serper for Post-UTME
-    for (let i = 0; i < serperKeys.length; i++) {
-        const key = serperKeys[i];
-        try {
-            const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-                headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-                timeout: 8000
-            });
-            if (response.data && response.data.organic && response.data.organic.length > 0) {
-                console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
-                const searchResults = response.data.organic.map((r: any) => ({
-                    title: r.title,
-                    url: r.link,
-                    content: r.snippet,
-                    source: 'Serper'
+  console.log(`[API Search] Trying Gemini native search grounding for: "${query}"`);
+  const rawPool = getGeminiKeys();
+  const searchModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-pro-preview'];
+
+  for (let i = 0; i < rawPool.length; i++) {
+    const apiKey = rawPool[i];
+    let keySucceeded = false;
+
+    for (const searchModel of searchModels) {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const result = await ai.models.generateContent({
+          model: searchModel,
+          contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
+          config: {
+            tools: [{ googleSearch: {} }]
+          }
+        });
+        
+        let text = result.text || "";
+        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+          text = result.candidates[0].content.parts[0].text;
+        }
+        
+        const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        if (chunks.length > 0 || text) {
+          console.log(`[API Search] Gemini Search succeeded with key ${i + 1} (${searchModel})`);
+          const searchResults = chunks.filter((c: any) => c.web?.uri).map((c: any) => ({
+            title: c.web?.title || "Web Result",
+            url: c.web?.uri,
+            content: text.substring(0, 400),
+            source: 'Google Search'
+          }));
+          
+          if (searchResults.length > 0) {
+            allResults = [...searchResults, ...allResults];
+          } else if (text) {
+             allResults.push({
+               title: "Gemini Search Summary",
+               url: "",
+               content: text,
+               source: "Google Search Summary"
+             });
+          }
+          searchSuccess = true;
+          keySucceeded = true;
+          break;
+        }
+      } catch (e: any) {
+        const errMsg = e.message || String(e);
+        const is503 = errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE");
+        console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) notice: ${is503 ? 'Temporary high demand (503), trying next option...' : errMsg}`);
+      }
+    }
+
+    if (keySucceeded || searchSuccess) break;
+  }
+
+  // 3. Fallback to Tavily/Serper if Gemini fails
+  if (!searchSuccess) {
+    if (isPostUtme) {
+      // Try Serper for Post-UTME
+      for (let i = 0; i < serperKeys.length; i++) {
+          const key = serperKeys[i];
+          try {
+              const response = await axios.post('https://google.serper.dev/search', { q: query }, {
+                  headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+                  timeout: 8000
+              });
+              if (response.data && response.data.organic && response.data.organic.length > 0) {
+                  console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
+                  const searchResults = response.data.organic.map((r: any) => ({
+                      title: r.title,
+                      url: r.link,
+                      content: r.snippet,
+                      source: 'Serper'
+                  }));
+                  allResults = [...searchResults, ...allResults];
+                  searchSuccess = true;
+                  break;
+              }
+          } catch (e: any) {
+              console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
+          }
+      }
+  
+      // Fallback to Tavily for Post-UTME if Serper fails
+      if (!searchSuccess) {
+        console.log(`[API Search] Serper failed or returned no results for Post-UTME. Trying Tavily as fallback...`);
+        for (let i = 0; i < tavilyKeys.length; i++) {
+            const key = tavilyKeys[i];
+            try {
+              const client = new TavilyClient({ apiKey: key });
+              const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
+              if (response && response.results && response.results.length > 0) {
+                console.log(`[API Search] Tavily search fallback succeeded with key ${i + 1}`);
+                const searchResults = response.results.map((r: any) => ({
+                  title: r.title,
+                  url: r.url,
+                  content: r.content,
+                  source: 'Tavily'
                 }));
                 allResults = [...searchResults, ...allResults];
                 searchSuccess = true;
                 break;
+              }
+            } catch (e: any) {
+              console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
             }
-        } catch (e: any) {
-            console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
         }
-    }
-
-    // Fallback to Tavily for Post-UTME if Serper fails
-    if (!searchSuccess) {
-      console.log(`[API Search] Serper failed or returned no results for Post-UTME. Trying Tavily as fallback...`);
+      }
+    } else {
+      // Try Tavily for others (News/Calculations)
       for (let i = 0; i < tavilyKeys.length; i++) {
           const key = tavilyKeys[i];
           try {
             const client = new TavilyClient({ apiKey: key });
             const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
             if (response && response.results && response.results.length > 0) {
-              console.log(`[API Search] Tavily search fallback succeeded with key ${i + 1}`);
+              console.log(`[API Search] Tavily search succeeded with key ${i + 1}`);
               const searchResults = response.results.map((r: any) => ({
                 title: r.title,
                 url: r.url,
@@ -2521,58 +2613,35 @@ app.post("/api/search", async (req: any, res: any) => {
             console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
           }
       }
-    }
-  } else {
-    // Try Tavily for others (News/Calculations)
-    for (let i = 0; i < tavilyKeys.length; i++) {
-        const key = tavilyKeys[i];
-        try {
-          const client = new TavilyClient({ apiKey: key });
-          const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
-          if (response && response.results && response.results.length > 0) {
-            console.log(`[API Search] Tavily search succeeded with key ${i + 1}`);
-            const searchResults = response.results.map((r: any) => ({
-              title: r.title,
-              url: r.url,
-              content: r.content,
-              source: 'Tavily'
-            }));
-            allResults = [...searchResults, ...allResults];
-            searchSuccess = true;
-            break;
+  
+      // Fallback to Serper for others if Tavily fails
+      if (!searchSuccess) {
+        console.log(`[API Search] Tavily failed or returned no results. Trying Serper as fallback...`);
+        for (let i = 0; i < serperKeys.length; i++) {
+          const key = serperKeys[i];
+          try {
+            const response = await axios.post('https://google.serper.dev/search', { q: query }, {
+              headers: {
+                'X-API-KEY': key,
+                'Content-Type': 'application/json'
+              },
+              timeout: 8000
+            });
+            if (response.data && response.data.organic && response.data.organic.length > 0) {
+              console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
+              const searchResults = response.data.organic.map((r: any) => ({
+                title: r.title,
+                url: r.link,
+                content: r.snippet,
+                source: 'Serper'
+              }));
+              allResults = [...searchResults, ...allResults];
+              searchSuccess = true;
+              break;
+            }
+          } catch (e: any) {
+            console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
           }
-        } catch (e: any) {
-          console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
-        }
-    }
-
-    // Fallback to Serper for others if Tavily fails
-    if (!searchSuccess) {
-      console.log(`[API Search] Tavily failed or returned no results. Trying Serper as fallback...`);
-      for (let i = 0; i < serperKeys.length; i++) {
-        const key = serperKeys[i];
-        try {
-          const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-            headers: {
-              'X-API-KEY': key,
-              'Content-Type': 'application/json'
-            },
-            timeout: 8000
-          });
-          if (response.data && response.data.organic && response.data.organic.length > 0) {
-            console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
-            const searchResults = response.data.organic.map((r: any) => ({
-              title: r.title,
-              url: r.link,
-              content: r.snippet,
-              source: 'Serper'
-            }));
-            allResults = [...searchResults, ...allResults];
-            searchSuccess = true;
-            break;
-          }
-        } catch (e: any) {
-          console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
         }
       }
     }
@@ -2861,45 +2930,44 @@ app.route("/api/news/sync")
 
       console.log(`[API News Sync] Executing search ${i+1}/${queries.length}: "${query.slice(0, 50)}..."`);
 
-      // Try Tavily
-      for (const key of tavilyKeys) {
+      // 1. Try Serper (Google Search) first
+      for (const key of serperKeys) {
         try {
           if (!key) continue;
-          const client = new TavilyClient({ apiKey: key });
-          // FIX: Correct signature for Tavily SDK 1.0.x
-          const resp = await client.search({ 
-            query,
-            search_depth: "advanced",
-            max_results: 6
+          const resp = await axios.post('https://google.serper.dev/search', { q: query }, {
+            headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+            timeout: 10000
           });
-          if (resp && resp.results && Array.isArray(resp.results)) {
-            queryResult = resp.results.slice(0, 5).map((r: any) => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`).join("\n\n");
+          if (resp.data && resp.data.organic && resp.data.organic.length > 0) {
+            queryResult = resp.data.organic.slice(0, 5).map((r: any) => `Title: ${r.title}\nURL: ${r.link}\nContent: ${r.snippet}`).join("\n\n");
             success = true;
-            console.log(`[API News Sync] Tavily success for search ${i+1}`);
+            console.log(`[API News Sync] Serper success for search ${i+1}`);
             break;
           }
         } catch (e: any) {
-          console.warn(`[API News Sync] Tavily key failed for search ${i+1}: ${e.message}`);
+          console.warn(`[API News Sync] Serper key failed for search ${i+1}: ${e.message}`);
         }
       }
 
-      // Try Serper if Tavily failed
+      // 2. Fall back to Tavily if Serper failed or returned empty
       if (!success) {
-        for (const key of serperKeys) {
+        for (const key of tavilyKeys) {
           try {
             if (!key) continue;
-            const resp = await axios.post('https://google.serper.dev/search', { q: query }, {
-              headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-              timeout: 10000
+            const client = new TavilyClient({ apiKey: key });
+            const resp = await client.search({ 
+              query,
+              search_depth: "advanced",
+              max_results: 6
             });
-            if (resp.data && resp.data.organic) {
-              queryResult = resp.data.organic.slice(0, 4).map((r: any) => `Title: ${r.title}\nURL: ${r.link}\nContent: ${r.snippet}`).join("\n\n");
+            if (resp && resp.results && Array.isArray(resp.results) && resp.results.length > 0) {
+              queryResult = resp.results.slice(0, 5).map((r: any) => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`).join("\n\n");
               success = true;
-              console.log(`[API News Sync] Serper success for search ${i+1}`);
+              console.log(`[API News Sync] Tavily fallback success for search ${i+1}`);
               break;
             }
           } catch (e: any) {
-            console.warn(`[API News Sync] Serper key failed for search ${i+1}: ${e.message}`);
+            console.warn(`[API News Sync] Tavily key failed for search ${i+1}: ${e.message}`);
           }
         }
       }
@@ -3104,7 +3172,7 @@ ${searchResults[4]}
           // Map model names based on SDK type
           const modelMappings = gemini.type === 'AIP' 
             ? { pro: 'gemini-3.1-pro-preview', flash: 'gemini-flash-latest' }
-            : { pro: 'gemini-1.5-pro', flash: 'gemini-1.5-flash' };
+            : { pro: 'gemini-3.1-pro-preview', flash: 'gemini-flash-latest' };
           
           const modelsToTry = [modelMappings.pro, modelMappings.flash];
           let resultData: any = null;
@@ -3294,7 +3362,7 @@ app.post("/api/admin/keys/ping", async (req: any, res: any) => {
           const gemini = createGeminiClient(item.rawKey);
           if (gemini.type === 'AIP') {
             const result = await gemini.client.models.generateContent({
-              model: 'gemini-2.5-flash',
+              model: 'gemini-flash-latest',
               contents: 'ping',
             });
             if (result && result.text) {
@@ -3303,7 +3371,7 @@ app.post("/api/admin/keys/ping", async (req: any, res: any) => {
               error = 'Empty response';
             }
           } else {
-            const model = gemini.client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const model = gemini.client.getGenerativeModel({ model: 'gemini-flash-latest' });
             const result = await model.generateContent('ping');
             const response = await result.response;
             const text = response.text();

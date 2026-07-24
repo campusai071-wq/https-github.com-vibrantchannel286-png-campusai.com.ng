@@ -24,8 +24,8 @@ const getNigerianDate = (): string => {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'Africa/Lagos',
-  });
+    timeZone: 'Africa/Lagos'
+      });
 };
 
 const getNigerianDateShort = (): string => {
@@ -33,8 +33,8 @@ const getNigerianDateShort = (): string => {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-    timeZone: 'Africa/Lagos',
-  });
+    timeZone: 'Africa/Lagos'
+      });
 };
 
 // ─── API Key Utilities ─────────────────────────────────────────────────────────
@@ -209,8 +209,8 @@ export const getAPIKeysSummary = (): APIKeySummaryItem[] => {
       successCount: isUsedToday ? (trace.successCount || 0) : 0,
       failureCount: isUsedToday ? (trace.failureCount || 0) : 0,
       lastUsedTime: isUsedToday ? (trace.lastUsedTime || '') : '',
-      status: isUsedToday ? (trace.status || 'Active') : 'Unused',
-    });
+      status: isUsedToday ? (trace.status || 'Active') : 'Unused'
+      });
   });
 
   const potentialEnvKeys = [
@@ -515,7 +515,7 @@ const createGeminiClient = (apiKey: string) => {
             // Convert sendMessage call to generateContent for the proxy
             const prompt = msgParams.message;
             const params = {
-              model: chatParams.model || "gemini-1.5-flash",
+              model: chatParams.model || "gemini-3.5-flash",
               contents: prompt,
               config: chatParams.config
             };
@@ -694,17 +694,15 @@ Return ONLY a valid JSON object matching this schema:
         const fallbackResponse = await runAIWithFallback(async (ai) => {
           if ('models' in ai) {
             return await ai.models.generateContent({
-              model: "gemini-1.5-flash",
+              model: "gemini-3.5-flash",
               contents: prompt,
-              config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
-            });
+              config: { responseMimeType: "application/json" } });
           } else {
-            const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = ai.getGenerativeModel({ model: "gemini-3.5-flash" });
             const result = await model.generateContent({
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: "application/json" },
-              tools: [{ googleSearch: {} }] as any
-            });
+              generationConfig: { responseMimeType: "application/json" }
+});
             return await result.response;
           }
         });
@@ -757,7 +755,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-1.5-pro",
+        model: "gemini-3.1-pro-preview",
         contents: `You are an elite Investigative Editor for Campusai.com.ng (Nigeria). 
          
          TASK:
@@ -822,8 +820,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
          }`,
         config: { 
           responseMimeType: "application/json",
-          tools: hasSearchResults ? [{ googleSearch: {} }] as any : []
-        }
+          thinkingConfig: { thinkingLevel: "HIGH" } }
       });
     }, newsKey);
 
@@ -851,7 +848,7 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-1.5-pro",
+        model: "gemini-3.1-pro-preview",
         contents: `You are a premier Investigative Education Journalist in Nigeria. 
         
         TASK:
@@ -901,7 +898,8 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
         Original Excerpt: ${newsItem.excerpt}
         Source: ${newsItem.sourceUrl}`,
         config: {
-          tools: [{ googleSearch: {} }],
+          thinkingConfig: { thinkingLevel: "HIGH" },
+          tools: [{ googleSearch: {} }, { googleMaps: {} }],
           temperature: 0.7
         }
       });
@@ -1208,6 +1206,172 @@ export const validateMandatorySubjects = (
   return { valid: true, reason: "Candidate has the required JAMB subject combination." };
 };
 
+export function getFacultyCategory(courseName: string = '', subjects: string[] = []): 'LAW' | 'HEALTH_MEDICINE' | 'ENGINEERING_TECH' | 'SCIENCE_AGRIC' | 'SOCIAL_SCIENCE_COMMERCIAL' | 'ARTS_HUMANITIES' {
+  const c = (courseName || '').toLowerCase();
+  const subStr = (subjects || []).join(' ').toLowerCase();
+
+  if (c.includes('law') || c.includes('ll.b') || c.includes('jurisprudence')) return 'LAW';
+
+  if (
+    c.includes('medicine') || c.includes('surgery') || c.includes('nursing') || 
+    c.includes('pharmacy') || c.includes('dentistry') || c.includes('dental') ||
+    c.includes('medical') || c.includes('physiotherapy') || c.includes('radiography') ||
+    c.includes('anatomy') || c.includes('physiology') || c.includes('optometry')
+  ) return 'HEALTH_MEDICINE';
+
+  if (
+    c.includes('agric') || c.includes('crop') || c.includes('soil') || c.includes('animal') || 
+    c.includes('forestry') || c.includes('fisheries') || c.includes('horticulture') ||
+    c.includes('food science') || c.includes('botany') || c.includes('zoology') ||
+    c.includes('microbiology') || c.includes('biochemistry') || c.includes('chemistry') ||
+    c.includes('physics') || c.includes('biology') || c.includes('geology') ||
+    c.includes('computer science') || c.includes('cyber') || c.includes('data science') ||
+    subStr.includes('agricultural science') || (subStr.includes('biology') && subStr.includes('chemistry'))
+  ) return 'SCIENCE_AGRIC';
+
+  if (
+    c.includes('engineering') || c.includes('technology') || c.includes('architecture') ||
+    c.includes('surveying') || c.includes('building') || c.includes('urban')
+  ) return 'ENGINEERING_TECH';
+
+  if (
+    c.includes('accounting') || c.includes('accountancy') || c.includes('finance') ||
+    c.includes('banking') || c.includes('business admin') || c.includes('marketing') ||
+    c.includes('economics') || c.includes('public admin') || c.includes('political') ||
+    c.includes('sociology') || c.includes('mass comm') || c.includes('criminology') ||
+    c.includes('geography') || c.includes('psychology') || c.includes('international relations')
+  ) return 'SOCIAL_SCIENCE_COMMERCIAL';
+
+  if (
+    c.includes('english') || c.includes('history') || c.includes('linguistics') ||
+    c.includes('french') || c.includes('theatre') || c.includes('music') ||
+    c.includes('philosophy') || c.includes('religious') || c.includes('arts') ||
+    c.includes('fine art')
+  ) return 'ARTS_HUMANITIES';
+
+  if (subStr.includes('biology') || subStr.includes('chemistry') || subStr.includes('physics') || subStr.includes('agricultural science')) {
+    return 'SCIENCE_AGRIC';
+  }
+  if (subStr.includes('government') || subStr.includes('economics') || subStr.includes('commerce') || subStr.includes('accounting')) {
+    return 'SOCIAL_SCIENCE_COMMERCIAL';
+  }
+  if (subStr.includes('literature') || subStr.includes('history') || subStr.includes('crs') || subStr.includes('irs')) {
+    return 'ARTS_HUMANITIES';
+  }
+
+  return 'SCIENCE_AGRIC';
+}
+
+export function isAlternativeFacultyCompatible(candidateFaculty: string, altCourseName: string): boolean {
+  const altFaculty = getFacultyCategory(altCourseName, []);
+
+  if (candidateFaculty === 'SCIENCE_AGRIC') {
+    return ['SCIENCE_AGRIC', 'ENGINEERING_TECH', 'HEALTH_MEDICINE'].includes(altFaculty);
+  }
+  if (candidateFaculty === 'HEALTH_MEDICINE') {
+    return ['HEALTH_MEDICINE', 'SCIENCE_AGRIC'].includes(altFaculty);
+  }
+  if (candidateFaculty === 'ENGINEERING_TECH') {
+    return ['ENGINEERING_TECH', 'SCIENCE_AGRIC'].includes(altFaculty);
+  }
+  if (candidateFaculty === 'SOCIAL_SCIENCE_COMMERCIAL') {
+    return ['SOCIAL_SCIENCE_COMMERCIAL', 'ARTS_HUMANITIES', 'LAW'].includes(altFaculty);
+  }
+  if (candidateFaculty === 'ARTS_HUMANITIES') {
+    return ['ARTS_HUMANITIES', 'SOCIAL_SCIENCE_COMMERCIAL', 'LAW'].includes(altFaculty);
+  }
+  if (candidateFaculty === 'LAW') {
+    return ['LAW', 'ARTS_HUMANITIES', 'SOCIAL_SCIENCE_COMMERCIAL'].includes(altFaculty);
+  }
+  return true;
+}
+
+export function sanitizeAlternativeCourses(
+  alternatives: any[],
+  targetCourse: string,
+  cleanJambSubjects: string[],
+  university: string,
+  stateOfOrigin?: string
+): any[] {
+  if (!Array.isArray(alternatives)) return [];
+
+  const candFaculty = getFacultyCategory(targetCourse, cleanJambSubjects);
+  const normUni = university.toLowerCase().trim();
+  const isTechUni = ['futa', 'futo', 'futminna', 'lautech', 'mautech', 'fupre'].some(t => normUni.includes(t));
+
+  let cleaned = alternatives
+    .map((alt: any) => {
+      let altName = String(alt.name || '').trim();
+      altName = altName.replace(/^(adequate|change course to|change institution to|opt for)\s+/i, '');
+      return {
+        ...alt,
+        name: altName
+      };
+    })
+    .filter((alt: any) => {
+      const nameLower = String(alt.name || '').toLowerCase();
+      if (!nameLower) return false;
+
+      if (isTechUni && (nameLower.includes('law') || nameLower.includes('ll.b') || nameLower.includes('mass comm') || nameLower.includes('theatre'))) {
+        return false;
+      }
+
+      if (!isAlternativeFacultyCompatible(candFaculty, alt.name)) {
+        console.warn(`[Sanitizer] Filtered out cross-faculty alternative "${alt.name}" for target course faculty "${candFaculty}"`);
+        return false;
+      }
+
+      return true;
+    });
+
+  if (cleaned.length < 2) {
+    if (candFaculty === 'SCIENCE_AGRIC') {
+      const existing = cleaned.map(a => String(a.name || '').toLowerCase());
+      if (!existing.some(n => n.includes('soil') || n.includes('crop') || n.includes('animal') || n.includes('agricultural'))) {
+        cleaned.push({
+          name: `Soil Science / Animal Science at ${university}`,
+          typicalCutoff: "50.0%",
+          reasoning: "Provides a viable, lower competitive cutoff alternative within the Agricultural Sciences faculty matching your subject background."
+        });
+      }
+      if (cleaned.length < 2 && stateOfOrigin && stateOfOrigin.toLowerCase() !== 'none' && stateOfOrigin.toLowerCase() !== 'not specified') {
+        const stateUni = stateOfOrigin.toLowerCase().includes('delta') ? 'Delta State University (DELSU)' : `${stateOfOrigin} State University`;
+        cleaned.push({
+          name: `Agricultural Economics at ${stateUni}`,
+          typicalCutoff: "52.0%",
+          reasoning: `Provides a strong catchment advantage at ${stateUni} for candidates with Agricultural Science and Chemistry subjects.`
+        });
+      } else if (cleaned.length < 2) {
+        cleaned.push({
+          name: `Food Science and Technology at ${university}`,
+          typicalCutoff: "54.0%",
+          reasoning: "Maintains high career alignment in agricultural/food sciences with an achievable competitive cutoff mark."
+        });
+      }
+    } else if (candFaculty === 'HEALTH_MEDICINE') {
+      cleaned.push({
+        name: `Anatomy / Human Physiology at ${university}`,
+        typicalCutoff: "55.0%",
+        reasoning: "Shares core medical science subjects (Biology, Chemistry, Physics) with lower aggregate requirements."
+      });
+    } else if (candFaculty === 'ENGINEERING_TECH') {
+      cleaned.push({
+        name: `Industrial Physics / Applied Mathematics at ${university}`,
+        typicalCutoff: "52.0%",
+        reasoning: "Leverages strong Mathematics and Physics subjects with favorable admission cutoffs."
+      });
+    } else if (candFaculty === 'SOCIAL_SCIENCE_COMMERCIAL') {
+      cleaned.push({
+        name: `Sociology / Public Administration at ${university}`,
+        typicalCutoff: "52.0%",
+        reasoning: "Offers a viable alternative within Social Sciences matching Government, Economics, or Commercial subjects."
+      });
+    }
+  }
+
+  return cleaned;
+}
+
 const enforceAdmissionTiers = (
   score: number,
   cutoffVal: number,
@@ -1342,8 +1506,8 @@ const enforceAdmissionTiers = (
     return {
       verdict: isHighlyCompetitive ? "Marginal Pass / High Competition Risk" : "Marginal Pass / Quota Risk",
       probability: prob,
-      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Marginal Pass / High Competition Risk**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** clears the departmental cutoff of **${cutoffVal}%** by a very thin margin of **+${diff.toFixed(2)}%** under the **${quotaText}**.\n\nWhile this is technically a positive score, for highly competitive courses like **${course}** at **${university}**, clearing the cutoff by just 0.25% to 2% carries significant risk. In these fields, hundreds of students often crowd within fractional percentage ranges, and schools frequently enforce strict departmental quotas (Merit vs Catchment vs ELDS). Standard tie-breakers, localized catchment quota limits, and late-stage index adjustments can easily shift the final list, meaning admission is **not 100% guaranteed**.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS with Urgency:** Regularly check the 'Admission Status' tab on your JAMB CAPS profile. Look specifically for updates like 'Admission in Progress' (AIP) or 'Transfer Approval' (if they offer you an alternative course).\n*   **Verify O'Level and JAMB Match:** Verify that your O'Level grades and JAMB subject combinations align perfectly with the departmental rules. Even a minor discrepancy can cause a marginal pass to be dropped.\n*   **Prepare an Alternative Plan:** Be prepared for supplementary lists. If you are not on the primary merit list, keep an eye out for change of course cards or supplementary forms on your school's portal.` + seasonalTimeline,
-      recommendation: `Your aggregate clears the cutoff by a marginal ${diff.toFixed(2)}%. For competitive programmes like ${course}, this fractional advantage carries high tie-breaker and quota risks. Monitor JAMB CAPS closely and prepare alternative supplementary options.`
+      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **${isHighlyCompetitive ? "Marginal Pass / High Competition Risk" : "Marginal Pass / Quota Risk"}**\n- **Admission Probability:** **${prob}%**\n\nThe candidate's aggregate score of **${score}%** is slightly above the estimated departmental cutoff of **${cutoffVal}%**, but requires a higher merit buffer for non-catchment candidates.\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** clears the departmental cutoff of **${cutoffVal}%** by a thin margin of **+${diff.toFixed(2)}%** under the **${quotaText}**.\n\nWhile this is technically a positive score, for highly competitive programs like **${course}** at **${university}**, clearing the cutoff by just 0.1% to 2.5% carries significant risk for candidates who are not in the primary state catchment area. In these fields, hundreds of students often crowd within fractional percentage ranges, and schools enforce strict departmental quotas (Merit vs Catchment vs ELDS). Standard tie-breakers and non-catchment merit list thresholds mean that non-catchment candidates usually require a higher merit buffer to guarantee selection.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS with Urgency:** Regularly check the 'Admission Status' tab on your JAMB CAPS profile for updates like 'Admission in Progress' (AIP) or 'Transfer Approval'.\n*   **Verify O'Level and JAMB Match:** Verify that your O'Level grades and JAMB subject combinations align perfectly with departmental rules.\n*   **Prepare an Alternative Plan:** Be prepared for supplementary lists or alternative course options if the primary non-catchment merit quota fills up.` + seasonalTimeline,
+      recommendation: `The candidate's aggregate score of ${score}% is slightly above the estimated departmental cutoff of ${cutoffVal}%, but requires a higher merit buffer for non-catchment candidates.`
     };
   } else if (diff >= 2.5 && diff < 6) {
     // 2B. THE STRONG TIER (Score is 2.5% to 5.99% ABOVE Cutoff)
@@ -1405,7 +1569,7 @@ export const getCourseCutoffInfo = async (
       )
     );
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v3`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v4`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -1456,27 +1620,65 @@ export const getCourseCutoffInfo = async (
         cachedResult.verdict = enforced.verdict;
         cachedResult.probability = enforced.probability;
 
-        // Check for tone mismatch in cached detailedStrategy
+        // Check for tone mismatch or arithmetic contradiction in cached detailedStrategy
         const cacheTextLower = String(cachedResult.detailedStrategy || '').toLowerCase();
         const cacheRecLower = String(cachedResult.recommendation || '').toLowerCase();
-        const isCacheContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
+        
+        const isPositiveCacheContradiction = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
           cacheTextLower.includes("strong position") ||
           cacheTextLower.includes("strong candidate") ||
           cacheTextLower.includes("excellent position") ||
           cacheTextLower.includes("winning position") ||
           cacheTextLower.includes("high probability") ||
           cacheTextLower.includes("well positioned") ||
-          cacheTextLower.includes("competitive position") ||
-          cacheTextLower.includes("strong chance") ||
           cacheTextLower.includes("favourable position") ||
           cacheTextLower.includes("favorable position") ||
           cacheRecLower.includes("strong position") ||
           cacheRecLower.includes("strong candidate")
         );
 
-        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40 || score < parsedCutoffVal) {
+        const isNegativeCacheContradiction = (score >= parsedCutoffVal) && (
+          cacheTextLower.includes("is slightly below") ||
+          cacheTextLower.includes("is below") ||
+          cacheTextLower.includes("below the estimated") ||
+          cacheTextLower.includes("below the departmental") ||
+          cacheTextLower.includes("below the cutoff") ||
+          cacheTextLower.includes("lower than the") ||
+          cacheTextLower.includes("score is below") ||
+          cacheTextLower.includes("deficit of") ||
+          cacheRecLower.includes("below the") ||
+          cacheRecLower.includes("below estimated") ||
+          cacheRecLower.includes("is below")
+        );
+
+        const isCacheContradictory = isPositiveCacheContradiction || isNegativeCacheContradiction;
+
+        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40 || (score < parsedCutoffVal && enforced.probability < 50)) {
           cachedResult.detailedStrategy = enforced.detailedStrategy;
           cachedResult.recommendation = enforced.recommendation;
+        }
+
+        if (score >= parsedCutoffVal && cachedResult.detailedStrategy) {
+          cachedResult.detailedStrategy = cachedResult.detailedStrategy
+            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated departmental cutoff of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
+            .replace(/score of \d+(\.\d+)?% is lower than the/gi, `score of ${score}% is higher than the`)
+            .replace(/score is below the/gi, `score clears the`);
+        }
+
+        if (score >= parsedCutoffVal && cachedResult.recommendation) {
+          cachedResult.recommendation = cachedResult.recommendation
+            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated departmental cutoff of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
+            .replace(/score is below the/gi, `score clears the`);
+        }
+
+        if (Array.isArray(cachedResult.alternatives)) {
+          cachedResult.alternatives = sanitizeAlternativeCourses(
+            cachedResult.alternatives,
+            course,
+            cleanJambSubjects,
+            university,
+            stateOfOrigin
+          );
         }
 
         return cachedResult;
@@ -1563,7 +1765,7 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
     const response = await runAIWithFallback(async (ai) => {
       const hasWrittenPostUtme = usesPostUtme;
       return await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-flash-latest",
         contents: `
 ${overridePrompt}
 
@@ -1583,11 +1785,14 @@ Perform an exhaustive admission probability check under these STRICT architectur
    - Ensure the aggregate calculation and mathematical verdict align precisely with the institution's real formula or the specified context formula.
 5. NO POST-UTME HALLUCINATION FOR NON-EXAM SCHOOLS:
    - If "Has Written Post-UTME Exam" is "NO", you are STRICTLY FORBIDDEN from recommending or advising the candidate to prepare for, practice, or write any Post-UTME exam in "detailedStrategy", "recommendation", or "alternatives". Instead, advise them on securing their O'Level uploads, verifying JAMB CAPS result uploads, and tracking point-based screening portal deadlines.
-6. CONCRETE ACTIONABLE REAL ALTERNATIVES (STRICT COURSE/SCHOOL NAMES):
+6. CONCRETE ACTIONABLE REAL ALTERNATIVES (STRICT COURSE/SCHOOL NAMES & FACULTY BOUNDARIES):
    - "alternatives" MUST contain 2 to 4 actual, specific alternative undergraduate courses offered at ${university} (e.g., related less-competitive programmes) OR specific alternative institutions in Nigeria (e.g., specific state universities, private universities, or polytechnics, such as "Delta State University", "FUPRE", "Federal Polytechnic, Ado-Ekiti").
-   - DO NOT output generic titles like "JAMB Change of Course" or "JAMB Change of Institution" as the name. The "name" of each alternative MUST be the actual concrete course or institution name (e.g., "Agricultural and Environmental Engineering at ${university}" or "Public Administration at Delta State University").
+   - DO NOT output generic titles like "JAMB Change of Course" or "JAMB Change of Institution" as the name. The "name" of each alternative MUST be the actual concrete course or institution name (e.g., "Agricultural and Environmental Engineering at ${university}" or "Soil Science at Delta State University").
    - "typicalCutoff" MUST be the actual cut-off mark or aggregate score typically needed for that alternative (e.g., "50.0%" or "180 JAMB").
    - "reasoning" MUST explain clearly why this specific course/school is a viable safe option for this candidate based on their current JAMB and aggregate scores.
+   - STRICT FACULTY BOUNDARY MANDATE: Every recommended alternative course MUST strictly belong to the same faculty family and match the candidate's written JAMB subjects (${cleanJambSubjects.join(', ')}).
+     - For Science / Agricultural Science candidates (written subjects: Agricultural Science, Biology, Chemistry, Physics, Mathematics): You MUST ONLY suggest alternative courses in Agricultural Sciences (e.g., Soil Science, Animal Science, Forestry, Agricultural Economics, Food Science), Biological/Chemical Sciences, or Engineering. You are STRICTLY FORBIDDEN from recommending Social Science, Arts, Management, or Law courses (such as Public Administration, Mass Communication, Political Science, Law, Accounting) to a Science/Agriculture candidate!
+     - When recommending an alternative institution (such as a state university like Delta State University or private university), the recommended program at that institution MUST ALSO strictly match the candidate's faculty and subject combination (e.g., recommend 'Agricultural Economics at Delta State University' instead of 'Public Administration at Delta State University').
 7. STRATEGIC ADVISEMENT BY STRICT TIER ASSIGNMENT:
    Compare the candidate's aggregate score (${score}%) directly against the estimated departmental cutoff. You MUST evaluate and place them into one of these four exact tiers, applying their rules, probability, verdict, tone, and requirements:
 
@@ -1628,6 +1833,9 @@ Perform an exhaustive admission probability check under these STRICT architectur
      - If "Testing Hypothetical / 'What-If' Scenarios" is YES: Give a deeper, more detailed analysis of what-if options.
    - Respect the school's formula:
      - If "Uses Post-UTME Exam" is NO (such as for FUOYE, FUTA, or LASU): The school does NOT require a Post-UTME exam. Under no circumstances should you recommend preparing for, practicing past questions for, or writing a Post-UTME exam. Do not suggest improving their score using Post-UTME. Instead, focus entirely on O'Level result uploads, JAMB CAPS verification, and point-based screening deadlines.
+   - STRICT ARITHMETIC COMPARISON MANDATE (NEVER CONTRADICT MATH):
+     - If Candidate Aggregate Score (${score}%) >= Departmental Cutoff, you are STRICTLY FORBIDDEN from stating or implying that the score 'is below', 'is slightly below', or 'fails to reach' the cutoff in "detailedStrategy" or "recommendation". Output that the candidate's aggregate score 'is slightly above the estimated departmental cutoff, but requires a higher merit buffer for non-catchment candidates'.
+     - If Candidate Aggregate Score (${score}%) < Departmental Cutoff, you are STRICTLY FORBIDDEN from stating that the candidate is in a 'strong' or 'winning' position.
    - Only use data the user has explicitly provided. Be highly realistic, clear, and actionable.
 
 - Institution: ${university}
@@ -1652,7 +1860,7 @@ ${formulaExplanation ? `- Scoring Formula Context: ${formulaExplanation}` : ''}
 Return JSON:
 {
   "institutionalCutoff": "string (the baseline floor score, e.g. '160')",
-  "departmentalCutoff": "string (estimated competitive departmental cutoff score, e.g. '65.0%')",
+  "departmentalCutoff": "string (CRITICAL GROUNDING REQUIREMENT: Extract or search for the exact published or verified departmental cutoff mark / aggregate score for ${course} at ${university} from the ONLINE GROUNDING DATA or Google Search. Output the exact score or percentage e.g. '58.5%' or '72.0%'. DO NOT default or estimate to 65.0% unless that exact score is explicitly verified for ${course} at ${university}!).",
   "cutoff": "string (cutoff label/range, e.g. '60.0% - 68.0%')",
   "mathBreakdown": "string (concise explanation of the calculation of the aggregate)",
   "subjectCombinationValidation": { "valid": boolean, "reason": "string" },
@@ -1667,7 +1875,10 @@ Return JSON:
   "sourcesCited": ["string (valid domain/URL)"],
   "predictionConfidenceInterval": "string (percentage range, e.g. '60.00% to 75.00%')"
 }`,
-        config: { responseMimeType: "application/json" }
+        config: { 
+          responseMimeType: "application/json",
+          tools: [{ googleSearch: {} }]
+        }
       });
     }, calcDedicatedKey || undefined);
 
@@ -1739,27 +1950,55 @@ Return JSON:
 
         const strategyTextLower = String(parsed.detailedStrategy || '').toLowerCase();
         const recTextLower = String(parsed.recommendation || '').toLowerCase();
-        const isContradictory = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
+        
+        const isPositiveContradiction = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
           strategyTextLower.includes("strong position") ||
           strategyTextLower.includes("strong candidate") ||
           strategyTextLower.includes("excellent position") ||
           strategyTextLower.includes("winning position") ||
           strategyTextLower.includes("high probability") ||
           strategyTextLower.includes("well positioned") ||
-          strategyTextLower.includes("competitive position") ||
-          strategyTextLower.includes("strong chance") ||
           strategyTextLower.includes("favourable position") ||
           strategyTextLower.includes("favorable position") ||
           recTextLower.includes("strong position") ||
           recTextLower.includes("strong candidate")
         );
 
-        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40 || score < parsedCutoffVal) {
+        const isNegativeContradiction = (score >= parsedCutoffVal) && (
+          strategyTextLower.includes("is slightly below") ||
+          strategyTextLower.includes("is below") ||
+          strategyTextLower.includes("below the estimated") ||
+          strategyTextLower.includes("below the departmental") ||
+          strategyTextLower.includes("below the cutoff") ||
+          strategyTextLower.includes("lower than the") ||
+          strategyTextLower.includes("score is below") ||
+          strategyTextLower.includes("deficit of") ||
+          recTextLower.includes("below the") ||
+          recTextLower.includes("below estimated") ||
+          recTextLower.includes("is below")
+        );
+
+        const isContradictory = isPositiveContradiction || isNegativeContradiction;
+
+        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40 || (score < parsedCutoffVal && enforced.probability < 50)) {
           parsed.detailedStrategy = enforced.detailedStrategy;
           parsed.recommendation = enforced.recommendation;
         }
         if (!parsed.recommendation || parsed.recommendation.trim() === "" || parsed.recommendation === "undefined") {
           parsed.recommendation = enforced.recommendation;
+        }
+
+        if (score >= parsedCutoffVal && parsed.detailedStrategy) {
+          parsed.detailedStrategy = parsed.detailedStrategy
+            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated departmental cutoff of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
+            .replace(/score of \d+(\.\d+)?% is lower than the/gi, `score of ${score}% is higher than the`)
+            .replace(/score is below the/gi, `score clears the`);
+        }
+
+        if (score >= parsedCutoffVal && parsed.recommendation) {
+          parsed.recommendation = parsed.recommendation
+            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated departmental cutoff of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
+            .replace(/score is below the/gi, `score clears the`);
         }
       }
 
@@ -1773,29 +2012,13 @@ Return JSON:
       }
 
       // ─── 3. SANITIZE ALTERNATIVE COURSE RECOMMENDATIONS ──────────────────────
-      if (Array.isArray(parsed.alternatives) && parsed.alternatives.length > 0) {
-        const isTechUni = ['futa', 'futo', 'futminna', 'lautech', 'mautech', 'fupre'].some(t => normalizedUni.includes(t));
-        
-        parsed.alternatives = parsed.alternatives
-          .map((alt: any) => {
-            let altName = String(alt.name || '').trim();
-            // Clean unwanted prefixes
-            altName = altName.replace(/^(adequate|change course to|change institution to|opt for)\s+/i, '');
-            return {
-              ...alt,
-              name: altName
-            };
-          })
-          .filter((alt: any) => {
-            const nameLower = String(alt.name || '').toLowerCase();
-            if (!nameLower) return false;
-            // Filter out non-existent programs at Tech Universities
-            if (isTechUni && (nameLower.includes('law') || nameLower.includes('ll.b') || nameLower.includes('mass comm') || nameLower.includes('theatre'))) {
-              return false;
-            }
-            return true;
-          });
-      }
+      parsed.alternatives = sanitizeAlternativeCourses(
+        parsed.alternatives || [],
+        course,
+        cleanJambSubjects,
+        university,
+        stateOfOrigin
+      );
 
       // ─── 4. ENRICH MATH BREAKDOWN WITH EXACT RAW SCORES AND PROJECTED LABELS ───
       const isPendingState = isPostUtmePending || isAwaitingResult;
@@ -1839,7 +2062,7 @@ export const getUniversityCourses = async (institution: string): Promise<string[
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
             // ─── FIX: Updated model name ───────────────────────────────────────
-            model: "gemini-1.5-flash",
+            model: "gemini-3.5-flash",
             contents: `Provide a comprehensive list of up to 50 popular, accredited undergraduate programmes officially offered at "${institution}" in Nigeria.
 
 OUTPUT RULES:
@@ -1940,7 +2163,7 @@ export const getUniversityScoringSystem = async (institution: string) => {
         }
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-3.5-flash",
             contents: `You are an expert Nigerian higher education admission systems analyst.
 Based on the following real-time web search results for "${institution}", extract the precise aggregate screening formula / grading system used for admission.
 
@@ -2014,7 +2237,7 @@ export const getAsuuStrikeStatus = async () => {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents: `Current ASUU strike status in Nigeria as of ${getNigerianDate()}.
 Based on your training data (and any real-time data if available), analyze if there is an active/threatened Academic Staff Union of Universities (ASUU) strike.
 
@@ -2026,8 +2249,7 @@ CRITICAL INSTRUCTIONS:
 
 Return JSON:
 { "isActive": boolean, "status": "string", "lastUpdated": "string", "summary": "string" }`,
-        config: { responseMimeType: "application/json" },
-        tools: [{ googleSearch: {} }]
+        config: { responseMimeType: "application/json" }
       });
     });
     return safeJsonParse(response.text, { isActive: false, status: "Stable", lastUpdated: getNigerianDateShort(), summary: "No active strike reported." });
@@ -2097,15 +2319,15 @@ export const executeAiChat = async (
       const optResponse = await runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
           // ─── FIX: Updated model name ───────────────────────────────────────
-          model: "gemini-1.5-flash",
+          model: "gemini-3.1-flash-lite",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
 Rewrite the user's message into a concise, highly effective Google Search query.
 Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
 Output ONLY the search query string (3-7 words).
 
 User Message: "${sanitizedMessage.substring(0, 200)}"
-Optimized Search Query:`,
-        });
+Optimized Search Query:`
+      });
       }, undefined, chatKeys);
 
       if (optResponse?.text) {
@@ -2216,13 +2438,11 @@ Optimized Search Query:`,
 
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents,
         config: { 
-          systemInstruction,
-          tools: [{ googleSearch: {} }]
-        }
-      });
+          systemInstruction
+        } });
     }, undefined, chatKeys);
 
     // Extract native Google Search grounding chunks if available
@@ -2285,15 +2505,15 @@ export const executeAiChatStream = async (
     try {
       const optResponse = await runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.1-flash-lite",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
 Rewrite the user's message into a concise, highly effective Google Search query.
 Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
 Output ONLY the search query string (3-7 words).
 
 User Message: "${sanitizedMessage.substring(0, 200)}"
-Optimized Search Query:`,
-        });
+Optimized Search Query:`
+      });
       }, undefined, chatKeys);
 
       if (optResponse?.text) {
@@ -2400,13 +2620,11 @@ Optimized Search Query:`,
 
       try {
         const responseStream = await ai.models.generateContentStream({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.5-flash",
           contents,
           config: { 
-            systemInstruction,
-            tools: [{ googleSearch: {} }]
-          }
-        });
+            systemInstruction
+        } });
 
         for await (const chunk of responseStream) {
           if (chunk.text) {
@@ -2426,13 +2644,11 @@ Optimized Search Query:`,
       } catch (streamErr) {
         console.warn("generateContentStream fallback to generateContent:", streamErr);
         const singleResp = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.5-flash",
           contents,
           config: { 
-            systemInstruction,
-            tools: [{ googleSearch: {} }]
-          }
-        });
+            systemInstruction
+        } });
         fullText = singleResp.text || "";
         const nativeChunks = singleResp.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         nativeChunks.forEach((c: any) => {
@@ -2502,7 +2718,7 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2026/2027.
 
 CRITICAL RULES:
@@ -2546,16 +2762,14 @@ JSON SCHEMA:
                     portalLink:      { type: Type.STRING },
                     publishDate:     { type: Type.STRING },
                     cutoffScore:     { type: Type.STRING },
-                    eligibilityText: { type: Type.STRING },
-                  },
+                    eligibilityText: { type: Type.STRING } },
                   required: ["schoolName", "isOut", "statusText", "details", "portalLink", "publishDate", "cutoffScore", "eligibilityText"]
                 }
               }
             },
             required: ["releases"]
           }
-        },
-        tools: [{ googleSearch: {} }]
+        }
       });
     }, newsKey);
 
@@ -2598,7 +2812,7 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2026/2027 academic session.
 
 CRITICAL:
@@ -2633,12 +2847,10 @@ JSON SCHEMA:
               portalLink:      { type: Type.STRING },
               publishDate:     { type: Type.STRING },
               cutoffScore:     { type: Type.STRING },
-              eligibilityText: { type: Type.STRING },
-            },
+              eligibilityText: { type: Type.STRING } },
             required: ["schoolName", "isOut", "statusText", "details", "portalLink", "publishDate", "cutoffScore", "eligibilityText"]
           }
-        },
-        tools: [{ googleSearch: {} }]
+        }
       });
     }, newsKey);
 

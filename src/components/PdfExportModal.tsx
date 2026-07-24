@@ -1,5 +1,7 @@
-import React from 'react';
-import { X, Printer, Download, Share2, CheckCircle2, ShieldCheck, Award, Calendar, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Printer, Download, Share2, ShieldCheck, Award, FileText, Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface PdfExportModalProps {
   isOpen: boolean;
@@ -21,6 +23,18 @@ interface PdfExportModalProps {
 }
 
 export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose, resultData }) => {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const {
@@ -40,6 +54,75 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const element = document.getElementById('printable-result-slip');
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          const origElement = document.getElementById('printable-result-slip');
+          const clonedElement = clonedDoc.getElementById('printable-result-slip');
+          if (!origElement || !clonedElement) return;
+
+          const tempCanvas = document.createElement('canvas');
+          const ctx = tempCanvas.getContext('2d');
+
+          const origList = [origElement, ...Array.from(origElement.querySelectorAll('*'))];
+          const cloneList = [clonedElement, ...Array.from(clonedElement.querySelectorAll('*'))];
+
+          for (let i = 0; i < origList.length; i++) {
+            const origEl = origList[i] as HTMLElement;
+            const cloneEl = cloneList[i] as HTMLElement;
+            if (!origEl || !cloneEl) continue;
+
+            const computed = window.getComputedStyle(origEl);
+            const colorProps = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'fill', 'stroke'];
+            
+            colorProps.forEach((prop) => {
+              const val = computed.getPropertyValue(prop);
+              if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color('))) {
+                if (ctx) {
+                  ctx.fillStyle = 'rgba(0,0,0,0)';
+                  ctx.fillStyle = val;
+                  const safeColor = ctx.fillStyle;
+                  cloneEl.style.setProperty(prop, safeColor);
+                }
+              }
+            });
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const uniName = targetUni?.name || 'University';
+      const courseName = targetCourse || courseSearch || 'Course';
+      const cleanFileName = `${uniName.replace(/[^a-zA-Z0-9]/g, '_')}_${courseName.replace(/[^a-zA-Z0-9]/g, '_')}_Official_Result_Slip.pdf`;
+
+      pdf.save(cleanFileName);
+    } catch (error) {
+      console.error("PDF generation failed, initiating print fallback:", error);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleDownloadText = () => {
@@ -92,7 +175,7 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
           url: window.location.href,
         });
       } catch (err) {
-        // User cancelled or not supported
+        // User cancelled
       }
     } else {
       navigator.clipboard.writeText(shareText);
@@ -101,74 +184,104 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl overflow-hidden my-8">
+    <div 
+      className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-result-slip, #printable-result-slip * {
+            visibility: visible;
+          }
+          #printable-result-slip {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            margin: 0;
+            background: white !important;
+            color: black !important;
+          }
+        }
+      `}</style>
+
+      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 print:hidden">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+        {/* Sticky Modal Header */}
+        <div className="shrink-0 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3 z-30 print:hidden">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
               <Award size={18} />
             </div>
-            <div>
-              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Official Result Slip Preview</h3>
-              <p className="text-[10px] text-gray-500">Formatted for print, PDF save, and sharing</p>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider truncate">Official Result Slip</h3>
+              <p className="text-[10px] text-gray-500 hidden sm:block">Formatted for PDF export, print, and instant verification</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-lg shadow-blue-500/20"
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20"
+              title="Print document or save as PDF"
             >
-              <Printer size={14} /> Print / Save PDF
+              <Printer size={14} />
+              <span className="hidden sm:inline">Print / Save PDF</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all border border-red-500/20"
+              title="Close modal"
             >
-              <X size={18} />
+              <X size={16} />
+              <span>Close</span>
             </button>
           </div>
         </div>
 
-        {/* Printable Content Area */}
-        <div id="printable-result-slip" className="p-8 md:p-12 space-y-8 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+        {/* Scrollable Printable Content Area */}
+        <div id="printable-result-slip" className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-10 space-y-6 sm:space-y-8 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
           
           {/* Header Branding */}
-          <div className="flex items-center justify-between border-b-2 border-blue-600 pb-6">
+          <div className="flex items-center justify-between border-b-2 border-blue-600 pb-5 gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-lg shrink-0">
                 C
               </div>
               <div>
-                <h2 className="text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white">CampusAI.<span className="text-blue-600">ng</span></h2>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Official Admission Aggregate & Screening Report</p>
+                <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white">CampusAI.<span className="text-blue-600">ng</span></h2>
+                <p className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-widest">Official Admission Aggregate & Screening Report</p>
               </div>
             </div>
-            <div className="text-right">
-              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[10px] rounded-full border border-emerald-500/20">
+            <div className="text-right shrink-0">
+              <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[9px] sm:text-[10px] rounded-full border border-emerald-500/20">
                 VERIFIED SLIP
               </span>
-              <p className="text-[9px] text-gray-400 mt-1 font-mono">{new Date().toLocaleString()}</p>
+              <p className="text-[9px] text-gray-400 mt-1 font-mono">{new Date().toLocaleDateString()}</p>
             </div>
           </div>
 
           {/* Target Institution & Course Card */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800">
             <div>
               <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Target Institution</span>
-              <h2 className="text-base font-black text-gray-900 dark:text-white mt-0.5">{targetUni?.name || 'University not specified'}</h2>
+              <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white mt-0.5">{targetUni?.name || 'University not specified'}</h2>
               <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{targetUni?.category || 'Federal University'} • {targetUni?.location || 'Nigeria'}</p>
             </div>
             <div>
               <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Course of Choice</span>
-              <h2 className="text-base font-black text-gray-900 dark:text-white mt-0.5">{targetCourse || courseSearch || 'Course not specified'}</h2>
+              <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white mt-0.5">{targetCourse || courseSearch || 'Course not specified'}</h2>
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-0.5">Quota / State: {stateOfOrigin || 'General'}</p>
             </div>
           </div>
 
-          {/* Scores Breakdown Grid */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Responsive Scores Breakdown Grid (Stacks cleanly on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-center">
               <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">JAMB UTME (400)</span>
               <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{jambScore || '0'}</p>
@@ -191,57 +304,87 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
           </div>
 
           {/* O-Level Breakdown Table */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">O'Level Best 5 Grades</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
               {subjects.map((sub, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-center">
+                <div key={idx} className="p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-center">
                   <p className="text-[9px] font-bold text-gray-400 truncate">{sub.name}</p>
-                  <p className="text-sm font-black text-gray-900 dark:text-white mt-1">{sub.grade}</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white mt-0.5">{sub.grade}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Admission Probability & Verdict */}
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div>
               <span className="text-[9px] font-black uppercase tracking-widest text-blue-500">Admission Prediction Verdict</span>
-              <h3 className="text-lg font-black text-gray-900 dark:text-white mt-0.5">{aiResult?.verdict || 'Competitive Merit Range'}</h3>
+              <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white mt-0.5">{aiResult?.verdict || 'Competitive Merit Range'}</h3>
               <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
                 Estimated Admission Probability: <strong className="text-emerald-500">{admissionProbability}%</strong> ({confidenceLevel} confidence)
               </p>
             </div>
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-500 font-black text-lg shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-500 font-black text-base sm:text-lg shrink-0">
               {admissionProbability}%
             </div>
           </div>
 
           {/* Security Stamp & Footer */}
-          <div className="pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between text-[10px] text-gray-400 gap-4">
+          <div className="pt-5 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between text-[10px] text-gray-400 gap-3 text-center sm:text-left">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={14} className="text-blue-500" />
+              <ShieldCheck size={14} className="text-blue-500 shrink-0" />
               <span>Generated securely via CampusAI Neural Engine • Official Academic Transcript Hash</span>
             </div>
-            <p className="font-mono">ID: CAMPUSAI-{Math.random().toString(36).substring(2, 9).toUpperCase()}</p>
+            <p className="font-mono text-[9px]">ID: CAMPUSAI-{Math.random().toString(36).substring(2, 9).toUpperCase()}</p>
           </div>
 
         </div>
 
-        {/* Modal Footer Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 print:hidden">
+        {/* Sticky Modal Footer Actions */}
+        <div className="shrink-0 sticky bottom-0 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md px-4 sm:px-6 py-3.5 border-t border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2.5 z-30 print:hidden">
           <button
-            onClick={handleShare}
-            className="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
+            onClick={onClose}
+            className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
           >
-            <Share2 size={14} /> Share Summary
+            <X size={14} />
+            <span>Close</span>
           </button>
-          <button
-            onClick={handleDownloadText}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
-          >
-            <Download size={14} /> Download Text Summary
-          </button>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleShare}
+              className="px-3.5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
+            >
+              <Share2 size={14} />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            <button
+              onClick={handleDownloadText}
+              className="px-3.5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
+              title="Download text file summary"
+            >
+              <Download size={14} />
+              <span className="hidden sm:inline">Text File</span>
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <FileText size={14} />
+                  <span>Download PDF Result Slip</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
       </div>

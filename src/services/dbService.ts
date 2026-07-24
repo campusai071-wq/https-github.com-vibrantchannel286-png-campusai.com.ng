@@ -154,30 +154,58 @@ export const clearNewsCache = () => {
   lastRawFetchTime = 0;
 };
 
-const getSyncTime = (item: NewsItem, now: number = Date.now()): number => {
+export const getNewsSortTimestamp = (item: NewsItem, now: number = Date.now()): number => {
+  if (!item) return 0;
+
   const dateStr = item.date ? item.date.trim() : "";
   const isBracketed = dateStr.includes("[") || dateStr.includes("]");
-  const pub = isBracketed ? 0 : toMs(dateStr);
-  
-  const createdVal = toMs(item.createdAt);
-  const archivedVal = toMs(item.archivedAt);
-  const updatedVal = toMs(item.updatedAt);
+  let pubMs = (!isBracketed && dateStr) ? toMs(dateStr) : 0;
 
-  const created = createdVal ? Math.min(now, createdVal) : 0;
-  const archived = archivedVal ? Math.min(now, archivedVal) : 0;
-  const updated = updatedVal ? Math.min(now, updatedVal) : 0;
-  
-  // Prioritize original created time over last-synced archived time to prevent
-  // old re-synced items from jumping to the top of the feed.
-  return created || archived || updated || (pub ? Math.min(now, pub) : 0);
+  let createdMs = toMs(item.createdAt);
+  let updatedMs = toMs(item.updatedAt);
+  let archivedMs = toMs(item.archivedAt);
+
+  // Cap future timestamps to `now` (+ 1 minute buffer) so future-dated items
+  // don't float off into the future or break sorting.
+  const maxAllowed = now + 60000;
+  if (pubMs > maxAllowed) pubMs = now;
+  if (createdMs > maxAllowed) createdMs = now;
+  if (updatedMs > maxAllowed) updatedMs = now;
+  if (archivedMs > maxAllowed) archivedMs = now;
+
+  // Determine effective publication/creation time:
+  // - Manually published & AI blog maker news have createdAt near `now` and pubMs near `now`.
+  // - Synced news items have pubMs or createdAt or archivedMs near `now`.
+  // - For old re-synced items, pubMs/createdMs reflect the original publication date (e.g. 2024),
+  //   preventing re-syncs from jumping ahead of today's news.
+  if (pubMs > 0 && createdMs > 0) {
+    return Math.max(pubMs, createdMs);
+  }
+
+  return pubMs || createdMs || archivedMs || updatedMs || 0;
 };
 
-const getEffectiveDateMs = (item: NewsItem): number => {
-  const dateStr = item.date ? item.date.trim() : "";
-  const isBracketed = dateStr.includes("[") || dateStr.includes("]");
-  const pub = isBracketed ? 0 : toMs(dateStr);
-  if (pub > 0) return pub;
-  return toMs(item.createdAt) || toMs(item.archivedAt) || toMs(item.updatedAt) || 0;
+export const getSyncTime = (item: NewsItem, now: number = Date.now()): number => {
+  return getNewsSortTimestamp(item, now);
+};
+
+export const getEffectiveDateMs = (item: NewsItem, now: number = Date.now()): number => {
+  return getNewsSortTimestamp(item, now);
+};
+
+export const sortNewsBySyncAndDate = (a: NewsItem, b: NewsItem, now: number = Date.now()): number => {
+  if (!a || !b) return 0;
+  // 1. Live news (isLive: true) always before mock news (isLive: false/undefined)
+  const aLive = !!a.isLive;
+  const bLive = !!b.isLive;
+  if (aLive !== bLive) return aLive ? -1 : 1;
+
+  // 2. Primary: Effective Publication/Creation Time (newest first)
+  const timeA = getNewsSortTimestamp(a, now);
+  const timeB = getNewsSortTimestamp(b, now);
+  if (timeB !== timeA) return timeB - timeA;
+
+  return 0;
 };
 
 export const normalizeCategory = (cat: string, title: string = ""): UniversityCategory => {
@@ -450,37 +478,9 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
         return false;
       }
 
-      if (includeFuture) return true;
-      if (!item.date) return true; // Allow items with no date through (don't accidentally hide them)
-      const itemDate = new Date(item.date).getTime();
-      // Allow items with no parseable date through (don't accidentally hide them)
-      if (!isNaN(itemDate) && itemDate > now + (48 * 60 * 60 * 1000)) {
-        if (item.isLive) {
-          console.log(`[DEBUG filterAndSortNews] Rejected live item as future-dated: ${item.title} (date: ${item.date}, itemDateMs: ${itemDate}, nowMs: ${now})`);
-        }
-        return false;
-      }
       return true;
     })
-    .sort((a, b) => {
-      if (!a || !b) return 0;
-      // 1. Live news (isLive: true) always before mock news
-      const aLive = !!a.isLive;
-      const bLive = !!b.isLive;
-      if (aLive !== bLive) return aLive ? -1 : 1;
-
-      // 2. Primary: Cloud Synchronization Time (newest first)
-      const syncA = getSyncTime(a, now);
-      const syncB = getSyncTime(b, now);
-      if (syncB !== syncA) return syncB - syncA;
-
-      // 3. Secondary: effective date of the article (newest first)
-      const dateA = getEffectiveDateMs(a);
-      const dateB = getEffectiveDateMs(b);
-      if (dateB !== dateA) return dateB - dateA;
-
-      return 0;
-    });
+    .sort((a, b) => sortNewsBySyncAndDate(a, b, now));
 
   // Deduplicate by stable key, title (normalized) and slug to prevent repeated news
   const seenStableKeys = new Set<string>();
