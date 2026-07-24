@@ -83,9 +83,12 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ userId }) => {
     <div className="bg-gray-50 dark:bg-gray-900/50 rounded-[32px] p-6 border border-gray-100 dark:border-gray-800">
       <div>
         <div className="flex items-center justify-between mb-4 relative">
-          <div className="flex items-center gap-2">
+          <div
+            onClick={() => setMaxToShow(maxToShow > 0 ? 0 : 3)}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
             <Footprints className="text-blue-600 animate-pulse" size={20} />
-            <h3 className="font-black text-gray-900 dark:text-white uppercase text-[10px] tracking-widest">
+            <h3 className="font-black text-gray-900 dark:text-white uppercase text-[10px] tracking-widest group-hover:text-blue-600 transition-colors">
               {userId ? 'Recent Activity' : 'Local Recent Activity'}
             </h3>
           </div>

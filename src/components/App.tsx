@@ -6,11 +6,15 @@ import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
 import SEO from './SEO';
 
+import PolicySection from './PolicySection';
+import FAQSection from './FAQSection';
+import Testimonials from './Testimonials';
+import InviteEarn from './InviteEarn';
+import RecentActivity from './RecentActivity';
+
 // Code-split heavy secondary views & modals for faster initial load (LCP & TTFB)
-const PolicySection = lazy(() => import('./PolicySection'));
 const AboutSection = lazy(() => import('./AboutSection'));
 const Dashboard = lazy(() => import('./Dashboard'));
-const RecentActivity = lazy(() => import('./RecentActivity'));
 const AdminPanel = lazy(() => import('./AdminPanel'));
 const UserSettingsModal = lazy(() => import('./UserSettingsModal'));
 const NewsDetailView = lazy(() => import('./NewsDetailView'));
@@ -23,14 +27,11 @@ const LegalModal = lazy(() => import('./LegalModal'));
 const CookieConsent = lazy(() => import('./CookieConsent'));
 const LegalSection = lazy(() => import('./LegalSection'));
 const CutoffCalculator = lazy(() => import('./CutoffCalculator'));
-const InviteEarn = lazy(() => import('./InviteEarn'));
 const PostUtmeReleaseHub = lazy(() => import('./PostUtmeReleaseHub'));
 const AIChatDrawer = lazy(() => import('./AIChatDrawer'));
-const FAQSection = lazy(() => import('./FAQSection'));
 const Tour = lazy(() => import('./Tour'));
 const InstallPrompt = lazy(() => import('./InstallPrompt'));
 const CalculationAnimation = lazy(() => import('./CalculationAnimation'));
-const Testimonials = lazy(() => import('./Testimonials'));
 const StatusPage = lazy(() => import('./StatusPage'));
 const NotFound = lazy(() => import('./NotFound'));
 const FeedbackModal = lazy(() => import('./FeedbackModal'));
@@ -131,7 +132,14 @@ const AppContent: React.FC = () => {
   
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedSchoolForChances, setSelectedSchoolForChances] = useState<string>('');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const stored = localStorage.getItem('campusai_user_profile');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return null;
+  });
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [activeArticle, setActiveArticle] = useState<NewsItem | null>(null);
@@ -367,11 +375,24 @@ const AppContent: React.FC = () => {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
       if (firebaseUser) {
-        const profile = await initializeUserProfile(firebaseUser);
-        setUser({ ...firebaseUser, ...profile });
-        subscribeToUserProfile(firebaseUser.uid, (updatedProfile) => {
-           setUser((curr: any) => curr ? { ...curr, ...updatedProfile } : null);
-        });
+        const { getLocalProfile } = await import('../services/userService');
+        const localProfile = getLocalProfile();
+        if (localProfile && localProfile.uid === firebaseUser.uid) {
+           setUser({ ...firebaseUser, ...localProfile });
+        } else {
+           setUser({ ...firebaseUser, role: 'Pre-Admission', is_premium: false });
+        }
+        setIsAuthLoading(false);
+        
+        try {
+          const profile = await initializeUserProfile(firebaseUser);
+          setUser({ ...firebaseUser, ...profile });
+          subscribeToUserProfile(firebaseUser.uid, (updatedProfile) => {
+             setUser((curr: any) => curr ? { ...curr, ...updatedProfile } : null);
+          });
+        } catch (e) {
+          console.error("Profile init error:", e);
+        }
       } else {
         localStorage.removeItem('campusai_user_profile');
         window.dispatchEvent(new Event('campusai_clear_chat'));
@@ -380,6 +401,7 @@ const AppContent: React.FC = () => {
         if (window.location.pathname === '/dashboard') {
           navigate('/');
         }
+        setIsAuthLoading(false);
       }
     });
 
@@ -643,6 +665,8 @@ const AppContent: React.FC = () => {
     navigate('/news');
   };
 
+
+
   return (
     <div className={`min-h-screen transition-colors duration-500 ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
       
@@ -674,7 +698,12 @@ const AppContent: React.FC = () => {
       />
 
       <main className="pb-40">
-        <Suspense fallback={<div className="min-h-[50vh] bg-gray-950 flex items-center justify-center text-emerald-500 font-medium text-xs tracking-widest uppercase">Loading CampusAI...</div>}>
+        <Suspense fallback={
+          <div className="min-h-[40vh] bg-gray-950 flex flex-col items-center justify-center p-6 gap-3">
+            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Loading Section...</p>
+          </div>
+        }>
           <Routes>
           <Route path="/dashboard" element={
             <Dashboard 

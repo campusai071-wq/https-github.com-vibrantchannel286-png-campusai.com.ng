@@ -375,7 +375,15 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 - Your knowledge cutoff is 2026/2027 Admission Cycle. Today's date is ${currentDate} [Africa/Lagos WAT].
 - Your sole mission is to help Nigerian students (UTME, Direct Entry, JUPEB, Inter-University Transfer) gain admission with 100% accurate, verified information.
 - Personality: Sharp, authoritative, empathetic, street-smart but academic. Use Nigerian student slang sparingly ("Omo", "Sharp", "No worry") but remain professional.
-- CONVERSATION MEMORY: You have FULL access to all previous messages, uploaded document text, scores, and calculations in this active chat thread. ALWAYS remember and refer back to student details provided earlier in this conversation. NEVER claim you cannot remember previous messages or files in this chat session.
+- CONVERSATION MEMORY & TARGET INSTITUTION FOCUS:
+  - You have FULL access to all previous messages, uploaded document text, scores, and calculations in this active chat thread. ALWAYS remember and refer back to student details provided earlier in this conversation. NEVER claim you cannot remember previous messages or files in this chat session.
+  - PRIMARY TARGET INSTITUTION PERSISTENCE (STRICT ISOLATION RULE):
+    - If the user has submitted a registration document or indicated their primary choice (e.g., FUTA - Federal University of Technology, Akure), that remains their PRIMARY TARGET SCHOOL.
+    - If the user clicks "Discuss with AI" or asks questions regarding news, cutoffs, or updates about ANOTHER school (e.g. Osun State University / UNIOSUN, UNILAG, LASU, UI):
+      1. Discuss that news item or school directly and accurately as requested.
+      2. CRITICAL: DO NOT mistakenly convert or switch the user's primary target school to that second university!
+      3. Keep them separate: "Your primary target choice remains [e.g. FUTA]. Regarding the UNIOSUN news..."
+      4. NEVER change their target choice unless they explicitly state: "Change my primary target school to [New School]".
 
 ### 2. EXPANDED KNOWLEDGE BASE [NEVER HALLUCINATE]
 
@@ -2180,7 +2188,21 @@ Optimized Search Query:`,
         userCorrections.push(`User corrected: "${msg.text}"`);
       }
     }
-    const userContextStr = userCorrections.join('\n');
+
+    let primaryTargetContext = "";
+    if (typeof window !== 'undefined') {
+      try {
+        const storedTarget = localStorage.getItem('campusai_primary_target');
+        if (storedTarget) {
+          const parsedTarget = JSON.parse(storedTarget);
+          if (parsedTarget?.institution) {
+            primaryTargetContext = `[SAVED PRIMARY TARGET SCHOOL CONTEXT]: The student's official primary target institution is ${parsedTarget.institution}. When discussing news or updates about OTHER schools (e.g., UNIOSUN, UNILAG, LASU, UI), evaluate that news accurately but DO NOT convert or switch their primary target school away from ${parsedTarget.institution}!`;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const userContextStr = [userCorrections.join('\n'), primaryTargetContext].filter(Boolean).join('\n\n');
 
     let systemInstruction = getSystemPrompt(
       liveIntelStr,
@@ -2339,7 +2361,21 @@ Optimized Search Query:`,
         userCorrections.push(`User corrected: "${msg.text}"`);
       }
     }
-    const userContextStr = userCorrections.join('\n');
+
+    let primaryTargetContextStream = "";
+    if (typeof window !== 'undefined') {
+      try {
+        const storedTarget = localStorage.getItem('campusai_primary_target');
+        if (storedTarget) {
+          const parsedTarget = JSON.parse(storedTarget);
+          if (parsedTarget?.institution) {
+            primaryTargetContextStream = `[SAVED PRIMARY TARGET SCHOOL CONTEXT]: The student's official primary target institution is ${parsedTarget.institution}. When discussing news or updates about OTHER schools (e.g., UNIOSUN, UNILAG, LASU, UI), evaluate that news accurately but DO NOT convert or switch their primary target school away from ${parsedTarget.institution}!`;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const userContextStr = [userCorrections.join('\n'), primaryTargetContextStream].filter(Boolean).join('\n\n');
 
     let systemInstruction = getSystemPrompt(
       liveIntelStr,
@@ -2409,11 +2445,16 @@ Optimized Search Query:`,
         const chunksArr = Array.from(uniqueChunksMap.values());
         
         const words = fullText.split(" ");
-        let currentTyped = "";
-        for (let i = 0; i < words.length; i++) {
-          currentTyped += (i === 0 ? "" : " ") + words[i];
-          onChunk(currentTyped, chunksArr.length > 0 ? chunksArr : undefined);
-          await new Promise(r => setTimeout(r, 12));
+        if (words.length <= 30) {
+          onChunk(fullText, chunksArr.length > 0 ? chunksArr : undefined);
+        } else {
+          // Deliver in chunks of 10 words for fast, smooth rendering
+          const chunkSize = 10;
+          for (let i = 0; i < words.length; i += chunkSize) {
+            const currentTyped = words.slice(0, i + chunkSize).join(" ");
+            onChunk(currentTyped, chunksArr.length > 0 ? chunksArr : undefined);
+            await new Promise(r => setTimeout(r, 16));
+          }
         }
       }
 

@@ -1183,6 +1183,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [calculationAttempts, setCalculationAttempts] = useState<SavedProfile[]>([]);
+  const [isRecentCalculationsOpen, setIsRecentCalculationsOpen] = useState(false);
 
   const chartData = useMemo(() => {
     const source = calculationAttempts.length > 0 ? calculationAttempts : savedProfiles;
@@ -2422,45 +2423,76 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             {/* Recent Calculated Scores (Saved Offline) */}
             {calculationAttempts.length > 0 && (
               <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[7.5px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
-                    <Clock size={11} className="text-cyan-400" /> Recent Calculated Scores (Saved Offline)
-                  </p>
+                <div className="flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={handleClearHistory}
-                    className="text-[7.5px] font-bold text-gray-500 hover:text-rose-400 transition-colors"
+                    onClick={() => setIsRecentCalculationsOpen(!isRecentCalculationsOpen)}
+                    className="text-[8px] font-black uppercase text-gray-300 hover:text-cyan-400 transition-colors tracking-widest flex items-center gap-1.5 cursor-pointer"
                   >
-                    Clear History
+                    <Clock size={11} className="text-cyan-400" />
+                    <span>Recent Calculated Scores ({calculationAttempts.length})</span>
+                    <ChevronDown
+                      size={12}
+                      className={`text-gray-400 transition-transform duration-200 ${isRecentCalculationsOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {calculationAttempts.map(p => (
-                    <div
-                      key={p.id || p.timestamp}
-                      onClick={() => handleLoadScenario(p)}
-                      className="group flex items-center justify-between p-2.5 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all select-none"
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsRecentCalculationsOpen(!isRecentCalculationsOpen)}
+                      className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      <div className="flex flex-col text-left overflow-hidden pr-2">
-                        <span className="text-[9.5px] font-black text-white group-hover:text-cyan-400 transition-colors truncate">
-                          {p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
-                        </span>
-                        <span className="text-[8px] text-gray-400 font-bold truncate">
-                          {p.courseName} • UTME: {p.jambScore || 'N/A'} {p.postUtmeScore ? `| Post: ${p.postUtmeScore}` : ''}
-                        </span>
-                        <span className="text-[7px] text-gray-500 mt-0.5">
-                          {new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xs font-black text-cyan-300">{p.aggregateScore}%</div>
-                        <span className="text-[6.5px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                          Offline Available
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                      {isRecentCalculationsOpen ? 'Hide History' : 'Open History'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearHistory}
+                      className="text-[7.5px] font-bold text-gray-500 hover:text-rose-400 transition-colors cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
+
+                <AnimatePresence>
+                  {isRecentCalculationsOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden pt-3 border-t border-white/5 mt-2.5"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {calculationAttempts.map(p => (
+                          <div
+                            key={p.id || p.timestamp}
+                            onClick={() => handleLoadScenario(p)}
+                            className="group flex items-center justify-between p-2.5 bg-black/40 border border-white/5 rounded-xl cursor-pointer hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all select-none"
+                          >
+                            <div className="flex flex-col text-left overflow-hidden pr-2">
+                              <span className="text-[9.5px] font-black text-white group-hover:text-cyan-400 transition-colors truncate">
+                                {p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
+                              </span>
+                              <span className="text-[8px] text-gray-400 font-bold truncate">
+                                {p.courseName} • UTME: {p.jambScore || 'N/A'} {p.postUtmeScore ? `| Post: ${p.postUtmeScore}` : ''}
+                              </span>
+                              <span className="text-[7px] text-gray-500 mt-0.5">
+                                {new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-xs font-black text-cyan-300">{p.aggregateScore}%</div>
+                              <span className="text-[6.5px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                Offline Available
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 

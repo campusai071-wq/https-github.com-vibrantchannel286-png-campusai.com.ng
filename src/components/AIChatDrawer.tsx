@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Send, Brain, Sparkles, Loader2, ArrowUpRight,
+  X, Send, Brain, Sparkles, Loader2, ArrowUpRight, ArrowDown,
   ShieldCheck, Zap, Trash2, Paperclip, FileText,
   Copy, Check, ThumbsUp, ThumbsDown, RotateCcw,
-  Share2, Volume2, VolumeX, ExternalLink, MessageSquare
+  Share2, Volume2, VolumeX, ExternalLink, MessageSquare, Download
 } from 'lucide-react';
 import { executeAiChat, executeAiChatStream } from '../services/geminiService';
 import { checkAndIncrementChats, getLocalProfile, isRealUser, getChatLimits } from '../services/userService';
@@ -14,6 +14,135 @@ import Markdown from 'react-markdown';
 import * as pdfjs from 'pdfjs-dist';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+// Memoized message item to avoid re-rendering entire chat history during streaming
+const ChatMessageItem = React.memo(({
+  msg,
+  i,
+  copiedIndex,
+  likes,
+  speakingIndex,
+  isLoading,
+  onCopy,
+  onLike,
+  onRegenerate,
+  onShare,
+  onSpeech
+}: {
+  msg: ChatMessage;
+  i: number;
+  copiedIndex: number | null;
+  likes: Record<number, 'like' | 'dislike' | null>;
+  speakingIndex: number | null;
+  isLoading: boolean;
+  onCopy: (text: string, index: number) => void;
+  onLike: (index: number, type: 'like' | 'dislike') => void;
+  onRegenerate: (index: number) => void;
+  onShare: (msg: ChatMessage) => void;
+  onSpeech: (text: string, index: number) => void;
+}) => {
+  return (
+    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} space-y-1.5`}>
+      <div className={`max-w-[88%] sm:max-w-[85%] p-4 rounded-3xl shadow-sm ${
+        msg.role === 'user'
+          ? 'bg-blue-600 text-white rounded-tr-none font-semibold text-sm'
+          : 'bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-800 rounded-tl-none font-medium'
+      }`}>
+        <div className="markdown-body">
+          <Markdown>{msg.text}</Markdown>
+        </div>
+
+        {/* Grounding sources */}
+        {msg.groundingChunks && msg.groundingChunks.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-800/20 space-y-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+              <Sparkles size={10} className="text-cyan-500" /> Grounded Insights & Sources
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {msg.groundingChunks.map((chunk, cIdx) => (
+                <a
+                  key={cIdx}
+                  href={chunk.web?.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-black text-gray-750 dark:text-gray-300 hover:text-blue-500 dark:hover:text-cyan-400 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm font-bold text-[10px] transition-colors"
+                >
+                  {chunk.web?.title || "Portal Update"} <ArrowUpRight size={12} />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Gemini Prototype Action Toolbar for Model Messages */}
+      {msg.role === 'model' && msg.text && (
+        <div className="flex items-center gap-1 pl-1 pt-0.5 text-gray-400 dark:text-gray-500">
+          {/* Copy */}
+          <button
+            onClick={() => onCopy(msg.text, i)}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+            title="Copy response"
+          >
+            {copiedIndex === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+          </button>
+
+          {/* Good response (Like) */}
+          <button
+            onClick={() => onLike(i, 'like')}
+            className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+              likes[i] === 'like' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            title="Good response"
+          >
+            <ThumbsUp size={14} className={likes[i] === 'like' ? 'fill-current' : ''} />
+          </button>
+
+          {/* Bad response (Dislike) */}
+          <button
+            onClick={() => onLike(i, 'dislike')}
+            className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+              likes[i] === 'dislike' ? 'text-red-500 bg-red-50 dark:bg-red-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            title="Bad response"
+          >
+            <ThumbsDown size={14} className={likes[i] === 'dislike' ? 'fill-current' : ''} />
+          </button>
+
+          {/* Regenerate / Reload */}
+          <button
+            onClick={() => onRegenerate(i)}
+            disabled={isLoading}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:opacity-40"
+            title="Regenerate / Reload response"
+          >
+            <RotateCcw size={14} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={() => onShare(msg)}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer"
+            title="Share response"
+          >
+            <Share2 size={14} />
+          </button>
+
+          {/* Read Aloud Speech */}
+          <button
+            onClick={() => onSpeech(msg.text, i)}
+            className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
+              speakingIndex === i ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            title={speakingIndex === i ? 'Stop reading' : 'Read aloud'}
+          >
+            {speakingIndex === i ? <VolumeX size={14} className="animate-pulse" /> : <Volume2 size={14} />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
 
 interface AIChatDrawerProps {
   user: any;
@@ -46,10 +175,43 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const detectAndStorePrimaryTarget = (text: string) => {
+    if (!text) return;
+    const lower = text.toLowerCase();
+    let schoolName = '';
+    if (lower.includes('federal university of technology, akure') || lower.includes('futa')) {
+      schoolName = 'Federal University of Technology, Akure (FUTA)';
+    } else if (lower.includes('university of lagos') || lower.includes('unilag')) {
+      schoolName = 'University of Lagos (UNILAG)';
+    } else if (lower.includes('obafemi awolowo university') || lower.includes('oau')) {
+      schoolName = 'Obafemi Awolowo University (OAU)';
+    } else if (lower.includes('osun state university') || lower.includes('uniosun') || lower.includes('university of osun')) {
+      schoolName = 'Osun State University (UNIOSUN)';
+    } else if (lower.includes('lagos state university') || lower.includes('lasu')) {
+      schoolName = 'Lagos State University (LASU)';
+    } else if (lower.includes('university of ibadan') || lower.includes('ui')) {
+      schoolName = 'University of Ibadan (UI)';
+    } else if (lower.includes('university of benin') || lower.includes('uniben')) {
+      schoolName = 'University of Benin (UNIBEN)';
+    }
+
+    if (schoolName) {
+      try {
+        localStorage.setItem('campusai_primary_target', JSON.stringify({
+          institution: schoolName,
+          source: 'User uploaded registration document or prompt',
+          updatedAt: new Date().toISOString()
+        }));
+      } catch {}
+    }
   };
 
   const handleChatFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,6 +231,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
             const content = await page.getTextContent();
             text += content.items.map((item: any) => item.str).join(' ');
           }
+          detectAndStorePrimaryTarget(text);
           setAttachedFile({ name: file.name, content: text });
         } catch (err) {
           console.error('Error parsing PDF in chat:', err);
@@ -90,10 +253,10 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
       const key = getChatStorageKey(user?.uid);
-      const stored = sessionStorage.getItem(key);
+      const stored = localStorage.getItem(key) || sessionStorage.getItem(key);
       if (stored) return JSON.parse(stored);
       if (!user?.uid) {
-        const legacy = sessionStorage.getItem('campusai_chat_messages');
+        const legacy = localStorage.getItem('campusai_chat_messages') || sessionStorage.getItem('campusai_chat_messages');
         if (legacy) return JSON.parse(legacy);
       }
     } catch {}
@@ -107,7 +270,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
   useEffect(() => {
     try {
       const key = getChatStorageKey(user?.uid);
-      const stored = sessionStorage.getItem(key);
+      const stored = localStorage.getItem(key) || sessionStorage.getItem(key);
       if (stored) {
         setMessages(JSON.parse(stored));
       } else {
@@ -124,7 +287,9 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
       setMessages([WELCOME_MESSAGE]);
       try {
         const key = getChatStorageKey(user?.uid);
+        localStorage.removeItem(key);
         sessionStorage.removeItem(key);
+        localStorage.removeItem('campusai_chat_messages');
         sessionStorage.removeItem('campusai_chat_messages');
       } catch {}
     };
@@ -167,24 +332,97 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
     return () => clearInterval(timer);
   }, [isLoading]);
 
-  // ── Persist messages per account UID + scroll after DOM paint ──
+  // ── Persist messages per account UID when idle ──
   useEffect(() => {
-    try {
-      const key = getChatStorageKey(user?.uid);
-      sessionStorage.setItem(key, JSON.stringify(messages));
-    } catch {}
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  }, [messages, user?.uid]);
+    if (!isLoading) {
+      try {
+        const key = getChatStorageKey(user?.uid);
+        const data = JSON.stringify(messages);
+        localStorage.setItem(key, data);
+        sessionStorage.setItem(key, data);
+      } catch {}
+    }
+  }, [messages, isLoading, user?.uid]);
+
+  // ── Auto scroll to bottom when drawer opens ──
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // ── Efficient scroll to bottom on new messages / streaming ──
+  const lastScrollTimeRef = useRef(0);
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastScrollTimeRef.current > 60) {
+      lastScrollTimeRef.current = now;
+      messagesEndRef.current?.scrollIntoView({ behavior: isLoading ? 'auto' : 'smooth' });
+    }
+  }, [messages, isLoading]);
+
+  const handleContainerScroll = useCallback(() => {
+    if (!messageContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+    const isFarFromBottom = scrollHeight - scrollTop - clientHeight > 140;
+    setShowScrollBottom(isFarFromBottom);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowScrollBottom(false);
+  }, []);
 
   // ── Clear chat ──
   const handleClearChat = useCallback(() => {
     setMessages([WELCOME_MESSAGE]);
     try {
       const key = getChatStorageKey(user?.uid);
+      localStorage.removeItem(key);
       sessionStorage.removeItem(key);
+      localStorage.removeItem('campusai_chat_messages');
       sessionStorage.removeItem('campusai_chat_messages');
     } catch {}
   }, [user?.uid]);
+
+  // ── Save / Export Chat transcript ──
+  const handleExportChat = useCallback(() => {
+    if (messages.length <= 1) {
+      showToast("No chat history to save yet.");
+      return;
+    }
+    const dateStr = new Date().toLocaleDateString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+    const transcriptLines = [
+      `# CampusAI Academic Strategy Chat Transcript`,
+      `Date: ${dateStr}`,
+      `User ID: ${user?.uid || 'Guest User'}`,
+      `==================================================\n`
+    ];
+
+    messages.forEach((msg) => {
+      const sender = msg.role === 'user' ? '👤 STUDENT' : '🤖 CAMPUSAI ADVISOR';
+      transcriptLines.push(`### ${sender}\n${msg.text}\n`);
+    });
+
+    const blob = new Blob([transcriptLines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `CampusAI_Chat_${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast("Chat saved and downloaded as transcript file!");
+  }, [messages, user?.uid]);
 
   // ── Core send function — wrapped in useCallback to avoid stale closures ──
   const handleSendMessage = useCallback(async (textToSend?: string) => {
@@ -198,6 +436,8 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
       }
       currentInput = `[Attached Document: ${attachedFile.name}]\n${fileContent}\n\nUser Question/Request: ${currentInput || 'Please analyze this uploaded document and provide insights.'}`;
     }
+
+    detectAndStorePrimaryTarget(currentInput);
 
     const quotaCheck = await checkAndIncrementChats(user?.uid || '');
     if (!quotaCheck.allowed) {
@@ -215,25 +455,39 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
     setAttachedFile(null);
     setIsLoading(true);
 
+    let lastStreamTime = 0;
     try {
       await executeAiChatStream(
         currentInput,
         latestMessages,
         (streamedText, groundingChunks) => {
-          setMessages(prev => {
-            const newArr = [...prev];
-            const lastIdx = newArr.length - 1;
-            if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
-              newArr[lastIdx] = {
-                ...newArr[lastIdx],
-                text: streamedText,
-                groundingChunks: groundingChunks || newArr[lastIdx].groundingChunks
-              };
-            }
-            return newArr;
-          });
+          const now = Date.now();
+          if (now - lastStreamTime > 40) {
+            lastStreamTime = now;
+            setMessages(prev => {
+              const newArr = [...prev];
+              const lastIdx = newArr.length - 1;
+              if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
+                newArr[lastIdx] = {
+                  ...newArr[lastIdx],
+                  text: streamedText,
+                  groundingChunks: groundingChunks || newArr[lastIdx].groundingChunks
+                };
+              }
+              return newArr;
+            });
+          }
         }
       );
+      // Ensure final full text is synced
+      setMessages(prev => {
+        const newArr = [...prev];
+        const lastIdx = newArr.length - 1;
+        if (lastIdx >= 0 && newArr[lastIdx].role === 'model' && !newArr[lastIdx].text) {
+          return prev;
+        }
+        return newArr;
+      });
     } catch {
       setMessages(prev => {
         const newArr = [...prev];
@@ -298,22 +552,27 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
       return next;
     });
 
+    let lastRegenStreamTime = 0;
     try {
       await executeAiChatStream(
         userQuery,
         historyForRegen,
         (streamedText, groundingChunks) => {
-          setMessages(prev => {
-            const next = [...prev];
-            if (next[msgIndex]) {
-              next[msgIndex] = {
-                ...next[msgIndex],
-                text: streamedText,
-                groundingChunks: groundingChunks || next[msgIndex].groundingChunks
-              };
-            }
-            return next;
-          });
+          const now = Date.now();
+          if (now - lastRegenStreamTime > 40) {
+            lastRegenStreamTime = now;
+            setMessages(prev => {
+              const next = [...prev];
+              if (next[msgIndex]) {
+                next[msgIndex] = {
+                  ...next[msgIndex],
+                  text: streamedText,
+                  groundingChunks: groundingChunks || next[msgIndex].groundingChunks
+                };
+              }
+              return next;
+            });
+          }
         }
       );
     } catch {
@@ -450,13 +709,22 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                     </span>
                   )}
                   {messages.length > 1 && (
-                    <button
-                      onClick={handleClearChat}
-                      className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                      title="Clear Chat History"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <>
+                      <button
+                        onClick={handleExportChat}
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        title="Save & Download Chat Transcript"
+                      >
+                        <Download size={18} />
+                      </button>
+                      <button
+                        onClick={handleClearChat}
+                        className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        title="Clear Chat History"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => setIsOpen(false)}
@@ -492,7 +760,27 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
               ) : (
                 <>
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-white dark:bg-gray-950">
+                  <div
+                    ref={messageContainerRef}
+                    onScroll={handleContainerScroll}
+                    className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-white dark:bg-gray-950 relative"
+                  >
+
+                    {/* Scroll to bottom floating button */}
+                    <AnimatePresence>
+                      {showScrollBottom && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                          onClick={scrollToBottom}
+                          className="sticky bottom-4 left-full -ml-12 z-30 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl border border-blue-400/30 cursor-pointer flex items-center justify-center transition-all active:scale-90"
+                          title="Scroll to latest message"
+                        >
+                          <ArrowDown size={18} />
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
 
                     {/* Toast message notification */}
                     <AnimatePresence>
@@ -536,108 +824,20 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
 
                     {/* Message bubbles */}
                     {messages.map((msg, i) => (
-                      <div
+                      <ChatMessageItem
                         key={i}
-                        className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} space-y-1.5`}
-                      >
-                        <div className={`max-w-[88%] sm:max-w-[85%] p-4 rounded-3xl shadow-sm ${
-                          msg.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-tr-none font-semibold text-sm'
-                            : 'bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-800 rounded-tl-none font-medium'
-                        }`}>
-                          <div className="markdown-body">
-                            <Markdown>{msg.text}</Markdown>
-                          </div>
-
-                          {/* Grounding sources */}
-                          {msg.groundingChunks && msg.groundingChunks.length > 0 && (
-                            <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-800/20 space-y-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                                <Sparkles size={10} className="text-cyan-500" /> Grounded Insights & Sources
-                              </p>
-                              <div className="flex flex-wrap gap-2 text-xs">
-                                {msg.groundingChunks.map((chunk, cIdx) => (
-                                  <a
-                                    key={cIdx}
-                                    href={chunk.web?.uri}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-black text-gray-750 dark:text-gray-300 hover:text-blue-500 dark:hover:text-cyan-400 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm font-bold text-[10px] transition-colors"
-                                  >
-                                    {chunk.web?.title || "Portal Update"} <ArrowUpRight size={12} />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Gemini Prototype Action Toolbar for Model Messages */}
-                        {msg.role === 'model' && msg.text && (
-                          <div className="flex items-center gap-1 pl-1 pt-0.5 text-gray-400 dark:text-gray-500">
-                            {/* Copy */}
-                            <button
-                              onClick={() => handleCopyMessage(msg.text, i)}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
-                              title="Copy response"
-                            >
-                              {copiedIndex === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                            </button>
-
-                            {/* Good response (Like) */}
-                            <button
-                              onClick={() => handleToggleLike(i, 'like')}
-                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
-                                likes[i] === 'like' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                              }`}
-                              title="Good response"
-                            >
-                              <ThumbsUp size={14} className={likes[i] === 'like' ? 'fill-current' : ''} />
-                            </button>
-
-                            {/* Bad response (Dislike) */}
-                            <button
-                              onClick={() => handleToggleLike(i, 'dislike')}
-                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
-                                likes[i] === 'dislike' ? 'text-red-500 bg-red-50 dark:bg-red-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                              }`}
-                              title="Bad response"
-                            >
-                              <ThumbsDown size={14} className={likes[i] === 'dislike' ? 'fill-current' : ''} />
-                            </button>
-
-                            {/* Regenerate / Reload */}
-                            <button
-                              onClick={() => handleRegenerate(i)}
-                              disabled={isLoading}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer disabled:opacity-40"
-                              title="Regenerate / Reload response"
-                            >
-                              <RotateCcw size={14} className={isLoading ? 'animate-spin' : ''} />
-                            </button>
-
-                            {/* Share */}
-                            <button
-                              onClick={() => handleShareMessage(msg)}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer"
-                              title="Share response"
-                            >
-                              <Share2 size={14} />
-                            </button>
-
-                            {/* Read Aloud Speech */}
-                            <button
-                              onClick={() => handleToggleSpeech(msg.text, i)}
-                              className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer ${
-                                speakingIndex === i ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                              }`}
-                              title={speakingIndex === i ? 'Stop reading' : 'Read aloud'}
-                            >
-                              {speakingIndex === i ? <VolumeX size={14} className="animate-pulse" /> : <Volume2 size={14} />}
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        msg={msg}
+                        i={i}
+                        copiedIndex={copiedIndex}
+                        likes={likes}
+                        speakingIndex={speakingIndex}
+                        isLoading={isLoading}
+                        onCopy={handleCopyMessage}
+                        onLike={handleToggleLike}
+                        onRegenerate={handleRegenerate}
+                        onShare={handleShareMessage}
+                        onSpeech={handleToggleSpeech}
+                      />
                     ))}
 
                     {/* Loading indicator */}

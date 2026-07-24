@@ -26,7 +26,7 @@ export const firestoreDatabaseId = configNode.firestoreDatabaseId;
 const { firestoreDatabaseId: _, ...standardConfig } = configNode;
 const app = initializeApp(standardConfig);
 export const auth = getAuth(app);
-// Use initializeFirestore to force HTTP long-polling for iframe/sandbox compatibility
+// Use initializeFirestore to enable better connection reliability
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, configNode.firestoreDatabaseId);
