@@ -21,8 +21,8 @@
       "destination": "api/index.ts"
     },
     {
-      "source": "/((?!api|assets|static|favicon|robots|sitemap|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|llms\\.txt).*)",
-      "destination": "/index.html"
+      "source": "/((?!assets|static|favicon|robots|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|llms\\.txt).*)",
+      "destination": "api/index.ts"
     }
   ]
 }

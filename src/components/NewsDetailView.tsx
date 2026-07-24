@@ -509,6 +509,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
       <SEO 
         title={news.title} 
         description={news.excerpt} 
+        image={news.image}
         article={true} 
         originalSource={news.sourceUrl || "https://jamb.gov.ng"}
       />

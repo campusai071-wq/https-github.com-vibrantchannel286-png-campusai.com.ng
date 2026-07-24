@@ -611,6 +611,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('result-slip');
       navigate('/result-slip');
       window.scrollTo(0, 0);
+    } else if (p === 'checklist' || p === 'admission-checklist') {
+      setCurrentPage('checklist');
+      navigate('/admission-checklist');
+      window.scrollTo(0, 0);
     } else if (p === 'news' || p === 'jamb') {
       setCurrentPage('news');
       navigate('/news');

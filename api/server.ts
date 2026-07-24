@@ -13,6 +13,7 @@ import { initializeApp as initClientApp, getApps as getClientApps } from "fireba
 import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { initializeApp as initAdminApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "firebase-admin/firestore";
+import { injectSEO as seoInject } from "./seo.js";
 
 const getFirebaseAppletConfig = (): any => {
   try {
@@ -2680,11 +2681,27 @@ app.all("/api/health", (req, res) => {
   });
 });
 
-// Dynamic Sitemap for News
+// Dynamic Sitemap for News & Pages
 app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
   try {
-    const newsRef = db.collection("news");
-    const snap = await newsRef.orderBy("date", "desc").limit(1000).get();
+    let newsDocs: any[] = [];
+    if (adminDb) {
+      try {
+        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(1000).get();
+        snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn("[Sitemap] AdminDb error:", e);
+      }
+    }
+    if (newsDocs.length === 0 && dbInstance) {
+      try {
+        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(1000));
+        const querySnap = await getDocs(q);
+        querySnap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn("[Sitemap] DbInstance error:", e);
+      }
+    }
     
     const todayStr = new Date().toISOString().split('T')[0];
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -2696,15 +2713,21 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://campusai.com.ng/dashboard</loc>
+    <loc>https://campusai.com.ng/admission-checklist</loc>
     <lastmod>${todayStr}</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
   <url>
     <loc>https://campusai.com.ng/postutme</loc>
     <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/dashboard</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
@@ -2717,7 +2740,7 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     <loc>https://campusai.com.ng/news</loc>
     <lastmod>${todayStr}</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://campusai.com.ng/about</loc>
@@ -2814,24 +2837,59 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     <lastmod>${todayStr}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/fuoye-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/delsu-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/kwasu-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/aaua-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/yabatech-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/oou-aggregate-calculator</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>`;
 
-    snap.forEach((doc: any) => {
-      const data = doc.data();
-      const slug = data.slug || doc.id;
+    newsDocs.forEach((data: any) => {
+      const slug = data.slug || data.id;
       const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
       xml += `
   <url>
     <loc>https://campusai.com.ng/news/${slug}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>`;
     });
 
     xml += `\n</urlset>`;
     
-    res.header('Content-Type', 'application/xml');
+    res.header('Content-Type', 'application/xml; charset=utf-8');
     res.send(xml);
   } catch (e) {
     console.error("[Sitemap Error]", e);
@@ -3528,110 +3586,37 @@ app.use("/api", (req, res) => {
 
 
 async function injectSEO(html: string, reqPath: string): Promise<string> {
-  fs.appendFileSync('seo_debug.log', 'injectSEO called with reqPath: ' + reqPath + ' dbInstance exists: ' + !!dbInstance + '\n');
-  let title = "JAMB Aggregate Calculator 2026 | Check UNILAG, LASU, UI Admission Chances - CampusAI";
-  let description = "Calculate target aggregate scores, estimate realistic tuition costs, and compare catchment area cutoff quotas on the official 2026 Nigerian higher education portal.";
-  let canonical = `https://campusai.com.ng${reqPath}`;
-  let imageUrl = "https://campusai.com.ng/og-image.png";
-  let jsonLd = null;
-  let articleDate = new Date().toISOString();
-  let articleAuthor = "CampusAI Editor";
+  return await seoInject(html, reqPath, adminDb, dbInstance);
+}
 
-  if (reqPath.startsWith('/news/') && dbInstance) {
-    const slug = reqPath.split('/')[2];
-    if (slug) {
-      try {
-        let docData = null;
-        
-        // Try getting by document ID first using client SDK
-        const docRef = doc(dbInstance, 'news', slug);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          docData = docSnap.data();
-        } else {
-          // Fallback to querying by slug field
-          const q = query(collection(dbInstance, 'news'), where('slug', '==', slug), limit(1));
-          const querySnap = await getDocs(q); fs.appendFileSync('seo_debug.log', 'Query result empty: ' + querySnap.empty + '\n');
-          if (!querySnap.empty) {
-            docData = querySnap.docs[0].data();
-          }
-        }
-        
-        if (docData) { fs.appendFileSync('seo_debug.log', 'FOUND docData for ' + slug + '\n');
-          title = `${docData.title} | CampusAI News`;
-          description = docData.excerpt || description;
-          if (docData.image) imageUrl = docData.image;
-          if (docData.date) articleDate = new Date(docData.date).toISOString();
-          if (docData.author) articleAuthor = docData.author;
-          
-          jsonLd = {
-            "@context": "https://schema.org",
-            "@type": "NewsArticle",
-            "headline": docData.title,
-            "image": [imageUrl],
-            "datePublished": articleDate,
-            "dateModified": articleDate,
-            "author": [{
-              "@type": "Person",
-              "name": articleAuthor
-            }],
-            "publisher": {
-              "@type": "Organization",
-              "name": "CampusAI",
-              "logo": {
-                "@type": "ImageObject",
-                "url": "https://campusai.com.ng/icon.png"
-              }
-            }
-          };
-        }
-      } catch (err) {
-        console.error("[SEO] Error fetching news item:", err);
+// Serve static assets from dist if available
+const distPath = path.join(process.cwd(), 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath, { index: false }));
+}
+
+// HTML SPA route with SEO injection for production & Vercel
+if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+  app.get(/^(?!\/api).*/, async (req: any, res: any) => {
+    try {
+      let indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        indexPath = path.join(process.cwd(), 'index.html');
+      }
+      let html = fs.readFileSync(indexPath, 'utf-8');
+      html = await injectSEO(html, req.path);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (err) {
+      console.error("[Server HTML Error]", err);
+      let indexPath = path.join(process.cwd(), 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(500).send("Server Error");
       }
     }
-  } else if (reqPath.endsWith("-aggregate-calculator")) {
-      const schoolSlug = reqPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase();
-      if (schoolSlug) {
-        title = `${schoolSlug} Aggregate Calculator 2026 | Admission Chances - CampusAI`;
-        description = `Calculate your 2026 ${schoolSlug} aggregate score and check your admission chances instantly. Use the official formula, cutoff marks, and catchment area rules for ${schoolSlug}.`;
-      }
-  }
-
-  // Replace existing title
-  html = html.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);
-  
-  // Replace existing description
-  html = html.replace(/<meta[^>]*name="description"[^>]*>/gi, `<meta data-rh="true" name="description" content="${description}">`);
-  
-  // Replace existing og:title
-  html = html.replace(/<meta[^>]*property="og:title"[^>]*>/gi, `<meta data-rh="true" property="og:title" content="${title}">`);
-  
-  // Replace existing og:description
-  html = html.replace(/<meta[^>]*property="og:description"[^>]*>/gi, `<meta data-rh="true" property="og:description" content="${description}">`);
-  
-  // Replace existing og:image
-  html = html.replace(/<meta[^>]*property="og:image"[^>]*>/gi, `<meta data-rh="true" property="og:image" content="${imageUrl}">`);
-  
-  // Replace existing og:url
-  html = html.replace(/<meta[^>]*property="og:url"[^>]*>/gi, `<meta data-rh="true" property="og:url" content="${canonical}">`);
-
-  // Inject canonical tag
-  const canonicalTag = `<link rel="canonical" href="${canonical}" />`;
-  if (!html.includes('<link rel="canonical"')) {
-    html = html.replace('</head>', `  ${canonicalTag}\n  </head>`);
-  } else {
-    html = html.replace(/<link[^>]*rel="canonical"[^>]*>/gi, canonicalTag);
-  }
-
-  // Inject JSON-LD
-  if (jsonLd) {
-    const jsonLdString = `<script type="application/ld+json">\n${JSON.stringify(jsonLd, null, 2)}\n</script>`;
-    // Replace the default WebApplication JSON-LD if present
-    html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, jsonLdString);
-  }
-
-  return html;
+  });
 }
 
 // Vite middleware for development
@@ -3654,7 +3639,6 @@ async function startServer() {
       });
       
       app.use(async (req, res, next) => {
-        console.log('Intercepted:', req.originalUrl, req.headers.accept);
         if (req.originalUrl.startsWith('/api') || !req.headers.accept?.includes('text/html')) {
           return next();
         }
@@ -3663,7 +3647,7 @@ async function startServer() {
           let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
           template = await vite.transformIndexHtml(req.originalUrl, template);
           const html = await injectSEO(template, url);
-          res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+          res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8' }).end(html);
         } catch (e) {
           vite.ssrFixStacktrace(e as Error);
           next(e);
@@ -3679,18 +3663,6 @@ async function startServer() {
     }
   } else if (!isVercel) {
     console.log("[Server] Starting in Production mode (Self-Hosted)...");
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath, { index: false }));
-    app.get(/^(?!\/api).*/, async (req: any, res: any) => {
-      try {
-        const indexPath = path.join(distPath, 'index.html');
-        let html = fs.readFileSync(indexPath, 'utf-8');
-        html = await injectSEO(html, req.path);
-        res.send(html);
-      } catch (err) {
-        res.sendFile(path.join(distPath, 'index.html'));
-      }
-    });
   }
 
   // Only listen if we're NOT on Vercel

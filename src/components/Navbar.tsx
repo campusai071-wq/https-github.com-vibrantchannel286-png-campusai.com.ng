@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2 } from 'lucide-react';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
 import { searchWebRaw, SearchResultItem } from '../services/searchService';
@@ -56,6 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
     { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },
     { name: 'Result Slip', icon: <ShieldCheck size={18} />, id: 'result-slip' },
+    { name: 'Checklist', icon: <FileCheck size={18} />, id: 'checklist' },
     { name: 'Latest News', icon: <Newspaper size={18} />, id: 'jamb' },
     { name: 'About', icon: <Info size={18} />, id: 'about' },
   ];

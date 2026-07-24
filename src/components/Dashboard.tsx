@@ -5,7 +5,7 @@ import NewsGrid from './NewsGrid';
 import PolicySection from './PolicySection';
 import RecentActivity from './RecentActivity';
 import FAQSection from './FAQSection';
-import { AdmissionChecklist } from './AdmissionChecklist';
+import { FileCheck, ArrowRight } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 import { NewsItem } from '../types';
@@ -72,7 +72,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
 
       <div className="container mx-auto px-4 md:px-8 mb-16 mt-16 max-w-5xl space-y-8">
         {user && <RecentActivity userId={user?.uid || null} />}
-        <AdmissionChecklist />
+        
+        {/* Admission Clearance Banner Teaser */}
+        <div className="bg-gradient-to-r from-blue-900/40 via-indigo-950/40 to-gray-900/40 border border-blue-500/20 rounded-[28px] p-6 md:p-8 text-left relative overflow-hidden shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-[10px] uppercase tracking-wider">
+              <FileCheck size={14} /> 2026/2027 Clearance Hub
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
+              Post-Admission Clearance & Document Checklist
+            </h3>
+            <p className="text-gray-300 text-xs md:text-sm leading-relaxed">
+              Admitted on JAMB CAPS? Prepare every required document before physical screening—JAMB admission letter, statement of result, medical fitness certificate, and state of origin.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              navigate('/admission-checklist');
+              window.scrollTo(0, 0);
+            }}
+            className="shrink-0 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            Open Clearance Checklist <ArrowRight size={16} />
+          </button>
+        </div>
       </div>
 
 

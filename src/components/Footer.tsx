@@ -157,7 +157,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
             <ul className="space-y-5">
               {[
                 { label: 'Home Orbit', id: 'home' },
-                { label: 'Admission Checklist', path: '/admission-checklist' },
+                { label: 'Admission Checklist', id: 'checklist' },
                 { label: 'Federal Directory', id: 'federal' },
                 { label: 'State Gateways', id: 'state' },
                 { label: 'Aggregate Calculator', id: 'calculator' },
@@ -166,7 +166,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
                 { label: 'System Status', id: 'status' },
                 { label: 'Download App', id: 'download' }
               ].map((item) => (
-                <li key={item.id || item.path}>
+                <li key={item.id}>
                   {item.id === 'download' ? (
                     <a 
                       href="/CampusAI.ng.apk" 
@@ -175,14 +175,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 group-hover:scale-150 transition-all"></div>
                       Get Android App
-                    </a>
-                  ) : item.path ? (
-                    <a 
-                      href={item.path}
-                      className="text-gray-400 hover:text-white transition-all text-sm font-bold flex items-center gap-3 group"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-gray-800 group-hover:bg-cyan-400 group-hover:scale-150 transition-all"></div>
-                      {item.label}
                     </a>
                   ) : (
                     <button 

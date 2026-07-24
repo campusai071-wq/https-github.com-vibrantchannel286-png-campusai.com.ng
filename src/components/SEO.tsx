@@ -16,8 +16,10 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
   const siteName = "Campusai.com.ng";
   const defaultDescription = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news for UNILAG, UI, OAU, ABU, and more.";
   
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : "https://campusai.com.ng";
-  const cleanPath = typeof window !== 'undefined' ? window.location.pathname.replace(/\/$/, "") : "";
+  const siteDomain = "https://campusai.com.ng";
+  const rawPath = typeof window !== 'undefined' ? window.location.pathname : "";
+  const cleanPath = rawPath === '/' ? '' : rawPath.split('?')[0].replace(/\/+$/, "");
+  
   const isSpecificCalculator = cleanPath.endsWith("-aggregate-calculator");
   const schoolSlug = isSpecificCalculator ? cleanPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase() : "";
 
@@ -35,11 +37,11 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
     ? (description || customDescription).substring(0, 152) + "..." 
     : (description || customDescription);
   const metaKeywords = keywords || customKeywords;
-  const metaImage = image || "https://picsum.photos/seed/campus/1200/630";
+  const metaImage = image || `${siteDomain}/og-image.png`;
   
   const fullTitle = title ? `${title} | ${siteName}` : baseTitle;
-  const canonicalUrl = `${currentOrigin}${cleanPath}`;
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : canonicalUrl;
+  const canonicalUrl = `${siteDomain}${cleanPath || '/'}`;
+  const currentUrl = canonicalUrl;
 
   // Render structured data depending on content type
   const getStructuredData = () => {
@@ -47,34 +49,39 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
       return {
         "@context": "https://schema.org",
         "@type": "NewsArticle",
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalUrl
+        },
         "headline": title || siteName,
         "description": metaDescription,
         "image": [metaImage],
         "datePublished": new Date().toISOString(),
-        "author": {
+        "dateModified": new Date().toISOString(),
+        "author": [{
           "@type": "Organization",
           "name": "CampusAI Nigeria Editorial Desk",
-          "url": currentOrigin
-        },
+          "url": siteDomain
+        }],
         "publisher": {
           "@type": "Organization",
           "name": siteName,
-          "url": currentOrigin,
+          "url": siteDomain,
           "logo": {
             "@type": "ImageObject",
-            "url": `${currentOrigin}/favicon.ico.png`
+            "url": `${siteDomain}/favicon.ico.png`
           }
         }
       };
     }
     
-    if (isCalculator) {
+    if (isCalculator || isSpecificCalculator) {
       return {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "CampusAI Nigeria AI Admission Predictor",
-        "url": currentOrigin,
-        "description": "Calculate dynamic higher institution aggregates and chat with our advanced admissions AI model. Auto-adjusts for Catchment area rules and ELDS quotas.",
+        "name": fullTitle,
+        "url": canonicalUrl,
+        "description": metaDescription,
         "applicationCategory": "EducationalApplication",
         "operatingSystem": "All",
         "browserRequirements": "Requires JavaScript. Requires HTML5.",
@@ -86,7 +93,7 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
         "author": {
           "@type": "Organization",
           "name": siteName,
-          "url": currentOrigin
+          "url": siteDomain
         }
       };
     }
@@ -95,11 +102,11 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": siteName,
-      "url": currentOrigin,
+      "url": siteDomain,
       "description": defaultDescription,
       "potentialAction": {
         "@type": "SearchAction",
-        "target": `${currentOrigin}/?search={search_term_string}`,
+        "target": `${siteDomain}/?search={search_term_string}`,
         "query-input": "required name=search_term_string"
       }
     };
