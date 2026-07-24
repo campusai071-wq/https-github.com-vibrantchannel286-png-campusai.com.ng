@@ -1230,7 +1230,7 @@ How can I help guide your academic journey today? Please ask me any questions ab
         index: 0
       }
     ],
-    modelVersion: "gemini-3.5-flash",
+    modelVersion: "gemini-flash-latest",
     responseId: `sovereign-fallback-${Date.now()}`
   };
 }
@@ -1488,7 +1488,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
   // Create a priority list of models to try
   const modelPool = [modelToTry];
   if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
-  if (modelToTry !== "gemini-3.6-flash") modelPool.push("gemini-3.6-flash");
+  if (modelToTry !== "gemini-2.5-flash") modelPool.push("gemini-2.5-flash");
 
   let lastErr: any = null;
   let successResult: any = null;
@@ -2035,7 +2035,7 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
 
         const config: any = {};
         const aipParams: any = {
-          model: "gemini-3.5-flash",
+          model: "gemini-flash-latest",
           contents,
           config
         };
@@ -2366,7 +2366,7 @@ Return the output strictly as a JSON object with this exact shape:
 }`;
 
           const result = await (gemini.client as GoogleGenAI).models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-flash-latest",
             contents: prompt,
             config: {
               responseMimeType: "application/json",
@@ -2481,7 +2481,7 @@ app.post("/api/search", async (req: any, res: any) => {
 
   console.log(`[API Search] Trying Gemini native search grounding for: "${query}"`);
   const rawPool = getGeminiKeys();
-  const searchModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-pro-preview'];
+  const searchModels = ['gemini-flash-latest', 'gemini-2.5-flash'];
 
   for (let i = 0; i < rawPool.length; i++) {
     const apiKey = rawPool[i];
@@ -2529,8 +2529,12 @@ app.post("/api/search", async (req: any, res: any) => {
         }
       } catch (e: any) {
         const errMsg = e.message || String(e);
-        const is503 = errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE");
-        console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) notice: ${is503 ? 'Temporary high demand (503), trying next option...' : errMsg}`);
+        const isQuotaOrBusy = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota") || errMsg.includes("503") || errMsg.includes("UNAVAILABLE");
+        if (isQuotaOrBusy) {
+          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}): quota or temporary load limit reached, switching model/key...`);
+        } else {
+          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) notice:`, errMsg.substring(0, 100));
+        }
       }
     }
 

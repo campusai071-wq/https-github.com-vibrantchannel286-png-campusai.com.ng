@@ -62,41 +62,74 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
       const element = document.getElementById('printable-result-slip');
       if (!element) return;
 
+      const tempCanvas = document.createElement('canvas');
+      const ctx = tempCanvas.getContext('2d');
+
+      const convertOklchColors = (cssText: string): string => {
+        if (!cssText || typeof cssText !== 'string' || !cssText.includes('okl')) {
+          return cssText;
+        }
+        return cssText.replace(/(?:oklch|oklab|color)\([^)]+\)/gi, (match) => {
+          try {
+            if (ctx) {
+              ctx.fillStyle = '#000000';
+              ctx.fillStyle = match;
+              const safe = ctx.fillStyle;
+              if (safe && safe !== '#000000') return safe;
+            }
+          } catch (e) {
+            // ignore
+          }
+          return '#2563eb';
+        });
+      };
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         onclone: (clonedDoc) => {
+          // 1. Sanitize all <style> elements across the cloned document to remove oklch/oklab
+          const styleElements = clonedDoc.querySelectorAll('style');
+          styleElements.forEach((styleEl) => {
+            if (styleEl.textContent) {
+              styleEl.textContent = convertOklchColors(styleEl.textContent);
+            }
+          });
+
+          // 2. Sanitize inline style attributes on any element in clonedDoc
+          const styledElements = clonedDoc.querySelectorAll('[style]');
+          styledElements.forEach((el) => {
+            const styleAttr = el.getAttribute('style');
+            if (styleAttr) {
+              el.setAttribute('style', convertOklchColors(styleAttr));
+            }
+          });
+
+          // 3. For target printable element tree, convert computed styles to safe color values
           const origElement = document.getElementById('printable-result-slip');
           const clonedElement = clonedDoc.getElementById('printable-result-slip');
-          if (!origElement || !clonedElement) return;
+          if (origElement && clonedElement) {
+            const origList = [origElement, ...Array.from(origElement.querySelectorAll('*'))];
+            const cloneList = [clonedElement, ...Array.from(clonedElement.querySelectorAll('*'))];
 
-          const tempCanvas = document.createElement('canvas');
-          const ctx = tempCanvas.getContext('2d');
+            for (let i = 0; i < origList.length; i++) {
+              const origEl = origList[i] as HTMLElement;
+              const cloneEl = cloneList[i] as HTMLElement;
+              if (!origEl || !cloneEl) continue;
 
-          const origList = [origElement, ...Array.from(origElement.querySelectorAll('*'))];
-          const cloneList = [clonedElement, ...Array.from(clonedElement.querySelectorAll('*'))];
-
-          for (let i = 0; i < origList.length; i++) {
-            const origEl = origList[i] as HTMLElement;
-            const cloneEl = cloneList[i] as HTMLElement;
-            if (!origEl || !cloneEl) continue;
-
-            const computed = window.getComputedStyle(origEl);
-            const colorProps = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'fill', 'stroke'];
-            
-            colorProps.forEach((prop) => {
-              const val = computed.getPropertyValue(prop);
-              if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color('))) {
-                if (ctx) {
-                  ctx.fillStyle = 'rgba(0,0,0,0)';
-                  ctx.fillStyle = val;
-                  const safeColor = ctx.fillStyle;
-                  cloneEl.style.setProperty(prop, safeColor);
+              const computed = window.getComputedStyle(origEl);
+              const colorProps = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'fill', 'stroke', 'boxShadow', 'background'];
+              
+              colorProps.forEach((prop) => {
+                const val = computed.getPropertyValue(prop);
+                if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color('))) {
+                  const safeVal = convertOklchColors(val);
+                  cloneEl.style.setProperty(prop, safeVal);
                 }
-              }
-            });
+              });
+            }
           }
         }
       });
@@ -116,10 +149,27 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
       const courseName = targetCourse || courseSearch || 'Course';
       const cleanFileName = `${uniName.replace(/[^a-zA-Z0-9]/g, '_')}_${courseName.replace(/[^a-zA-Z0-9]/g, '_')}_Official_Result_Slip.pdf`;
 
-      pdf.save(cleanFileName);
+      // Reliable Blob Download Strategy for iframe / sandboxed environments
+      try {
+        const pdfBlob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = cleanFileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }, 10000);
+      } catch (blobErr) {
+        // Direct jsPDF save fallback
+        pdf.save(cleanFileName);
+      }
     } catch (error) {
-      console.error("PDF generation failed, initiating print fallback:", error);
-      window.print();
+      console.error("PDF generation failed, initiating fallback download:", error);
+      handleDownloadText();
     } finally {
       setIsGeneratingPdf(false);
     }

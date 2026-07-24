@@ -212,28 +212,28 @@ const calculateAggregateScore = (
   const desc = system.explanation.toLowerCase();
   const formula = system.formula || '';
 
-  if (formula === 'futa_75_25' || normalizedUni.includes('futa') || desc.includes('75:25')) {
+  if (formula === 'futa_75_25' || normalizedUni.includes('futa') || desc.includes('75:25') || desc.includes('75_25')) {
     return (jamb / 400 * 75) + (olevelTotal / 50 * 25);
   }
-  if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40')) {
+  if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40') || desc.includes('60_40')) {
     return (jamb / 400 * 60) + olevelTotal;
   }
   if (formula === 'lasu_point_based') {
     return (jamb / 8) + olevelTotal;
   }
-  if (formula === '50:30:20' || desc.includes('50:30:20')) {
+  if (formula === '50:30:20' || formula === '50/30/20' || formula === '50_30_20' || desc.includes('50:30:20') || desc.includes('50/30/20') || (desc.includes('50%') && desc.includes('30%') && desc.includes('20%'))) {
     return (jamb / 400 * 50) + (post / 100 * 30) + olevelTotal;
   }
-  if (formula === '50:20:30' || desc.includes('50:20:30') || desc.includes('kwasu')) {
+  if (formula === '50:20:30' || formula === '50/20/30' || desc.includes('50:20:30') || desc.includes('kwasu')) {
     return (jamb / 400 * 50) + (post / 100 * 20) + (olevelTotal / 50 * 30);
   }
-  if (formula === '50:40:10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
+  if (formula === '50:40:10' || formula === '50/40/10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
     return (jamb / 8) + (post / 100 * 40) + olevelTotal;
   }
-  if (formula === '50:50') {
+  if (formula === '50:50' || formula === '50/50' || desc.includes('50:50') || desc.includes('50/50') || (desc.includes('50%') && desc.includes('50%'))) {
     return (jamb / 8) + (post / 2);
   }
-  if (formula === 'pure_jamb') {
+  if (formula === 'pure_jamb' || desc.includes('pure_jamb') || desc.includes('jamb / 4')) {
     return jamb / 4;
   }
 
@@ -244,14 +244,8 @@ const calculateAggregateScore = (
     return (jamb / 8) + olevelTotal;
   }
 
-  if (desc.includes('50:50') || desc.includes('ui') || desc.includes('oau') || desc.includes('50:10:40')) {
-    if (normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
-      return (jamb / 8) + (post / 100 * 40) + olevelTotal;
-    }
-    return (jamb / 8) + (post / 2);
-  }
-
-  return jamb / 4;
+  // Fallback for standard federal & state universities using 50/30/20
+  return (jamb / 400 * 50) + (post / 100 * 30) + olevelTotal;
 };
 
 const getUniversityGradePoints = (uniName: string): {

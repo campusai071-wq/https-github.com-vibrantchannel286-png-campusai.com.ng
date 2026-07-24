@@ -515,7 +515,7 @@ const createGeminiClient = (apiKey: string) => {
             // Convert sendMessage call to generateContent for the proxy
             const prompt = msgParams.message;
             const params = {
-              model: chatParams.model || "gemini-3.5-flash",
+              model: chatParams.model || "gemini-flash-latest",
               contents: prompt,
               config: chatParams.config
             };
@@ -694,11 +694,11 @@ Return ONLY a valid JSON object matching this schema:
         const fallbackResponse = await runAIWithFallback(async (ai) => {
           if ('models' in ai) {
             return await ai.models.generateContent({
-              model: "gemini-3.5-flash",
+              model: "gemini-flash-latest",
               contents: prompt,
               config: { responseMimeType: "application/json" } });
           } else {
-            const model = ai.getGenerativeModel({ model: "gemini-3.5-flash" });
+            const model = ai.getGenerativeModel({ model: "gemini-flash-latest" });
             const result = await model.generateContent({
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               generationConfig: { responseMimeType: "application/json" }
@@ -927,17 +927,17 @@ const calculateMaxAndTarget = (
   const normUni = uniName.toLowerCase();
   const f = formula ? formula.toLowerCase() : '';
 
-  // 1. Identify which components are active and what their max contributions are
+  // 1. Identify active components & max contributions
   let hasPost = true;
   let hasOLevel = true;
-  
+
   if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) {
     hasPost = false;
   } else if (f.includes('lasu') || normUni.includes('lasu') || f.includes('60_40') || f.includes('60:40') || f.includes('point_based')) {
     hasPost = false;
   } else if (f.includes('fuoye') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') || normUni.includes('oye ekiti')) {
     hasPost = false;
-  } else if (f.includes('50:50') || f.includes('50_50')) {
+  } else if (f.includes('50:50') || f.includes('50_50') || f.includes('50/50') || (f.includes('50%') && !f.includes('30%') && !f.includes('20%') && !f.includes('40%'))) {
     hasOLevel = false;
   } else if (f.includes('pure_jamb')) {
     hasPost = false;
@@ -950,25 +950,30 @@ const calculateMaxAndTarget = (
   let olevelContrib = 0;
 
   // Max possible contributions
-  let maxJambContrib = 0;
-  let maxPostContrib = 0;
-  let maxOlevelContrib = 0;
+  let maxJambContrib = 50;
+  let maxPostContrib = 30;
+  let maxOlevelContrib = 20;
 
   if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) {
     jambContrib = (jamb / 400 * 75);
     maxJambContrib = 75;
     olevelContrib = (currentOLevelPoints / 50 * 25);
-    maxOlevelContrib = 25; // max 50 points = 25%
+    maxOlevelContrib = 25;
+    maxPostContrib = 0;
+    postContrib = 0;
+    hasPost = false;
   } else if (f.includes('lasu_60_40') || normUni.includes('lasu') || f.includes('60_40') || f.includes('60:40')) {
     jambContrib = (jamb / 400 * 60);
     maxJambContrib = 60;
     olevelContrib = currentOLevelPoints;
-    maxOlevelContrib = 40; // max 40 points
+    maxOlevelContrib = 40;
+    maxPostContrib = 0;
+    postContrib = 0;
+    hasPost = false;
   } else if (f.includes('fuoye') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') || normUni.includes('oye ekiti')) {
     jambContrib = (jamb / 400 * 60);
     maxJambContrib = 60;
     
-    // Recompute currentOLevelPoints with FUOYE's specific 3.0 scale:
     let fuoyeOLevelPoints = 0;
     if (oLevels) {
       const grades = oLevels.match(/(A1|B2|B3|C4|C5|C6|D7|E8|F9)/g);
@@ -984,76 +989,99 @@ const calculateMaxAndTarget = (
       }
     }
     
-    olevelContrib = fuoyeOLevelPoints + 10; // 10 points sitting bonus
-    maxOlevelContrib = 25; // max 15 points grades + 10 sitting bonus
+    olevelContrib = fuoyeOLevelPoints + 10;
+    maxOlevelContrib = 25;
+    maxPostContrib = 0;
+    postContrib = 0;
+    hasPost = false;
   } else if (f.includes('lasu_point_based') || f.includes('lasu_point')) {
     jambContrib = (jamb / 8);
     maxJambContrib = 50;
     olevelContrib = currentOLevelPoints;
-    maxOlevelContrib = 50; // max 50 points
-  } else if (f.includes('50:30:20') || f.includes('50_30_20')) {
-    jambContrib = (jamb / 400 * 50);
-    maxJambContrib = 50;
-    postContrib = (currentPost / 100 * 30);
-    maxPostContrib = 30;
-    olevelContrib = currentOLevelPoints;
-    maxOlevelContrib = 20; // O'Level max points = 20
-  } else if (f.includes('50:20:30') || f.includes('50_20_30')) {
+    maxOlevelContrib = 50;
+    maxPostContrib = 0;
+    postContrib = 0;
+    hasPost = false;
+  } else if (f.includes('50:20:30') || f.includes('50_20_30') || f.includes('50/20/30')) {
     jambContrib = (jamb / 400 * 50);
     maxJambContrib = 50;
     postContrib = (currentPost / 100 * 20);
     maxPostContrib = 20;
     olevelContrib = (currentOLevelPoints / 50 * 30);
     maxOlevelContrib = 30;
-  } else if (f.includes('50:40:10') || f.includes('50_40_10') || normUni.includes('awolowo') || normUni.includes('oau')) {
+  } else if (f.includes('50:40:10') || f.includes('50_40_10') || f.includes('50/40/10') || normUni.includes('awolowo') || normUni.includes('oau')) {
     jambContrib = (jamb / 8);
     maxJambContrib = 50;
     postContrib = (currentPost / 100 * 40);
     maxPostContrib = 40;
     olevelContrib = currentOLevelPoints;
     maxOlevelContrib = 10;
-  } else if (f.includes('50:50') || f.includes('50_50')) {
+  } else if (f.includes('50:50') || f.includes('50_50') || f.includes('50/50')) {
     jambContrib = (jamb / 8);
     maxJambContrib = 50;
     postContrib = (currentPost / 2);
     maxPostContrib = 50;
-  } else {
-    // Pure JAMB
+    olevelContrib = 0;
+    maxOlevelContrib = 0;
+    hasOLevel = false;
+  } else if (f.includes('pure_jamb')) {
     jambContrib = jamb / 4;
     maxJambContrib = 100;
+    postContrib = 0;
+    maxPostContrib = 0;
+    olevelContrib = 0;
+    maxOlevelContrib = 0;
+    hasPost = false;
+    hasOLevel = false;
+  } else {
+    // Standard 50:30:20 model (UNILAG, UNILORIN, UNIBEN, UNIZIK, etc.)
+    jambContrib = (jamb / 400 * 50);
+    maxJambContrib = 50;
+    postContrib = (currentPost / 100 * 30);
+    maxPostContrib = 30;
+    olevelContrib = currentOLevelPoints;
+    maxOlevelContrib = 20;
   }
 
   // Calculate Maximum Possible Aggregate Score
   const potentialPostContrib = (isPostUtmePending && hasPost) ? maxPostContrib : postContrib;
   const potentialOlevelContrib = (isAwaitingResult && hasOLevel) ? maxOlevelContrib : olevelContrib;
 
-  const maxPossibleAggregate = parseFloat((jambContrib + potentialPostContrib + potentialOlevelContrib).toFixed(2));
+  const rawMax = jambContrib + potentialPostContrib + potentialOlevelContrib;
+  const maxPossibleAggregate = parseFloat(Math.min(100, Math.max(0, rawMax)).toFixed(2));
 
   // Calculate targets to meet cutoffVal
   let requiredPostScore = -1;
   let requiredOlevelScore = -1;
 
-  if (isPostUtmePending && hasPost) {
-    let postFactor = 1;
-    if (f.includes('50:30:20') || f.includes('50_30_20')) postFactor = 0.3;
-    else if (f.includes('50:20:30') || f.includes('50_20_30')) postFactor = 0.2;
-    else if (f.includes('50:40:10') || f.includes('50_40_10') || normUni.includes('awolowo') || normUni.includes('oau')) postFactor = 0.4;
-    else if (f.includes('50:50') || f.includes('50_50')) postFactor = 0.5;
-
-    const remainingNeeded = cutoffVal - jambContrib - olevelContrib;
-    requiredPostScore = parseFloat((remainingNeeded / postFactor).toFixed(1));
+  if (isPostUtmePending && hasPost && maxPostContrib > 0) {
+    // Determine remaining aggregate points needed out of maxPostContrib
+    const currentKnownContrib = jambContrib + olevelContrib;
+    const remainingNeeded = cutoffVal - currentKnownContrib;
+    
+    if (remainingNeeded <= 0) {
+      requiredPostScore = 0;
+    } else {
+      // Calculate raw Post-UTME score required out of 100
+      requiredPostScore = parseFloat(((remainingNeeded / maxPostContrib) * 100).toFixed(1));
+    }
   }
 
-  if (isAwaitingResult && hasOLevel) {
+  if (isAwaitingResult && hasOLevel && maxOlevelContrib > 0) {
     let olevelFactor = 1;
-    if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) olevelFactor = 25 / 50; // 0.5
-    else if (f.includes('50:20:30') || f.includes('50_20_30')) olevelFactor = 30 / 50; // 0.6
+    if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) olevelFactor = 25 / 50;
+    else if (f.includes('50:20:30') || f.includes('50_20_30')) olevelFactor = 30 / 50;
     else {
-      olevelFactor = 1; // 1 point = 1%
+      olevelFactor = 1;
     }
 
-    const remainingNeeded = cutoffVal - jambContrib - postContrib;
-    requiredOlevelScore = parseFloat((remainingNeeded / olevelFactor).toFixed(1));
+    const currentKnownContrib = jambContrib + postContrib;
+    const remainingNeeded = cutoffVal - currentKnownContrib;
+    if (remainingNeeded <= 0) {
+      requiredOlevelScore = 0;
+    } else {
+      requiredOlevelScore = parseFloat((remainingNeeded / olevelFactor).toFixed(1));
+    }
   }
 
   return {
@@ -2062,7 +2090,7 @@ export const getUniversityCourses = async (institution: string): Promise<string[
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
             // ─── FIX: Updated model name ───────────────────────────────────────
-            model: "gemini-3.5-flash",
+            model: "gemini-flash-latest",
             contents: `Provide a comprehensive list of up to 50 popular, accredited undergraduate programmes officially offered at "${institution}" in Nigeria.
 
 OUTPUT RULES:
@@ -2163,7 +2191,7 @@ export const getUniversityScoringSystem = async (institution: string) => {
         }
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-flash-latest",
             contents: `You are an expert Nigerian higher education admission systems analyst.
 Based on the following real-time web search results for "${institution}", extract the precise aggregate screening formula / grading system used for admission.
 
@@ -2237,7 +2265,7 @@ export const getAsuuStrikeStatus = async () => {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-3.5-flash",
+        model: "gemini-flash-latest",
         contents: `Current ASUU strike status in Nigeria as of ${getNigerianDate()}.
 Based on your training data (and any real-time data if available), analyze if there is an active/threatened Academic Staff Union of Universities (ASUU) strike.
 
@@ -2318,8 +2346,7 @@ export const executeAiChat = async (
     try {
       const optResponse = await runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
-          // ─── FIX: Updated model name ───────────────────────────────────────
-          model: "gemini-3.1-flash-lite",
+          model: "gemini-flash-latest",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
 Rewrite the user's message into a concise, highly effective Google Search query.
 Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
@@ -2437,8 +2464,7 @@ Optimized Search Query:`
       const contents = buildCleanChatContents(history, sanitizedMessage);
 
       return await ai.models.generateContent({
-        // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-3.5-flash",
+        model: "gemini-flash-latest",
         contents,
         config: { 
           systemInstruction
@@ -2505,7 +2531,7 @@ export const executeAiChatStream = async (
     try {
       const optResponse = await runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
-          model: "gemini-3.1-flash-lite",
+          model: "gemini-flash-latest",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
 Rewrite the user's message into a concise, highly effective Google Search query.
 Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
@@ -2620,7 +2646,7 @@ Optimized Search Query:`
 
       try {
         const responseStream = await ai.models.generateContentStream({
-          model: "gemini-3.5-flash",
+          model: "gemini-flash-latest",
           contents,
           config: { 
             systemInstruction
@@ -2644,7 +2670,7 @@ Optimized Search Query:`
       } catch (streamErr) {
         console.warn("generateContentStream fallback to generateContent:", streamErr);
         const singleResp = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-flash-latest",
           contents,
           config: { 
             systemInstruction
@@ -2718,7 +2744,7 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-flash-latest",
         contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2026/2027.
 
 CRITICAL RULES:
@@ -2811,8 +2837,7 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-3.5-flash",
+        model: "gemini-flash-latest",
         contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2026/2027 academic session.
 
 CRITICAL:
