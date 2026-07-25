@@ -684,24 +684,15 @@ const NewsGrid: React.FC<NewsGridProps> = ({
   const filteredNews = useMemo(() => {
     if (!newsList.length) return [];
 
-    let sortedList = [...newsList];
+    let sortedList = [...newsList].sort((a, b) => sortNewsBySyncAndDate(a, b));
 
-    if (newlySyncedIds.size > 0) {
-      sortedList.sort((a, b) => {
-        const aNew = newlySyncedIds.has(a.id);
-        const bNew = newlySyncedIds.has(b.id);
-        if (aNew && !bNew) return -1;
-        if (!aNew && bNew) return 1;
-        return sortNewsBySyncAndDate(a, b);
-      });
+    if (filter === 'Hot') {
+      return [...sortedList].sort((a, b) => getHotIndexScore(b) - getHotIndexScore(a));
     }
-
-    if (filter === 'Latest') return sortedList;
-    if (filter === 'Hot')    return [...sortedList].sort((a, b) => getHotIndexScore(b) - getHotIndexScore(a));
 
     let base = sortedList.filter(item => {
       const catMatch =
-        filter === 'All'       ? true :
+        filter === 'All' || filter === 'Latest' ? true :
         filter === 'Bookmarks' ? bookmarks.includes(item.id) :
         item.category === filter;
 
@@ -713,16 +704,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       return catMatch && searchMatch;
     });
 
-    base = [...base].sort((a, b) => {
-      const aNew = newlySyncedIds.has(a.id);
-      const bNew = newlySyncedIds.has(b.id);
-      if (aNew && !bNew) return -1;
-      if (!aNew && bNew) return 1;
-      return sortNewsBySyncAndDate(a, b);
-    });
-
-    return base;
-  }, [newsList, filter, bookmarks, searchQuery, user?.role, newlySyncedIds]);
+    return base.sort((a, b) => sortNewsBySyncAndDate(a, b));
+  }, [newsList, filter, bookmarks, searchQuery, user?.role]);
 
   // ── Mini preview mode ───────────────────────────────────────────────────────
 

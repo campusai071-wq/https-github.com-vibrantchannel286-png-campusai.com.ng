@@ -174,11 +174,20 @@ export const getNewsSortTimestamp = (item: NewsItem, now: number = Date.now()): 
   if (archivedMs > maxAllowed) archivedMs = now;
 
   // Determine effective publication/creation time:
-  // - Manually published & AI blog maker news have createdAt near `now` and pubMs near `now`.
-  // - Synced news items have pubMs or createdAt or archivedMs near `now`.
-  // - For old re-synced items, pubMs/createdMs reflect the original publication date (e.g. 2024),
-  //   preventing re-syncs from jumping ahead of today's news.
+  // - If pubMs exists, check if pubMs belongs to an earlier calendar day than createdMs
+  //   (e.g. pubMs is Jul 24, but createdMs was Jul 25 because sync ran on Jul 25).
+  //   In that case, return pubMs so the Jul 24 item stays on Jul 24 and doesn't jump ahead of Jul 25 items!
   if (pubMs > 0 && createdMs > 0) {
+    const pubDate = new Date(pubMs);
+    const createdDate = new Date(createdMs);
+    const isPubEarlierDay = (
+      pubDate.getFullYear() < createdDate.getFullYear() ||
+      (pubDate.getFullYear() === createdDate.getFullYear() && pubDate.getMonth() < createdDate.getMonth()) ||
+      (pubDate.getFullYear() === createdDate.getFullYear() && pubDate.getMonth() === createdDate.getMonth() && pubDate.getDate() < createdDate.getDate())
+    );
+    if (isPubEarlierDay) {
+      return pubMs;
+    }
     return Math.max(pubMs, createdMs);
   }
 
@@ -583,11 +592,15 @@ export const archiveNewsItems = async (items: NewsItem[]) => {
       const articleTimestamp = Timestamp.fromMillis(articleDateMs);
 
       // FIX: preserve the existing document's original createdAt if it
-      // already exists. Only brand-new documents get a fresh createdAt.
+      // already exists and is valid. If corrupted into the future (> now + 60s), replace with articleTimestamp.
       const existingSnap = existingSnaps[i];
-      const preservedCreatedAt = existingSnap.exists()
+      let preservedCreatedAt = existingSnap.exists()
         ? (existingSnap.data()?.createdAt || articleTimestamp)
         : articleTimestamp;
+
+      if (preservedCreatedAt && toMs(preservedCreatedAt) > Date.now() + 60000) {
+        preservedCreatedAt = articleTimestamp;
+      }
 
       batch.set(ref, {
         ...item,

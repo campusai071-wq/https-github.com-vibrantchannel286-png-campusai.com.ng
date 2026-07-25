@@ -94,12 +94,26 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
   );
 };
 
-const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpen, selectedSchoolForChances, setSelectedSchoolForChances }: any) => {
-  const { schoolSlug } = useParams();
-  
+const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpen, selectedSchoolForChances, setSelectedSchoolForChances, onGoHome }: any) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const rawPath = location.pathname.toLowerCase();
+
+  // Validate that the URL strictly ends with '-aggregate-calculator'
+  if (!rawPath.endsWith('-aggregate-calculator')) {
+    return <NotFound onGoHome={() => onGoHome ? onGoHome() : navigate('/')} />;
+  }
+
+  // Extract the school slug from the pathname (e.g. /unilag-aggregate-calculator -> unilag)
+  const schoolSlug = rawPath.replace(/^\//, '').replace(/-aggregate-calculator$/, '');
+
+  if (!schoolSlug) {
+    return <NotFound onGoHome={() => onGoHome ? onGoHome() : navigate('/')} />;
+  }
+
   // Try to find the original school name from the slug (e.g. unilag -> University of Lagos)
-  let computedSchoolName = selectedSchoolForChances || schoolSlug;
-  
+  let computedSchoolName = selectedSchoolForChances;
+
   if (schoolSlug === 'unilag') computedSchoolName = 'University of Lagos (UNILAG)';
   else if (schoolSlug === 'lasu') computedSchoolName = 'Lagos State University (LASU)';
   else if (schoolSlug === 'ui') computedSchoolName = 'University of Ibadan (UI)';
@@ -109,6 +123,15 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
   else if (schoolSlug === 'unn') computedSchoolName = 'University of Nigeria, Nsukka (UNN)';
   else if (schoolSlug === 'futa') computedSchoolName = 'Federal University of Technology Akure (FUTA)';
   else if (schoolSlug === 'abu') computedSchoolName = 'Ahmadu Bello University (ABU)';
+  else if (schoolSlug === 'fuoye') computedSchoolName = 'Federal University Oye-Ekiti (FUOYE)';
+  else if (schoolSlug === 'delsu') computedSchoolName = 'Delta State University (DELSU)';
+  else if (schoolSlug === 'kwasu') computedSchoolName = 'Kwara State University (KWASU)';
+  else if (schoolSlug === 'aaua') computedSchoolName = 'Adekunle Ajasin University (AAUA)';
+  else if (schoolSlug === 'yabatech') computedSchoolName = 'Yaba College of Technology (YABATECH)';
+  else if (schoolSlug === 'oou') computedSchoolName = 'Olabisi Onabanjo University (OOU)';
+  else if (!computedSchoolName) {
+    computedSchoolName = schoolSlug.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  }
 
   return (
     <div className="pt-24 min-h-screen bg-gray-950">
@@ -510,7 +533,7 @@ const AppContent: React.FC = () => {
 
   // Smooth scroll anchor link system for external hashes and routing
   useEffect(() => {
-    const path = location.pathname;
+    const path = location.pathname.toLowerCase();
     const state = location.state as any;
 
     if (state?.scrollTo) {
@@ -539,6 +562,12 @@ const AppContent: React.FC = () => {
       setCurrentPage('result-slip');
     } else if (path.startsWith('/dashboard')) {
       setCurrentPage('dashboard');
+    } else if (path.includes('privacy')) {
+      setCurrentPage('privacy');
+    } else if (path.includes('terms')) {
+      setCurrentPage('terms');
+    } else if (path.includes('cookie')) {
+      setCurrentPage('cookies');
     } else {
       setCurrentPage('home');
     }
@@ -723,6 +752,7 @@ const AppContent: React.FC = () => {
               setIsScholarPackOpen={setIsScholarPackOpen}
               selectedSchoolForChances={selectedSchoolForChances}
               setSelectedSchoolForChances={setSelectedSchoolForChances}
+              onGoHome={() => handleNavigate('home')}
             />
           } />
 
@@ -871,11 +901,15 @@ const AppContent: React.FC = () => {
 
           <Route path="/admission-checklist" element={<AdmissionChecklistPage />} />
           <Route path="/terms" element={<LegalSection type="terms" />} />
+          <Route path="/terms-of-service" element={<LegalSection type="terms" />} />
           <Route path="/privacy" element={<LegalSection type="privacy" />} />
+          <Route path="/privacy-policy" element={<LegalSection type="privacy" />} />
+          <Route path="/calculator-privacy" element={<LegalSection type="privacy" />} />
+          <Route path="/calculation-privacy" element={<LegalSection type="privacy" />} />
           <Route path="/cookies" element={<LegalSection type="cookies" />} />
+          <Route path="/cookie-policy" element={<LegalSection type="cookies" />} />
           
           <Route path="/status" element={<StatusPage />} />
-          <Route path="/calculator" element={<Navigate to="/" state={{ scrollTo: 'calculator' }} replace />} />
           <Route path="*" element={<NotFound onGoHome={() => handleNavigate('home')} />} />
         </Routes>
         </Suspense>
