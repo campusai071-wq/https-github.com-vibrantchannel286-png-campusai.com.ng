@@ -686,13 +686,6 @@ const AppContent: React.FC = () => {
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
       />
 
-      <SEO 
-        title={activeArticle?.title} 
-        description={activeArticle?.excerpt} 
-        article={!!activeArticle} 
-        isCalculator={!activeArticle}
-      />
-
       <main className="pb-40">
         <Suspense fallback={
           <div className="min-h-[40vh] bg-gray-950 flex flex-col items-center justify-center p-6 gap-3">
@@ -765,6 +758,7 @@ const AppContent: React.FC = () => {
 
           <Route path="/" element={
             <>
+              <SEO />
                {(currentPage === 'home' || currentPage === 'jamb' || currentPage === 'news') && (
                 <>
                   <HeroSection 
@@ -792,9 +786,9 @@ const AppContent: React.FC = () => {
                   {/* FAQ block — back to centered */}
                   <div className="mt-24 px-4 md:px-8">
                     <div className="text-left p-6 md:p-8 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-[32px] max-w-2xl mx-auto space-y-3">
-                      <h2 className="text-sm md:text-base font-black text-blue-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                      <h3 className="text-sm md:text-base font-black text-blue-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-2">
                         💡 How can I calculate my 2026 university aggregate score?
-                      </h2>
+                      </h3>
                       <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
                         To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O'Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold.
                       </p>

@@ -206,6 +206,58 @@ app.get("/api/health", (req, res) => {
 app.use(express.json());
 
 // IndexNow Proxy Endpoint (bypasses browser CORS restrictions)
+app.get("/sitemap.xml", async (req: any, res: any) => {
+  try {
+    const baseUrl = "https://campusai.com.ng";
+    const staticPages = [
+      "",
+      "/calculator",
+      "/news",
+      "/result-slip",
+      "/admission-checklist",
+      "/status",
+      "/terms",
+      "/privacy",
+      "/cookies"
+    ];
+
+    let newsSlugs: string[] = [];
+    try {
+      const snapshot = await db.collection('news').where('isLive', '==', true).get();
+      snapshot.forEach((doc: any) => {
+        const data = doc.data();
+        if (data.slug) {
+          newsSlugs.push(data.slug);
+        }
+      });
+    } catch (dbErr) {
+      console.warn("[Sitemap] Could not fetch news slugs:", dbErr);
+    }
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${staticPages.map(page => `
+  <url>
+    <loc>${baseUrl}${page}</loc>
+    <changefreq>${page === "" || page === "/news" ? "daily" : "monthly"}</changefreq>
+    <priority>${page === "" ? "1.0" : "0.8"}</priority>
+  </url>`).join('')}
+  ${newsSlugs.map(slug => `
+  <url>
+    <loc>${baseUrl}/news/${slug}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join('')}
+</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.send(sitemap);
+  } catch (err: any) {
+    console.error("[Sitemap Error]:", err);
+    res.status(500).send("Error generating sitemap");
+  }
+});
+
 app.post("/api/indexnow", async (req: any, res: any) => {
   try {
     const { host, key, keyLocation, urlList } = req.body;

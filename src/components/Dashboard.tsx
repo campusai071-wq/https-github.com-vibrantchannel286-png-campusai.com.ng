@@ -1,5 +1,6 @@
 import React from 'react';
 import InviteEarn from './InviteEarn';
+import SEO from './SEO';
 import CutoffCalculator from './CutoffCalculator';
 import NewsGrid from './NewsGrid';
 import PolicySection from './PolicySection';
@@ -28,6 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
 
   return (
     <div className="pb-10">
+      <SEO />
       <HeroSection 
         user={user} 
         badgeText={`Welcome back, ${user?.displayName?.split(' ')[0] || 'Scholar'}`}

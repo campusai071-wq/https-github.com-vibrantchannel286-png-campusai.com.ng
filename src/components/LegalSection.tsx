@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import SEO from './SEO';
 import { Scale, Lock, Cookie, ShieldCheck, FileText, Globe, AlertTriangle, ShieldAlert, CheckCircle2, Brain, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -116,6 +117,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-24 pb-20">
+      <SEO title={data.title} description={`Official ${data.title} for Campusai.com.ng Nigeria. Read our latest revisions for the 2026 admission season.`} />
       <div className="container mx-auto px-4 md:px-8 max-w-4xl">
         {/* Navigation Breadcrumb */}
         <button 

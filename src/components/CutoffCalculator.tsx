@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SEO from './SEO';
 import {
   LineChart,
   Line,
@@ -2140,6 +2141,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   return (
     <section id="calculator" className="py-6 bg-gray-950 text-white w-full border-b border-white/5 relative overflow-hidden">
+      <SEO />
       {/* Privacy Notice */}
       <div className="px-6 mb-6">
         <div className="bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-4 flex items-center gap-3">

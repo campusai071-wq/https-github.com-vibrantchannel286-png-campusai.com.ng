@@ -1,9 +1,11 @@
 import React from 'react';
+import SEO from './SEO';
 import { Globe, Shield, Heart, Sparkles, CheckCircle, Quote, Mail, Linkedin, User, Brain, Database, Zap, ShieldCheck, ShieldAlert, XCircle, Check, Info } from 'lucide-react';
 
 const AboutSection: React.FC = () => {
   return (
     <section id="about" className="py-20 md:py-32 bg-white dark:bg-gray-950 transition-colors">
+      <SEO />
       <div className="container mx-auto px-4 md:px-8">
         <div className="max-w-4xl mx-auto space-y-16">
           

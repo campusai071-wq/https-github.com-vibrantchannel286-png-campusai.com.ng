@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SEO from './SEO';
 import { Search, RotateCw, ExternalLink, Calculator, AlertTriangle, Sparkles, Filter, RefreshCw, CheckCircle2, AlertCircle, ArrowRight, BookOpen, ShieldCheck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchPostUtmeFormReleases, verifySingleSchoolPostUtme, SyncedPostUtmeForm } from '../services/geminiService';
@@ -1266,6 +1267,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
 
   return (
     <div className="container mx-auto px-4 md:px-8 py-10 max-w-[1440px] relative z-10" id="postutme-tracker">
+      <SEO />
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
         <div>

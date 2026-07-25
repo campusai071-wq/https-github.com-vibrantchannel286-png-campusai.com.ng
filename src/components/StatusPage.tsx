@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SEO from './SEO';
 import { ShieldCheck, Activity, Globe, Calculator, Newspaper, Brain, CheckCircle2, Clock, Smartphone } from 'lucide-react';
 
 const services = [
@@ -13,6 +14,7 @@ const services = [
 const StatusPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 py-24">
+      <SEO title="System Status" description="Real-time status and uptime for CampusAI Nigeria admission strategist nodes and calculator services." />
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex items-center gap-4 mb-12">
           <div className="w-16 h-16 bg-emerald-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-emerald-500/20">

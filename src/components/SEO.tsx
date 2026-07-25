@@ -23,11 +23,29 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
   const isSpecificCalculator = cleanPath.endsWith("-aggregate-calculator");
   const schoolSlug = isSpecificCalculator ? cleanPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase() : "";
 
-  let baseTitle = "JAMB Aggregate Calculator 2026 | Check UNILAG, LASU, UI Admission Chances - CampusAI";
+  // Dynamic Base Titles based on Routes to avoid duplicate titles in Webmaster Tools
+  let baseTitle = "Nigeria's #1 AI Admission Strategist | Check 2026 JAMB Chances - CampusAI";
   let customDescription = defaultDescription;
   let customKeywords = "JAMB 2026, cutoff marks 2026, aggregate calculator, Post-UTME tracker, Nigerian university admission, admission probability, UNILAG cutoff, UI merit list, OAU admission requirements, JAMB news today, catchment area admission, ELDS admission Nigeria";
 
-  if (isSpecificCalculator && schoolSlug) {
+  if (cleanPath === "/dashboard") {
+    baseTitle = "Student Admission Dashboard | 2026 JAMB Success Tracker - CampusAI";
+    customDescription = "Access your personalized admission tracking dashboard. Monitor Post-UTME results, calculate aggregate scores, and get AI-powered admission recommendations for Nigerian universities.";
+  } else if (cleanPath === "/calculator") {
+    baseTitle = "JAMB Aggregate Calculator 2026 | Check University Admission Chances - CampusAI";
+    customDescription = "Check your 2026 admission chances with our advanced aggregate calculator. Support for UNILAG, LASU, UI, OAU, and all major Nigerian universities using official cutoff marks.";
+  } else if (cleanPath === "/result-slip") {
+    baseTitle = "Post-UTME Result Slip Hub | 2026 Admission Verification - CampusAI";
+    customDescription = "Download, verify and track your 2026 Post-UTME result slips. Check your departmental cutoff scores and see your ranking across various institution portals.";
+  } else if (cleanPath === "/news" || cleanPath === "/jamb") {
+    baseTitle = "Latest JAMB News Today | 2026/2027 University Admission Updates - CampusAI";
+    customDescription = "Stay updated with verified daily news on JAMB 2026, Post-UTME forms, cutoff marks, and university admission lists for all Nigerian institutions.";
+  } else if (cleanPath === "/admission-checklist") {
+    baseTitle = "2026 Admission Documents Checklist | Clearance & Registration Guide - CampusAI";
+    customDescription = "Prepare for university physical clearance with our comprehensive document checklist. JAMB admission letter, O'level results, medical fitness certificates and more.";
+  } else if (cleanPath === "/about") {
+    baseTitle = "About CampusAI Nigeria | Leading AI Admission Strategist - CampusAI";
+  } else if (isSpecificCalculator && schoolSlug) {
     baseTitle = `${schoolSlug} Aggregate Calculator 2026 | Admission Chances - CampusAI`;
     customDescription = `Calculate your 2026 ${schoolSlug} aggregate score and check your admission chances instantly. Use the official formula, cutoff marks, and catchment area rules for ${schoolSlug}.`;
     customKeywords = `${schoolSlug} aggregate calculator, check ${schoolSlug} admission chances, 2026 ${schoolSlug} cutoff marks, calculate ${schoolSlug} post utme score, ${schoolSlug} catchment area, ${customKeywords}`;
