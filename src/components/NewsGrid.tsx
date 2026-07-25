@@ -132,11 +132,12 @@ export const NewsCard: React.FC<{
   onEdit?: () => void;
   onDelete?: () => void;
 }> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => (
-  <motion.div
-    layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-    whileHover={{ scale: 1.02, y: -5 }}
-    className="bg-white dark:bg-gray-800 rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all group flex flex-col h-full border relative border-gray-100 dark:border-gray-700"
-  >
+  <article>
+    <motion.div
+      layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.02, y: -5 }}
+      className="bg-white dark:bg-gray-800 rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all group flex flex-col h-full border relative border-gray-100 dark:border-gray-700"
+    >
     {isRelevant && (
       <div className="absolute top-4 left-4 z-30 flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg">
         <Sparkles size={10} fill="currentColor" /> For You
@@ -236,6 +237,7 @@ export const NewsCard: React.FC<{
       </div>
     </div>
   </motion.div>
+  </article>
 );
 
 // ─── Bookmark helpers ─────────────────────────────────────────────────────────

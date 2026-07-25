@@ -1,4 +1,18 @@
 User-agent: *
 Allow: /
+Allow: /assets/
+Allow: /public/
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.webp$
+Allow: /*.svg$
+
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /private/
+Disallow: /*?*filter=
+Disallow: /*?*session=
 
 Sitemap: https://campusai.com.ng/sitemap.xml

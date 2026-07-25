@@ -6,8 +6,8 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
-  let title = "JAMB Aggregate Calculator 2026 | Check UNILAG, LASU, UI Admission Chances - CampusAI";
-  let description = "Calculate target aggregate scores, estimate realistic tuition costs, and compare catchment area cutoff quotas on the official 2026 Nigerian higher education portal.";
+  let title = "JAMB Aggregate Calculator 2026 | Check Admission - CampusAI";
+  let description = "Calculate target aggregate scores, estimate tuition costs, and check catchment cutoff quotas on the official 2026 Nigerian higher education portal.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let jsonLd: any = null;
 
