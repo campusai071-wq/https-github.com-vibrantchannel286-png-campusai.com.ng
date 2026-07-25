@@ -178,6 +178,12 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   
   // Replace existing og:image
   html = html.replace(/<meta[^>]*property="og:image"[^>]*>/gi, `<meta data-rh="true" property="og:image" content="${imageUrl}">`);
+  if (html.includes('property="og:image:secure_url"')) {
+    html = html.replace(/<meta[^>]*property="og:image:secure_url"[^>]*>/gi, `<meta data-rh="true" property="og:image:secure_url" content="${imageUrl}">`);
+  }
+  if (html.includes('name="twitter:image"')) {
+    html = html.replace(/<meta[^>]*name="twitter:image"[^>]*>/gi, `<meta data-rh="true" name="twitter:image" content="${imageUrl}">`);
+  }
   
   // Replace existing og:url
   html = html.replace(/<meta[^>]*property="og:url"[^>]*>/gi, `<meta data-rh="true" property="og:url" content="${canonical}">`);
