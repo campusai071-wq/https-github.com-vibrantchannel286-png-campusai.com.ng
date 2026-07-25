@@ -86,8 +86,12 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
     }`}>
       <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
         <div className="flex flex-col items-start cursor-pointer group" onClick={() => { onNavigate('home'); setIsMobileMenuOpen(false); }}>
-          <span className={`text-xl md:text-2xl font-black tracking-tighter transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
-            Campus<span className="text-cyan-400">AI</span><span className="opacity-70 font-bold">.ng</span>
+          <span className={`text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
+            Campus
+            <span className="inline-flex items-center justify-center mx-0.5 text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+              <Brain size={22} className="fill-cyan-400/20 text-cyan-400 stroke-[2.5]" />
+            </span>
+            AI<span className="text-cyan-400 font-extrabold">.ng</span>
           </span>
           <div className="flex flex-wrap items-center mt-0.5 gap-2">
             <div className="flex items-center gap-1">

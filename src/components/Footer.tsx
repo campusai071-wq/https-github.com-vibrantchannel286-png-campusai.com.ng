@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, School, ShieldCheck, Mail, Twitter, Facebook, Instagram, Linkedin, Youtube, ArrowUp, Github, ExternalLink, Globe, MessageCircle, Lock, Cpu, Eye } from 'lucide-react';
+import { Home, School, ShieldCheck, Mail, Twitter, Facebook, Instagram, Linkedin, Youtube, ArrowUp, Github, ExternalLink, Globe, MessageCircle, Lock, Cpu, Eye, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStandalone } from '../hooks/useStandalone';
 
@@ -82,8 +82,12 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
           {/* Brand Column */}
           <div className="space-y-8">
             <div className="flex flex-col items-start">
-              <span className="text-3xl font-black tracking-tighter">
-                Campus<span className="text-cyan-400">AI</span><span className="opacity-70 font-bold">.ng</span>
+              <span className="text-3xl font-black tracking-tighter flex items-center gap-0.5">
+                Campus
+                <span className="inline-flex items-center justify-center mx-0.5 text-cyan-400">
+                  <Brain size={28} className="fill-cyan-400/20 text-cyan-400 stroke-[2.5]" />
+                </span>
+                AI<span className="text-cyan-400 font-extrabold">.ng</span>
               </span>
               <div className="flex flex-wrap gap-2 mt-2.5">
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/10 shrink-0">
