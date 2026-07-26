@@ -82,6 +82,15 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
 
   return (
     <div className="container mx-auto px-0 md:px-8 max-w-[100vw] overflow-x-hidden pt-24 md:pt-32 pb-20 min-h-screen">
+      {currentNews && (
+        <SEO 
+          title={currentNews.title} 
+          description={currentNews.excerpt || currentNews.content.substring(0, 155)} 
+          image={currentNews.image}
+          article={true}
+          canonical={`/news/${slug}`}
+        />
+      )}
       <NewsDetailView 
         user={user} 
         isAdmin={isAuthorizedAdmin}
@@ -135,6 +144,11 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
 
   return (
     <div className="pt-24 min-h-screen bg-gray-950">
+      <SEO 
+        title={`${computedSchoolName} 2026 Aggregate Calculator`}
+        description={`Calculate your ${computedSchoolName} aggregate score for the 2026 admission cycle. Accurate results based on official departmental cut-off marks and merit guidelines.`}
+        canonical={rawPath}
+      />
       <CutoffCalculator 
         user={user} 
         onLoginRequest={() => setIsAuthModalOpen(true)} 
@@ -724,16 +738,28 @@ const AppContent: React.FC = () => {
         }>
           <Routes>
           <Route path="/dashboard" element={
-            <Dashboard 
-              user={user} 
-              onLoginRequest={() => setIsAuthModalOpen(true)} 
-              onScholarPackRequest={() => setIsScholarPackOpen(true)}
-              onReadArticle={openArticle} 
-            />
+            <>
+              <SEO 
+                title="Student Dashboard | 2026 Admission Progress" 
+                description="Monitor your JAMB scores, university merit chances, and academic progress in real-time. Personalized AI insights for the 2026 Nigerian admission cycle."
+                canonical="/dashboard"
+              />
+              <Dashboard 
+                user={user} 
+                onLoginRequest={() => setIsAuthModalOpen(true)} 
+                onScholarPackRequest={() => setIsScholarPackOpen(true)}
+                onReadArticle={openArticle} 
+              />
+            </>
           } />
 
           <Route path="/calculator" element={
             <div className="pt-24 min-h-screen bg-gray-950">
+              <SEO 
+                title="Official 2026 University Aggregate Calculator" 
+                description="Calculate your 2026 admission aggregate score for UNILAG, LASU, UI, OAU, UNIBEN, and 50+ Nigerian institutions with official formula compliance."
+                canonical="/calculator"
+              />
               <CutoffCalculator 
                 user={user} 
                 onLoginRequest={() => setIsAuthModalOpen(true)} 
@@ -865,15 +891,20 @@ const AppContent: React.FC = () => {
             </>
           } />
           
-          <Route path="/news" element={
-            <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
-              <NewsGrid 
-                user={user} 
-                onReadArticle={openArticle} 
-                onLoginRequest={() => setIsAuthModalOpen(true)} 
-              />
-            </div>
-          } />
+      <Route path="/news" element={
+        <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
+          <SEO 
+            title="2026/2027 JAMB & Admission News Hub" 
+            description="Stay updated with official admission guidelines, Post-UTME registration dates, and university screening schedules for the 2026 Nigerian academic cycle."
+            canonical="/news"
+          />
+          <NewsGrid 
+            user={user} 
+            onReadArticle={openArticle} 
+            onLoginRequest={() => setIsAuthModalOpen(true)} 
+          />
+        </div>
+      } />
           
           <Route path="/news/:slug" element={
             <NewsDetailWrapper 
@@ -887,6 +918,11 @@ const AppContent: React.FC = () => {
 
           <Route path="/postutme" element={
             <div className="pt-8 min-h-screen bg-gray-950">
+              <SEO 
+                title="2026/2027 Post-UTME Hub | Registration & Schedules" 
+                description="Official tracking for 2026 Post-UTME registration dates, exam schedules, and merit cut-off marks for Nigerian federal and state universities."
+                canonical="/postutme"
+              />
               <PostUtmeReleaseHub 
                 user={user} 
                 onLoginRequest={() => setIsAuthModalOpen(true)}
@@ -899,17 +935,26 @@ const AppContent: React.FC = () => {
             </div>
           } />
 
-          <Route path="/admission-checklist" element={<AdmissionChecklistPage />} />
-          <Route path="/terms" element={<LegalSection type="terms" />} />
-          <Route path="/terms-of-service" element={<LegalSection type="terms" />} />
-          <Route path="/privacy" element={<LegalSection type="privacy" />} />
-          <Route path="/privacy-policy" element={<LegalSection type="privacy" />} />
-          <Route path="/calculator-privacy" element={<LegalSection type="privacy" />} />
-          <Route path="/calculation-privacy" element={<LegalSection type="privacy" />} />
-          <Route path="/cookies" element={<LegalSection type="cookies" />} />
-          <Route path="/cookie-policy" element={<LegalSection type="cookies" />} />
+          <Route path="/admission-checklist" element={
+            <>
+              <SEO 
+                title="2026 Admission Document Checklist | CampusAI" 
+                description="The complete list of required documents for Nigerian university registration. Don't miss a deadline with our comprehensive 2026 checklist."
+                canonical="/admission-checklist"
+              />
+              <AdmissionChecklistPage />
+            </>
+          } />
+          <Route path="/terms" element={<><SEO title="Terms of Service" canonical="/terms" /><LegalSection type="terms" /></>} />
+          <Route path="/terms-of-service" element={<><SEO title="Terms of Service" canonical="/terms" /><LegalSection type="terms" /></>} />
+          <Route path="/privacy" element={<><SEO title="Privacy Policy" canonical="/privacy" /><LegalSection type="privacy" /></>} />
+          <Route path="/privacy-policy" element={<><SEO title="Privacy Policy" canonical="/privacy" /><LegalSection type="privacy" /></>} />
+          <Route path="/calculator-privacy" element={<><SEO title="Calculator Privacy Policy" canonical="/privacy" /><LegalSection type="privacy" /></>} />
+          <Route path="/calculation-privacy" element={<><SEO title="Calculator Privacy Policy" canonical="/privacy" /><LegalSection type="privacy" /></>} />
+          <Route path="/cookies" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
+          <Route path="/cookie-policy" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
           
-          <Route path="/status" element={<StatusPage />} />
+          <Route path="/status" element={<><SEO title="System Status" canonical="/status" /><StatusPage /></>} />
           <Route path="*" element={<NotFound onGoHome={() => handleNavigate('home')} />} />
         </Routes>
         </Suspense>

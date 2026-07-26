@@ -7,7 +7,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
   let title = "JAMB Aggregate Calculator 2026 | Check Admission Chances - CampusAI";
-  let description = "Calculate target aggregate scores, estimate tuition costs, and check catchment cutoff quotas on the official 2026 Nigerian higher education portal.";
+  let description = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let jsonLd: any = null;
 

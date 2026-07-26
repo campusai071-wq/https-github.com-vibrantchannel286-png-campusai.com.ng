@@ -134,9 +134,9 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
               <Icon size={36} />
             </div>
             <div>
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight text-gray-900 dark:text-white uppercase leading-none mb-2">
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-gray-900 dark:text-white uppercase leading-none mb-2">
                 {data.title}
-              </h1>
+              </h2>
               <p className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.3em]">
                 System Revision: <span className={`text-${data.color}-500`}>{data.revision}</span>
               </p>
