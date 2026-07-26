@@ -6,7 +6,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
-  let title = "JAMB Aggregate Calculator 2026 | Check Admission - CampusAI";
+  let title = "JAMB Aggregate Calculator 2026 | Check Admission Chances - CampusAI";
   let description = "Calculate target aggregate scores, estimate tuition costs, and check catchment cutoff quotas on the official 2026 Nigerian higher education portal.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let jsonLd: any = null;
@@ -55,8 +55,8 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
         }
 
         if (docData) {
-          title = `${docData.title} | Campusai.com.ng`;
-          description = docData.excerpt || description;
+          title = `${docData.title} | 2026 Admission News - CampusAI`;
+          description = (docData.excerpt || docData.description || description).substring(0, 155);
           if (docData.image) imageUrl = docData.image;
           const pubDate = docData.date ? new Date(docData.date).toISOString() : new Date().toISOString();
           const authorName = docData.author || "CampusAI Editorial Desk";
@@ -103,6 +103,18 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       "url": canonical,
       "description": description
     };
+  } else if (cleanPath === '/calculator') {
+    title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
+    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JAMB & University Aggregate Calculator 2026",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
   } else if (cleanPath.endsWith('-aggregate-calculator')) {
     const schoolSlug = cleanPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase();
     if (schoolSlug) {
@@ -133,7 +145,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       "url": canonical,
       "description": description
     };
-  } else if (cleanPath === '/postutme') {
+  } else if (cleanPath === '/postutme' || cleanPath === '/result-slip') {
     title = "2026/2027 Post-UTME Registration Hub & Exam Schedules | CampusAI";
     description = "Track Post-UTME registration deadlines, exam dates, cut-off marks, and screening guidelines for UNILAG, UI, UNIBEN, OAU, FUTA, LASU, and more.";
     jsonLd = {
@@ -143,6 +155,15 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       "url": canonical,
       "description": description
     };
+  } else if (cleanPath === '/status') {
+    title = "CampusAI System Status | Network & AI Performance";
+    description = "Monitor real-time status of CampusAI services, Gemini AI synchronization, and database connectivity for the 2026 cycle.";
+  } else if (cleanPath === '/privacy' || cleanPath === '/privacy-policy') {
+    title = "Privacy Policy | CampusAI Data Protection";
+    description = "Learn how CampusAI protects your academic data and personal information during the 2026 admission cycle.";
+  } else if (cleanPath === '/terms' || cleanPath === '/terms-of-service') {
+    title = "Terms of Service | CampusAI Usage Agreement";
+    description = "Review the legal terms and conditions for using the CampusAI admission strategist and aggregate calculators.";
   } else {
     jsonLd = {
       "@context": "https://schema.org",
@@ -163,6 +184,10 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       }
     };
   }
+
+  // Ensure title and description are within SEO limits
+  title = title.substring(0, 65);
+  description = description.substring(0, 160);
 
   // Replace existing title
   html = html.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);

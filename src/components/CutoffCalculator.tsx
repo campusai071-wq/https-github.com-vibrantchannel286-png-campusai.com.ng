@@ -2232,9 +2232,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       ← General Calculator
                     </button>
                   </div>
-                  <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight mt-1.5">
+                  <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight mt-1.5">
                     {schoolLandingInfo.fullName} <span className="text-cyan-400">Hub</span>
-                  </h1>
+                  </h2>
                   <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 tracking-wider">
                     Verified Aggregate Formula, Departmental Cutoffs & Prep Rules
                   </p>
