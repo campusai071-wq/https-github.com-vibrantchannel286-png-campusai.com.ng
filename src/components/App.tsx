@@ -757,7 +757,7 @@ const AppContent: React.FC = () => {
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
                 title="Official 2026 University Aggregate Calculator" 
-                description="Calculate your 2026 admission aggregate score for UNILAG, LASU, UI, OAU, UNIBEN, and 50+ Nigerian institutions with official formula compliance."
+                description="Universal 2026 admission aggregate calculator for all Nigerian Universities, Polytechnics, and Colleges of Education. Features official institutional formula compliance."
                 canonical="/calculator"
               />
               <CutoffCalculator 
@@ -846,7 +846,7 @@ const AppContent: React.FC = () => {
                         💡 How can I calculate my 2026 university aggregate score?
                       </h3>
                       <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
-                        To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O'Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold.
+                        To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O'Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold. You can also use our Custom Formula Mode to manually define your own aggregate percentage ratio if your institution's formula isn't listed.
                       </p>
                     </div>
                   </div>

@@ -231,5 +231,22 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
     }
   }
 
+  // Inject visible content for bots/crawlers inside a noscript tag at the start of body
+  if (cleanPath.startsWith('/news/')) {
+    const botContent = `
+      <noscript>
+        <article>
+          <h1>${title}</h1>
+          <p>${description}</p>
+          <div class="content">
+            ${description}
+            <p>Read the full article on <a href="${canonical}">CampusAI Nigeria</a>.</p>
+          </div>
+        </article>
+      </noscript>
+    `;
+    html = html.replace('<body>', `<body>\n${botContent}`);
+  }
+
   return html;
 }
