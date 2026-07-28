@@ -1,5 +1,58 @@
 import * as path from 'path';
 
+function formatDate(val: any): string {
+  if (!val) return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  if (typeof val === 'string') return val.trim();
+  let ms = 0;
+  if (typeof val.toMillis === 'function') ms = val.toMillis();
+  else if (typeof val.toDate === 'function') ms = val.toDate().getTime();
+  else if (typeof val === 'object') {
+    if ('seconds' in val) ms = val.seconds * 1000;
+    else if ('_seconds' in val) ms = val._seconds * 1000;
+  } else if (typeof val === 'number') ms = val;
+
+  if (ms > 0) {
+    return new Date(ms).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+  return String(val);
+}
+
+function renderMarkdownToHtml(markdown: string): string {
+  if (!markdown) return '';
+  
+  // Normalize line endings
+  let text = markdown.replace(/\r\n/g, '\n');
+
+  // Convert markdown headers
+  text = text.replace(/^### (.*$)/gim, '<h3 style="font-size: 1.25rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a;">$1</h3>');
+  text = text.replace(/^## (.*$)/gim, '<h2 style="font-size: 1.5rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: #0f172a;">$1</h2>');
+  text = text.replace(/^# (.*$)/gim, '<h1 style="font-size: 1.875rem; font-weight: 900; margin-top: 2rem; margin-bottom: 1rem; color: #0f172a;">$1</h1>');
+
+  // Convert bold and italics
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // Convert links
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" style="color: #2563eb; text-decoration: underline;" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Convert unordered lists
+  text = text.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li style="margin-bottom: 0.5rem; line-height: 1.6;">$1</li>');
+  text = text.replace(/(<li style="margin-bottom: 0.5rem; line-height: 1.6;">.*<\/li>\n?)+/g, '<ul style="margin-top: 1rem; margin-bottom: 1rem; padding-left: 1.5rem; list-style-type: disc;">$&</ul>');
+
+  // Paragraphs
+  const blocks = text.split(/\n\s*\n/);
+  const htmlBlocks = blocks.map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<li')) {
+      return trimmed;
+    }
+    return `<p style="margin-bottom: 1.25rem; line-height: 1.8; font-size: 1.125rem; color: #334155;">${trimmed.replace(/\n/g, '<br/>')}</p>`;
+  });
+
+  return htmlBlocks.filter(Boolean).join('\n');
+}
+
 export async function injectSEO(html: string, reqPath: string, adminDb: any, dbInstance?: any): Promise<string> {
   const siteDomain = "https://campusai.com.ng";
   const rawPath = reqPath ? reqPath.split('?')[0] : '/';
@@ -10,6 +63,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   let description = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let jsonLd: any = null;
+  let serverBodyHtml = '';
 
   if (cleanPath.startsWith('/news/')) {
     const rawSlug = cleanPath.split('/')[2];
@@ -55,11 +109,20 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
         }
 
         if (docData) {
-          title = `${docData.title} | 2026 Admission News - CampusAI`;
-          description = (docData.excerpt || docData.description || description).substring(0, 155);
+          const articleTitle = docData.title || "Admission News Update";
+          const articleExcerpt = docData.excerpt || docData.description || description;
+          const articleBody = docData.fullContent || docData.content || docData.body || articleExcerpt;
+          const authorName = docData.author || "Emmanuel Iweh";
+          const categoryName = docData.category || "JAMB News";
+          const pubDateStr = formatDate(docData.date || docData.createdAt);
+          const pubDateIso = docData.date ? new Date(docData.date).toISOString() : new Date().toISOString();
+          
           if (docData.image) imageUrl = docData.image;
-          const pubDate = docData.date ? new Date(docData.date).toISOString() : new Date().toISOString();
-          const authorName = docData.author || "CampusAI Editorial Desk";
+
+          title = `${articleTitle} | 2026 Admission News - CampusAI`;
+          description = articleExcerpt.substring(0, 155);
+
+          const renderedContent = renderMarkdownToHtml(articleBody);
 
           jsonLd = {
             "@context": "https://schema.org",
@@ -68,19 +131,20 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
               "@type": "WebPage",
               "@id": canonical
             },
-            "headline": docData.title,
+            "headline": articleTitle,
             "description": description,
+            "articleBody": articleBody,
             "image": [imageUrl],
-            "datePublished": pubDate,
-            "dateModified": pubDate,
+            "datePublished": pubDateIso,
+            "dateModified": pubDateIso,
             "author": [{
-              "@type": "Organization",
+              "@type": "Person",
               "name": authorName,
               "url": siteDomain
             }],
             "publisher": {
               "@type": "Organization",
-              "name": "Campusai.com.ng",
+              "name": "CampusAI Nigeria",
               "url": siteDomain,
               "logo": {
                 "@type": "ImageObject",
@@ -88,6 +152,97 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
               }
             }
           };
+
+          // Generate Server HTML Article for bots, crawlers, and non-JS clients
+          serverBodyHtml = `
+            <article id="server-news-article" style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #0f172a; line-height: 1.6; background-color: #ffffff;">
+              <div style="margin-bottom: 24px;">
+                <a href="${siteDomain}/news" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #2563eb; text-decoration: none;">
+                  ← Return to Admissions News Feed
+                </a>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 12px; font-weight: 700; color: #64748b;">
+                <span style="background-color: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 900;">${categoryName}</span>
+                <span>Published: ${pubDateStr}</span>
+                <span>•</span>
+                <span>By <strong style="color: #0eb38c;">${authorName}</strong></span>
+                ${docData.views ? `<span>•</span> <span>${docData.views.toLocaleString()} Reads</span>` : ''}
+              </div>
+
+              <h1 style="font-size: 2.25rem; font-weight: 900; line-height: 1.25; color: #1e293b; margin: 0 0 24px 0; letter-spacing: -0.02em;">
+                ${articleTitle}
+              </h1>
+
+              ${imageUrl ? `
+                <div style="margin-bottom: 32px; border-radius: 20px; overflow: hidden; max-height: 480px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
+                  <img src="${imageUrl}" alt="${articleTitle}" style="width: 100%; height: auto; object-fit: cover; display: block;" />
+                </div>
+              ` : ''}
+
+              ${articleExcerpt ? `
+                <div style="font-size: 1.2rem; font-weight: 800; color: #1e293b; font-style: italic; border-left: 4px solid #2563eb; padding-left: 20px; margin-bottom: 32px; line-height: 1.6; background-color: #f8fafc; padding-top: 14px; padding-bottom: 14px; border-radius: 0 12px 12px 0;">
+                  "${articleExcerpt}"
+                </div>
+              ` : ''}
+
+              <div class="article-content" style="font-size: 1.125rem; color: #334155; line-height: 1.8;">
+                ${renderedContent}
+              </div>
+
+              ${docData.sourceUrl ? `
+                <div style="margin-top: 28px; font-size: 13px; font-weight: 600; color: #64748b;">
+                  Official Source Reference: <a href="${docData.sourceUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${docData.sourceUrl}</a>
+                </div>
+              ` : ''}
+
+              <div style="margin-top: 48px; padding: 28px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 2px solid #bfdbfe; border-radius: 24px; text-align: center;">
+                <h3 style="font-size: 1.35rem; font-weight: 900; color: #1e3a8a; margin: 0 0 8px 0; text-transform: uppercase;">Calculate Your 2026 University Aggregate Score</h3>
+                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian institutions with CampusAI's official formula engine.</p>
+                <a href="${siteDomain}/calculator" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 14px rgba(37,99,235,0.3);">
+                  Calculate Aggregate Score Now →
+                </a>
+              </div>
+            </article>
+          `;
+        } else {
+          // Fallback static article generated from slug if docData is not retrieved
+          const formattedTitle = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          title = `${formattedTitle} | 2026 Admission News - CampusAI`;
+          description = `Latest updates on ${formattedTitle}. Check official registration details, cutoff marks, and admission requirements on CampusAI Nigeria.`;
+
+          serverBodyHtml = `
+            <article id="server-news-article" style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #0f172a; line-height: 1.6; background-color: #ffffff;">
+              <div style="margin-bottom: 24px;">
+                <a href="${siteDomain}/news" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #2563eb; text-decoration: none;">
+                  ← Return to Admissions News Feed
+                </a>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 12px; font-weight: 700; color: #64748b;">
+                <span style="background-color: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 900;">JAMB News</span>
+                <span>Published: ${formatDate(null)}</span>
+                <span>•</span>
+                <span>By <strong style="color: #0eb38c;">Emmanuel Iweh</strong></span>
+              </div>
+
+              <h1 style="font-size: 2.25rem; font-weight: 900; line-height: 1.25; color: #1e293b; margin: 0 0 24px 0;">
+                ${formattedTitle}
+              </h1>
+
+              <p style="font-size: 1.125rem; color: #334155; line-height: 1.8; margin-bottom: 20px;">
+                Get verified updates regarding <strong>${formattedTitle}</strong> for the 2026/2027 academic session. CampusAI monitors official institutional portals, JAMB CAPS, and departmental cut-off announcements.
+              </p>
+
+              <div style="margin-top: 48px; padding: 28px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 2px solid #bfdbfe; border-radius: 24px; text-align: center;">
+                <h3 style="font-size: 1.35rem; font-weight: 900; color: #1e3a8a; margin: 0 0 8px 0; text-transform: uppercase;">Calculate Your 2026 University Aggregate Score</h3>
+                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian institutions with CampusAI's official formula engine.</p>
+                <a href="${siteDomain}/calculator" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 14px rgba(37,99,235,0.3);">
+                  Calculate Aggregate Score Now →
+                </a>
+              </div>
+            </article>
+          `;
         }
       } catch (err) {
         console.error("[SEO] Error fetching news item:", err);
@@ -103,6 +258,36 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       "url": canonical,
       "description": description
     };
+
+    try {
+      let newsItems: any[] = [];
+      if (adminDb) {
+        const snap = await adminDb.collection('news').orderBy('createdAt', 'desc').limit(10).get();
+        snap.forEach((doc: any) => newsItems.push(doc.data()));
+      }
+      if (newsItems.length > 0) {
+        const listHtml = newsItems.map(item => `
+          <div style="margin-bottom: 24px; padding: 20px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;">
+            <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; background-color: #2563eb; color: #ffffff; padding: 3px 8px; border-radius: 9999px;">${item.category || 'News'}</span>
+            <h2 style="font-size: 1.25rem; font-weight: 800; margin: 12px 0 8px 0;">
+              <a href="${siteDomain}/news/${item.slug || item.id}" style="color: #0f172a; text-decoration: none;">${item.title}</a>
+            </h2>
+            <p style="font-size: 0.95rem; color: #475569; margin-bottom: 12px; line-height: 1.5;">${item.excerpt || ''}</p>
+            <a href="${siteDomain}/news/${item.slug || item.id}" style="font-size: 12px; font-weight: 800; color: #2563eb; text-decoration: none;">Read Full Article →</a>
+          </div>
+        `).join('');
+
+        serverBodyHtml = `
+          <section style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, sans-serif;">
+            <h1 style="font-size: 2rem; font-weight: 900; color: #0f172a; margin-bottom: 8px;">2026 Admissions News & Updates</h1>
+            <p style="font-size: 1rem; color: #64748b; margin-bottom: 32px;">Verified news, cut-off marks, and Post-UTME screening forms for Nigerian Universities, Polytechnics, and Colleges.</p>
+            ${listHtml}
+          </section>
+        `;
+      }
+    } catch (e) {
+      console.warn("[SEO] Failed to pre-render news list:", e);
+    }
   } else if (cleanPath === '/calculator') {
     title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
     description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
@@ -115,6 +300,22 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
       "applicationCategory": "EducationalApplication",
       "operatingSystem": "All"
     };
+
+    serverBodyHtml = `
+      <section style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, sans-serif; text-align: center;">
+        <h1 style="font-size: 2.25rem; font-weight: 900; color: #0f172a; margin-bottom: 12px;">2026 JAMB & University Aggregate Calculator</h1>
+        <p style="font-size: 1.1rem; color: #475569; max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6;">Calculate your admission chances for UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian higher institutions instantly.</p>
+        <div style="padding: 24px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; text-align: left;">
+          <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 12px;">Supported Institutional Formulas:</h3>
+          <ul style="line-height: 1.8; color: #334155; font-size: 1rem; padding-left: 20px;">
+            <li><strong>50/50 JAMB-to-Post-UTME Ratio</strong> (UNILAG, LASU, FUTA, UNIBEN, etc.)</li>
+            <li><strong>O'Level Point Grading System</strong> (A1 = 10pts, B2 = 9pts, B3 = 8pts, etc.)</li>
+            <li><strong>Custom Percentage Ratio Mode</strong> for specialized state & private universities</li>
+            <li><strong>Catchment Area & ELDS Quota Assessment</strong></li>
+          </ul>
+        </div>
+      </section>
+    `;
   } else if (cleanPath.endsWith('-aggregate-calculator')) {
     const schoolSlug = cleanPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase();
     if (schoolSlug) {
@@ -134,41 +335,19 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
           "priceCurrency": "NGN"
         }
       };
+
+      serverBodyHtml = `
+        <section style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, sans-serif; text-align: center;">
+          <h1 style="font-size: 2.25rem; font-weight: 900; color: #0f172a; margin-bottom: 12px;">${schoolSlug} Aggregate Calculator 2026</h1>
+          <p style="font-size: 1.1rem; color: #475569; max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6;">Calculate your official 2026 ${schoolSlug} aggregate score using JAMB UTME, Post-UTME screening, and O'Level subject points.</p>
+        </section>
+      `;
     }
-  } else if (cleanPath === '/admission-checklist') {
-    title = "2026 Admission Requirements & CAPS Checklist | CampusAI";
-    description = "Complete step-by-step admission checklist for Nigerian universities, polytechnics, and colleges. Verify JAMB CAPS, O'Level results, and Post-UTME steps.";
-    jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "2026 Admission Requirements & CAPS Checklist",
-      "url": canonical,
-      "description": description
-    };
-  } else if (cleanPath === '/postutme' || cleanPath === '/result-slip') {
-    title = "2026/2027 Post-UTME Registration Hub & Exam Schedules | CampusAI";
-    description = "Track Post-UTME registration deadlines, exam dates, cut-off marks, and screening guidelines for UNILAG, UI, UNIBEN, OAU, FUTA, LASU, and more.";
-    jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "2026/2027 Post-UTME Registration Hub & Exam Schedules",
-      "url": canonical,
-      "description": description
-    };
-  } else if (cleanPath === '/status') {
-    title = "CampusAI System Status | Network & AI Performance";
-    description = "Monitor real-time status of CampusAI services, Gemini AI synchronization, and database connectivity for the 2026 cycle.";
-  } else if (cleanPath === '/privacy' || cleanPath === '/privacy-policy') {
-    title = "Privacy Policy | CampusAI Data Protection";
-    description = "Learn how CampusAI protects your academic data and personal information during the 2026 admission cycle.";
-  } else if (cleanPath === '/terms' || cleanPath === '/terms-of-service') {
-    title = "Terms of Service | CampusAI Usage Agreement";
-    description = "Review the legal terms and conditions for using the CampusAI admission strategist and aggregate calculators.";
   } else {
     jsonLd = {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "Campusai.com.ng",
+      "name": "CampusAI Nigeria",
       "url": canonical,
       "description": description,
       "applicationCategory": "EducationApplication",
@@ -231,22 +410,16 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
     }
   }
 
-  // Inject visible content for bots/crawlers inside a noscript tag at the start of body
-  if (cleanPath.startsWith('/news/')) {
-    const botContent = `
-      <noscript>
-        <article>
-          <h1>${title}</h1>
-          <p>${description}</p>
-          <div class="content">
-            ${description}
-            <p>Read the full article on <a href="${canonical}">CampusAI Nigeria</a>.</p>
-          </div>
-        </article>
-      </noscript>
-    `;
-    html = html.replace('<body>', `<body>\n${botContent}`);
+  // Inject Server Rendered Body into <div id="root"> and <noscript> for crawlers, AI bots, and non-JS clients
+  if (serverBodyHtml) {
+    if (html.includes('<div id="root">')) {
+      html = html.replace(/<div id="root">[\s\S]*<\/div>(?=\s*<script)/i, `<div id="root">\n${serverBodyHtml}\n</div>`);
+    }
+    if (html.includes('<noscript>')) {
+      html = html.replace(/<noscript>[\s\S]*?<\/noscript>/i, `<noscript>\n${serverBodyHtml}\n</noscript>`);
+    }
   }
 
   return html;
 }
+

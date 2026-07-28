@@ -3696,14 +3696,24 @@ async function startServer() {
         server: { 
           middlewareMode: true,
           hmr: false, // Disable HMR to avoid port conflicts in sandbox
+          ws: false,
         },
         appType: "spa",
       });
       
       app.use(async (req, res, next) => {
-        if (req.originalUrl.startsWith('/api') || !req.headers.accept?.includes('text/html')) {
+        const isSourceOrAsset = 
+          req.originalUrl.startsWith('/api') || 
+          req.originalUrl.startsWith('/@') || 
+          req.originalUrl.startsWith('/src') || 
+          req.originalUrl.startsWith('/node_modules') || 
+          req.originalUrl.startsWith('/public') ||
+          /\.(js|ts|tsx|jsx|css|scss|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|map)$/i.test(req.path);
+
+        if (isSourceOrAsset) {
           return next();
         }
+
         try {
           const url = req.originalUrl.split('?')[0];
           let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
