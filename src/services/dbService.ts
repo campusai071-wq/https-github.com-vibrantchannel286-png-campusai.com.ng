@@ -173,21 +173,7 @@ export const getNewsSortTimestamp = (item: NewsItem, now: number = Date.now()): 
   if (updatedMs > maxAllowed) updatedMs = now;
   if (archivedMs > maxAllowed) archivedMs = now;
 
-  // Determine effective publication/creation time:
-  // - If pubMs exists, check if pubMs belongs to an earlier calendar day than createdMs
-  //   (e.g. pubMs is Jul 24, but createdMs was Jul 25 because sync ran on Jul 25).
-  //   In that case, return pubMs so the Jul 24 item stays on Jul 24 and doesn't jump ahead of Jul 25 items!
   if (pubMs > 0 && createdMs > 0) {
-    const pubDate = new Date(pubMs);
-    const createdDate = new Date(createdMs);
-    const isPubEarlierDay = (
-      pubDate.getFullYear() < createdDate.getFullYear() ||
-      (pubDate.getFullYear() === createdDate.getFullYear() && pubDate.getMonth() < createdDate.getMonth()) ||
-      (pubDate.getFullYear() === createdDate.getFullYear() && pubDate.getMonth() === createdDate.getMonth() && pubDate.getDate() < createdDate.getDate())
-    );
-    if (isPubEarlierDay) {
-      return pubMs;
-    }
     return Math.max(pubMs, createdMs);
   }
 
@@ -213,6 +199,11 @@ export const sortNewsBySyncAndDate = (a: NewsItem, b: NewsItem, now: number = Da
   const timeA = getNewsSortTimestamp(a, now);
   const timeB = getNewsSortTimestamp(b, now);
   if (timeB !== timeA) return timeB - timeA;
+
+  // 3. Secondary: Use fallback timestamps (createdAt, archivedAt, updatedAt) to break ties for same-day news
+  const fallbackA = toMs(a.createdAt) || toMs(a.archivedAt) || toMs(a.updatedAt) || 0;
+  const fallbackB = toMs(b.createdAt) || toMs(b.archivedAt) || toMs(b.updatedAt) || 0;
+  if (fallbackB !== fallbackA) return fallbackB - fallbackA;
 
   return 0;
 };
@@ -592,14 +583,14 @@ export const archiveNewsItems = async (items: NewsItem[]) => {
       const articleTimestamp = Timestamp.fromMillis(articleDateMs);
 
       // FIX: preserve the existing document's original createdAt if it
-      // already exists and is valid. If corrupted into the future (> now + 60s), replace with articleTimestamp.
+      // already exists and is valid. If corrupted into the future (> now + 60s), replace with nowTimestamp.
       const existingSnap = existingSnaps[i];
       let preservedCreatedAt = existingSnap.exists()
-        ? (existingSnap.data()?.createdAt || articleTimestamp)
-        : articleTimestamp;
+        ? (existingSnap.data()?.createdAt || nowTimestamp)
+        : nowTimestamp;
 
       if (preservedCreatedAt && toMs(preservedCreatedAt) > Date.now() + 60000) {
-        preservedCreatedAt = articleTimestamp;
+        preservedCreatedAt = nowTimestamp;
       }
 
       batch.set(ref, {

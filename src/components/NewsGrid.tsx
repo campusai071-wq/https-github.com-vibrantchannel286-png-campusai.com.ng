@@ -404,7 +404,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     if (searchQuery.trim().length > 0) {
       if (!hasFetchedAllForSearch) {
         setHasFetchedAllForSearch(true);
-        loadLocalNews(filter, 250);
+        loadLocalNews(filter, 1000);
       }
     } else {
       if (hasFetchedAllForSearch) {
@@ -669,7 +669,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     };
     
     const handleNewsUpdate = () => {
-      loadLocalNews(filter);
+      // If a search is currently active, re-fetch the larger search pool
+      loadLocalNews(filter, searchQuery.trim().length > 0 ? 1000 : undefined);
     };
 
     window.addEventListener('campusai_news_updated', handleNewsUpdate);
@@ -679,7 +680,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       window.removeEventListener('campusai_bookmarks_updated', handleBookmarksUpdate);
       clearInterval(interval);
     };
-  }, [user?.uid, filter, loadLocalNews]);
+  }, [user?.uid, filter, loadLocalNews, searchQuery]);
 
   // ── Filtered / sorted news list ─────────────────────────────────────────────
 
@@ -701,6 +702,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       const searchMatch =
         !searchQuery.trim() ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.excerpt && item.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.fullContent && item.fullContent.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
 
       return catMatch && searchMatch;
