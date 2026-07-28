@@ -1694,8 +1694,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             <button
                               onClick={async e => {
                                 e.stopPropagation();
-                                if (window.confirm(`Grant 3 Scholar Credits to ${u.displayName}?`)) {
-                                  await updateUserProfile({ scholarCredits: (u.scholarCredits || 0) + 3, is_premium: true }, u.uid);
+                                if (window.confirm(`Grant 5 Scholar Credits to ${u.displayName}?`)) {
+                                  await updateUserProfile({ scholarCredits: (u.scholarCredits || 0) + 5, is_premium: true }, u.uid);
                                   await loadUsers();
                                 }
                               }}

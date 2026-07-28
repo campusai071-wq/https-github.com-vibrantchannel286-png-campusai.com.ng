@@ -1,0 +1,200 @@
+[
+  {
+    "id": "4",
+    "title": "DEGREE AWARDING INSTITUTIONS",
+    "name": "DEGREE AWARDING INSTITUTIONS",
+    "type": "school_type",
+    "children": [
+      {
+        "id": "29",
+        "title": "E-LEARNING UNIVERSITIES OF NIGERIA",
+        "name": "E-LEARNING UNIVERSITIES OF NIGERIA",
+        "type": "institution_category",
+        "children": [
+          {"name": "NATIONAL OPEN UNIVERSITY OF NIGERIA - Elearning, LAGOS STATE", "type": "institution", "category": "29", "id": "1380"},
+          {"name": "UNIVERSITY OF MAIDUGURI ( - eLEARNING), MAIDUGURI, BORNO STATE", "type": "institution", "category": "29", "id": "1356"},
+          {"name": "UNIVERSITY OF UYO (E - LEARNING), UYO, AKWA IBOM STATE", "type": "institution", "category": "29", "id": "1456"},
+          {"name": "USMANU DANFODIYO UNIVERSITY ( - eLEARNING), SOKOTO, SOKOTO STATE", "type": "institution", "category": "29", "id": "1442"}
+        ]
+      },
+      {
+        "id": "17",
+        "title": "FEDERAL UNIVERSITIES",
+        "name": "FEDERAL UNIVERSITIES",
+        "type": "institution_category",
+        "children": [
+          {"name": "ABUBAKAR TAFAWA BALEWA UNIVERSITY, BAUCHI, BAUCHI STATE", "type": "institution", "category": "17", "id": "1221"},
+          {"name": "AHMADU BELLO UNIVERSITY, ZARIA, KADUNA STATE", "type": "institution", "category": "17", "id": "1189"},
+          {"name": "ALEX EKWUEME FEDERAL UNIVERSITY, NDUFU-ALIKE, EBONYI STATE", "type": "institution", "category": "17", "id": "1298"},
+          {"name": "BAYERO UNIVERSITY, KANO, KANO STATE", "type": "institution", "category": "17", "id": "1222"},
+          {"name": "FEDERAL UNIVERSITY, BIRNIN-KEBBI, KEBBI STATE", "type": "institution", "category": "17", "id": "1295"},
+          {"name": "FEDERAL UNIVERSITY, DUTSE, JIGAWA STATE", "type": "institution", "category": "17", "id": "1290"},
+          {"name": "FEDERAL UNIVERSITY, DUTSIN-MA, KATSINA STATE", "type": "institution", "category": "17", "id": "1291"},
+          {"name": "FEDERAL UNIVERSITY, GASHUA, YOBE STATE", "type": "institution", "category": "17", "id": "1292"},
+          {"name": "FEDERAL UNIVERSITY, GUSAU, ZAMFARA STATE", "type": "institution", "category": "17", "id": "1293"},
+          {"name": "FEDERAL UNIVERSITY, KASHERE, GOMBE STATE", "type": "institution", "category": "17", "id": "1294"},
+          {"name": "FEDERAL UNIVERSITY, LAFIA, NASARAWA STATE", "type": "institution", "category": "17", "id": "1296"},
+          {"name": "FEDERAL UNIVERSITY, LOKOJA, KOGI STATE", "type": "institution", "category": "17", "id": "1297"},
+          {"name": "FEDERAL UNIVERSITY, OTUOKE, BAYELSA STATE", "type": "institution", "category": "17", "id": "1299"},
+          {"name": "FEDERAL UNIVERSITY, OYE-EKITI, EKITI STATE", "type": "institution", "category": "17", "id": "1300"},
+          {"name": "FEDERAL UNIVERSITY, WUKARI, TARABA STATE", "type": "institution", "category": "17", "id": "1301"},
+          {"name": "NIGERIAN ARMY UNIVERSITY, BIU, BORNO STATE", "type": "institution", "category": "17", "id": "1372"},
+          {"name": "NIGERIAN DEFENCE ACADEMY, KADUNA, KADUNA STATE", "type": "institution", "category": "17", "id": "1375"},
+          {"name": "NIGERIAN POLICE ACADEMY, WUDIL, KANO STATE", "type": "institution", "category": "17", "id": "1406"},
+          {"name": "NNAMDI AZIKIWE UNIVERSITY, AWKA, ANAMBRA STATE", "type": "institution", "category": "17", "id": "1452"},
+          {"name": "OBAFEMI AWOLOWO UNIVERSITY, ILE-IFE, OSUN STATE", "type": "institution", "category": "17", "id": "1388"},
+          {"name": "UNIVERSITY OF ABUJA, ABUJA, FCT", "type": "institution", "category": "17", "id": "1192"},
+          {"name": "UNIVERSITY OF BENIN, BENIN CITY, EDO STATE", "type": "institution", "category": "17", "id": "1226"},
+          {"name": "UNIVERSITY OF CALABAR, CALABAR, CROSS RIVER STATE", "type": "institution", "category": "17", "id": "1235"},
+          {"name": "UNIVERSITY OF IBADAN, IBADAN, OYO STATE", "type": "institution", "category": "17", "id": "1319"},
+          {"name": "UNIVERSITY OF ILORIN, ILORIN, KWARA STATE", "type": "institution", "category": "17", "id": "1325"},
+          {"name": "UNIVERSITY OF JOS, JOS, PLATEAU STATE", "type": "institution", "category": "17", "id": "1330"},
+          {"name": "UNIVERSITY OF LAGOS, LAGOS STATE", "type": "institution", "category": "17", "id": "1345"},
+          {"name": "UNIVERSITY OF MAIDUGURI, BORNO STATE", "type": "institution", "category": "17", "id": "1355"},
+          {"name": "UNIVERSITY OF NIGERIA NSUKKA, ENUGU STATE", "type": "institution", "category": "17", "id": "1453"},
+          {"name": "UNIVERSITY OF PORT-HARCOURT, RIVERS STATE", "type": "institution", "category": "17", "id": "1404"},
+          {"name": "UNIVERSITY OF UYO, AKWA IBOM STATE", "type": "institution", "category": "17", "id": "1455"},
+          {"name": "USMANU DANFODIO UNIVERSITY, SOKOTO, SOKOTO STATE", "type": "institution", "category": "17", "id": "1441"}
+        ]
+      },
+      {
+        "id": "18",
+        "title": "FEDERAL UNIVERSITIES OF AGRICULTURE",
+        "name": "FEDERAL UNIVERSITIES OF AGRICULTURE",
+        "type": "institution_category",
+        "children": [
+          {"name": "FEDERAL UNIVERSITY OF AGRICULTURE, ABEOKUTA, OGUN STATE", "type": "institution", "category": "18", "id": "1304"},
+          {"name": "FEDERAL UNIVERSITY OF AGRICULTURE, MAKURDI, BENUE STATE", "type": "institution", "category": "18", "id": "1358"},
+          {"name": "MICHAEL OKPARA UNIVERSITY OF AGRICULTURE, UMUDIKE, ABIA STATE", "type": "institution", "category": "18", "id": "1446"}
+        ]
+      },
+      {
+        "id": "43",
+        "title": "FEDERAL UNIVERSITIES OF HEALTH SCIENCES",
+        "name": "FEDERAL UNIVERSITIES OF HEALTH SCIENCES",
+        "type": "institution_category",
+        "children": [
+          {"name": "THE FEDERAL UNIVERSITY OF HEALTH SCIENCES, OTUKPO, BENUE STATE", "type": "institution", "category": "43", "id": "1499"}
+        ]
+      },
+      {
+        "id": "19",
+        "title": "FEDERAL UNIVERSITIES OF TECHNOLOGY",
+        "name": "FEDERAL UNIVERSITIES OF TECHNOLOGY",
+        "type": "institution_category",
+        "children": [
+          {"name": "AIR FORCE INSTITUTE OF TECHNOLOGY, KADUNA, KADUNA STATE", "type": "institution", "category": "19", "id": "1197"},
+          {"name": "FEDERAL UNIVERSITY OF PETROLEUM RESOURCES, EFFURUN, DELTA STATE", "type": "institution", "category": "19", "id": "1305"},
+          {"name": "FEDERAL UNIVERSITY OF TECHNOLOGY, AKURE, ONDO STATE", "type": "institution", "category": "19", "id": "1306"},
+          {"name": "FEDERAL UNIVERSITY OF TECHNOLOGY, MINNA, NIGER STATE", "type": "institution", "category": "19", "id": "1364"},
+          {"name": "FEDERAL UNIVERSITY OF TECHNOLOGY, OWERRI, IMO STATE", "type": "institution", "category": "19", "id": "1307"},
+          {"name": "MODIBO ADAMA UNIVERSITY OF TECHNOLOGY, YOLA, ADAMAWA STATE", "type": "institution", "category": "19", "id": "1360"},
+          {"name": "NIGERIAN MARITIME UNIVERSITY, OKERENKOKO, DELTA STATE", "type": "institution", "category": "19", "id": "1359"}
+        ]
+      },
+      {
+        "id": "39",
+        "title": "OPEN AND DISTANCE LEARNING PROGRAMMES",
+        "name": "OPEN AND DISTANCE LEARNING PROGRAMMES",
+        "type": "institution_category",
+        "children": [
+          {"name": "AHMADU BELLO UNIVERSITY OPEN AND DISTANCE LEARNING PROGRAMME, ZARIA, KADUNA STATE", "type": "institution", "category": "39", "id": "1190"},
+          {"name": "NATIONAL OPEN UNIVERSITY OF NIGERIA, LAGOS STATE", "type": "institution", "category": "39", "id": "1379"}
+        ]
+      },
+      {
+        "id": "21",
+        "title": "PRIVATE UNIVERSITIES",
+        "name": "PRIVATE UNIVERSITIES",
+        "type": "institution_category",
+        "children": [
+          {"name": "ACHIEVERS UNIVERSITY, OWO, ONDO STATE", "type": "institution", "category": "21", "id": "1193"},
+          {"name": "ADELEKE UNIVERSITY, EDE, OSUN STATE", "type": "institution", "category": "21", "id": "1214"},
+          {"name": "AFE BABALOLA UNIVERSITY, ADO-EKITI, EKITI STATE", "type": "institution", "category": "21", "id": "1191"},
+          {"name": "AJAYI CROWTHER UNIVERSITY, OYO, OYO STATE", "type": "institution", "category": "21", "id": "1199"},
+          {"name": "AL- HIKMAH UNIVERSITY, ILORIN, KWARA STATE", "type": "institution", "category": "21", "id": "1203"},
+          {"name": "AMERICAN UNIVERSITY OF NIGERIA, YOLA, ADAMAWA STATE", "type": "institution", "category": "21", "id": "1216"},
+          {"name": "BABCOCK UNIVERSITY, ILISHAN-REMO, OGUN STATE", "type": "institution", "category": "21", "id": "1218"},
+          {"name": "BAZE UNIVERSITY, ABUJA, FCT", "type": "institution", "category": "21", "id": "1223"},
+          {"name": "BELLS UNIVERSITY OF TECHNOLOGY, OTA, OGUN STATE", "type": "institution", "category": "21", "id": "1225"},
+          {"name": "BENSON IDAHOSA UNIVERSITY, BENIN CITY, EDO STATE", "type": "institution", "category": "21", "id": "1229"},
+          {"name": "BOWEN UNIVERSITY, IWO, OSUN STATE", "type": "institution", "category": "21", "id": "1232"},
+          {"name": "COVENANT UNIVERSITY, CANAAN LAND, OTA, OGUN STATE", "type": "institution", "category": "21", "id": "1249"},
+          {"name": "LEAD CITY UNIVERSITY, IBADAN, OYO STATE", "type": "institution", "category": "21", "id": "1350"},
+          {"name": "MADONNA UNIVERSITY, ELELE, RIVERS STATE", "type": "institution", "category": "21", "id": "1353"},
+          {"name": "NILE UNIVERSITY OF NIGERIA, ABUJA", "type": "institution", "category": "21", "id": "1378"},
+          {"name": "REDEEMERS UNIVERSITY, OSUN STATE", "type": "institution", "category": "21", "id": "1411"},
+          {"name": "VERITAS UNIVERSITY, ABUJA, FCT", "type": "institution", "category": "21", "id": "1457"}
+        ]
+      },
+      {
+        "id": "22",
+        "title": "STATE UNIVERSITIES",
+        "name": "STATE UNIVERSITIES",
+        "type": "institution_category",
+        "children": [
+          {"name": "ABIA STATE UNIVERSITY, UTURU, ABIA STATE", "type": "institution", "category": "22", "id": "1188"},
+          {"name": "ADEKUNLE AJASIN UNIVERSITY, AKUNGBA-AKOKO, ONDO STATE", "type": "institution", "category": "22", "id": "1187"},
+          {"name": "AMBROSE ALLI UNIVERSITY, EKPOMA, EDO STATE", "type": "institution", "category": "22", "id": "1186"},
+          {"name": "BENUE STATE UNIVERSITY, MAKURDI, BENUE STATE", "type": "institution", "category": "22", "id": "1233"},
+          {"name": "DELTA STATE UNIVERSITY, ABRAKA, DELTA STATE", "type": "institution", "category": "22", "id": "1254"},
+          {"name": "EBONYI STATE UNIVERSITY, ABAKALIKI, EBONYI STATE", "type": "institution", "category": "22", "id": "1258"},
+          {"name": "EKITI STATE UNIVERSITY, ADO-EKITI, EKITI STATE", "type": "institution", "category": "22", "id": "1276"},
+          {"name": "IMO STATE UNIVERSITY, OWERRI, IMO STATE", "type": "institution", "category": "22", "id": "1327"},
+          {"name": "KADUNA STATE UNIVERSITY, KADUNA, KADUNA STATE", "type": "institution", "category": "22", "id": "1333"},
+          {"name": "KWARA STATE UNIVERSITY, MALETE, ILORIN, KWARA STATE", "type": "institution", "category": "22", "id": "1342"},
+          {"name": "LAGOS STATE UNIVERSITY, OJO, LAGOS STATE", "type": "institution", "category": "22", "id": "1348"},
+          {"name": "NASARAWA STATE UNIVERSITY, KEFFI, NASARAWA STATE", "type": "institution", "category": "22", "id": "1369"},
+          {"name": "NIGER DELTA UNIVERSITY, WILBERFORCE ISLAND, BAYELSA STATE", "type": "institution", "category": "22", "id": "1376"},
+          {"name": "OLABISI ONABANJO UNIVERSITY, AGO-IWOYE, OGUN STATE", "type": "institution", "category": "22", "id": "1393"},
+          {"name": "OSUN STATE UNIVERSITY, OSOGBO, OSUN STATE", "type": "institution", "category": "22", "id": "1451"},
+          {"name": "RIVERS STATE UNIVERSITY, PORT HARCOURT, RIVERS STATE", "type": "institution", "category": "22", "id": "1415"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "1",
+    "title": "NCE",
+    "name": "NCE",
+    "type": "school_type",
+    "children": [
+      {
+        "id": "2",
+        "title": "FEDERAL COLLEGES OF EDUCATION",
+        "name": "FEDERAL COLLEGES OF EDUCATION",
+        "type": "institution_category",
+        "children": [
+          {"name": "Adeyemi College of Education, Ondo State", "type": "institution", "category": "2", "id": "11"},
+          {"name": "Alvan Ikoku Federal College of Education, Owerri", "type": "institution", "category": "2", "id": "15"},
+          {"name": "Federal College of Education, Kano", "type": "institution", "category": "2", "id": "24"},
+          {"name": "Federal College of Education, Zaria", "type": "institution", "category": "2", "id": "44"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "title": "ND / POLYTECHNICS",
+    "name": "ND / POLYTECHNICS",
+    "type": "school_type",
+    "children": [
+      {
+        "id": "8",
+        "title": "FEDERAL POLYTECHNICS",
+        "name": "FEDERAL POLYTECHNICS",
+        "type": "institution_category",
+        "children": [
+          {"name": "Auchi Polytechnic, Edo State", "type": "institution", "category": "8", "id": "18"},
+          {"name": "Federal Polytechnic, Ado-Ekiti", "type": "institution", "category": "8", "id": "19"},
+          {"name": "Federal Polytechnic, Bauchi", "type": "institution", "category": "8", "id": "27"},
+          {"name": "Federal Polytechnic, Bida", "type": "institution", "category": "8", "id": "29"},
+          {"name": "Federal Polytechnic, Ilaro", "type": "institution", "category": "8", "id": "40"},
+          {"name": "Federal Polytechnic, Nekede", "type": "institution", "category": "8", "id": "47"},
+          {"name": "Federal Polytechnic, Oko", "type": "institution", "category": "8", "id": "52"},
+          {"name": "Yaba College of Technology, Yaba, Lagos State", "type": "institution", "category": "8", "id": "89"}
+        ]
+      }
+    ]
+  }
+]

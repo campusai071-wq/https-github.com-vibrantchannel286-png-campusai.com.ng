@@ -15,6 +15,8 @@ import {
 import { slugify, getApiUrl } from "./utils";
 import { searchWeb, searchWebRaw } from "./searchService";
 import { getUniversityFromDB } from "../data/universityData";
+import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
+import { searchSyllabuses } from "../data/syllabuses";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
 
@@ -1584,7 +1586,8 @@ export const getCourseCutoffInfo = async (
   isCatchment = false,
   quotaDiscount = 0,
   jambScore = 0,
-  postUtmeScore = 0
+  postUtmeScore = 0,
+  olevelPoints = 0
 ) => {
   try {
     // ─── DEDUPLICATE AND NORMALIZE JAMB SUBJECTS ──────────────────────────────
@@ -1865,10 +1868,12 @@ Perform an exhaustive admission probability check under these STRICT architectur
      - If Candidate Aggregate Score (${score}%) >= Departmental Cutoff, you are STRICTLY FORBIDDEN from stating or implying that the score 'is below', 'is slightly below', or 'fails to reach' the cutoff in "detailedStrategy" or "recommendation". Output that the candidate's aggregate score 'is slightly above the estimated departmental cutoff, but requires a higher merit buffer for non-catchment candidates'.
      - If Candidate Aggregate Score (${score}%) < Departmental Cutoff, you are STRICTLY FORBIDDEN from stating that the candidate is in a 'strong' or 'winning' position.
    - Only use data the user has explicitly provided. Be highly realistic, clear, and actionable.
+   - If providing an O'Level points breakdown, you MUST use exactly the "Pre-Calculated O'Level Points" value provided below. DO NOT make up your own grading points or drop subjects to force the math. Most schools use 5 subjects.
 
 - Institution: ${university}
 - Program: ${course}
 - Candidate Aggregate Score: ${score}% (out of 100)
+- Pre-Calculated O'Level Points: ${olevelPoints > 0 ? olevelPoints : 'N/A'}
 - Raw JAMB Score: ${jambScore > 0 ? `${jambScore} / 400` : 'Not explicitly provided'}
 - Raw Post-UTME / Screening Score: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : 'N/A or Pending'}
 - O-Level Profile: ${oLevels}
@@ -2402,7 +2407,33 @@ Optimized Search Query:`
       console.warn("Could not load knowledge fragments:", e);
     }
 
-    const verifiedNewsStr = [newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+    let jambKbContext = "";
+    try {
+      const matchedDocs = searchJAMBKnowledgeBase(sanitizedMessage).slice(0, 3);
+      if (matchedDocs.length > 0) {
+        jambKbContext = "VERIFIED OFFICIAL JAMB KNOWLEDGE BASE DOCUMENTS:\n" +
+          matchedDocs.map(d => `[Document: ${d.title}] (${d.category} - ${d.subcategory || ''})\nSummary: ${d.summary}\n${d.steps ? 'Steps:\n' + d.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n${d.important_notes ? 'Important Notes:\n' + d.important_notes.map(n => `- ${n}`).join('\n') : ''}\nOfficial Source: ${d.official_source} (Verified: ${d.last_verified})`).join('\n---\n');
+      }
+
+      const matchedSyllabuses = searchSyllabuses(sanitizedMessage).slice(0, 2);
+      if (matchedSyllabuses.length > 0) {
+        const sylContext = matchedSyllabuses.map(ms => {
+          const s = ms.syllabus;
+          const topList = s.topics ? s.topics.slice(0, 3).map(t => `- Topic ${t.topicNumber}: ${t.title}`).join('\n') : '';
+          return `[UTME Syllabus: ${s.subject}] (${s.category})\nObjectives: ${s.generalObjectives.slice(0, 2).join('; ')}\nTop Topics:\n${topList}\nRecommended Texts: ${s.recommendedTexts.slice(0, 2).map(r => `${r.title} by ${r.author}`).join('; ')}`;
+        }).join('\n---\n');
+        
+        if (jambKbContext) {
+          jambKbContext += "\n\nOFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+        } else {
+          jambKbContext = "OFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not retrieve JAMB knowledge base or syllabus in chat:", e);
+    }
+
+    const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
 
     let liveIntelStr = "";
     if (searchResults.length > 0) {
@@ -2583,7 +2614,33 @@ Optimized Search Query:`
       console.warn("Could not load knowledge fragments:", e);
     }
 
-    const verifiedNewsStr = [newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+    let jambKbContext = "";
+    try {
+      const matchedDocs = searchJAMBKnowledgeBase(sanitizedMessage).slice(0, 3);
+      if (matchedDocs.length > 0) {
+        jambKbContext = "VERIFIED OFFICIAL JAMB KNOWLEDGE BASE DOCUMENTS:\n" +
+          matchedDocs.map(d => `[Document: ${d.title}] (${d.category} - ${d.subcategory || ''})\nSummary: ${d.summary}\n${d.steps ? 'Steps:\n' + d.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n${d.important_notes ? 'Important Notes:\n' + d.important_notes.map(n => `- ${n}`).join('\n') : ''}\nOfficial Source: ${d.official_source} (Verified: ${d.last_verified})`).join('\n---\n');
+      }
+
+      const matchedSyllabuses = searchSyllabuses(sanitizedMessage).slice(0, 2);
+      if (matchedSyllabuses.length > 0) {
+        const sylContext = matchedSyllabuses.map(ms => {
+          const s = ms.syllabus;
+          const topList = s.topics ? s.topics.slice(0, 3).map(t => `- Topic ${t.topicNumber}: ${t.title}`).join('\n') : '';
+          return `[UTME Syllabus: ${s.subject}] (${s.category})\nObjectives: ${s.generalObjectives.slice(0, 2).join('; ')}\nTop Topics:\n${topList}\nRecommended Texts: ${s.recommendedTexts.slice(0, 2).map(r => `${r.title} by ${r.author}`).join('; ')}`;
+        }).join('\n---\n');
+        
+        if (jambKbContext) {
+          jambKbContext += "\n\nOFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+        } else {
+          jambKbContext = "OFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not retrieve JAMB knowledge base or syllabus in stream:", e);
+    }
+
+    const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
 
     let liveIntelStr = "";
     if (searchResults.length > 0) {

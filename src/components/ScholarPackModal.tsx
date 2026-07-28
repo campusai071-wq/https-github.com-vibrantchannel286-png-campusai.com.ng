@@ -44,7 +44,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     customizations: {
       title: `CampusAI ${paymentConfig.label}`,
       description: paymentConfig.type === 'pack' 
-        ? '3 calculations and 5 daily chats' 
+        ? '5 calculations and 5 daily chats' 
         : `Unlock ${paymentConfig.label}`,
       logo: 'https://campusai.com.ng/logo.png',
     },
@@ -63,18 +63,18 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
             const currentCredits = user?.scholarCredits || 0;
             await updateUserProfile({ 
               is_premium: true, 
-              scholarCredits: currentCredits + 3,
+              scholarCredits: currentCredits + 5,
               premium_activated_at: new Date().toISOString()
             }, user.uid);
-            alert(`${paymentConfig.label} Activated Successfully! You now have ${currentCredits + 3} premium calculation trials and increased daily chats.`);
+            alert(`${paymentConfig.label} Activated Successfully! You now have ${currentCredits + 5} premium calculation trials and increased daily chats.`);
           } else {
             const currentCredits = user?.scholarCredits || 0;
             await updateUserProfile({ 
               is_premium: true, 
-              scholarCredits: currentCredits + 3,
+              scholarCredits: currentCredits + 5,
               premium_activated_at: new Date().toISOString()
             }, user.uid);
-            alert(`${paymentConfig.label} Unlocked! 3 Premium Sessions added to your scholar account.`);
+            alert(`${paymentConfig.label} Unlocked! 5 Premium Sessions added to your scholar account.`);
           }
           
           // Log Payment in Firestore
@@ -111,7 +111,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
   };
 
   const features = [
-    "3 Premium AI calculations",
+    "5 Premium AI calculations",
     "10 Daily Chats for 2 Days (then 5/day)",
     "Detailed Merit Probabilities",
     "Full Budget & Hostel Estimates",
@@ -166,7 +166,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                         <Check size={12} strokeWidth={4} />
                       </div>
                       <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        {paymentConfig.type === 'refill' ? 'Instant 3 Extra AI Sessions' : `Full Access to ${paymentConfig.label}`}
+                        {paymentConfig.type === 'refill' ? 'Instant 5 Extra AI Sessions' : `Full Access to ${paymentConfig.label}`}
                       </span>
                     </div>
                   )}
@@ -174,12 +174,12 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
 
                 <div className="mt-12 p-6 bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 shadow-sm">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
-                      {paymentConfig.type === 'pack' ? '3 Full Trials' : 'One-Time Payment'}
+                      {paymentConfig.type === 'pack' ? '5 Full Trials' : 'One-Time Payment'}
                     </p>
                     <div className="flex items-baseline gap-1">
                        <span className="text-3xl font-black dark:text-white">₦{paymentConfig.amount}</span>
                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                         {paymentConfig.type === 'pack' ? ' / 3 Full Uses' : ' / Use'}
+                         {paymentConfig.type === 'pack' ? ' / 5 Full Uses' : ' / Use'}
                        </span>
                     </div>
                 </div>
@@ -195,7 +195,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                   </h4>
                   <p className="text-sm font-medium text-gray-500 leading-relaxed">
                     {paymentConfig.type === 'pack' 
-                      ? 'Secure your admission journey with 3 full AI signals and priority processing for the 2026 cycle.'
+                      ? 'Secure your admission journey with 5 full AI signals and priority processing for the 2026 cycle.'
                       : `Get instant access to ${paymentConfig.label} and supercharge your academic performance.`}
                   </p>
                   

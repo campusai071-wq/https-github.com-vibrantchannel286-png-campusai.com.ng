@@ -54,14 +54,13 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 
                 <button 
                   onClick={() => {
-                    const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '3 Extra AI Sessions' } });
+                    const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '5 Extra AI Sessions' } });
                     window.dispatchEvent(event);
                   }}
                   className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                 >
-                  <Zap size={18} /> Buy 3 Extra Sessions — ₦100
+                  <Zap size={18} /> Buy 5 Extra Sessions — ₦100
                 </button>
-
                 <button 
                   onClick={onClose}
                   className="w-full py-5 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all"
@@ -76,7 +75,7 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Scholar Pack Benefit</p>
-                  <p className="text-xs font-bold dark:text-white">Unlocks 3 calculations and 5 daily chats.</p>
+                  <p className="text-xs font-bold dark:text-white">Unlocks 5 calculations and 5 daily chats.</p>
                 </div>
               </div>
             </div>

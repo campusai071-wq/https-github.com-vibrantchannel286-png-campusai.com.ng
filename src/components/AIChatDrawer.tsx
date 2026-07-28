@@ -695,7 +695,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
                       <div className="w-24 bg-gray-200 dark:bg-gray-800 h-1 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${remainingChats <= 1 ? 'bg-amber-500' : 'bg-blue-600'}`}
-                          style={{ width: `${(remainingChats / maxChats) * 100}%` }}
+                          style={{ width: `${maxChats > 0 ? (remainingChats / maxChats) * 100 : 0}%` }}
                         />
                       </div>
                     </div>

@@ -353,6 +353,74 @@ app.post("/api/proxy-firestore", async (req: any, res: any) => {
   }
 });
 
+// IBASS JAMB Live Proxy Endpoints
+app.post("/api/ibass/institutions", async (req: any, res: any) => {
+  try {
+    const page = req.query.page || 1;
+    const url = `https://ibass-api.jamb.gov.ng/api/ibass/institutions?page=${page}`;
+    const payload = {
+      inst_type: req.body.inst_type ?? null,
+      inst_category: req.body.inst_category ?? null,
+      inst_search: req.body.inst_search ?? ""
+    };
+    const response = await axios.post(url, payload, {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json",
+        "sec-ch-ua": '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "referrer": "https://ibass.jamb.gov.ng/"
+      },
+      timeout: 15000
+    });
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error("[IBASS Proxy Error - Institutions]:", err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data || err.message
+    });
+  }
+});
+
+app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const page = req.query.page || 1;
+    const url = `https://ibass-api.jamb.gov.ng/api/ibass/institution/programmes/${id}?page=${page}`;
+    const payload = {
+      course_search: req.body.course_search ?? ""
+    };
+    const response = await axios.post(url, payload, {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json",
+        "sec-ch-ua": '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "referrer": "https://ibass.jamb.gov.ng/"
+      },
+      timeout: 15000
+    });
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error(`[IBASS Proxy Error - Programmes ID ${req.params.id}]:`, err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data || err.message
+    });
+  }
+});
+
 app.post("/api/proxy-firestore-count", async (req: any, res: any) => {
   try {
     const { collectionName } = req.body;

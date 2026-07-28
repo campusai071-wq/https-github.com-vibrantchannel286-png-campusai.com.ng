@@ -36,6 +36,7 @@ const StatusPage = lazy(() => import('./StatusPage'));
 const NotFound = lazy(() => import('./NotFound'));
 const FeedbackModal = lazy(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
+const SyllabusExplorer = lazy(() => import('./SyllabusExplorer'));
 import { useNotificationManager } from '../hooks/useNotificationManager';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
@@ -572,6 +573,8 @@ const AppContent: React.FC = () => {
       setCurrentPage('postutme');
     } else if (path.startsWith('/calculator')) {
       setCurrentPage('calculator');
+    } else if (path.startsWith('/syllabus')) {
+      setCurrentPage('syllabus');
     } else if (path.startsWith('/result-slip')) {
       setCurrentPage('result-slip');
     } else if (path.startsWith('/dashboard')) {
@@ -649,6 +652,10 @@ const AppContent: React.FC = () => {
     } else if (p === 'calculator') {
       setCurrentPage('calculator');
       navigate('/calculator');
+      window.scrollTo(0, 0);
+    } else if (p === 'syllabus') {
+      setCurrentPage('syllabus');
+      navigate('/syllabus');
       window.scrollTo(0, 0);
     } else if (p === 'result-slip') {
       setCurrentPage('result-slip');
@@ -808,6 +815,20 @@ const AppContent: React.FC = () => {
                 }}
                 user={user}
                 onLoginRequest={() => setIsAuthModalOpen(true)}
+              />
+            </div>
+          } />
+
+          <Route path="/syllabus" element={
+            <div className="pt-24 md:pt-32 min-h-screen bg-gray-950 px-4 md:px-8">
+              <SEO 
+                title="UTME Master Syllabus Explorer - JAMB 2026/2027"
+                description="Browse official UTME examination syllabuses for Chemistry, Biology, Physics, Mathematics, English, Commerce, Economics, Government, CRS, French, Art, Arabic, and Computer Studies."
+              />
+              <SyllabusExplorer 
+                onAskAI={(topicQuery) => {
+                  window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: topicQuery }));
+                }}
               />
             </div>
           } />

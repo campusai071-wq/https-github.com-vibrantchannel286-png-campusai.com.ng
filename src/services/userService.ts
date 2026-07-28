@@ -6,7 +6,7 @@ import { handleFirestoreError, OperationType } from './firestoreUtils';
 import { validateUserProfile } from '../lib/validation';
 
 const JOURNEY_KEY = 'campusai_journey_progress';
-export const DAILY_LIMIT = 3;
+export const DAILY_LIMIT = 1;
 export const QUOTA_KEY = 'campusai_user_profile';
 export const FREE_GUEST_LIMIT = 1;
 export const FREE_USER_LIMIT = 1;
@@ -29,8 +29,8 @@ export const getChatLimits = (profile: UserProfile): { maxChats: number, remaini
   
   const isRegistered = isRealUser(profile.uid);
   
-  // Base daily chat limit: 5 for signed-in users, 3 for guests
-  let maxChats = isRegistered ? 5 : 3;
+  // Base daily chat limit: 5 for signed-in users, 0 for guests
+  let maxChats = isRegistered ? 5 : 0;
   
   if (profile.is_premium || (profile.scholarCredits || 0) > 0) {
     maxChats = 25;
@@ -210,10 +210,10 @@ export const trackReferral = async (referrerUid: string, invitedUid: string) => 
     const count = (data.referral_count || 0) + 1;
     const updateData: any = { referral_count: count };
     
-    // Grant 3 free trials (scholar credits) on the FIRST registration
+    // Grant 5 free trials (scholar credits) on the FIRST registration
     if (count >= 1 && !registrationRewardGranted) {
       const currentCredits = data.scholarCredits || 0;
-      updateData.scholarCredits = currentCredits + 3;
+      updateData.scholarCredits = currentCredits + 5;
       updateData.registration_reward_granted = true;
     }
     
