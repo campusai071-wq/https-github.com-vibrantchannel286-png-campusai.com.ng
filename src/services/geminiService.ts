@@ -1903,6 +1903,8 @@ Return JSON:
   "probability": number (estimated percentage chance from 0 to 100),
   "verdict": "Very Strong / Excellent" | "Strong" | "Borderline" | "Low Probability",
   "alternatives": [{ "name": "string", "typicalCutoff": "string", "reasoning": "string" }],
+  "strengths": ["string (e.g. 'Aggregate above merit', 'Valid subject combination', etc)"],
+  "riskFactors": ["string (e.g. 'Highly competitive department', 'Outside catchment area', etc)"],
   "isOffered": boolean,
   "fresherBudget": "string (clean realistic Naira budget breakdown matching modern costs, e.g. 'Tuition: ₦195,000 | Acceptance Fee: ₦50,000 | Hostel/Rent: ₦150,000. Total: ₦395,000')",
   "sourcesCited": ["string (valid domain/URL)"],

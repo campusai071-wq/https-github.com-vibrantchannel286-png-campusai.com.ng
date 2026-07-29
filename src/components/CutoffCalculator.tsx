@@ -14,8 +14,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock
-} from 'lucide-react';
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
@@ -3256,66 +3255,110 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     <X size={16} />
                   </button>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-6">
-                    {/* Gauge + confidence */}
-                    <div className="flex flex-col items-center">
-                      <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
-                      <div className="mt-3.5 flex items-center justify-center gap-1.5 p-1.5 px-3 bg-white/[0.03] border border-white/5 rounded-xl select-none">
-                        <span className="text-[7.5px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
-                        <div className="flex gap-0.5">
-                          <span className={`w-2.5 h-1.5 rounded-sm bg-emerald-500`} />
-                          <span className={`w-2.5 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                          <span className={`w-2.5 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                        </div>
-                        <span className={`text-[8px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                          {confidenceLevel}
-                        </span>
-                      </div>
-                    </div>
+                                    {(() => {
+                    let chanceLevel = '🔴 Unlikely';
+                    let chanceColor = 'text-red-500';
+                    let chanceBg = 'bg-red-500/10 border-red-500/20';
 
-                    {/* Aggregate + badges */}
-                    <div className="text-center sm:text-left">
-                      <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                        {(isAR || isPostUtmePending) ? 'Projected Aggregate' : 'My Aggregate Score'}
-                      </p>
-                      <h4 className="text-3xl font-black text-white">{aggregateScore}%</h4>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <div className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 inline-flex items-center gap-1.5">
-                          {aiResult.isOffered === false
-                            ? <><X size={10} className="text-red-400" /><span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Course Not Found/Accredited</span></>
-                            : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Logic Verified</span></>}
-                        </div>
-                        {stateOfOrigin && (
-                          <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20 inline-flex items-center gap-1.5">
-                            <MapPin size={10} className="text-purple-400" />
-                            <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest">Quota Applied: {stateOfOrigin}</span>
-                          </div>
-                        )}
-                        {user?.scholarCredits > 0 && (
-                          <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/10 inline-flex items-center gap-1.5 animate-pulse">
-                            <Crown size={10} className="text-amber-500" />
-                            <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">{user.scholarCredits} Premium Trials Left</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    if (admissionProbability >= 75) {
+                      chanceLevel = '🟢 Strong Chance';
+                      chanceColor = 'text-emerald-500';
+                      chanceBg = 'bg-emerald-500/10 border-emerald-500/20';
+                    } else if (admissionProbability >= 50) {
+                      chanceLevel = '🟡 Competitive';
+                      chanceColor = 'text-amber-400';
+                      chanceBg = 'bg-amber-500/10 border-amber-500/20';
+                    } else if (admissionProbability >= 30) {
+                      chanceLevel = '🟠 Borderline';
+                      chanceColor = 'text-orange-500';
+                      chanceBg = 'bg-orange-500/10 border-orange-500/20';
+                    }
 
-                  {/* Export & Upload Action Bar */}
-                  <div className="flex items-center gap-3 my-5 pt-4 border-t border-white/10 flex-wrap">
-                    <button
-                      onClick={() => setIsPdfExportModalOpen(true)}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                    >
-                      <Printer size={14} /> Export PDF Summary
-                    </button>
-                    <button
-                      onClick={() => setIsUploadHubModalOpen(true)}
-                      className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-black text-[10px] uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-purple-500/20 active:scale-95"
-                    >
-                      <Upload size={14} /> Upload Result Slip / Files
-                    </button>
-                  </div>
+                    if (aiResult.isOffered === false) {
+                      chanceLevel = '🔴 Not Accredited';
+                      chanceColor = 'text-red-500';
+                      chanceBg = 'bg-red-500/10 border-red-500/20';
+                    }
+
+                    return (
+                      <>
+                        <div className="flex flex-col items-center mb-8">
+                          <div className={`px-6 py-2.5 rounded-full border mb-6 font-black text-sm md:text-base uppercase tracking-widest flex items-center justify-center ${chanceBg} ${chanceColor} shadow-lg`}>
+                             {chanceLevel}
+                          </div>
+                          
+                          <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
+                          
+                          <div className="mt-4 flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
+                            <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
+                            <div className="flex gap-1">
+                              <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
+                              <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                              <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                            </div>
+                            <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                              {confidenceLevel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Admission Snapshot Card */}
+                        <div className="mb-6 p-5 bg-black/40 rounded-[20px] border border-white/5 shadow-inner">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                            <Activity size={12} className="text-blue-400" /> Admission Snapshot
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Institution</p>
+                              <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetUni?.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Course</p>
+                              <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetCourse || courseSearch}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">{(isAR || isPostUtmePending) ? 'Projected' : 'Aggregate'}</p>
+                              <p className="text-lg md:text-xl font-black text-emerald-400 mt-1">{aggregateScore}%</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Quota</p>
+                              <p className="text-xs md:text-sm font-bold text-purple-400 mt-1">{stateOfOrigin || 'General'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-6">
+                          <div className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 inline-flex items-center gap-1.5">
+                            {aiResult.isOffered === false
+                              ? <><X size={10} className="text-red-400" /><span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Course Not Accredited</span></>
+                              : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Logic Verified</span></>}
+                          </div>
+                          {user?.scholarCredits > 0 && (
+                            <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/10 inline-flex items-center gap-1.5">
+                              <Crown size={10} className="text-amber-500" />
+                              <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">{user.scholarCredits} Premium Trials Left</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Export & Upload Action Bar */}
+                        <div className="flex items-center gap-3 my-6 pt-5 border-t border-white/10 flex-wrap justify-center sm:justify-start">
+                          <button
+                            onClick={() => setIsPdfExportModalOpen(true)}
+                            className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-[11px] uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                          >
+                            <FileText size={16} /> Export Result Slip (PDF / Image)
+                          </button>
+                          <button
+                            onClick={() => setIsUploadHubModalOpen(true)}
+                            className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black text-[11px] uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all active:scale-95"
+                          >
+                            <Upload size={16} /> Upload Additional Documents
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   {/* Post-UTME status */}
                   {targetUni && (() => {
@@ -3356,69 +3399,131 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     </div>
                   )}
 
-                  <div className="mt-6 p-4 bg-black/40 rounded-xl border border-white/5">
-                    <p className="text-[9px] font-black text-gray-400 uppercase mb-2 tracking-widest">Admission Strategy Analysis</p>
+                                    {(aiResult.strengths?.length > 0 || aiResult.riskFactors?.length > 0) && (
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {aiResult.strengths?.length > 0 && (
+                        <div className="p-5 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-2xl">
+                          <p className="text-[10px] font-black text-emerald-400 uppercase mb-3 tracking-widest flex items-center gap-1.5"><Check size={12} /> Strengths</p>
+                          <div className="flex flex-wrap gap-2">
+                            {aiResult.strengths.map((str: string, idx: number) => (
+                              <span key={idx} className="px-2.5 py-1.5 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px] font-bold rounded-lg flex items-center gap-1.5">
+                                🟢 {str}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {aiResult.riskFactors?.length > 0 && (
+                        <div className="p-5 bg-orange-500/[0.03] border border-orange-500/10 rounded-2xl">
+                          <p className="text-[10px] font-black text-orange-400 uppercase mb-3 tracking-widest flex items-center gap-1.5"><TriangleAlert size={12} /> Risk Factors</p>
+                          <div className="flex flex-wrap gap-2">
+                            {aiResult.riskFactors.map((risk: string, idx: number) => (
+                              <span key={idx} className="px-2.5 py-1.5 bg-orange-500/10 text-orange-300 border border-orange-500/20 text-[10px] font-bold rounded-lg flex items-center gap-1.5">
+                                ⚠️ {risk}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
+                    <details className="group">
+                      <summary className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between cursor-pointer list-none select-none">
+                        <span className="flex items-center gap-2"><Activity size={12} className="text-blue-400" /> Why this prediction?</span>
+                        <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                        <p className="text-[11px] text-gray-300">Your admission chance is based on multiple weighted factors including:</p>
+                        <ul className="space-y-2 text-[10px] font-semibold text-gray-400">
+                          <li className="flex items-center gap-2"><span>•</span> JAMB score relative to historical performance (approx. 35%)</li>
+                          <li className="flex items-center gap-2"><span>•</span> O'Level grades and required subject matching (approx. 20%)</li>
+                          <li className="flex items-center gap-2"><span>•</span> Aggregate score vs standard departmental cutoffs (approx. 25%)</li>
+                          <li className="flex items-center gap-2"><span>•</span> Departmental competitiveness & quota constraints (approx. 15%)</li>
+                          <li className="flex items-center gap-2"><span>•</span> Catchment/ELDS state considerations (approx. 5%)</li>
+                        </ul>
+                      </div>
+                    </details>
+                  </div>
+
+                  <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest flex items-center gap-2"><Activity size={12} className="text-purple-400" /> Admission Strategy Analysis</p>
                     <div className="markdown-body text-[11px] text-gray-300 leading-relaxed font-medium">
                       <Markdown>{aiResult.detailedStrategy || aiResult.recommendation || 'No specific strategy analysis available.'}</Markdown>
                     </div>
                   </div>
 
-                  {/* Admission Rescue & Strategic Action Plan */}
-                  {(admissionProbability < 65 || 
-                    aiResult.verdict === 'Borderline' || 
-                    aiResult.verdict === 'Low' || 
-                    aiResult.verdict === 'Low Probability' || 
-                    aiResult.verdict?.toString().toLowerCase().includes('borderline') || 
-                    aiResult.verdict?.toString().toLowerCase().includes('low')) && (
+                  {/* Strategic Action Plan */}
+                  {true && (
                     <div className="mt-6 p-6 bg-gradient-to-br from-amber-500/[0.03] to-orange-500/[0.02] border border-amber-500/20 rounded-2xl text-left space-y-5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
                           <Sliders size={15} />
                         </div>
                         <div>
-                          <h5 className="text-xs font-black uppercase tracking-widest text-amber-400">ADMISSION RESCUE & STRATEGIC ACTION PLAN</h5>
+                          <h5 className="text-xs font-black uppercase tracking-widest text-amber-400">STRATEGIC ACTION PLAN</h5>
                           <p className="text-[9.5px] text-gray-400 font-semibold mt-0.5">Custom corrective steps for {targetUni?.name || 'your institution'}</p>
                         </div>
                       </div>
 
                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <p className="text-[10px] text-amber-200 leading-relaxed font-semibold">
-                          ⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To guarantee you gain admission this year, follow this rescue roadmap immediately.
+                          ⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.
                         </p>
                       </div>
 
-                      {/* Interactive Checklist (Directly matching official JAMB change of course/institution guidelines) */}
+                      {/* Interactive Checklist (Dynamic based on admission probability) */}
                       <div className="space-y-3.5">
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <span>🔄</span> JAMB Change of Course/Institution Checklist
+                          <span>📋</span> ACTION PLAN CHECKLIST
                         </p>
                         
                         <div className="space-y-2.5">
-                          {[
+                          {(admissionProbability >= 65 ? [
+                            {
+                              id: 'step1',
+                              title: 'Complete Post-UTME registration',
+                              desc: `Ensure you have registered for the Post-UTME screening on the official ${targetUni?.name || 'institution'} portal.`
+                            },
+                            {
+                              id: 'step2',
+                              title: 'Upload O\'Level to JAMB CAPS',
+                              desc: 'Log in to your JAMB CAPS portal and verify that your WAEC/NECO results are correctly uploaded.',
+                              hasLink: true,
+                              link: 'https://jamb.gov.ng/efacility',
+                              linkLabel: 'Open JAMB e-Facility'
+                            },
+                            {
+                              id: 'step3',
+                              title: 'Monitor admission list',
+                              desc: 'Keep checking your JAMB CAPS status regularly for any updates on your admission.'
+                            }
+                          ] : [
                             {
                               id: 'step1',
                               title: 'Verify portal activation & deadlines',
-                              desc: `The 2026 JAMB Change of Course/Institution portal was officially activated on May 15, 2026. Log in to the official JAMB e-Facility portal to complete your adjustments before the typical late-year close in December 2026.`,
+                              desc: `The 2026 JAMB Change of Course/Institution portal is officially active. Log in to the official JAMB e-Facility portal to complete your adjustments before the deadline.`,
                               hasLink: true,
                               link: 'https://jamb.gov.ng/efacility',
                               linkLabel: 'Open JAMB e-Facility'
                             },
                             {
                               id: 'step2',
-                              title: 'Log in to your profile securely',
-                              desc: 'Log in using your registered JAMB email address and password credentials.'
+                              title: 'Change of Course',
+                              desc: 'Consider switching to a less competitive course within the same institution to improve your chances.'
                             },
                             {
                               id: 'step3',
-                              title: 'Select "Change of Course/Institution"',
-                              desc: 'Locate the correction service option under the application services pane (a processing fee of ₦2,500 applies).'
+                              title: 'Alternative institutions',
+                              desc: 'Explore state or private universities that have lower cutoff marks for your desired course.'
                             },
                             {
                               id: 'step4',
-                              title: `Select a safer program or lower-tier institution`,
-                              desc: `Choose alternative programmes at ${targetUni?.name || 'your institution'} or other state/private options matching your aggregate.`
+                              title: 'Consider supplementary admission',
+                              desc: 'Monitor for supplementary forms when the main admission lists have been concluded.'
                             }
-                          ].map((step, sIdx) => {
+                          ]).map((step, sIdx) => {
                             const isChecked = checkedRescueSteps[step.id];
                             return (
                               <div

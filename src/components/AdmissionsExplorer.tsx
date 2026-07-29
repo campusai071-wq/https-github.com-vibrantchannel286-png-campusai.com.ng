@@ -51,23 +51,23 @@ const AdmissionsExplorer: React.FC = () => {
 
   const filteredCourses = useMemo(() => {
     return courses.filter(c => 
-      c.courseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.faculty?.toLowerCase().includes(searchQuery.toLowerCase())
+      (c.courseName || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (c.faculty || '').toLowerCase().includes((searchQuery || '').toLowerCase())
     );
   }, [courses, searchQuery]);
 
   const filteredInstitutions = useMemo(() => {
     return institutions.filter(i => 
-      i.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.state?.toLowerCase().includes(searchQuery.toLowerCase())
+      (i.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (i.state || '').toLowerCase().includes((searchQuery || '').toLowerCase())
     );
   }, [institutions, searchQuery]);
 
   const filteredArticles = useMemo(() => {
     return articles.filter(a => 
-      a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.keywords?.some(k => k?.toLowerCase().includes(searchQuery.toLowerCase()))
+      (a.title || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (a.category || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      a.keywords?.some(k => (k || '').toLowerCase().includes((searchQuery || '').toLowerCase()))
     );
   }, [articles, searchQuery]);
 
