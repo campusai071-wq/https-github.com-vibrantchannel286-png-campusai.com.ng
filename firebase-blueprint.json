@@ -202,6 +202,77 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["schoolSlug", "userId", "content"]
+    },
+    "MasterCourse": {
+      "title": "Master Course",
+      "description": "Standardized course admission requirements.",
+      "type": "object",
+      "properties": {
+        "courseName": { "type": "string" },
+        "utmeSubjects": { "type": "array", "items": { "type": "string" } },
+        "olevelRequirements": { "type": "array", "items": { "type": "string" } },
+        "directEntryRequirements": { "type": "string" },
+        "faculty": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseName"]
+    },
+    "AdmissionInstitution": {
+      "title": "Admission Institution",
+      "description": "Comprehensive institution information and course offerings.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["University", "Polytechnic", "College of Education", "Innovation Enterprise Institution"] },
+        "category": { "type": "string", "enum": ["Federal", "State", "Private"] },
+        "state": { "type": "string" },
+        "courses": { "type": "array", "items": { "type": "string" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "category"]
+    },
+    "AdmissionRequirementOverride": {
+      "title": "Admission Requirement Override",
+      "description": "Institution-specific overrides for course requirements.",
+      "type": "object",
+      "properties": {
+        "institutionId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "type": { "type": "string", "enum": ["utme", "olevel", "de"] },
+        "requirementText": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["institutionId", "courseId", "type", "requirementText"]
+    },
+    "AdmissionArticle": {
+      "title": "Admission Article",
+      "description": "Knowledge base article for admission info.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "institution": { "type": "string" },
+        "course": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "requirements": { "type": "array", "items": { "type": "string" } },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "documents_required": { "type": "array", "items": { "type": "string" } },
+        "important_dates": { "type": "array", "items": { "type": "object" } },
+        "fees": { "type": "array", "items": { "type": "object" } },
+        "official_sources": { "type": "array", "items": { "type": "string" } },
+        "related_topics": { "type": "array", "items": { "type": "string" } },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "faq": { "type": "array", "items": { "type": "object" } },
+        "last_verified": { "type": "string", "format": "date-time" },
+        "next_review": { "type": "string", "format": "date-time" },
+        "version": { "type": "number" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "slug", "category", "summary", "content"]
     }
   },
   "firestore": {
@@ -288,6 +359,22 @@
     "school_ugc/{id}": {
       "schema": "SchoolUgc",
       "description": "Student generated questions, tips, reviews and screening guides."
+    },
+    "master_courses/{courseId}": {
+      "schema": "MasterCourse",
+      "description": "Master admission requirements per course."
+    },
+    "admission_institutions/{institutionId}": {
+      "schema": "AdmissionInstitution",
+      "description": "Information about institutions and their courses."
+    },
+    "admission_requirement_overrides/{overrideId}": {
+      "schema": "AdmissionRequirementOverride",
+      "description": "Institution-specific course requirement overrides."
+    },
+    "admission_articles/{articleId}": {
+      "schema": "AdmissionArticle",
+      "description": "Knowledge base articles for admission intelligence."
     }
   }
 }

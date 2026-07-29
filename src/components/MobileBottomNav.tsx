@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Newspaper, User, Calculator, FileText } from 'lucide-react';
+import { Home, Newspaper, User, Calculator, FileText, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface MobileBottomNavProps {
@@ -11,8 +11,8 @@ interface MobileBottomNavProps {
 const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onNavigate, user }) => {
   const tabs = [
     { id: 'home', icon: <Home size={20} />, label: 'Home' },
+    { id: 'admissions', icon: <GraduationCap size={20} />, label: 'KB' },
     { id: 'calculator', icon: <Calculator size={20} />, label: 'Calc' },
-    { id: 'result-slip', icon: <FileText size={20} />, label: 'Result' },
     { id: 'news', icon: <Newspaper size={20} />, label: 'News' },
     { id: 'settings', icon: <User size={20} />, label: 'Profile' },
   ];

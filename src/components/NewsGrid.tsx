@@ -85,7 +85,7 @@ const getHotIndexScore = (item: NewsItem): number => {
     { kw: 'abu',       weight: 20 },
   ];
 
-  const titleLower   = item.title.toLowerCase();
+  const titleLower   = item.title?.toLowerCase();
   const excerptLower = (item.excerpt || '').toLowerCase();
   hotKeywords.forEach(({ kw, weight }) => {
     if (titleLower.includes(kw))   score += weight;
@@ -701,7 +701,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
 
       const searchMatch =
         !searchQuery.trim() ||
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.excerpt && item.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.fullContent && item.fullContent.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));

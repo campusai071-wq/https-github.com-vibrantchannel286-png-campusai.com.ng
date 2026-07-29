@@ -37,6 +37,7 @@ const NotFound = lazy(() => import('./NotFound'));
 const FeedbackModal = lazy(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
 const SyllabusExplorer = lazy(() => import('./SyllabusExplorer'));
+const AdmissionsExplorer = lazy(() => import('./AdmissionsExplorer'));
 import { useNotificationManager } from '../hooks/useNotificationManager';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
@@ -68,7 +69,7 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
   const { slug } = useParams();
   const navigate = useNavigate();
   
-  const currentNews = news.find((n: NewsItem) => n.id === slug || n.slug === slug || n.title.toLowerCase().split(' ').join('-') === slug);
+  const currentNews = news.find((n: NewsItem) => n.id === slug || n.slug === slug || n.title?.toLowerCase().split(' ').join('-') === slug);
   
   // Filter related news excluding the current one
   const filteredRelated = currentNews 
@@ -251,7 +252,7 @@ const AppContent: React.FC = () => {
             const seenNormTitles = new Set<string>();
             
             newlyAdded.forEach(article => {
-              const norm = article.title.trim().toLowerCase().replace(/\s+/g, ' ');
+              const norm = article.title?.trim().toLowerCase().replace(/\s+/g, ' ');
               // Basic check for suspicious strings
               if (norm.includes("raw data") || norm.includes("curation failed") || norm.includes("dictionary.com") || norm.includes("definition & meaning")) {
                 return;
@@ -575,6 +576,8 @@ const AppContent: React.FC = () => {
       setCurrentPage('calculator');
     } else if (path.startsWith('/syllabus')) {
       setCurrentPage('syllabus');
+    } else if (path.startsWith('/admissions')) {
+      setCurrentPage('admissions');
     } else if (path.startsWith('/result-slip')) {
       setCurrentPage('result-slip');
     } else if (path.startsWith('/dashboard')) {
@@ -656,6 +659,10 @@ const AppContent: React.FC = () => {
     } else if (p === 'syllabus') {
       setCurrentPage('syllabus');
       navigate('/syllabus');
+      window.scrollTo(0, 0);
+    } else if (p === 'admissions') {
+      setCurrentPage('admissions');
+      navigate('/admissions');
       window.scrollTo(0, 0);
     } else if (p === 'result-slip') {
       setCurrentPage('result-slip');
@@ -787,6 +794,17 @@ const AppContent: React.FC = () => {
               setSelectedSchoolForChances={setSelectedSchoolForChances}
               onGoHome={() => handleNavigate('home')}
             />
+          } />
+
+          <Route path="/admissions" element={
+            <div className="pt-24 md:pt-32 min-h-screen bg-gray-950">
+              <SEO 
+                title="2026 Admissions Knowledge Base | Course Requirements"
+                description="Explore official JAMB 2026 course requirements, UTME subject combinations, O'Level credits, and institution-specific special considerations."
+                canonical="/admissions"
+              />
+              <AdmissionsExplorer />
+            </div>
           } />
 
           <Route path="/result-slip" element={

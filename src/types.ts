@@ -220,3 +220,66 @@ export interface SchoolUgcPost {
   createdAt: any;
 }
 
+export interface MasterCourse {
+  id: string;
+  courseName: string;
+  utmeSubjects: string[];
+  olevelRequirements: string[];
+  directEntryRequirements: string;
+  faculty: string;
+  keywords?: string[]; // Indexed for fast search retrieval
+  version?: number; // Keep version history
+  lastVerified?: any;
+  nextReview?: any;
+  updatedAt: any;
+}
+
+export interface AdmissionInstitution {
+  id: string;
+  name: string;
+  type: 'University' | 'Polytechnic' | 'College of Education' | 'Innovation Enterprise Institution';
+  category: 'Federal' | 'State' | 'Private';
+  state: string;
+  courses: string[];
+  keywords?: string[]; // Indexed for fast search retrieval
+  version?: number; // Keep version history
+  lastVerified?: any;
+  nextReview?: any;
+  updatedAt: any;
+}
+
+export interface AdmissionRequirementOverride {
+  id: string;
+  institutionId: string;
+  courseId: string;
+  type: 'utme' | 'olevel' | 'de';
+  requirementText: string;
+  updatedAt: any;
+}
+
+export interface AdmissionArticle {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  institution?: string;
+  course?: string;
+  summary: string;
+  content: string;
+  requirements?: string[];
+  steps?: string[];
+  documents_required?: string[];
+  important_dates?: any[];
+  fees?: any[];
+  official_sources?: string[];
+  related_topics?: string[];
+  keywords?: string[];
+  faq?: any[];
+  last_verified?: any;
+  next_review?: any;
+  version?: string | number;
+  notes?: string;
+  updatedAt?: any;
+}
+
+

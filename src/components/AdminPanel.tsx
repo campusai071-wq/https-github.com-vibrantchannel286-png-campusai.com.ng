@@ -20,6 +20,7 @@ import {
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList
 } from '../services/dbService';
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
+import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
 import { auth } from '../services/firebaseConfig';
 import { getApiUrl } from '../services/utils';
@@ -72,8 +73,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'content' | 'users' | 'notifications' | 'intelligence'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb'
   >('analytics');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, []);
 
   // ── Intelligence (Testimonials & Feedback) ───────────────────────────────
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -843,12 +852,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'content', 'intelligence', 'users', 'notifications'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'intelligence' ? 'Intelligence' : tab}
+                  {tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -1890,6 +1899,159 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         Sync To Network
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── ADMISSIONS KB TAB ── */}
+              {activeTab === 'admissions_kb' && (
+                <div className="space-y-8 text-left">
+                  <div className="p-8 bg-blue-600/10 border border-blue-500/20 rounded-[32px] flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-600/20">
+                      <FileJson size={32} />
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                      <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Admissions Intelligence Seeder</h4>
+                      <p className="text-xs text-gray-400 mt-1">Bulk import official JAMB requirement data into the knowledge base.</p>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        if (!window.confirm("Seed initial Computer Science requirements?")) return;
+                        setIsContentLoading(true);
+                        try {
+                          await admissionsService.upsertMasterCourse({
+                            courseName: "Computer Science",
+                            faculty: "Sciences",
+                            utmeSubjects: ["Mathematics", "Physics", "Chemistry"],
+                            olevelRequirements: [
+                              "Five (5) SSCE credit passes in English Language, Mathematics, Physics, Chemistry, and any other Science subject.",
+                              "Minimum of C6 in all relevant subjects"
+                            ],
+                            directEntryRequirements: "Two (2) 'A' Level passes in Mathematics and Physics."
+                          });
+                          await admissionsService.upsertInstitution({
+                            name: "University of Lagos (UNILAG)",
+                            type: "University",
+                            category: "Federal",
+                            state: "Lagos",
+                            courses: ["Computer Science"]
+                          });
+                          alert("Successfully seeded Computer Science baseline and UNILAG mapping.");
+                        } catch (e) {
+                          alert("Seeding failed.");
+                        } finally {
+                          setIsContentLoading(false);
+                        }
+                      }}
+                      disabled={isContentLoading}
+                      className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+                    >
+                      {isContentLoading ? <Loader2 size={16} className="animate-spin" /> : <><Sparkles size={16} /> Seed Initial Data</>}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Add/Update Course</h4>
+                      <textarea 
+                        className="w-full p-4 bg-white dark:bg-gray-950 rounded-2xl text-xs font-mono dark:text-gray-300 h-40 border-transparent focus:border-blue-500 outline-none"
+                        placeholder='{ "courseName": "...", "utmeSubjects": ["English", "Maths"], "olevelRequirements": ["5 Credits"] }'
+                        id="courseJson"
+                      />
+                      <button 
+                        onClick={async () => {
+                          const el = document.getElementById('courseJson') as HTMLTextAreaElement;
+                          try {
+                            const data = JSON.parse(el.value);
+                            setIsContentLoading(true);
+                            await admissionsService.upsertMasterCourse(data);
+                            alert("✅ Course updated successfully! Version history and search index created.");
+                            el.value = '';
+                          } catch (e: any) { 
+                            alert(`❌ Validation Error: ${e.message}`); 
+                          } finally {
+                            setIsContentLoading(false);
+                          }
+                        }}
+                        disabled={isContentLoading}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                      >
+                        {isContentLoading ? 'Publishing...' : 'Validate & Publish Course'}
+                      </button>
+                    </div>
+
+                    <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Add/Update Institution</h4>
+                      <textarea 
+                        className="w-full p-4 bg-white dark:bg-gray-950 rounded-2xl text-xs font-mono dark:text-gray-300 h-40 border-transparent focus:border-blue-500 outline-none"
+                        placeholder='{ "name": "...", "type": "University", "category": "Federal", "courses": [] }'
+                        id="instJson"
+                      />
+                      <button 
+                        onClick={async () => {
+                          const el = document.getElementById('instJson') as HTMLTextAreaElement;
+                          try {
+                            const data = JSON.parse(el.value);
+                            setIsContentLoading(true);
+                            await admissionsService.upsertInstitution(data);
+                            alert("✅ Institution updated successfully! Version history and search index created.");
+                            el.value = '';
+                          } catch (e: any) { 
+                            alert(`❌ Validation Error: ${e.message}`); 
+                          } finally {
+                            setIsContentLoading(false);
+                          }
+                        }}
+                        disabled={isContentLoading}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                      >
+                        {isContentLoading ? 'Publishing...' : 'Validate & Publish Institution'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* KB Article Bulk Importer */}
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Add/Update KB Article(s)</h4>
+                    <p className="text-xs text-gray-500 mb-2">Paste a single article JSON object or an array of article objects to bulk import.</p>
+                    <textarea 
+                      className="w-full p-4 bg-white dark:bg-gray-950 rounded-2xl text-xs font-mono dark:text-gray-300 h-64 border-transparent focus:border-blue-500 outline-none"
+                      placeholder='[{ "id": "kb-unn-001", "title": "...", "content": "..." }]'
+                      id="articleJson"
+                    />
+                    <button 
+                      onClick={async () => {
+                        const el = document.getElementById('articleJson') as HTMLTextAreaElement;
+                        try {
+                          const data = JSON.parse(el.value);
+                          setIsContentLoading(true);
+                          if (Array.isArray(data)) {
+                            let successCount = 0;
+                            for (const item of data) {
+                              try {
+                                await admissionsService.upsertAdmissionArticle(item);
+                                successCount++;
+                              } catch (e: any) {
+                                console.error("Error inserting article", item.id, e);
+                              }
+                            }
+                            alert(`✅ Imported ${successCount}/${data.length} articles successfully!`);
+                          } else {
+                            await admissionsService.upsertAdmissionArticle(data);
+                            alert("✅ Article updated successfully! Version history and search index created.");
+                          }
+                          el.value = '';
+                        } catch (e: any) { 
+                          alert(`❌ Validation Error: ${e.message}`); 
+                        } finally {
+                          setIsContentLoading(false);
+                        }
+                      }}
+                      disabled={isContentLoading}
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {isContentLoading ? 'Publishing...' : 'Validate & Publish Article(s)'}
+                    </button>
                   </div>
                 </div>
               )}

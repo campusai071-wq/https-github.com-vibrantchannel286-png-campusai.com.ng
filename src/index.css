@@ -53,13 +53,13 @@
   @apply pl-4 border-l-4 border-blue-500/80 dark:border-cyan-500/80 italic my-4 text-gray-600 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-900/40 py-2 rounded-r-xl font-bold;
 }
 .markdown-body table {
-  @apply w-full border-collapse my-5 text-xs block overflow-x-auto whitespace-nowrap;
+  @apply w-full border-collapse my-6 block overflow-x-auto;
 }
 .markdown-body th {
-  @apply font-black text-left py-2.5 px-4 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-800 uppercase tracking-wider text-[10px];
+  @apply font-black text-left py-3 px-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 uppercase tracking-widest text-[10px] min-w-[140px] align-top;
 }
 .markdown-body td {
-  @apply py-2.5 px-4 border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400 font-bold;
+  @apply py-3 px-4 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-xs md:text-sm leading-relaxed min-w-[200px] align-top;
 }
 .markdown-body pre {
   @apply bg-gray-50 dark:bg-gray-900 rounded-xl p-4 overflow-x-auto my-6 border border-gray-200 dark:border-gray-800 text-sm max-w-full;

@@ -93,6 +93,43 @@ service cloud.firestore {
              data.rating is int && data.rating >= 1 && data.rating <= 5;
     }
 
+    function isValidMasterCourse(data) {
+      return data.courseName is string && data.courseName.size() <= 200 &&
+             (!('utmeSubjects' in data) || (data.utmeSubjects is list && data.utmeSubjects.size() <= 10)) &&
+             (!('olevelRequirements' in data) || (data.olevelRequirements is list && data.olevelRequirements.size() <= 15)) &&
+             (!('directEntryRequirements' in data) || (data.directEntryRequirements is string && data.directEntryRequirements.size() <= 5000)) &&
+             (!('faculty' in data) || (data.faculty is string && data.faculty.size() <= 200)) &&
+             (!('keywords' in data) || (data.keywords is list)) &&
+             (!('version' in data) || (data.version is number));
+    }
+
+    function isValidAdmissionInstitution(data) {
+      return data.name is string && data.name.size() <= 300 &&
+             data.type in ["University", "Polytechnic", "College of Education", "Innovation Enterprise Institution"] &&
+             data.category in ["Federal", "State", "Private"] &&
+             (!('state' in data) || (data.state is string && data.state.size() <= 100)) &&
+             (!('courses' in data) || (data.courses is list && data.courses.size() <= 500)) &&
+             (!('keywords' in data) || (data.keywords is list)) &&
+             (!('version' in data) || (data.version is number));
+    }
+
+    function isValidAdmissionRequirementOverride(data) {
+      return data.institutionId is string && isValidId(data.institutionId) &&
+             data.courseId is string && isValidId(data.courseId) &&
+             data.type in ["utme", "olevel", "de"] &&
+             data.requirementText is string && data.requirementText.size() <= 5000;
+    }
+
+    function isValidAdmissionArticle(data) {
+      return data.id is string &&
+             data.title is string && data.title.size() <= 300 &&
+             data.category is string &&
+             data.summary is string &&
+             data.content is string &&
+             (!('keywords' in data) || (data.keywords is list)) &&
+             (!('version' in data) || (data.version is number));
+    }
+
     // --- COLLECTIONS ---
 
     match /users/{userId} {
@@ -229,6 +266,40 @@ service cloud.firestore {
 
     match /cutoff_overrides/{overrideId} {
       allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /master_courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMasterCourse(incoming());
+    }
+
+    match /admission_institutions/{institutionId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidAdmissionInstitution(incoming());
+    }
+
+    match /admission_requirement_overrides/{overrideId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidAdmissionRequirementOverride(incoming());
+    }
+    match /master_courses_history/{historyId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /admission_institutions_history/{historyId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /admission_articles/{articleId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidAdmissionArticle(incoming());
+    }
+
+    match /admission_articles_history/{historyId} {
+      allow read: if isAdmin();
       allow write: if isAdmin();
     }
   }

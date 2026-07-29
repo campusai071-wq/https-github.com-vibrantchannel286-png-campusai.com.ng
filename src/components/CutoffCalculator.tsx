@@ -1337,9 +1337,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!searchKey) return;
     const found = universityData.find((u: any) =>
       u.slug === searchKey.toLowerCase() ||
-      u.name.toLowerCase() === searchKey.toLowerCase() ||
-      u.name.toLowerCase().includes(searchKey.toLowerCase()) ||
-      searchKey.toLowerCase().includes(u.name.toLowerCase())
+      u.name?.toLowerCase() === searchKey.toLowerCase() ||
+      u.name?.toLowerCase().includes(searchKey.toLowerCase()) ||
+      searchKey.toLowerCase().includes(u.name?.toLowerCase())
     );
     if (found) {
       if (!targetUni || targetUni.name !== found.name) {
@@ -1767,7 +1767,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   const filteredUnis = useMemo(() => {
     if (!uniSearch) return [];
-    return universityData.filter((u: any) => u.name.toLowerCase().includes(uniSearch.toLowerCase())).slice(0, 5);
+    return universityData.filter((u: any) => u.name?.toLowerCase().includes(uniSearch.toLowerCase())).slice(0, 5);
   }, [uniSearch]);
 
   // ── Handlers ──
@@ -3042,7 +3042,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       {isHandbookUniDropdownOpen && handbookUniSearch.length > 0 && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-52 overflow-y-auto">
                           {universityData
-                            .filter((u: any) => u.name.toLowerCase().includes(handbookUniSearch.toLowerCase()))
+                            .filter((u: any) => u.name?.toLowerCase().includes(handbookUniSearch.toLowerCase()))
                             .slice(0, 10)
                             .map((u: any) => (
                               <button
@@ -3518,8 +3518,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                       const schoolName = parts[1]?.trim();
                                       if (schoolName) {
                                         matchedUni = universityData.find((u: any) => 
-                                          u.name.toLowerCase().includes(schoolName.toLowerCase()) || 
-                                          schoolName.toLowerCase().includes(u.name.toLowerCase())
+                                          u.name?.toLowerCase().includes(schoolName.toLowerCase()) || 
+                                          schoolName.toLowerCase().includes(u.name?.toLowerCase())
                                         );
                                       }
                                     }
@@ -4170,8 +4170,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 const schoolName = parts[1]?.trim();
                                 if (schoolName) {
                                   matchedUni = universityData.find((u: any) => 
-                                    u.name.toLowerCase().includes(schoolName.toLowerCase()) || 
-                                    schoolName.toLowerCase().includes(u.name.toLowerCase())
+                                    u.name?.toLowerCase().includes(schoolName.toLowerCase()) || 
+                                    schoolName.toLowerCase().includes(u.name?.toLowerCase())
                                   );
                                 }
                               }
