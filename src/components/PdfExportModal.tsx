@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, Share2, ShieldCheck, Award, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 
 interface PdfExportModalProps {
@@ -56,85 +56,28 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
     window.print();
   };
 
+  
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true);
     try {
       const element = document.getElementById('printable-result-slip');
       if (!element) return;
+      
+      const width = element.offsetWidth;
+      const height = element.scrollHeight;
 
-      const tempCanvas = document.createElement('canvas');
-      const ctx = tempCanvas.getContext('2d');
-
-      const convertOklchColors = (cssText: string): string => {
-        if (!cssText || typeof cssText !== 'string' || !cssText.includes('okl')) {
-          return cssText;
-        }
-        return cssText.replace(/(?:oklch|oklab|color)\([^)]+\)/gi, (match) => {
-          try {
-            if (ctx) {
-              ctx.fillStyle = '#000000';
-              ctx.fillStyle = match;
-              const safe = ctx.fillStyle;
-              if (safe && safe !== '#000000') return safe;
-            }
-          } catch (e) {
-            // ignore
-          }
-          return '#2563eb';
-        });
-      };
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
         backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          // 1. Sanitize all <style> elements across the cloned document to remove oklch/oklab
-          const styleElements = clonedDoc.querySelectorAll('style');
-          styleElements.forEach((styleEl) => {
-            if (styleEl.textContent) {
-              styleEl.textContent = convertOklchColors(styleEl.textContent);
-            }
-          });
-
-          // 2. Sanitize inline style attributes on any element in clonedDoc
-          const styledElements = clonedDoc.querySelectorAll('[style]');
-          styledElements.forEach((el) => {
-            const styleAttr = el.getAttribute('style');
-            if (styleAttr) {
-              el.setAttribute('style', convertOklchColors(styleAttr));
-            }
-          });
-
-          // 3. For target printable element tree, convert computed styles to safe color values
-          const origElement = document.getElementById('printable-result-slip');
-          const clonedElement = clonedDoc.getElementById('printable-result-slip');
-          if (origElement && clonedElement) {
-            const origList = [origElement, ...Array.from(origElement.querySelectorAll('*'))];
-            const cloneList = [clonedElement, ...Array.from(clonedElement.querySelectorAll('*'))];
-
-            for (let i = 0; i < origList.length; i++) {
-              const origEl = origList[i] as HTMLElement;
-              const cloneEl = cloneList[i] as HTMLElement;
-              if (!origEl || !cloneEl) continue;
-
-              const computed = window.getComputedStyle(origEl);
-              const colorProps = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'fill', 'stroke', 'boxShadow', 'background'];
-              
-              colorProps.forEach((prop) => {
-                const val = computed.getPropertyValue(prop);
-                if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color('))) {
-                  const safeVal = convertOklchColors(val);
-                  cloneEl.style.setProperty(prop, safeVal);
-                }
-              });
-            }
-          }
+        width: width,
+        height: height,
+        style: {
+          transform: 'none',
+          overflow: 'visible'
         }
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'p',
         unit: 'mm',
@@ -142,14 +85,15 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = (height * pdfWidth) / width;
+      
+      // If the image is taller than one page, jsPDF might make it span, but let's just add it.
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       const uniName = targetUni?.name || 'University';
       const courseName = targetCourse || courseSearch || 'Course';
-      const cleanFileName = `${uniName.replace(/[^a-zA-Z0-9]/g, '_')}_${courseName.replace(/[^a-zA-Z0-9]/g, '_')}_Official_Result_Slip.pdf`;
+      const cleanFileName = `${uniName.replace(/[^a-zA-Z0-9]/g, '_')}_${courseName.replace(/[^a-zA-Z0-9]/g, '_')}_Result_Slip.pdf`;
 
-      // Reliable Blob Download Strategy for iframe / sandboxed environments
       try {
         const pdfBlob = pdf.output('blob');
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -162,92 +106,56 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
         setTimeout(() => {
           document.body.removeChild(a);
           URL.revokeObjectURL(blobUrl);
-        }, 10000);
+        }, 1000);
       } catch (blobErr) {
-        // Direct jsPDF save fallback
         pdf.save(cleanFileName);
       }
     } catch (error) {
-      console.error("PDF generation failed, initiating fallback download:", error);
+      console.error("PDF generation failed:", error);
       handleDownloadText();
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
-  
   const handleDownloadImage = async () => {
     setIsGeneratingPdf(true);
     try {
       const element = document.getElementById('printable-result-slip');
       if (!element) return;
+      
+      const width = element.offsetWidth;
+      const height = element.scrollHeight;
 
-      const tempCanvas = document.createElement('canvas');
-      const ctx = tempCanvas.getContext('2d');
-
-      const convertOklchColors = (cssText: string) => {
-        if (!cssText || typeof cssText !== 'string' || !cssText.includes('okl')) {
-          return cssText;
-        }
-        return cssText.replace(/(?:oklch|oklab|color)([^)]+)/gi, (match) => {
-          try {
-            if (ctx) {
-              ctx.fillStyle = '#000000';
-              ctx.fillStyle = match;
-              const safe = ctx.fillStyle;
-              if (safe && safe !== '#000000') return safe;
-            }
-          } catch (e) {
-          }
-          return '#2563eb';
-        });
-      };
-
-      const canvas = await html2canvas(element, {
-        scale: 3, // Higher scale for images
-        useCORS: true,
-        logging: false,
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 3,
         backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          const styleElements = clonedDoc.querySelectorAll('style');
-          styleElements.forEach((styleEl) => {
-            if (styleEl.textContent) {
-              styleEl.textContent = convertOklchColors(styleEl.textContent);
-            }
-          });
-
-          const allElements = clonedDoc.querySelectorAll('*');
-          allElements.forEach((el) => {
-            const htmlEl = el as HTMLElement;
-            if (htmlEl.style) {
-              const inlineStyle = htmlEl.getAttribute('style');
-              if (inlineStyle && inlineStyle.includes('okl')) {
-                htmlEl.setAttribute('style', convertOklchColors(inlineStyle));
-              }
-            }
-          });
+        width: width,
+        height: height,
+        style: {
+          transform: 'none',
+          overflow: 'visible'
         }
       });
 
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const cleanFileName = `${(targetUni?.name || 'University').replace(/s+/g, '_')}_${(targetCourse || 'Course').replace(/s+/g, '_')}_Result_Slip.png`;
+      const cleanFileName = `${(targetUni?.name || 'University').replace(/[^a-zA-Z0-9]/g, '_')}_${(targetCourse || 'Course').replace(/[^a-zA-Z0-9]/g, '_')}_Result_Slip.png`;
       
       const link = document.createElement('a');
       link.download = cleanFileName;
-      link.href = imgData;
+      link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
     } catch (error) {
       console.error("Image generation failed:", error);
-      alert("Failed to generate image. Please try downloading as PDF instead.");
+      alert("Failed to generate image.");
     } finally {
       setIsGeneratingPdf(false);
     }
   };
-
-  const handleDownloadText = () => {
+const handleDownloadText = () => {
     const textContent = `
 ========================================
 CAMPUSAI.NG - OFFICIAL ADMISSION SCREENING SLIP

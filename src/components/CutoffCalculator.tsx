@@ -3469,7 +3469,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <p className="text-[10px] text-amber-200 leading-relaxed font-semibold">
-                          ⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.
+                          {parseFloat(aggregateScore.toString()) >= parseFloat((aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
+                            <>✅ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> meets or exceeds the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                          ) : (
+                            <>⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                          )}
                         </p>
                       </div>
 
