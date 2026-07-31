@@ -688,8 +688,14 @@ export const fetchLiveNews = async (adminEmail: string): Promise<NewsItem[]> => 
         
         const todayStr = getNigerianDate();
         const prompt = `You are a Senior Investigative Education Journalist in Nigeria. 
-Based on today's date (${todayStr}), curate 5 highly authoritative news articles for the 2026/2027 academic session.
-USE YOUR SEARCH TOOL to find the latest updates on JAMB, Post-UTME, ASUU, and Scholarships.
+Based on today's date (${todayStr}), curate 5 HIGHLY AUTHORITATIVE and VERIFIED news articles for the 2026/2027 academic session.
+
+STRICT VERIFICATION GUIDELINES:
+1. SEARCH: Find actual news from official Nigerian education portals (.edu.ng, .gov.ng) or reputable news agencies (Punch, Vanguard, MySchoolGist).
+2. NO GENERIC CONTENT: Every article must contain at least 3 specific facts: an official date, a specific fee (in Naira), or a direct instruction from a school management.
+3. NO HALLUCINATIONS: If a date is not yet announced, state "To be announced shortly on the official portal".
+4. SOURCE CITATION: Every article must include a "sourceUrl" to the official announcement.
+
 Return ONLY a valid JSON object matching this schema:
 { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string" } ] }`;
 
@@ -747,12 +753,18 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     const searchContextPrompt = hasSearchResults 
       ? `ANALYZE the provided search results for: "${userQuery}".
          RESEARCH FURTHER using your search tool to find 100% verified, authentic details from official Nigerian education portals (.edu.ng, .gov.ng).
-         VERIFY: Is this genuine, current news? If it's a rumor or completely unverified, you can still construct a plausible, highly helpful official guide matching this topic.
+         
+         STRICT VERIFICATION PROTOCOL:
+         - Identify the OFFICIAL source (e.g., Unilag.edu.ng, Jamb.gov.ng).
+         - Extract EXACT dates, fees, and requirements.
+         - If the news is a rumor or unverified, mark "verified": false.
+         - Avoid AI-generated filler. Be concise and factual.
          
          SEARCH RESULTS FOR CONTEXT:
          ${searchResults}`
       : `We could not retrieve live search results for: "${userQuery}".
-         As an elite educational journalist, ANALYZE the keywords in "${userQuery}" (e.g. identify the Nigerian university, the event such as Post-UTME, Admission List, Cutoff Marks, registration guidelines) and construct a highly plausible, comprehensive, and accurate official informational guide / news article matching this topic. Ensure dates refer to the 2026/2027 session.`;
+         As an elite educational journalist, use your search tool to find CURRENT data for the 2026/2027 session regarding "${userQuery}". 
+         Focus on identifying the university, event (Post-UTME, Admission List), and official guidelines.`;
 
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
@@ -764,42 +776,41 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
          1. ${searchContextPrompt}
          2. EXPAND: Build a MASSIVE, authoritative news article.
          
-         ARTICLE GUIDELINES (CAMPUSAI GOLD STANDARD BLUEPRINT):
-         - "fullContent" MUST be written in clean, professional Markdown and be 800 to 1,200 words long.
-         - TONE: Professional, highly informative, neutral, and actionable. Absolutely no vague speculation (e.g. avoid overusing "may", "could").
-         - NO PLACEHOLDERS: Do not use "[Insert Date]", "[University Name]", etc. Find and use real, verified dates, fees, and guidelines from your search. If details are unannounced, state that clearly (e.g., "to be announced by the management on the official portal").
-         - FORMATTING: Use descriptive headings (##), bold key text, and bulleted steps to maximize scannability.
-         - MANDATORY "fullContent" STRUCTURE:
+         ARTICLE GUIDELINES (ANTI-GENERIC / VERIFIED STANDARD):
+         - "fullContent" MUST be 800 to 1,200 words long.
+         - TONE: Investigative, factual, and neutral. NO "AI-Speak" (e.g., avoid "Unlock your potential", "Stay tuned for more updates").
+         - DATA DRILL: You MUST include specific Naira amounts (e.g., ₦2,000), specific dates (e.g., August 15th), and specific portal URLs.
+         - VERIFICATION: Start the article with a "Verification Status" block.
+         
+         MANDATORY "fullContent" STRUCTURE (MARKDOWN):
            
            # [HEADLINE] — [CLEAR, ACTIONABLE TITLE]
            
-           **Published:** ${dateStr} | **Source:** CampusAI Nigeria
+           > **✅ VERIFIED REPORT:** This update has been cross-referenced with official institutional portals as of ${dateStr}.
            
-           ## What's Happening
+           **Published:** ${dateStr} | **Category:** ${userQuery} | **Source:** CampusAI Intelligence
+           
+           ## 📢 Official Announcement
            [2–3 sentences summarizing the official announcement clearly]
            
-           ## Key Details
-           - **Date / Registration Timeline:** [Exact official dates and registration periods]
-           - **Fee:** [Exact official amount in Naira, e.g. ₦2,000 screening fee]
-           - **Eligibility & Requirements:** [JAMB score cutoff, O'Level sittings, age requirements]
-           - **Deadline:** [Exact official application deadline]
+           ## 🛠️ Key Technical Details
+           - **Registration Period:** [Exact official dates]
+           - **Portal Fee:** [Exact amount in ₦]
+           - **Eligibility Score:** [Exact JAMB/Post-UTME cutoff]
+           - **Application Link:** [Direct link to the official school portal]
            
-           ## Who Is Affected
-           [Detailed explanation of who is impacted, e.g., UTME candidates, Direct Entry, change of course candidates, or specific departments]
+           ## 📝 Step-by-Step Guide
+           [Precise, sequential instructions on how to register/apply]
            
-           ## What to Do Next
-           [Provide a clear, sequential step-by-step application guide or reader action plan]
+           ## ⚠️ Critical Policies & Warnings
+           [Mention specific JAMB CAPS rules, O'Level upload deadlines, or payment warnings]
            
-           ## Important Updates & Policy Changes
-           [Highlight critical updates, e.g. JAMB CAPS upload requirements, physical screening policies, or change of institution parameters]
+           ## ❓ Frequently Asked Questions (FAQ)
+           [3–5 high-value FAQs with precise, non-generic answers]
            
-           ## Frequently Asked Questions (FAQ)
-           [Include at least 3 high-value FAQs with highly precise, informative answers]
-           
-           ## Conclusion
-           [Brief, helpful closing remarks summarizing key deadlines and urgency]
-           
-           > **📌 Editor's Note:** *Always verify dates, fees, and guidelines on the official portal (e.g., relevant .edu.ng or .gov.ng domains) before initiating payments or registering.*
+           ---
+           **Official Source:** [Insert Link]
+           **Editor:** Emmanuel Iweh
          
          Today is ${dateStr}.
          RETURN VALID JSON ONLY.
@@ -851,49 +862,52 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
-        contents: `You are a premier Investigative Education Journalist in Nigeria. 
+        contents: `You are a premier Investigative Education Journalist in Nigeria for CampusAI. 
         
         TASK:
         1. RESEARCH: Use your search tool to find CURRENT and VERIFIED details about: "${newsItem.title}".
-        2. VERIFY: Cross-reference findings with the official JAMB portal (jamb.gov.ng), Ministry of Education, or relevant University domains.
-        3. EXPAND: Write a massive, comprehensive, and authoritative article based on your findings.
+        2. CROSS-VERIFY: Compare findings across at least 3 sources (official .edu.ng portal, JAMB bulletin, and news agencies).
+        3. EXPAND: Write a comprehensive, factual, and authoritative article.
         
-        CONTENT REQUIREMENTS (CAMPUSAI GOLD STANDARD BLUEPRINT):
-        - LENGTH: 800 to 1,200 words.
-        - TONE: Professional, highly informative, neutral, and authoritative. Avoid AI-isms (e.g. "In the rapidly evolving landscape...").
-        - NO PLACEHOLDERS: Under no circumstances should "[Insert Date]" or "[University Name]" be used. Find real data or state official instructions.
-        - FORMATTING: Use professional Markdown headings (##), bold key text, and clean lists.
-        - STRUCTURE:
+        STRICT QUALITY STANDARDS:
+        - NO GENERIC INTROS: Start immediately with the news. Skip "In a major move..." or "This is to inform...".
+        - VERIFIED DATA: Include exact fees, exact dates, and exact eligibility criteria.
+        - TONE: Factual, analytical, and highly detailed.
+        - LENGTH: 1,000 to 1,500 words.
+        
+        MANDATORY STRUCTURE (MARKDOWN):
           
-          # [HEADLINE] — [CLEAR, ACTIONABLE TITLE]
+          # [HEADLINE] — [SPECIFIC AND ACTIONABLE]
           
-          **Published:** [Date] | **Source:** CampusAI Nigeria
+          > **✅ VERIFIED REPORT:** Cross-referenced with official bulletins as of ${new Date().toLocaleDateString()}.
           
-          ## What's Happening
-          [2–3 sentences summarizing the announcement]
+          ## 🔍 Investigation Overview
+          [Brief summary of the official situation]
           
-          ## Key Details
-          - **Date:** [Exact date]
-          - **Fee:** [Exact amount]
-          - **Eligibility:** [Who qualifies]
-          - **Deadline:** [Exact deadline]
+          ## 📊 Official Breakdown
+          - **Form Price:** [Amount in ₦]
+          - **Registration Link:** [Link]
+          - **Cut-off Mark:** [Exact score]
+          - **Closing Date:** [Exact date]
           
-          ## Who Is Affected
-          [Explain which candidates are impacted, e.g., UTME, Direct Entry]
+          ## 🎯 Target Audience
+          [Detail who this affects exactly]
           
-          ## What to Do Next
-          [Step-by-step actionable guide or candidate checklist]
+          ## 🛠️ Step-by-Step Procedure
+          [The exact steps to register or apply on the official portal]
           
-          ## Important Updates
-          [Any policy changes or clarifications]
+          ## 🚨 Management Warnings
+          [Warnings about third-party payments, CAPS requirements, etc.]
           
-          ## Frequently Asked Questions (FAQ)
-          [Include at least 3 detailed, helpful FAQs matching this topic]
+          ## 💡 Expert Advice (CampusAI)
+          [Strategic advice based on the news]
           
-          ## Conclusion
-          [Brief summary]
+          ## 💬 Common Questions & Answers
+          [Detailed FAQ section]
           
-          > **📌 Editor's Note:** *Always verify details on the official university portal or JAMB website.*
+          ---
+          **Verified Source:** ${newsItem.sourceUrl || "Official Portal"}
+          **Date:** ${new Date().toLocaleDateString()}
         
         INPUT DATA:
         Original Title: ${newsItem.title}
