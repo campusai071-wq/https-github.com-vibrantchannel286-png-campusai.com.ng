@@ -7,6 +7,7 @@ import {
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ArticleImagesUploader } from './ArticleImagesUploader';
 import { AdminState, NewsItem, UserProfile, UserRole, UserActivity, UniversityCategory } from '../types';
 import universityData from '../data/universities';
 import {
@@ -1124,9 +1125,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                       <div className="border border-dashed dark:border-gray-800 p-6 rounded-2xl flex flex-col items-center gap-4 bg-white dark:bg-gray-950">
                         <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Meet Manny / About Section Profile Pic</span>
-                        {developerPhoto ? (
+                        {(developerPhoto && developerPhoto.trim()) ? (
                           <div className="relative group">
-                            <img src={developerPhoto} className="w-24 h-24 rounded-full object-cover border dark:border-gray-800 shadow-md" alt="Manny" referrerPolicy="no-referrer" />
+                            <img src={developerPhoto.trim()} className="w-24 h-24 rounded-full object-cover border dark:border-gray-800 shadow-md" alt="Manny" referrerPolicy="no-referrer" />
                             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <span className="text-[8px] font-black text-white uppercase">Active</span>
                             </div>
@@ -1495,24 +1496,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               value={newPost.excerpt || ''} onChange={e => setNewPost({ ...newPost, excerpt: e.target.value })} />
                           </div>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Featured Image (Optional)</label>
-                          <div className="flex gap-2 mb-2">
-                            <input placeholder="https://..." className="flex-1 p-4 bg-white dark:bg-gray-950 rounded-xl dark:text-white outline-none text-sm border border-gray-100 dark:border-gray-800 focus:border-blue-500"
-                              value={newPost.image || ''} onChange={e => setNewPost({ ...newPost, image: e.target.value })} />
-                            <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl px-4 flex items-center justify-center transition-colors">
-                              <ImageIcon size={20} />
-                              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const base64 = await compressImage(file, 800);
-                                  setNewPost({ ...newPost, image: base64 });
-                                }
-                              }} />
-                            </label>
-                          </div>
-                          {newPost.image && <img src={newPost.image} alt="Preview" className="h-32 object-contain rounded-xl bg-gray-100 dark:bg-gray-800" />}
-                        </div>
+                        <ArticleImagesUploader
+                          images={newPost.images || []}
+                          featuredImage={newPost.image || ''}
+                          onChangeImages={(imgs, feat) => setNewPost({ ...newPost, images: imgs, image: feat })}
+                          onInsertMarkdown={(imgUrl) => {
+                            setNewPost({
+                              ...newPost,
+                              fullContent: (newPost.fullContent || '') + `\n\n![Image](${imgUrl})\n\n`
+                            });
+                          }}
+                        />
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-4">
@@ -1756,7 +1750,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div key={u.uid} className="p-4 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                              {u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" alt="" /> : <Users size={20} className="text-gray-300" />}
+                              {(u.photoURL && u.photoURL.trim()) ? <img src={u.photoURL.trim()} className="w-full h-full object-cover" alt="" /> : <Users size={20} className="text-gray-300" />}
                             </div>
                             <div>
                               <p className="text-sm font-bold dark:text-white flex items-center gap-2">{u.displayName} {u.is_premium && <Star size={10} className="text-yellow-500 fill-current" />}</p>

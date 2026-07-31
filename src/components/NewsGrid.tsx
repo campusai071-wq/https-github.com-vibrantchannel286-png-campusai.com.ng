@@ -4,7 +4,7 @@ import { triggerBrowserNotification, slugify } from '../services/utils';
 import { 
   Calendar, RefreshCw, Newspaper, Brain, ShieldCheck, Box, Bookmark,
   BookmarkCheck, Plus, Database, Search, ArrowRight, Zap, Activity,
-  Globe, Sparkles, Flame, Timer, Edit, Trash2
+  Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UniversityCategory, NewsItem } from '../types';
@@ -131,56 +131,91 @@ export const NewsCard: React.FC<{
   isAdmin?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
-}> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => (
-  <article>
-    <motion.div
-      layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02, y: -5 }}
-      className="bg-white dark:bg-gray-800 rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all group flex flex-col h-full border relative border-gray-100 dark:border-gray-700"
-    >
-    {isRelevant && (
-      <div className="absolute top-4 left-4 z-30 flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg">
-        <Sparkles size={10} fill="currentColor" /> For You
-      </div>
-    )}
-    
-    <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
-      <button
-        onClick={e => { e.stopPropagation(); onToggleBookmark(news.id); }}
-        aria-label={isBookmarked ? "Remove from bookmarks" : "Bookmark this article"}
-        className={`p-3 rounded-2xl backdrop-blur-md transition-all active:scale-75 shadow-lg ${
-          isBookmarked ? 'bg-blue-600 text-white ring-4 ring-blue-500/20' : 'bg-black/20 text-white hover:bg-black/40'
-        }`}
+}> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => {
+  const [imgError, setImgError] = useState(false);
+  const displayImage = React.useMemo(() => {
+    if (imgError) return null;
+    if (news.image && typeof news.image === 'string' && news.image.trim()) return news.image.trim();
+    if (news.images && Array.isArray(news.images)) {
+      const valid = news.images.find(i => i && typeof i === 'string' && i.trim());
+      if (valid) return valid.trim();
+    }
+    return null;
+  }, [imgError, news.image, news.images]);
+  const totalImages = news.images && news.images.length > 0 ? news.images.length : (news.image ? 1 : 0);
+
+  return (
+    <article>
+      <motion.div
+        layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.02, y: -5 }}
+        className="bg-white dark:bg-gray-800 rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all group flex flex-col h-full border relative border-gray-100 dark:border-gray-700"
       >
-        {isBookmarked ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
-      </button>
-
-      {isAdmin && (
-        <>
-          <button
-            onClick={e => { e.stopPropagation(); onEdit?.(); }}
-            className="p-3 bg-white/90 dark:bg-gray-800/90 text-blue-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-blue-100 dark:border-blue-900/30"
-          >
-            <Edit size={20} />
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete?.(); }}
-            className="p-3 bg-white/90 dark:bg-gray-800/90 text-rose-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-rose-100 dark:border-rose-900/30"
-          >
-            <Trash2 size={20} />
-          </button>
-        </>
+      {isRelevant && (
+        <div className="absolute top-4 left-4 z-30 flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg">
+          <Sparkles size={10} fill="currentColor" /> For You
+        </div>
       )}
-    </div>
+      
+      <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
+        <button
+          onClick={e => { e.stopPropagation(); onToggleBookmark(news.id); }}
+          aria-label={isBookmarked ? "Remove from bookmarks" : "Bookmark this article"}
+          className={`p-3 rounded-2xl backdrop-blur-md transition-all active:scale-75 shadow-lg ${
+            isBookmarked ? 'bg-blue-600 text-white ring-4 ring-blue-500/20' : 'bg-black/20 text-white hover:bg-black/40'
+          }`}
+        >
+          {isBookmarked ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
+        </button>
 
-    <div className="relative h-48 md:h-56 overflow-hidden">
-      <UniversityAvatar category={news.category} />
-      <div className="absolute bottom-4 left-4 z-20">
-        <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
-          {news.category}
+        {isAdmin && (
+          <>
+            <button
+              onClick={e => { e.stopPropagation(); onEdit?.(); }}
+              className="p-3 bg-white/90 dark:bg-gray-800/90 text-blue-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-blue-100 dark:border-blue-900/30"
+            >
+              <Edit size={20} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); onDelete?.(); }}
+              className="p-3 bg-white/90 dark:bg-gray-800/90 text-rose-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-rose-100 dark:border-rose-900/30"
+            >
+              <Trash2 size={20} />
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="relative h-48 md:h-56 overflow-hidden bg-gray-950 cursor-pointer group" onClick={onRead}>
+        {displayImage ? (
+          <>
+            <img 
+              src={displayImage} 
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 select-none pointer-events-none" 
+            />
+            <img 
+              src={displayImage} 
+              alt={news.title}
+              onError={() => setImgError(true)}
+              className="relative z-10 w-full h-full object-contain object-top group-hover:scale-105 transition-transform duration-500" 
+            />
+          </>
+        ) : (
+          <UniversityAvatar category={news.category} />
+        )}
+        <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
+          <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
+            {news.category}
+          </div>
+          {totalImages > 1 && (
+            <div className="bg-blue-600/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-blue-400/30 flex items-center gap-1 shadow-md">
+              <ImageIcon size={10} /> {totalImages} Photos
+            </div>
+          )}
         </div>
       </div>
-    </div>
 
     <div className="p-6 md:p-8 flex flex-col flex-1">
       <div className="flex items-center text-blue-600/50 text-[9px] font-black uppercase tracking-widest mb-4">
@@ -238,7 +273,8 @@ export const NewsCard: React.FC<{
     </div>
   </motion.div>
   </article>
-);
+  );
+};
 
 // ─── Bookmark helpers ─────────────────────────────────────────────────────────
 

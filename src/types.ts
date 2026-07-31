@@ -12,6 +12,7 @@ export interface NewsItem {
   category: UniversityCategory;
   date: string;
   image: string;
+  images?: string[];
   excerpt: string;
   fullContent?: string; 
   relatedNews?: { title: string, url: string }[];

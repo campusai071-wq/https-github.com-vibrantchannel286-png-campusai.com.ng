@@ -162,8 +162,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
           <div className="flex flex-col items-center">
             <div className="relative group">
               <div className="w-32 h-32 rounded-[40px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl">
-                {profile?.photoURL ? (
-                  <img src={profile.photoURL} className="w-full h-full object-cover" alt="Profile" />
+                {(profile?.photoURL && profile.photoURL.trim()) ? (
+                  <img src={profile.photoURL.trim()} className="w-full h-full object-cover" alt="Profile" />
                 ) : (
                   <User size={64} className="text-gray-300" />
                 )}

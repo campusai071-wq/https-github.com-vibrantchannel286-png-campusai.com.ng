@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, AlertCircle, Type, FileText, Image as ImageIcon, Link as LinkIcon, Tag, Sparkles, Youtube } from 'lucide-react';
 import { NewsItem, UniversityCategory } from '../types';
+import { ArticleImagesUploader } from './ArticleImagesUploader';
 import { compressImage } from '../services/utils';
 
 interface NewsEditModalProps {
@@ -18,12 +19,16 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
 
   useEffect(() => {
     if (news) {
+      const existingImages = news.images && Array.isArray(news.images) && news.images.length > 0
+        ? news.images
+        : (news.image ? [news.image] : []);
       setFormData({
         title: news.title || '',
         excerpt: news.excerpt || '',
         fullContent: news.fullContent || '',
         category: news.category || 'National',
-        image: news.image || '',
+        image: news.image || (existingImages[0] || ''),
+        images: existingImages,
         sourceUrl: news.sourceUrl || '',
         tags: news.tags || [],
       });
@@ -127,33 +132,17 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <ImageIcon size={12} /> Featured Image (Optional)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={formData.image}
-                      onChange={e => setFormData({ ...formData, image: e.target.value })}
-                      className="flex-1 w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white"
-                      placeholder="https://images.unsplash.com/..."
-                    />
-                    <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl px-5 flex items-center justify-center transition-colors">
-                      <ImageIcon size={20} />
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const base64 = await compressImage(file, 800);
-                          setFormData({ ...formData, image: base64 });
-                        }
-                      }} />
-                    </label>
-                  </div>
-                  {formData.image && (
-                    <img src={formData.image} alt="Preview" className="h-32 object-contain rounded-2xl mt-2 bg-gray-50 dark:bg-gray-800" />
-                  )}
-                </div>
+                <ArticleImagesUploader
+                  images={formData.images || []}
+                  featuredImage={formData.image || ''}
+                  onChangeImages={(imgs, feat) => setFormData({ ...formData, images: imgs, image: feat })}
+                  onInsertMarkdown={(imgUrl) => {
+                    setFormData({
+                      ...formData,
+                      fullContent: (formData.fullContent || '') + `\n\n![Image](${imgUrl})\n\n`
+                    });
+                  }}
+                />
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">

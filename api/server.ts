@@ -207,7 +207,8 @@ app.get("/api/health", (req, res) => {
 });
 
 // Essential Middlewares
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // IndexNow Proxy Endpoint (bypasses browser CORS restrictions)
 app.get("/sitemap.xml", async (req: any, res: any) => {

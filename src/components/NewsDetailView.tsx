@@ -3,14 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Clock, Share2, Bookmark, ThumbsUp, ShieldCheck, Sparkles,
   User, Send, MessageSquare, Trash2, Loader2, LogIn, Check, RefreshCw,
-  Wand2, Brain, Edit3, Zap, Eye, Copy, Link, CheckCircle2
+  Wand2, Brain, Edit3, Zap, Eye, Copy, Link, CheckCircle2, Image as ImageIcon,
+  Maximize2, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 import { NewsItem, Comment } from '../types';
 import {
   fetchNewsComments, postNewsComment, deleteNewsComment,
   getNewsItemBySlug, updateNewsArticleContent, logUserActivity,
-  deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews
+  deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews,
+  updateNewsItem
 } from '../services/dbService';
+import { ArticleImagesUploader } from './ArticleImagesUploader';
 import { expandNewsArticle } from '../services/geminiService';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import SEO from './SEO';
@@ -82,10 +85,25 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [isCleaning, setIsCleaning]       = useState(false);
   const [isEditing, setIsEditing]         = useState(false);
   const [editableContent, setEditableContent] = useState('');
+  const [editableImages, setEditableImages]   = useState<string[]>([]);
+  const [editableFeaturedImage, setEditableFeaturedImage] = useState<string>('');
   const [localRelatedNews, setLocalRelatedNews] = useState<NewsItem[]>(relatedNews || []);
   const [restoreError, setRestoreError]   = useState<string | null>(null);
   const [readCount, setReadCount]         = useState<number>(news?.views || 1);
   const [copiedLink, setCopiedLink]       = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const allPictures = React.useMemo(() => {
+    if (!news) return [];
+    const list: string[] = [];
+    if (news.image && !list.includes(news.image)) list.push(news.image);
+    if (news.images && Array.isArray(news.images)) {
+      news.images.forEach(img => {
+        if (img && !list.includes(img)) list.push(img);
+      });
+    }
+    return list;
+  }, [news?.image, news?.images]);
 
   useEffect(() => {
     if (!news?.id) return;
@@ -156,9 +174,14 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     setIsCleaning(true);
     console.log("Saving news article...", news.id, editableContent);
     try {
-      await updateNewsArticleContent(news.id, editableContent);
+      const updatedFields = {
+        fullContent: editableContent,
+        images: editableImages,
+        image: editableFeaturedImage || editableImages[0] || ''
+      };
+      await updateNewsItem(news.id, updatedFields);
       console.log("Successfully saved news article.");
-      setNews({ ...news, fullContent: editableContent });
+      setNews({ ...news, ...updatedFields });
       setIsEditing(false);
       window.dispatchEvent(new Event('campusai_news_updated'));
       alert("✅ Changes saved successfully.");
@@ -172,6 +195,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
   const startEditing = () => {
     setEditableContent(news?.fullContent || '');
+    setEditableImages(allPictures);
+    setEditableFeaturedImage(news?.image || allPictures[0] || '');
     setIsEditing(true);
   };
 
@@ -721,6 +746,53 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
         {/* Article body */}
         <article className="prose prose-xl max-w-full overflow-hidden dark:prose-invert break-words">
+          {/* Main Featured Picture Hero */}
+          {allPictures.length > 0 && !isEditing && (
+            <div className="mb-8 group relative rounded-[32px] overflow-hidden bg-gray-950 shadow-xl border border-gray-200/60 dark:border-gray-800">
+              <img 
+                src={allPictures[0]} 
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-35 select-none pointer-events-none" 
+              />
+              <img 
+                src={allPictures[0]} 
+                alt={news.title}
+                onClick={() => setLightboxIndex(0)}
+                className="relative z-10 w-full max-h-[600px] object-contain object-top mx-auto cursor-zoom-in group-hover:scale-102 transition-transform duration-500"
+              />
+              <div className="absolute bottom-4 right-4 z-20 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-black text-white flex items-center gap-1.5 shadow-lg border border-white/20">
+                <Maximize2 size={12} /> Click to Enlarge
+              </div>
+            </div>
+          )}
+
+          {/* Multi-Photo Gallery Grid */}
+          {allPictures.length > 1 && !isEditing && (
+            <div className="mb-10 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-[32px] border border-gray-200/60 dark:border-gray-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                  <ImageIcon size={14} className="text-blue-600" /> Article Photo Gallery ({allPictures.length} Photos)
+                </h3>
+                <span className="text-[10px] font-bold text-gray-400">Click photo to view in HD</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {allPictures.map((img, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => setLightboxIndex(idx)}
+                    className="relative aspect-video rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 cursor-pointer group shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-500 transition-all"
+                  >
+                    <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                      <Maximize2 size={16} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {news.excerpt && !isEditing && (
             <p className="text-xl md:text-2xl text-gray-900 dark:text-white leading-relaxed font-black mb-10 italic border-l-4 border-blue-600 pl-6 py-2">
               "{news.excerpt}"
@@ -763,11 +835,22 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
           <div className="markdown-body text-lg text-gray-800 dark:text-gray-200 leading-relaxed font-medium select-text pointer-events-auto">
             {isEditing ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                <ArticleImagesUploader
+                  images={editableImages}
+                  featuredImage={editableFeaturedImage}
+                  onChangeImages={(imgs, feat) => {
+                    setEditableImages(imgs);
+                    setEditableFeaturedImage(feat);
+                  }}
+                  onInsertMarkdown={(imgUrl) => {
+                    setEditableContent(prev => prev + `\n\n![Article Photo](${imgUrl})\n\n`);
+                  }}
+                />
                 <textarea
                   value={editableContent}
                   onChange={(e) => setEditableContent(e.target.value)}
-                  className="w-full h-[600px] p-8 bg-gray-50 dark:bg-gray-900 rounded-[40px] border-2 border-blue-100 dark:border-blue-900 outline-none focus:border-blue-600 transition-all font-mono text-base leading-relaxed resize-none shadow-inner"
+                  className="w-full h-[500px] p-8 bg-gray-50 dark:bg-gray-900 rounded-[40px] border-2 border-blue-100 dark:border-blue-900 outline-none focus:border-blue-600 transition-all font-mono text-base leading-relaxed resize-none shadow-inner"
                   placeholder="Paste or write the article content here in Markdown format..."
                 />
                 <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
@@ -778,6 +861,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
               <Markdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} /> : null),
                   a: ({ node, ...props }) => {
                     const href = props.href || '';
                     const ytMatch = href.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
@@ -891,7 +975,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                 </div>
                 <div className="flex items-center gap-2 px-4">
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
-                    {user.photoURL && <img src={user.photoURL} className="w-full h-full object-cover" alt="" />}
+                    {(user.photoURL && user.photoURL.trim()) ? <img src={user.photoURL.trim()} className="w-full h-full object-cover" alt="" /> : null}
                   </div>
                   <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
                     Posting as {user.displayName || 'Scholar'}
@@ -916,8 +1000,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     className="flex gap-4 group"
                   >
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                      {comment.photoURL
-                        ? <img src={comment.photoURL} className="w-full h-full object-cover" alt="" />
+                      {(comment.photoURL && comment.photoURL.trim())
+                        ? <img src={comment.photoURL.trim()} className="w-full h-full object-cover" alt="" />
                         : <User size={20} className="text-gray-400" />}
                     </div>
                     <div className="flex-grow">
@@ -992,6 +1076,49 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Lightbox Modal for Enlarged Photo Viewing */}
+      {lightboxIndex !== null && allPictures[lightboxIndex] && (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+          <button 
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 cursor-pointer"
+            title="Close Lightbox"
+          >
+            <X size={24} />
+          </button>
+          
+          {allPictures.length > 1 && (
+            <>
+              <button 
+                onClick={() => setLightboxIndex((lightboxIndex - 1 + allPictures.length) % allPictures.length)}
+                className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 cursor-pointer"
+                title="Previous Image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button 
+                onClick={() => setLightboxIndex((lightboxIndex + 1) % allPictures.length)}
+                className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50 cursor-pointer"
+                title="Next Image"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+
+          <div className="max-w-5xl max-h-[85vh] flex flex-col items-center">
+            <img 
+              src={allPictures[lightboxIndex]} 
+              alt="Enlarged Article View" 
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+            <div className="mt-4 text-white text-xs font-bold tracking-widest uppercase bg-black/60 px-4 py-1.5 rounded-full border border-white/20">
+              Photo {lightboxIndex + 1} of {allPictures.length}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Share / Copy Toast Notification */}
       <AnimatePresence>
