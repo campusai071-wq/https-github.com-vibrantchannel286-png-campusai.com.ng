@@ -4,7 +4,7 @@ import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
-  Smartphone, Download, ArrowLeft, CheckCircle2, Edit
+  Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminState, NewsItem, UserProfile, UserRole, UserActivity, UniversityCategory } from '../types';
@@ -23,7 +23,7 @@ import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT
 import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
 import { auth } from '../services/firebaseConfig';
-import { getApiUrl } from '../services/utils';
+import { getApiUrl, compressImage } from '../services/utils';
 import { SystemHealthStatus } from './SystemHealthStatus';
 import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
 import NewsDetailView from './NewsDetailView';
@@ -1496,7 +1496,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Article Content</label>
+                          <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Featured Image (Optional)</label>
+                          <div className="flex gap-2 mb-2">
+                            <input placeholder="https://..." className="flex-1 p-4 bg-white dark:bg-gray-950 rounded-xl dark:text-white outline-none text-sm border border-gray-100 dark:border-gray-800 focus:border-blue-500"
+                              value={newPost.image || ''} onChange={e => setNewPost({ ...newPost, image: e.target.value })} />
+                            <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl px-4 flex items-center justify-center transition-colors">
+                              <ImageIcon size={20} />
+                              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const base64 = await compressImage(file, 800);
+                                  setNewPost({ ...newPost, image: base64 });
+                                }
+                              }} />
+                            </label>
+                          </div>
+                          {newPost.image && <img src={newPost.image} alt="Preview" className="h-32 object-contain rounded-xl bg-gray-100 dark:bg-gray-800" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-4">
+                              <label className="text-[10px] font-black uppercase text-gray-400 block">Article Content</label>
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                <Youtube size={10} className="text-red-500" /> Auto-embeds Youtube Links
+                              </label>
+                            </div>
+                            <label className="cursor-pointer text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1">
+                              <ImageIcon size={12} /> Insert Inline Image
+                              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const base64 = await compressImage(file, 800);
+                                  setNewPost({ ...newPost, fullContent: (newPost.fullContent || '') + `\n\n![Image](${base64})\n\n` });
+                                }
+                              }} />
+                            </label>
+                          </div>
                           <textarea placeholder="Article content..." className="w-full p-4 bg-white dark:bg-gray-950 rounded-xl dark:text-white outline-none h-40 text-sm border border-gray-100 dark:border-gray-800 focus:border-blue-500"
                             value={newPost.fullContent || ''} onChange={e => setNewPost({ ...newPost, fullContent: e.target.value })} />
                         </div>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, AlertCircle, Type, FileText, Image as ImageIcon, Link as LinkIcon, Tag, Sparkles } from 'lucide-react';
+import { X, Save, AlertCircle, Type, FileText, Image as ImageIcon, Link as LinkIcon, Tag, Sparkles, Youtube } from 'lucide-react';
 import { NewsItem, UniversityCategory } from '../types';
+import { compressImage } from '../services/utils';
 
 interface NewsEditModalProps {
   isOpen: boolean;
@@ -128,15 +129,30 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <ImageIcon size={12} /> Image URL
+                    <ImageIcon size={12} /> Featured Image (Optional)
                   </label>
-                  <input
-                    type="url"
-                    value={formData.image}
-                    onChange={e => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white"
-                    placeholder="https://images.unsplash.com/..."
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.image}
+                      onChange={e => setFormData({ ...formData, image: e.target.value })}
+                      className="flex-1 w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white"
+                      placeholder="https://images.unsplash.com/..."
+                    />
+                    <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl px-5 flex items-center justify-center transition-colors">
+                      <ImageIcon size={20} />
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const base64 = await compressImage(file, 800);
+                          setFormData({ ...formData, image: base64 });
+                        }
+                      }} />
+                    </label>
+                  </div>
+                  {formData.image && (
+                    <img src={formData.image} alt="Preview" className="h-32 object-contain rounded-2xl mt-2 bg-gray-50 dark:bg-gray-800" />
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -171,9 +187,24 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <FileText size={12} /> Full Content (Markdown Supported)
-                    </label>
+                    <div className="flex items-center gap-4">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <FileText size={12} /> Full Content
+                      </label>
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                        <Youtube size={10} className="text-red-500" /> Auto-embeds Youtube Links
+                      </label>
+                      <label className="cursor-pointer text-[9px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors flex items-center gap-1">
+                        <ImageIcon size={10} /> Insert Image
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const base64 = await compressImage(file, 800);
+                            setFormData({ ...formData, fullContent: (formData.fullContent || '') + `\n\n![Image](${base64})\n\n` });
+                          }
+                        }} />
+                      </label>
+                    </div>
                     <button 
                       type="button"
                       onClick={() => {

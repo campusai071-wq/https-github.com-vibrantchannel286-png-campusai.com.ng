@@ -775,7 +775,33 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                 </div>
               </div>
             ) : news.fullContent ? (
-              <Markdown remarkPlugins={[remarkGfm]}>{news.fullContent}</Markdown>
+              <Markdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ node, ...props }) => {
+                    const href = props.href || '';
+                    const ytMatch = href.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+                    
+                    if (ytMatch && ytMatch[1]) {
+                      return (
+                        <div className="my-8 relative w-full overflow-hidden rounded-3xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 shadow-xl" style={{ paddingTop: '56.25%' }}>
+                          <iframe 
+                            className="absolute top-0 left-0 w-full h-full" 
+                            src={`https://www.youtube.com/embed/${ytMatch[1]}`} 
+                            title="YouTube video player"
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowFullScreen 
+                          />
+                        </div>
+                      );
+                    }
+                    return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words font-medium" />;
+                  }
+                }}
+              >
+                {news.fullContent}
+              </Markdown>
             ) : (
               <div className="py-12 border-2 border-dashed border-gray-100 dark:border-gray-900 rounded-[40px] text-center">
                 <p className="text-gray-500 font-bold italic">
