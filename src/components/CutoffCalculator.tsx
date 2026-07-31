@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SEO from './SEO';
 import {
@@ -29,9 +29,10 @@ import {
 import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc } from '../services/dbService';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
-import { PdfExportModal } from './PdfExportModal';
-import { FileUploadHubModal } from './FileUploadHubModal';
 import { AdmissionChecklist } from './AdmissionChecklist';
+
+const PdfExportModal = React.lazy(() => import('./PdfExportModal').then(module => ({ default: module.PdfExportModal })));
+const FileUploadHubModal = React.lazy(() => import('./FileUploadHubModal').then(module => ({ default: module.FileUploadHubModal })));
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -4740,29 +4741,33 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       <Testimonials />
 
-      <PdfExportModal
-        isOpen={isPdfExportModalOpen}
-        onClose={() => setIsPdfExportModalOpen(false)}
-        resultData={{
-          targetUni,
-          targetCourse,
-          courseSearch,
-          jambScore,
-          postUtmeScore,
-          isPostUtmePending,
-          aggregateScore,
-          admissionProbability,
-          confidenceLevel,
-          stateOfOrigin,
-          subjects,
-          aiResult
-        }}
-      />
+      <Suspense fallback={null}>
+        <PdfExportModal
+          isOpen={isPdfExportModalOpen}
+          onClose={() => setIsPdfExportModalOpen(false)}
+          resultData={{
+            targetUni,
+            targetCourse,
+            courseSearch,
+            jambScore,
+            postUtmeScore,
+            isPostUtmePending,
+            aggregateScore,
+            admissionProbability,
+            confidenceLevel,
+            stateOfOrigin,
+            subjects,
+            aiResult
+          }}
+        />
+      </Suspense>
 
-      <FileUploadHubModal
-        isOpen={isUploadHubModalOpen}
-        onClose={() => setIsUploadHubModalOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <FileUploadHubModal
+          isOpen={isUploadHubModalOpen}
+          onClose={() => setIsUploadHubModalOpen(false)}
+        />
+      </Suspense>
     </section>
   );
 };

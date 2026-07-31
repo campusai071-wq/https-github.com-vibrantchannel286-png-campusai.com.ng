@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import Navbar from './Navbar';
 import HeroSection from './HeroSection';
-import NewsGrid from './NewsGrid';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
 import SEO from './SEO';
 
-import PolicySection from './PolicySection';
-import FAQSection from './FAQSection';
-import Testimonials from './Testimonials';
-import InviteEarn from './InviteEarn';
-import RecentActivity from './RecentActivity';
-
 // Code-split heavy secondary views & modals for faster initial load (LCP & TTFB)
+const NewsGrid = lazy(() => import('./NewsGrid'));
+const PolicySection = lazy(() => import('./PolicySection'));
+const FAQSection = lazy(() => import('./FAQSection'));
+const Testimonials = lazy(() => import('./Testimonials'));
+const InviteEarn = lazy(() => import('./InviteEarn'));
+const RecentActivity = lazy(() => import('./RecentActivity'));
 const AboutSection = lazy(() => import('./AboutSection'));
 const Dashboard = lazy(() => import('./Dashboard'));
 const AdminPanel = lazy(() => import('./AdminPanel'));
@@ -48,7 +47,6 @@ import { initializeUserProfile, subscribeToUserProfile, isRealUser } from '../se
 import { AdminState, NewsItem, UserRole } from '../types';
 import { MessageSquare, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getGlobalConfig, getGlobalSyncMetadata } from '../services/dbService';
 import { slugify, triggerBrowserNotification } from '../services/utils';
 
 // Helper to convert Firestore Timestamps, JSON timestamp objects or date strings/numbers to ms
@@ -215,6 +213,7 @@ const AppContent: React.FC = () => {
     } catch (e) {}
 
     const interval = setInterval(async () => {
+      const { getGlobalSyncMetadata } = await import('../services/dbService');
       const data = await getGlobalSyncMetadata();
       const currentSyncTime = data.lastSync;
       
@@ -360,6 +359,7 @@ const AppContent: React.FC = () => {
     initializeUserProfile(); 
 
     const loadGlobalSettings = async () => {
+      const { getGlobalConfig } = await import('../services/dbService');
       const config = await getGlobalConfig();
       if (config) {
         if (config.whatsapp) localStorage.setItem('campusai_whatsapp', config.whatsapp);

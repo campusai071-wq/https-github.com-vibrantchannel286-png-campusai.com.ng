@@ -160,12 +160,16 @@ try {
 
 let adminDb: any = null;
 try {
-  const adminAppInstance = initAdminApp({
-    credential: applicationDefault(),
-    projectId: firebaseAppletConfig.projectId
-  }, "admin-app");
-  adminDb = getAdminFirestore(adminAppInstance, firebaseAppletConfig.firestoreDatabaseId || "(default)");
-  console.log("[Firebase Admin SDK] Initialized successfully for writes!");
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const adminAppInstance = initAdminApp({
+      credential: applicationDefault(),
+      projectId: firebaseAppletConfig.projectId
+    }, "admin-app");
+    adminDb = getAdminFirestore(adminAppInstance, firebaseAppletConfig.firestoreDatabaseId || "(default)");
+    console.log("[Firebase Admin SDK] Initialized successfully for writes!");
+  } else {
+    console.log("[Firebase Admin SDK] Skipped initialization (no GOOGLE_APPLICATION_CREDENTIALS), falling back to Client SDK.");
+  }
 } catch (err: any) {
   console.warn("[Firebase Admin SDK] Initialization failed, falling back to Client SDK:", err.message);
 }
@@ -3764,6 +3768,7 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
       let html = fs.readFileSync(indexPath, 'utf-8');
       html = await injectSEO(html, req.path);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
       res.send(html);
     } catch (err) {
       console.error("[Server HTML Error]", err);
