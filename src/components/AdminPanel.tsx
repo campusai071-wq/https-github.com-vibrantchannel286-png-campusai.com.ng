@@ -4,7 +4,7 @@ import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
-  Smartphone, Download
+  Smartphone, Download, ArrowLeft, CheckCircle2, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminState, NewsItem, UserProfile, UserRole, UserActivity, UniversityCategory } from '../types';
@@ -26,6 +26,7 @@ import { auth } from '../services/firebaseConfig';
 import { getApiUrl } from '../services/utils';
 import { SystemHealthStatus } from './SystemHealthStatus';
 import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
+import NewsDetailView from './NewsDetailView';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -167,10 +168,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Content ─────────────────────────────────────────────────────────────────
   const [publishedNews, setPublishedNews] = useState<NewsItem[]>([]);
   const [showPostForm, setShowPostForm]   = useState(false);
+  const [newsFilter, setNewsFilter] = useState<'live' | 'pending'>('live');
   // ✅ FIX: newPost no longer stores a stale date — date is always computed fresh at publish time
   const [newPost, setNewPost] = useState<Partial<NewsItem>>({ category: 'National' });
   const [editingDateId, setEditingDateId]     = useState<string | null>(null);
   const [editedDateValue, setEditedDateValue] = useState('');
+  const [previewNews, setPreviewNews] = useState<NewsItem | null>(null);
 
   // ── AI Blog Generator ────────────────────────────────────────────────────────
   const [showAIBlogForm, setShowAIBlogForm] = useState(false);
@@ -520,17 +523,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const liveData = await fetchLiveNews('eiweh123@gmail.com');
       if (liveData?.length) {
-        await archiveNewsItems(liveData);
+        // AI Synced news starts as pending (defaultLiveStatus = false)
+        await archiveNewsItems(liveData, false);
         await updateGlobalSyncMetadata(Date.now());
         setPublishedNews(await getCloudNews(true, true));
         
-        // Dispatch global events so that active feeds on the main page immediately re-render
+        // Dispatch global events
         window.dispatchEvent(new Event('campusai_news_updated'));
         window.dispatchEvent(new Event('campusai_news_sync'));
         
-        alert(`Synced ${liveData.length} news items.`);
+        setNewsFilter('pending'); // Switch to pending to show the user what was synced
+        alert(`Synced ${liveData.length} news items. They are now in "Pending Review" for your approval.`);
       }
     } finally { setIsContentLoading(false); }
+  };
+
+  const handleApproveNews = async (id: string) => {
+    try {
+      await updateNewsItem(id, { isLive: true });
+      setPublishedNews(prev => prev.map(n => n.id === id ? { ...n, isLive: true } : n));
+      window.dispatchEvent(new Event('campusai_news_updated'));
+      alert("✅ News published successfully!");
+    } catch (e) {
+      alert("❌ Failed to publish news.");
+    }
   };
 
   const handlePurgeAllNews = async () => {
@@ -1405,34 +1421,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Newspaper size={14} /> Feed Manager</h3>
-                    <div className="flex gap-2 flex-wrap">
-                      <button onClick={handlePurgeAllNews} disabled={isContentLoading} className="px-4 py-2 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 active:scale-95"><Trash2 size={12} /> Purge Stale Feed</button>
-                      <button onClick={handleFixFutureDates} disabled={isContentLoading} className="px-4 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 active:scale-95"><Clock size={12} /> Fix Future Dates</button>
-                      <button onClick={handleSyncLiveNews} disabled={isContentLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2">
-                        {isContentLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} Global Sync
-                      </button>
-                      {/* ✅ FIX: Reset newPost fully when opening form so date is never stale */}
-                      <button
-                        onClick={() => {
-                          if (!showPostForm) {
-                            setNewPost({ category: 'National' });
-                          }
-                          setShowPostForm(!showPostForm);
-                          setShowAIBlogForm(false);
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase"
-                      >
-                        {showPostForm ? 'Cancel' : 'Manual Post'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowAIBlogForm(!showAIBlogForm);
-                          setShowPostForm(false);
-                        }}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 active:scale-95"
-                      >
-                        <Sparkles size={12} /> {showAIBlogForm ? 'Cancel AI' : 'AI Blog Maker'}
-                      </button>
+                    <div className="flex gap-4 items-center">
+                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        <button 
+                          onClick={() => setNewsFilter('live')}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${newsFilter === 'live' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                        >
+                          Live
+                        </button>
+                        <button 
+                          onClick={() => setNewsFilter('pending')}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${newsFilter === 'pending' ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm' : 'text-gray-400'}`}
+                        >
+                          Pending
+                          {publishedNews.filter(n => !n.isLive).length > 0 && (
+                            <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex gap-2 flex-wrap border-l border-gray-200 dark:border-gray-800 pl-4">
+                        <button onClick={handlePurgeAllNews} disabled={isContentLoading} className="px-4 py-2 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 active:scale-95"><Trash2 size={12} /> Purge</button>
+                        <button onClick={handleSyncLiveNews} disabled={isContentLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2">
+                          {isContentLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} AI Sync
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!showPostForm) {
+                              setNewPost({ category: 'National' });
+                            }
+                            setShowPostForm(!showPostForm);
+                            setShowAIBlogForm(false);
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase"
+                        >
+                          {showPostForm ? 'Cancel' : 'Manual'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1620,36 +1644,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </AnimatePresence>
 
                   <div className="space-y-3">
-                    {publishedNews.slice(0, 1000).map(item => {
+                    {publishedNews
+                      .filter(item => newsFilter === 'live' ? item.isLive : !item.isLive)
+                      .slice(0, 1000).map(item => {
                       const itemTime = new Date(item.date).getTime();
                       const isFuture = !isNaN(itemTime) && itemTime > todayLagosMidnight;
                       return (
-                        <div key={item.id} className={`p-4 bg-gray-50 dark:bg-gray-900/50 border rounded-2xl flex items-center justify-between group transition-all ${isFuture ? 'border-orange-500/30 bg-orange-500/[0.03]' : 'border-gray-100 dark:border-gray-800'}`}>
-                          <div className="flex items-center gap-4 overflow-hidden">
-                            <Newspaper size={18} className={isFuture ? 'text-orange-500' : 'text-gray-400'} />
-                            <div className="overflow-hidden">
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-xs dark:text-white truncate">{item.title}</p>
+                        <div key={item.id} className={`p-4 bg-white dark:bg-gray-900 border rounded-[24px] flex items-center justify-between group transition-all shadow-sm hover:shadow-md ${isFuture ? 'border-orange-500/30' : 'border-gray-100 dark:border-gray-800'}`}>
+                          <div className="flex items-center gap-4 overflow-hidden flex-1">
+                            <div className={`p-2 rounded-xl ${isFuture ? 'bg-orange-500/10 text-orange-500' : 'bg-gray-50 dark:bg-gray-800 text-gray-500'}`}>
+                              <Newspaper size={18} />
+                            </div>
+                            <div className="overflow-hidden flex-1">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="font-bold text-sm text-gray-900 dark:text-gray-50 truncate">{item.title}</p>
                                 {isFuture && <span className="px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase rounded-full animate-pulse">Future</span>}
+                                {!item.isLive && <span className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-full">Review Required</span>}
                               </div>
-                              {editingDateId === item.id ? (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <input type="text" value={editedDateValue || ''} onChange={e => setEditedDateValue(e.target.value)}
-                                    placeholder="e.g., May 20, 2026" autoFocus
-                                    className="bg-white dark:bg-gray-800 text-[10px] p-1 px-2 rounded border border-blue-500/50 outline-none w-32" />
-                                  <button onClick={() => handleSaveDate(item.id)} className="text-emerald-500 hover:bg-emerald-500/10 p-1 rounded"><Check size={12} /></button>
-                                  <button onClick={() => setEditingDateId(null)} className="text-gray-400 hover:bg-gray-400/10 p-1 rounded"><X size={12} /></button>
-                                </div>
-                              ) : (
-                                <p className="text-[10px] text-gray-400 cursor-pointer hover:text-blue-500 flex items-center gap-1 group/date"
-                                  onClick={() => { setEditingDateId(item.id); setEditedDateValue(item.date); }}>
-                                  {item.category} • {item.date}
-                                  <Check size={10} className="opacity-0 group-hover/date:opacity-100 transition-opacity" />
-                                </p>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">{item.category} • {item.date}</p>
+                                <button onClick={() => { setEditingDateId(item.id); setEditedDateValue(item.date); }} className="p-1 opacity-0 group-hover:opacity-100 text-blue-500 hover:scale-110 transition-all"><Edit size={10} /></button>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            {!item.isLive && (
+                              <button
+                                onClick={() => setPreviewNews(item)}
+                                className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all"
+                              >
+                                <Eye size={12} /> Review
+                              </button>
+                            )}
+                            {!item.isLive && (
+                              <button
+                                onClick={() => handleApproveNews(item.id)}
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+                              >
+                                <Check size={12} /> Publish
+                              </button>
+                            )}
                             <button
                               onClick={() => setEditingNews(item)}
                               className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
@@ -1662,6 +1696,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                       );
                     })}
+                    {publishedNews.filter(item => newsFilter === 'live' ? item.isLive : !item.isLive).length === 0 && (
+                      <div className="py-20 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[32px]">
+                        <Newspaper size={32} className="mx-auto text-gray-200 mb-3" />
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">No {newsFilter} articles found</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2162,6 +2202,49 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </button>
               </div>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {previewNews && (
+          <div className="fixed inset-0 z-[100] bg-white dark:bg-gray-950 overflow-y-auto no-scrollbar">
+            <div className="sticky top-0 z-[110] bg-white/80 dark:bg-gray-950/80 backdrop-blur-md p-4 border-b border-gray-100 dark:border-gray-900 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setPreviewNews(null)}
+                  className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-widest text-blue-600">Review Mode</h2>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Verifying article authenticity</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    handleApproveNews(previewNews.id);
+                    setPreviewNews(null);
+                  }}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  <CheckCircle2 size={16} /> Approve & Publish
+                </button>
+              </div>
+            </div>
+            
+            <div className="max-w-4xl mx-auto px-4 py-12">
+              <NewsDetailView 
+                news={previewNews} 
+                user={null} 
+                onClose={() => setPreviewNews(null)} 
+                relatedNews={[]} 
+                onSelectRelated={() => {}} 
+                onLoginRequest={() => {}}
+                isAdmin={true}
+              />
+            </div>
           </div>
         )}
       </AnimatePresence>

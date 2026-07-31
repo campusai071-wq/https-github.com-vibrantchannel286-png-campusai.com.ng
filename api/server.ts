@@ -719,47 +719,57 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
       const apiKey = keysPool[0];
       const gemini = createGeminiClient(apiKey);
       
-      const systemInstruction = "You are a premier Investigative Education Journalist in Nigeria.";
+      const systemInstruction = "You are a premier Senior Investigative Education Journalist in Nigeria.";
       const prompt = `RESEARCH and EXPAND this news article into an elite, gold-standard, comprehensive report of 800-1200 words.
       
       Original Title: ${newsItem.title}
       Original Excerpt: ${newsItem.excerpt || "Nigerian educational update"}
       Original Category: ${newsItem.category || "National"}
       
-      ARTICLE GUIDELINES (CAMPUSAI GOLD STANDARD BLUEPRINT):
+      ARTICLE GUIDELINES (CAMPUSAI GOLD STANDARD INVESTIGATIVE BLUEPRINT):
       - Use clean, professional Markdown.
-      - TONE: Professional, highly informative, neutral, and actionable. Absolutely no vague speculation.
-      - NO PLACEHOLDERS: Find and use real, verified dates, fees, and guidelines. If details are unannounced, state that clearly (e.g., "to be announced by the management on the official portal").
-      - FORMATTING: Use descriptive headings (##), bold key text, and bulleted steps to maximize scannability.
-      - MANDATORY STRUCTURE:
-        # [HEADLINE] — [CLEAR, ACTIONABLE TITLE]
-        **Published:** ${newsItem.date || "July 19, 2026"} | **Source:** CampusAI Nigeria
-        
-        ## What's Happening
-        [2-3 sentences summarizing the official announcement clearly]
-        
-        ## Key Details
-        - **Date / Registration Timeline:** [Exact official dates and registration periods]
-        - **Fee:** [Exact official amount in Naira]
-        - **Eligibility & Requirements:** [JAMB score cutoff, qualifications, O'Level sittings, age requirements]
-        - **Deadline:** [Exact official application deadline]
-        
-        ## Who Is Affected
-        [Detailed explanation of who is impacted]
-        
-        ## What to Do Next
-        [Provide a clear, sequential step-by-step application guide or reader action plan]
-        
-        ## Important Updates & Policy Changes
-        [Highlight critical updates, e.g. JAMB CAPS upload requirements, physical screening policies]
-        
-        ## Frequently Asked Questions (FAQ)
-        [Include at least 3 high-value FAQs with highly precise, informative answers]
-        
-        ## Conclusion
-        [Brief, helpful closing remarks summarizing key deadlines and urgency]
-        
-        📌 Editor's Note: Always verify dates, fees, and guidelines on the official portal (www.jamb.gov.ng) before initiating payments or registering.`;
+      - TONE: Investigative, authoritative, neutral, and actionable. Absolutely no "AI-Speak".
+      - VERIFICATION: You MUST cross-reference all dates and fees with official institutional portals.
+      - FORMATTING: Use descriptive headings (##), bold key text, and Markdown tables.
+      
+      MANDATORY STRUCTURE:
+      
+      # [HEADLINE] — [CLEAR, ACTIONABLE TITLE]
+      
+      > **✅ VERIFIED REPORT:** This update has been cross-referenced with official institutional portals as of ${newsItem.date || "July 19, 2026"}.
+      
+      **Published:** ${newsItem.date || "July 19, 2026"} | **Source:** CampusAI News
+      
+      ## 📌 Overview
+      [2-3 sentences summarizing the official announcement clearly]
+      
+      ## 📅 Official Timetable / Key Details
+      [You MUST include a Markdown table here with specific dates, fees, or requirements]
+      | Event | Date / Detail |
+      |-------|---------------|
+      | ...   | ...           |
+      
+      ## 📝 Step-by-Step Registration Guide
+      [Provide clear, sequential instructions on how to register/apply]
+      
+      ## 🛠️ Useful Tools for Candidates
+      - [JAMB Syllabus Finder](https://www.jamb.gov.ng/ibass)
+      - [Post-UTME Portal Link]([Insert Official Portal Link])
+      - [CampusAI Admission Probability Checker](https://campusai.com.ng/calculator)
+      
+      ## ⚠️ Critical Policies & Warnings
+      [Mention specific JAMB CAPS rules, O'Level upload deadlines, or payment warnings]
+      
+      ## ❓ Frequently Asked Questions (FAQ)
+      [Include at least 3 high-value FAQs with highly precise answers]
+      
+      ---
+      
+      ### 🔗 Follow CampusAI for More Updates
+      *   **WhatsApp:** [Join our WhatsApp Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
+      *   **X (Twitter):** [@CampusAI_NG](https://x.com/CampusAI_NG)
+      
+      📌 **Editor's Note:** Always verify dates, fees, and guidelines on the official portal before initiating payments.`;
 
       let enhancedText = "";
       const modelToUse = gemini.type === 'AIP' ? 'gemini-3.1-pro-preview' : 'gemini-3.1-pro-preview';
@@ -3218,11 +3228,29 @@ ${searchResults[4]}
     Based on the provided search results, curate 5-7 high-quality, authoritative news articles for the 2026/2027 academic session.
     
     AUTHORITATIVE REQUIREMENTS:
-    1. EACH article's "fullContent" must be a comprehensive deep-dive (MINIMUM 750 words per article).
-    2. USE YOUR SEARCH TOOL to find additional details, specific dates, and official quotes for every article you write to ensure 100% credibility.
-    3. STRUCTURE: Use professional Markdown with subheadings, bullet points, and "## Official Action Steps for Candidates".
-    4. NO PLACEHOLDERS: Find the real data or use realistic projections based on standard Nigerian education cycles.
-    5. DIVERSITY: Ensure coverage across: JAMB, Polytechnic, COE, National, Jobs, Scholarships, NYSC, WAEC.
+    1. EACH article's "fullContent" must be a comprehensive investigative deep-dive (MINIMUM 750 words).
+    2. FORMATTING: Use professional Markdown with subheadings, bold text, and MANDATORY Markdown tables for timelines/fees.
+    3. NO PLACEHOLDERS: Find real data or state "Official date pending" if unavailable.
+    4. STRUCTURE: 
+       # [Headline]
+       > **✅ VERIFIED REPORT:** Cross-referenced as of ${dateStr}.
+       **Published:** ${dateStr} | **Source:** CampusAI News
+       ## 📌 Overview
+       [Summary]
+       ## 📅 Official Timetable / Key Details
+       | Activity | Date |
+       |----------|------|
+       | ...      | ...  |
+       ## 📝 Step-by-Step Registration Guide
+       [Instructions]
+       ## 🛠️ Useful Tools for Candidates
+       - [Syllabus Finder](https://www.jamb.gov.ng/ibass)
+       - [Portal Link](Official Link)
+       - [Admission Probability Checker](https://campusai.com.ng/calculator)
+       ---
+       ### 🔗 Follow CampusAI for More Updates
+       *   **WhatsApp:** [Join Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
+       *   **X:** [@CampusAI_NG](https://x.com/CampusAI_NG)
     
     STRICT CATEGORY LIST: "Federal", "State", "Private", "JAMB", "Polytechnic", "COE", "National", "Jobs", "Scholarships", "NYSC", "WAEC".
     
@@ -3230,7 +3258,7 @@ ${searchResults[4]}
     ${combinedResults.substring(0, 12000)}
     
     JSON SCHEMA:
-    { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string", "image": "string", "tags": ["string"], "isImportant": boolean, "status": "string" } ] }`;
+    { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string", "image": "string", "tags": ["string"], "isImportant": boolean } ] }`;
 
     let successNews: any[] = [];
     let lastErr: any = null;

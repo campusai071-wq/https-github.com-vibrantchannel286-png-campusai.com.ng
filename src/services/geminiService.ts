@@ -691,10 +691,23 @@ export const fetchLiveNews = async (adminEmail: string): Promise<NewsItem[]> => 
 Based on today's date (${todayStr}), curate 5 HIGHLY AUTHORITATIVE and VERIFIED news articles for the 2026/2027 academic session.
 
 STRICT VERIFICATION GUIDELINES:
-1. SEARCH: Find actual news from official Nigerian education portals (.edu.ng, .gov.ng) or reputable news agencies (Punch, Vanguard, MySchoolGist).
-2. NO GENERIC CONTENT: Every article must contain at least 3 specific facts: an official date, a specific fee (in Naira), or a direct instruction from a school management.
-3. NO HALLUCINATIONS: If a date is not yet announced, state "To be announced shortly on the official portal".
-4. SOURCE CITATION: Every article must include a "sourceUrl" to the official announcement.
+1. SEARCH: Find actual news from official Nigerian education portals (.edu.ng, .gov.ng).
+2. FORMATTING: Use Markdown tables for any timelines or fees.
+3. STRUCTURE:
+   # [Headline]
+   > **✅ VERIFIED REPORT:** Cross-referenced as of ${todayStr}.
+   **Published:** ${todayStr} | **Source:** CampusAI News
+   ## 📌 Overview
+   [Summary]
+   ## 📅 Official Timetable / Key Details
+   | Activity | Date |
+   |----------|------|
+   | ...      | ...  |
+   ## 🛠️ Useful Tools
+   - [Admission Checker](https://campusai.com.ng/calculator)
+   ---
+   ### 🔗 Follow CampusAI
+   * WhatsApp: [Join Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
 
 Return ONLY a valid JSON object matching this schema:
 { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string" } ] }`;
@@ -790,17 +803,22 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
            
            **Published:** ${dateStr} | **Category:** ${userQuery} | **Source:** CampusAI Intelligence
            
-           ## 📢 Official Announcement
+           ## 📌 Overview
            [2–3 sentences summarizing the official announcement clearly]
            
-           ## 🛠️ Key Technical Details
-           - **Registration Period:** [Exact official dates]
-           - **Portal Fee:** [Exact amount in ₦]
-           - **Eligibility Score:** [Exact JAMB/Post-UTME cutoff]
-           - **Application Link:** [Direct link to the official school portal]
+           ## 📅 Official Timetable / Key Details
+           [Markdown table with specific dates, fees, or requirements]
+           | Activity | Date / Detail |
+           |----------|---------------|
+           | ...      | ...           |
            
-           ## 📝 Step-by-Step Guide
+           ## 📝 Step-by-Step Registration Guide
            [Precise, sequential instructions on how to register/apply]
+           
+           ## 🛠️ Useful Tools for Candidates
+           - [JAMB Syllabus Finder](https://www.jamb.gov.ng/ibass)
+           - [Portal Link](Official Link)
+           - [Admission Probability Checker](https://campusai.com.ng/calculator)
            
            ## ⚠️ Critical Policies & Warnings
            [Mention specific JAMB CAPS rules, O'Level upload deadlines, or payment warnings]
@@ -809,8 +827,11 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
            [3–5 high-value FAQs with precise, non-generic answers]
            
            ---
-           **Official Source:** [Insert Link]
-           **Editor:** Emmanuel Iweh
+           ### 🔗 Follow CampusAI for More Updates
+           *   **WhatsApp:** [Join our WhatsApp Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
+           *   **X (Twitter):** [@CampusAI_NG](https://x.com/CampusAI_NG)
+           
+           📌 **Editor's Note:** Always verify dates, fees, and guidelines on the official portal.
          
          Today is ${dateStr}.
          RETURN VALID JSON ONLY.
@@ -845,7 +866,8 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     if (parsed.verified && parsed.article) {
       const slug = slugify(parsed.article.title);
       const dateSlug = parsed.article.date ? slugify(parsed.article.date) : '';
-      parsed.article = { ...parsed.article, id: `smart-news-${slug}${dateSlug ? '-' + dateSlug : ''}`, slug, isLive: true, isImportant: false };
+      // New smart searched news should be pending approval by default
+      parsed.article = { ...parsed.article, id: `smart-news-${slug}${dateSlug ? '-' + dateSlug : ''}`, slug, isLive: false, isImportant: false };
     }
     return parsed;
   } catch (e: any) {

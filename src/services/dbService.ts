@@ -338,7 +338,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
         console.log(`getCloudNews: Proxy fetch successful. Retrieved ${res.data.data.length} items.`);
         const cloudNews = res.data.data.map((item: any) => ({
           ...item,
-          isLive: true,
+          isLive: item.isLive ?? true,
           category: normalizeCategory(item.category || 'National', item.title || '')
         }));
         const mergedNews = [...cloudNews, ...MOCK_NEWS];
@@ -392,8 +392,8 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       const data = docSnap.data();
       cloudNews.push({
         id: docSnap.id,
-        isLive: true,
         ...data,
+        isLive: data.isLive ?? true,
         category: normalizeCategory(data.category || 'National', data.title || '')
       });
     });
@@ -514,7 +514,7 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
   return deduplicated;
 };
 
-export const archiveNewsItems = async (items: NewsItem[]) => {
+export const archiveNewsItems = async (items: NewsItem[], defaultLiveStatus: boolean = false) => {
   if (!db) {
     console.error("archiveNewsItems: db is not initialized.");
     return;
@@ -548,12 +548,6 @@ export const archiveNewsItems = async (items: NewsItem[]) => {
   try {
     const todayStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
 
-    // FIX: read each target doc first so we know whether it already exists.
-    // This is what lets us preserve the ORIGINAL createdAt on re-syncs,
-    // instead of resetting it to "now" every time a stable-key doc is
-    // overwritten by the auto-sync. Without this, evergreen auto-synced
-    // docs (JAMB2026, NATIONAL2026, etc.) permanently occupy the top of
-    // any orderBy('createdAt', 'desc') query, burying real new articles.
     const refsAndData = validItems.map((item, index) => {
       const finalCategory = normalizeCategory(item.category, item.title);
       const stableKey = getStableNewsKey(item.title, finalCategory);
@@ -582,8 +576,6 @@ export const archiveNewsItems = async (items: NewsItem[]) => {
       const articleDateMs = toMs(finalDate) || nowMs;
       const articleTimestamp = Timestamp.fromMillis(articleDateMs);
 
-      // FIX: preserve the existing document's original createdAt if it
-      // already exists and is valid. If corrupted into the future (> now + 60s), replace with nowTimestamp.
       const existingSnap = existingSnaps[i];
       let preservedCreatedAt = existingSnap.exists()
         ? (existingSnap.data()?.createdAt || nowTimestamp)
@@ -593,15 +585,21 @@ export const archiveNewsItems = async (items: NewsItem[]) => {
         preservedCreatedAt = nowTimestamp;
       }
 
+      // If item already exists, respect its isLive status unless it's new.
+      // If it's new and from sync, default to false.
+      const preservedLiveStatus = existingSnap.exists()
+        ? (existingSnap.data()?.isLive ?? defaultLiveStatus)
+        : defaultLiveStatus;
+
       batch.set(ref, {
         ...item,
         id: docId,
         date: finalDate,
         category: finalCategory,
         slug,
-        isLive: true,
-        archivedAt: nowTimestamp,       // fine to bump — reflects "last synced"
-        createdAt: preservedCreatedAt,  // ← never resets on repeat syncs anymore
+        isLive: preservedLiveStatus,
+        archivedAt: nowTimestamp,
+        createdAt: preservedCreatedAt,
         updatedAt: Timestamp.now()
       });
     });
