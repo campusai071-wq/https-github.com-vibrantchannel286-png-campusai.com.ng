@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
@@ -31,6 +32,7 @@ dotenv.config();
 
 // --- Global Logger (Log EVERYTHING) ---
 export const app = express();
+app.use(cors({ origin: "*" }));
 const PORT = 3000;
 
 app.use((req, res, next) => {
@@ -341,7 +343,15 @@ app.post("/api/proxy-firestore", async (req: any, res: any) => {
     }
     
     if (startAfterValue && orderByField) {
-      queryRef = queryRef.startAfter(startAfterValue);
+      let parsedStartAfter = startAfterValue;
+      if (typeof startAfterValue === 'object') {
+        const seconds = startAfterValue.seconds !== undefined ? startAfterValue.seconds : startAfterValue._seconds;
+        const nanoseconds = startAfterValue.nanoseconds !== undefined ? startAfterValue.nanoseconds : startAfterValue._nanoseconds;
+        if (seconds !== undefined && nanoseconds !== undefined) {
+          parsedStartAfter = new AdminTimestamp(seconds, nanoseconds);
+        }
+      }
+      queryRef = queryRef.startAfter(parsedStartAfter);
     }
 
     if (limitCount) {
@@ -2691,7 +2701,7 @@ app.post("/api/webhooks/firecrawl", async (req: any, res: any) => {
     }
 
     const ai = new GoogleGenAI({ apiKey: keys[0] });
-    const prompt = `You are an AI analyzing updates to a university admissions page for changes in Post-UTME forms.
+    const prompt = `You are an AI monitoring educational websites for new updates, news articles, or announcements.
 The user is monitoring this URL: ${url}
 
 Here is the updated page content in Markdown:
@@ -2699,15 +2709,16 @@ Here is the updated page content in Markdown:
 ${markdown.substring(0, 30000)}
 ===
 
-Analyze this content. If there are new universities that have released their Post-UTME forms, cut-off marks, or application deadlines, extract them and generate a news article. 
-If there are NO meaningful updates or releases, simply reply with "NO_UPDATES".
-If there ARE updates, format your response strictly as a JSON object:
+Analyze this content to identify if any NEW educational news, admission updates, JAMB/WAEC announcements, or Post-UTME forms have been recently published or updated.
+If there are NO meaningful new articles or updates, simply reply with "NO_UPDATES".
+If there ARE meaningful updates (such as a new news article, Post-UTME release, or general educational announcement), extract the most important new information and generate a well-formatted news article for our platform. 
+Format your response strictly as a JSON object:
 {
-  "title": "Post-UTME Forms Released: [University Names]",
-  "content": "Detailed markdown content about the new forms, cut-off marks, deadlines, and how to apply.",
-  "category": "Admission",
-  "tags": ["Post-UTME", "Admission", "Updates"],
-  "universities": ["List", "of", "relevant", "universities"]
+  "title": "[Clear, engaging title of the news/update]",
+  "content": "[Detailed markdown content of the news, including relevant links, dates, and instructions]",
+  "category": "[e.g., Admission, News, JAMB, WAEC, Post-UTME]",
+  "tags": ["[Tag1]", "[Tag2]", "[Tag3]"],
+  "universities": ["[List of relevant universities if applicable, otherwise empty]"]
 }
 Only output the JSON object or NO_UPDATES, no other text.`;
 

@@ -193,12 +193,14 @@ export const NewsCard: React.FC<{
               src={displayImage} 
               alt=""
               aria-hidden="true"
+              referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 select-none pointer-events-none" 
             />
             <img 
               src={displayImage} 
               alt={news.title}
               onError={() => setImgError(true)}
+              referrerPolicy="no-referrer"
               className="relative z-10 w-full h-full object-contain object-top group-hover:scale-105 transition-transform duration-500" 
             />
           </>

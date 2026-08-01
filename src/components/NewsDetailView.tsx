@@ -135,7 +135,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     if (!news || isCleaning) return;
     setIsCleaning(true);
     try {
-      const cleanContent = (news.fullContent || '')
+      const cleanContent = (news.fullContent || (news as any).content || '')
         // New user-reported rubbish patterns
         .replace(/As a result of Admission into our institution, determined Additional Evidence of requirements following Eastern higher completion milestones.*/gi, '')
         .replace(/Minimum 135 year incorporating.*/gi, '')
@@ -219,7 +219,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   // ── Log activity when article is loaded ──────────────────────────────────
   useEffect(() => {
     if (!news) return;
-    const readTime = Math.max(3, Math.ceil((news.fullContent || news.excerpt).split(' ').length / 200));
+    const contentForTime = news.fullContent || (news as any).content || (news as any).content || news.excerpt || "";
+    const readTime = Math.max(3, Math.ceil(contentForTime.split(' ').length / 200));
     logUserActivity({
       userId: user?.uid || '',
       type: 'news_read',
@@ -523,7 +524,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     );
   }
 
-  const readTime = Math.max(3, Math.ceil((news.fullContent || news.excerpt).split(' ').length / 200));
+  const contentForTime = news.fullContent || (news as any).content || (news as any).content || news.excerpt || "";
+  const readTime = Math.max(3, Math.ceil(contentForTime.split(' ').length / 200));
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -753,12 +755,14 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                 src={allPictures[0]} 
                 alt=""
                 aria-hidden="true"
+                referrerPolicy="no-referrer"
                 className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-35 select-none pointer-events-none" 
               />
               <img 
                 src={allPictures[0]} 
                 alt={news.title}
                 onClick={() => setLightboxIndex(0)}
+                referrerPolicy="no-referrer"
                 className="relative z-10 w-full max-h-[600px] object-contain object-top mx-auto cursor-zoom-in group-hover:scale-102 transition-transform duration-500"
               />
               <div className="absolute bottom-4 right-4 z-20 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[10px] font-black text-white flex items-center gap-1.5 shadow-lg border border-white/20">
@@ -783,7 +787,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     onClick={() => setLightboxIndex(idx)}
                     className="relative aspect-video rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 cursor-pointer group shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-500 transition-all"
                   >
-                    <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    <img src={img} alt={`Gallery ${idx + 1}`} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                       <Maximize2 size={16} />
                     </div>
@@ -808,7 +812,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             </div>
           )}
 
-          {!news.fullContent && !isExpanding && !isEditing && (
+          {!(news.fullContent || (news as any).content) && !isExpanding && !isEditing && (
             <div className="mb-10 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <h4 className="text-sm font-black text-blue-800 dark:text-blue-300 uppercase tracking-widest mb-1">Deep Dive Available</h4>
@@ -857,11 +861,11 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                   <Sparkles size={12} /> Markdown and formatting supported
                 </div>
               </div>
-            ) : news.fullContent ? (
+            ) : news.fullContent || (news as any).content ? (
               <Markdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} /> : null),
+                  img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} referrerPolicy="no-referrer" /> : null),
                   a: ({ node, ...props }) => {
                     const href = props.href || '';
                     const ytMatch = href.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
@@ -884,7 +888,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                   }
                 }}
               >
-                {news.fullContent}
+                {news.fullContent || (news as any).content}
               </Markdown>
             ) : (
               <div className="py-12 border-2 border-dashed border-gray-100 dark:border-gray-900 rounded-[40px] text-center">
@@ -1111,6 +1115,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             <img 
               src={allPictures[lightboxIndex]} 
               alt="Enlarged Article View" 
+              referrerPolicy="no-referrer"
               className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10"
             />
             <div className="mt-4 text-white text-xs font-bold tracking-widest uppercase bg-black/60 px-4 py-1.5 rounded-full border border-white/20">
