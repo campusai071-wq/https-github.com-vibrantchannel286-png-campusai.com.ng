@@ -671,6 +671,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     try {
       await updateNewsItem(editingNews.id, updates);
       setNewsList(prev => prev.map(n => n.id === editingNews.id ? { ...n, ...updates } : n));
+      window.dispatchEvent(new Event('campusai_news_updated'));
       logUserActivity({
         userId: user?.uid || '',
         type: 'profile_update',

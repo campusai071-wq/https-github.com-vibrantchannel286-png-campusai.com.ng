@@ -714,6 +714,15 @@ export const purgeAllNews = async () => {
 
 export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => {
   const token = 'CAMPUS@2026';
+  const syncLocal = () => {
+    clearNewsCache();
+    const current = getPublishedNews();
+    if (current && current.length > 0) {
+      const updated = current.map(n => (n.id === id || n.slug === id) ? { ...n, ...updates } : n);
+      localStorage.setItem(NEWS_KEY, stringify(updated));
+    }
+  };
+
   try {
     const response = await axios.post(getApiUrl('/api/admin/news/action'), {
       action: 'update',
@@ -722,25 +731,49 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
       token
     });
     if (response.data && response.data.success) {
-      clearNewsCache();
+      syncLocal();
       return;
     }
   } catch (err) {
     console.warn("updateNewsItem: Backend admin API call failed, falling back to direct client update:", err);
   }
 
-  if (!db) return;
+  if (!db) {
+    syncLocal();
+    return;
+  }
+
   try {
     const newsRef = doc(db, "news", id);
     await updateDoc(newsRef, { ...updates, updatedAt: Timestamp.now() });
-    clearNewsCache();
+    syncLocal();
   } catch (e) {
-    console.error("Error updating news item:", e);
+    console.warn(`Direct update failed for ID ${id}, trying slug-based update...`, e);
+    try {
+      const newsCollectionRef = collection(db, "news");
+      const q = query(newsCollectionRef, where("slug", "==", id), limit(1));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        await updateDoc(querySnapshot.docs[0].ref, { ...updates, updatedAt: Timestamp.now() });
+        syncLocal();
+      }
+    } catch (slugErr) {
+      console.error("Error updating news item:", slugErr);
+    }
   }
 };
 
 export const updateNewsArticleContent = async (id: string, fullContent: string) => {
   const token = 'CAMPUS@2026';
+  const syncLocal = () => {
+    clearNewsCache();
+    const current = getPublishedNews();
+    if (current && current.length > 0) {
+      const updated = current.map(n => (n.id === id || n.slug === id) ? { ...n, fullContent } : n);
+      localStorage.setItem(NEWS_KEY, stringify(updated));
+    }
+  };
+
   try {
     const response = await axios.post(getApiUrl('/api/admin/news/action'), {
       action: 'update',
@@ -749,18 +782,22 @@ export const updateNewsArticleContent = async (id: string, fullContent: string) 
       token
     });
     if (response.data && response.data.success) {
-      clearNewsCache();
+      syncLocal();
       return;
     }
   } catch (err) {
     console.warn("updateNewsArticleContent: Backend admin API call failed, falling back to direct client update:", err);
   }
 
-  if (!db) return;
+  if (!db) {
+    syncLocal();
+    return;
+  }
+
   try {
     const newsRef = doc(db, "news", id);
     await updateDoc(newsRef, { fullContent, updatedAt: Timestamp.now() });
-    clearNewsCache();
+    syncLocal();
   } catch (e: any) {
     console.warn(`Direct update failed for ID ${id}, trying slug-based update...`, e);
     
@@ -773,7 +810,7 @@ export const updateNewsArticleContent = async (id: string, fullContent: string) 
       if (!querySnapshot.empty) {
         const docRef = querySnapshot.docs[0].ref;
         await updateDoc(docRef, { fullContent, updatedAt: Timestamp.now() });
-        clearNewsCache();
+        syncLocal();
         console.log(`Slug-based update successful for slug: ${id}`);
         return;
       }

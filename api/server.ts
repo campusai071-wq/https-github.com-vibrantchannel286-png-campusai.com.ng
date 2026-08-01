@@ -218,6 +218,8 @@ app.get("/sitemap.xml", async (req: any, res: any) => {
       "",
       "/calculator",
       "/news",
+      "/admissions",
+      "/syllabus",
       "/result-slip",
       "/admission-checklist",
       "/status",
@@ -551,13 +553,27 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
     if (!id || !data) {
       throw new Error("ID and updates are required");
     }
-    const docRef = doc(dbInstance, "news", id);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: new Date()
-    });
-    console.log(`[Client Fallback] Successfully updated news doc: ${id}`);
-    return { success: true };
+    try {
+      const docRef = doc(dbInstance, "news", id);
+      await updateDoc(docRef, {
+        ...data,
+        updatedAt: new Date()
+      });
+      console.log(`[Client Fallback] Successfully updated news doc: ${id}`);
+      return { success: true };
+    } catch (err) {
+      const q = query(collection(dbInstance, "news"), where("slug", "==", id), limit(1));
+      const qSnap = await getDocs(q);
+      if (!qSnap.empty) {
+        await updateDoc(qSnap.docs[0].ref, {
+          ...data,
+          updatedAt: new Date()
+        });
+        console.log(`[Client Fallback] Successfully updated news doc by slug: ${id}`);
+        return { success: true };
+      }
+      throw err;
+    }
   }
 
   throw new Error(`Unknown action: ${action}`);
@@ -667,11 +683,20 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
       }
       try {
         if (!newsCollection) throw new Error("No adminDb");
-        await newsCollection.doc(id).update({
+        let targetRef = newsCollection.doc(id);
+        let docSnap = await targetRef.get();
+        if (!docSnap.exists) {
+          const qSnap = await newsCollection.where("slug", "==", id).limit(1).get();
+          if (!qSnap.empty) {
+            targetRef = qSnap.docs[0].ref;
+            docSnap = qSnap.docs[0];
+          }
+        }
+        await targetRef.update({
           ...updates,
           updatedAt: AdminTimestamp.now()
         });
-        console.log(`[Admin API] Successfully updated news doc via Admin SDK: ${id}`);
+        console.log(`[Admin API] Successfully updated news doc via Admin SDK: ${targetRef.id}`);
         return res.json({ success: true });
       } catch (adminErr: any) {
         console.warn(`[Admin API] Admin SDK update failed, falling back to Client SDK...`, adminErr.message);
@@ -2856,6 +2881,18 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     <lastmod>${todayStr}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/admissions</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://campusai.com.ng/syllabus</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
   </url>
   <url>
     <loc>https://campusai.com.ng/admission-checklist</loc>
