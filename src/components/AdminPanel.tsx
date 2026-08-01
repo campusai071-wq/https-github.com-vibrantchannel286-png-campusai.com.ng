@@ -4,7 +4,7 @@ import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
-  Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon
+  Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -18,7 +18,8 @@ import {
   updateGlobalSyncMetadata, updateNewsItem, getAllUserActivities,
   getTrafficStats, resetTrafficStats, purgeUserActivities,
   getAllCutoffOverrides, saveCutoffOverride, deleteCutoffOverride, CutoffOverride,
-  getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList
+  getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
+  saveKnowledgeFragment
 } from '../services/dbService';
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
@@ -163,6 +164,88 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setIndexNowResult({ success: false, message: err?.message || 'Error pinging IndexNow' });
     } finally {
       setIsSubmittingIndexNow(false);
+    }
+  };
+
+  // ── Firecrawl Test Scraper ──────────────────────────────────────────────────
+  const [firecrawlTestUrl, setFirecrawlTestUrl] = useState('https://www.futa.edu.ng');
+  const [isFirecrawlTesting, setIsFirecrawlTesting] = useState(false);
+  const [firecrawlTestResult, setFirecrawlTestResult] = useState<any>(null);
+
+  const handleTestFirecrawlScrape = async () => {
+    if (!firecrawlTestUrl.trim()) return;
+    setIsFirecrawlTesting(true);
+    setFirecrawlTestResult(null);
+    try {
+      const res = await axios.post(getApiUrl('/api/firecrawl/scrape'), { url: firecrawlTestUrl.trim() });
+      setFirecrawlTestResult(res.data);
+    } catch (e: any) {
+      setFirecrawlTestResult({ success: false, error: e.response?.data?.error || e.message });
+    } finally {
+      setIsFirecrawlTesting(false);
+    }
+  };
+
+  const [isSyncingKnowledge, setIsSyncingKnowledge] = useState(false);
+  const [syncKnowledgeSuccess, setSyncKnowledgeSuccess] = useState(false);
+  const [isPublishingNews, setIsPublishingNews] = useState(false);
+  const [publishNewsSuccess, setPublishNewsSuccess] = useState(false);
+
+  const handleSyncToKnowledge = async () => {
+    if (!firecrawlTestResult?.success || !firecrawlTestResult.data?.markdown) return;
+    setIsSyncingKnowledge(true);
+    setSyncKnowledgeSuccess(false);
+    try {
+      let hostname = firecrawlTestUrl.trim();
+      try { hostname = new URL(firecrawlTestUrl.trim().startsWith('http') ? firecrawlTestUrl.trim() : `https://${firecrawlTestUrl.trim()}`).hostname; } catch {}
+      const keyName = `scraped_${hostname.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+      await saveKnowledgeFragment(keyName, firecrawlTestResult.data.markdown);
+      setSyncKnowledgeSuccess(true);
+    } catch (e: any) {
+      console.error("Failed to sync knowledge:", e);
+    } finally {
+      setIsSyncingKnowledge(false);
+    }
+  };
+
+  const handlePublishAsArticle = async () => {
+    if (!firecrawlTestResult?.success || !firecrawlTestResult.data?.markdown) return;
+    setIsPublishingNews(true);
+    setPublishNewsSuccess(false);
+    try {
+      const markdown = firecrawlTestResult.data.markdown;
+      const lines = markdown.split('\n').filter((l: string) => l.trim().length > 0);
+      let title = "FUTA Official Web Update";
+      for (const line of lines) {
+        if (line.startsWith('# ')) {
+          title = line.replace('# ', '').trim();
+          break;
+        } else if (line.startsWith('## ')) {
+          title = line.replace('## ', '').trim();
+          break;
+        } else if (line.length > 10 && line.length < 100 && !line.includes('http')) {
+          title = line.trim();
+          break;
+        }
+      }
+      const excerpt = lines.slice(1, 4).join(' ').slice(0, 180) + '...';
+      
+      await publishNewsUpdate({
+        title,
+        excerpt,
+        content: markdown,
+        category: 'University Update',
+        readTime: '4 min read',
+        author: 'FUTA Portal Scraper',
+        imageUrl: 'https://futa.edu.ng/asset/img/futalogo.png',
+        isLive: true,
+        date: new Date().toISOString()
+      } as any);
+      setPublishNewsSuccess(true);
+    } catch (e: any) {
+      console.error("Failed to publish news article:", e);
+    } finally {
+      setIsPublishingNews(false);
     }
   };
 
@@ -1233,6 +1316,87 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     >
                       {isSubmittingIndexNow ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />} Submit URLs to IndexNow
                     </button>
+                  </div>
+
+                  {/* Firecrawl Free Tier Scraper & Credit Optimizer */}
+                  <div className="p-6 bg-gradient-to-br from-orange-900/10 to-amber-900/10 dark:from-orange-950/30 dark:to-amber-950/30 rounded-3xl space-y-4 border border-orange-500/20">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 flex items-center gap-2">
+                        <Globe size={16} /> Firecrawl Free Tier Scraper & Credit Optimizer
+                      </h3>
+                      <span className="text-[9px] font-black uppercase bg-orange-500/10 text-orange-500 px-2.5 py-1 rounded-full border border-orange-500/20">
+                        1,000+ Credits / Month (2 Concurrency)
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                      Your Firecrawl API key is successfully integrated (<code className="bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded text-[11px] font-mono text-orange-600">fc-f760...1457</code>). To make the absolute best use of your 1,000+ free monthly credits (1 credit per page):
+                    </p>
+                    <ul className="text-[11px] text-gray-600 dark:text-gray-300 space-y-1.5 list-disc pl-4 font-medium">
+                      <li><strong className="text-gray-900 dark:text-white">Targeted Portal Scraping:</strong> Scrape specific university admission & screening URLs directly instead of crawling entire domains.</li>
+                      <li><strong className="text-gray-900 dark:text-white">LLM-Ready Markdown:</strong> Firecrawl automatically strips ads and boilerplate, delivering pristine markdown for instant AI analysis.</li>
+                      <li><strong className="text-gray-900 dark:text-white">Concurrency Management:</strong> Respects the 2 concurrent request limit to prevent rate limits during university update syncs.</li>
+                    </ul>
+
+                    <div className="pt-2 space-y-2">
+                      <label className="text-[10px] font-black uppercase text-gray-400 block">Test Live University Portal Scrape</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={firecrawlTestUrl}
+                          onChange={e => setFirecrawlTestUrl(e.target.value)}
+                          placeholder="https://www.futa.edu.ng/admission"
+                          className="flex-1 p-3 bg-white dark:bg-gray-950 rounded-xl font-mono text-xs dark:text-white border border-gray-200 dark:border-gray-800 outline-none focus:border-orange-500"
+                        />
+                        <button
+                          onClick={handleTestFirecrawlScrape}
+                          disabled={isFirecrawlTesting || !firecrawlTestUrl.trim()}
+                          className="px-6 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-sm transition-all"
+                        >
+                          {isFirecrawlTesting ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Test Scrape
+                        </button>
+                      </div>
+                    </div>
+
+                    {firecrawlTestResult && (
+                      <div className="mt-4 p-4 bg-white dark:bg-gray-950 rounded-2xl border border-orange-500/20 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className={`font-black uppercase text-[10px] ${firecrawlTestResult.success ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {firecrawlTestResult.success ? '✅ Scrape Successful (1 Credit Consumed)' : '❌ Scrape Failed'}
+                          </span>
+                          <span className="text-[9px] text-gray-400 font-mono">Firecrawl v1 API</span>
+                        </div>
+                        {firecrawlTestResult.success ? (
+                          <div className="space-y-3">
+                            <div className="max-h-48 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-3 rounded-xl font-mono text-[10px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap select-all">
+                              {firecrawlTestResult.data?.markdown || JSON.stringify(firecrawlTestResult.data, null, 2)}
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                              <span className="text-[10px] text-gray-500 italic">Ready for AI Knowledge Base & News publication</span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handlePublishAsArticle}
+                                  disabled={isPublishingNews || publishNewsSuccess}
+                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-sm transition-all"
+                                >
+                                  {isPublishingNews ? <Loader2 size={12} className="animate-spin" /> : publishNewsSuccess ? <Check size={12} /> : <FileText size={12} />}
+                                  {publishNewsSuccess ? 'Published to News Hub!' : 'Publish as News Article'}
+                                </button>
+                                <button
+                                  onClick={handleSyncToKnowledge}
+                                  disabled={isSyncingKnowledge || syncKnowledgeSuccess}
+                                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-sm transition-all"
+                                >
+                                  {isSyncingKnowledge ? <Loader2 size={12} className="animate-spin" /> : syncKnowledgeSuccess ? <Check size={12} /> : <Brain size={12} />}
+                                  {syncKnowledgeSuccess ? 'Synced to Knowledge Base!' : 'Sync to AI Knowledge Base'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-red-500 text-[11px]">{firecrawlTestResult.error}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -199,7 +199,8 @@ app.get("/api/diag/keys", (req, res) => {
   const gemini = getGeminiKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const tavily = getTavilyKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const serper = getSerperKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
-  res.json({ counts: { gemini: gemini.length, tavily: tavily.length, serper: serper.length }, masked: { gemini, tavily, serper } });
+  const firecrawl = getFirecrawlKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
+  res.json({ counts: { gemini: gemini.length, tavily: tavily.length, serper: serper.length, firecrawl: firecrawl.length }, masked: { gemini, tavily, serper, firecrawl } });
 });
 
 app.get("/api/health", (req, res) => {
@@ -923,14 +924,16 @@ const robustKeyExtract = (prefix?: string): string[] => {
     const raw = envValue;
     
     // Pattern based extraction for merged strings or JSON-like values
-    // Look for Gemini (AIzaSy or AQ.), Tavily (tvly-), or hex keys (Serper/OpenAI)
+    // Look for Gemini (AIzaSy or AQ.), Tavily (tvly-), Firecrawl (fc-), or hex keys (Serper/OpenAI)
     const geminiRegex = /(AIzaSy[A-Za-z0-9_-]{33}|AQ\.[A-Za-z0-9_-]+)/g;
     const tavilyRegex = /(tvly-[A-Za-z0-9]{32})/g;
+    const firecrawlRegex = /(fc-[A-Za-z0-9_-]{32,})/g;
     const hexRegex = /\b([a-f0-9]{32,64})\b/gi;
 
     let match;
     while ((match = geminiRegex.exec(raw)) !== null) keys.push(match[1]);
     while ((match = tavilyRegex.exec(raw)) !== null) keys.push(match[1]);
+    while ((match = firecrawlRegex.exec(raw)) !== null) keys.push(match[1]);
     while ((match = hexRegex.exec(raw)) !== null) {
       const k = match[1];
       // Filter out things that are definitely not Serper keys (like common hex strings)
@@ -946,6 +949,8 @@ const robustKeyExtract = (prefix?: string): string[] => {
         keys.push(trimmed);
       } else if (prefix === 'tvly-' && trimmed.startsWith('tvly-')) {
         keys.push(trimmed);
+      } else if (prefix === 'fc-' && trimmed.startsWith('fc-')) {
+        keys.push(trimmed);
       } else if (!prefix && trimmed.length >= 32 && /^[a-f0-9]+$/i.test(trimmed)) {
         keys.push(trimmed);
       }
@@ -958,16 +963,17 @@ const robustKeyExtract = (prefix?: string): string[] => {
   return deduplicated.filter(k => {
     if (prefix === 'AIzaSy') return k.startsWith('AIzaSy') || k.startsWith('AQ.');
     if (prefix === 'tvly-') return k.startsWith('tvly-');
+    if (prefix === 'fc-') return k.startsWith('fc-');
     if (prefix) return k.startsWith(prefix);
     
     // Default validation for generic extraction (Serper)
     if (k.length < 30) return false;
-    if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-')) return false;
+    if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-') || k.startsWith('fc-')) return false;
     return /^[a-f0-9]+$/i.test(k);
   });
 };
 
-// --- Pure Search Keys Management ---
+// --- Pure Search & Scrape Keys Management ---
 const getTavilyKeys = (): string[] => {
   return robustKeyExtract('tvly-');
 };
@@ -978,9 +984,14 @@ const getSerperKeys = (): string[] => {
     !k.startsWith('AIzaSy') && 
     !k.startsWith('AQ.') && 
     !k.startsWith('tvly-') && 
+    !k.startsWith('fc-') &&
     k.length >= 30 &&
     /^[a-f0-9]+$/i.test(k) // Serper keys are hex
   );
+};
+
+const getFirecrawlKeys = (): string[] => {
+  return robustKeyExtract('fc-');
 };
 
 // --- Gemini Key & Client Management ---
@@ -1497,17 +1508,20 @@ app.get("/api/diag/keys", (req, res) => {
   const gemini = getGeminiKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const tavily = getTavilyKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const serper = getSerperKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
+  const firecrawl = getFirecrawlKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   
   res.json({
     counts: {
       gemini: gemini.length,
       tavily: tavily.length,
-      serper: serper.length
+      serper: serper.length,
+      firecrawl: firecrawl.length
     },
     masked: {
       gemini,
       tavily,
-      serper
+      serper,
+      firecrawl
     }
   });
 });
@@ -2582,6 +2596,56 @@ Return the output strictly as a JSON object with this exact shape:
   }
 
   return res.status(500).json({ error: "Failed to generate blog post with any provider." });
+});
+
+// --- Firecrawl Web Scrape API Route ---
+app.post("/api/firecrawl/scrape", async (req: any, res: any) => {
+  const { url, formats } = req.body;
+  if (!url) {
+    return res.status(400).json({ success: false, error: "URL is required" });
+  }
+
+  const firecrawlKeys = getFirecrawlKeys();
+  console.log(`[API Firecrawl Scrape] Target URL: "${url}". Found ${firecrawlKeys.length} Firecrawl keys.`);
+
+  if (firecrawlKeys.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      error: "No Firecrawl API keys configured. Please add your Firecrawl API key starting with 'fc-'." 
+    });
+  }
+
+  for (let i = 0; i < firecrawlKeys.length; i++) {
+    const key = firecrawlKeys[i];
+    try {
+      console.log(`[API Firecrawl Scrape] Attempting scrape with key ${i + 1}/${firecrawlKeys.length} (${key.substring(0, 6)}...)`);
+      const response = await axios.post('https://api.firecrawl.dev/v1/scrape', {
+        url,
+        formats: formats || ['markdown', 'html']
+      }, {
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 25000
+      });
+
+      if (response.data && (response.data.success || response.data.data)) {
+        console.log(`[API Firecrawl Scrape] Successfully scraped ${url}`);
+        return res.json({
+          success: true,
+          data: response.data.data || response.data
+        });
+      }
+    } catch (err: any) {
+      console.error(`[API Firecrawl Scrape Error with key ${key.substring(0, 6)}...]`, err.response?.data || err.message);
+    }
+  }
+
+  return res.status(500).json({ 
+    success: false, 
+    error: "All Firecrawl keys failed to scrape the URL." 
+  });
 });
 
 app.post("/api/search", async (req: any, res: any) => {
