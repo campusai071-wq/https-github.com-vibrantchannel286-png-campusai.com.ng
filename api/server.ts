@@ -594,10 +594,17 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
     }
 
     if (!adminDb) {
-      console.warn("[Admin API] adminDb not initialized, using client fallback directly");
+      console.log("[Admin API] adminDb not initialized, using client SDK fallback directly.");
+      try {
+        const resData = await clientNewsWrite(action, id, news || updates);
+        return res.json(resData);
+      } catch (clientErr: any) {
+        console.error(`[Admin API] Client SDK action failed:`, clientErr.message);
+        return res.status(500).json({ success: false, error: clientErr.message });
+      }
     }
 
-    const newsCollection = adminDb ? adminDb.collection("news") : null;
+    const newsCollection = adminDb.collection("news");
 
     if (action === "delete") {
       if (!id) return res.status(400).json({ success: false, error: "ID is required for deletion" });
@@ -2646,6 +2653,118 @@ app.post("/api/firecrawl/scrape", async (req: any, res: any) => {
     success: false, 
     error: "All Firecrawl keys failed to scrape the URL." 
   });
+});
+
+// --- Firecrawl Monitor Webhook Route ---
+app.post("/api/webhooks/firecrawl", async (req: any, res: any) => {
+  console.log(`[API Webhook] Received Firecrawl webhook payload`);
+  
+  try {
+    const payload = req.body;
+    let url = "";
+    let markdown = "";
+    
+    // Parse monitor payload 
+    if (payload?.data?.[0]?.markdown) {
+        markdown = payload.data[0].markdown;
+        url = payload.data[0].url || payload.url;
+    } else if (payload?.data?.markdown) {
+        markdown = payload.data.markdown;
+        url = payload.data?.url || payload.url;
+    } else if (payload?.markdown) {
+        markdown = payload.markdown;
+        url = payload.url;
+    } else if (payload?.data?.data?.[0]?.markdown) {
+        markdown = payload.data.data[0].markdown;
+        url = payload.data.data[0].url;
+    }
+    
+    if (!markdown) {
+        console.warn(`[API Webhook] No markdown found in Firecrawl payload`);
+        return res.status(200).json({ success: true, message: "Ignored: No markdown in payload" });
+    }
+
+    const keys = getGeminiKeys();
+    if (keys.length === 0) {
+      console.warn("[API Webhook] No Gemini API keys found.");
+      return res.status(500).json({ success: false, error: "No Gemini API keys" });
+    }
+
+    const ai = new GoogleGenAI({ apiKey: keys[0] });
+    const prompt = `You are an AI analyzing updates to a university admissions page for changes in Post-UTME forms.
+The user is monitoring this URL: ${url}
+
+Here is the updated page content in Markdown:
+===
+${markdown.substring(0, 30000)}
+===
+
+Analyze this content. If there are new universities that have released their Post-UTME forms, cut-off marks, or application deadlines, extract them and generate a news article. 
+If there are NO meaningful updates or releases, simply reply with "NO_UPDATES".
+If there ARE updates, format your response strictly as a JSON object:
+{
+  "title": "Post-UTME Forms Released: [University Names]",
+  "content": "Detailed markdown content about the new forms, cut-off marks, deadlines, and how to apply.",
+  "category": "Admission",
+  "tags": ["Post-UTME", "Admission", "Updates"],
+  "universities": ["List", "of", "relevant", "universities"]
+}
+Only output the JSON object or NO_UPDATES, no other text.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-flash-latest',
+      contents: prompt
+    });
+    
+    let generatedNewsText = response.text || "";
+
+    generatedNewsText = generatedNewsText.trim();
+    if (generatedNewsText.includes("NO_UPDATES") || generatedNewsText === "NO_UPDATES") {
+      console.log("[API Webhook] No relevant updates found by Gemini.");
+      return res.status(200).json({ success: true, message: "Processed: No relevant updates" });
+    }
+
+    // Parse JSON
+    const jsonMatch = generatedNewsText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log("[API Webhook] Failed to parse Gemini response as JSON:", generatedNewsText.substring(0, 100));
+      return res.status(200).json({ success: true, message: "Processed: Could not parse updates" });
+    }
+
+    const newsData = JSON.parse(jsonMatch[0]);
+    
+    // Save to Firestore
+    const newsDoc = {
+      title: newsData.title || "Post-UTME Update Detected",
+      content: newsData.content || "An update was detected on the monitored page.",
+      category: newsData.category || "Admission",
+      tags: newsData.tags || ["Post-UTME"],
+      universities: newsData.universities || [],
+      sourceUrl: url,
+      source: "Firecrawl Monitor",
+      publishDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: "published",
+      author: "AI Monitor",
+      isBreaking: true
+    };
+
+    if (adminDb) {
+      const docRef = await adminDb.collection("news").add(newsDoc);
+      console.log(`[API Webhook] Successfully published Firecrawl monitor news: ${docRef.id}`);
+    } else {
+      console.warn("[API Webhook] adminDb not initialized, using client fallback directly");
+      const resData = await clientNewsWrite("publish", undefined, newsDoc);
+      console.log(`[API Webhook] Client fallback publish result:`, resData);
+    }
+
+    return res.status(200).json({ success: true, message: "Update processed and published", data: newsData });
+
+  } catch (error: any) {
+    console.error(`[API Webhook] Error processing Firecrawl webhook:`, error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.post("/api/search", async (req: any, res: any) => {
