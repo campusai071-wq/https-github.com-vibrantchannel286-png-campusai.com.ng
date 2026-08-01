@@ -258,7 +258,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Display Name</label>
               <input 
                 type="text" 
-                value={formData.displayName}
+                value={formData.displayName || ''}
                 onChange={e => setFormData({...formData, displayName: e.target.value})}
                 className="w-full bg-gray-50 dark:bg-gray-900 border-2 border-transparent focus:border-blue-500 rounded-2xl p-4 font-bold text-gray-900 dark:text-white outline-none transition-all"
                 placeholder="How should we address you?"
@@ -295,7 +295,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
                   <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
                     type="number" 
-                    value={formData.age}
+                    value={formData.age || ''}
                     onChange={e => setFormData({...formData, age: e.target.value})}
                     className="w-full bg-gray-50 dark:bg-gray-900 pl-12 pr-4 py-4 rounded-2xl font-bold text-gray-900 dark:text-white outline-none"
                     placeholder="e.g. 19"
@@ -308,7 +308,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
                   <UserCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <select 
                     id="gender-select"
-                    value={formData.gender}
+                    value={formData.gender || ''}
                     onChange={e => setFormData({...formData, gender: e.target.value})}
                     className="w-full bg-gray-50 dark:bg-gray-900 pl-12 pr-4 py-4 rounded-2xl font-bold text-gray-900 dark:text-white outline-none appearance-none"
                   >
@@ -327,7 +327,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
                   <GraduationCap size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
                     type="text" 
-                    value={formData.university}
+                    value={formData.university || ''}
                     onChange={e => setFormData({...formData, university: e.target.value})}
                     className="w-full bg-gray-50 dark:bg-gray-900 pl-12 pr-4 py-4 rounded-2xl font-bold text-gray-900 dark:text-white outline-none"
                     placeholder="e.g. UNILAG"
@@ -340,7 +340,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
                   <Monitor size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
                     type="text" 
-                    value={formData.targetCourse}
+                    value={formData.targetCourse || ''}
                     onChange={e => setFormData({...formData, targetCourse: e.target.value})}
                     className="w-full bg-gray-50 dark:bg-gray-900 pl-12 pr-4 py-4 rounded-2xl font-bold text-gray-900 dark:text-white outline-none"
                     placeholder="e.g. Medicine"

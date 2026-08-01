@@ -14,11 +14,23 @@ const PolicySection: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Target className="text-blue-600" size={20}/> 1. Official Cut-Off Marks (National Minimum)</h3>
             <p className="text-gray-600 dark:text-gray-400">These are the "Minimum Admissible Scores." While schools can set their own marks higher, they are strictly prohibited from admitting anyone below these benchmarks.</p>
-            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-xl font-semibold text-gray-900 dark:text-white">Universities: 150</div>
-                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-xl font-semibold text-gray-900 dark:text-white">Colleges of Nursing: 150</div>
-                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-xl font-semibold text-gray-900 dark:text-white">Polytechnics/Monotechnics: 100</div>
-                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-xl font-semibold text-gray-900 dark:text-white">Colleges of Ed (NCE): No UTME Required</div>
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-2xl font-semibold text-gray-900 dark:text-white flex items-center justify-between gap-3 border border-gray-200/60 dark:border-white/5">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Universities</span>
+                  <span className="px-2.5 py-1 bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs rounded-lg shrink-0">150</span>
+                </div>
+                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-2xl font-semibold text-gray-900 dark:text-white flex items-center justify-between gap-3 border border-gray-200/60 dark:border-white/5">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Colleges of Nursing</span>
+                  <span className="px-2.5 py-1 bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs rounded-lg shrink-0">150</span>
+                </div>
+                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-2xl font-semibold text-gray-900 dark:text-white flex items-center justify-between gap-3 border border-gray-200/60 dark:border-white/5">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Polytechnics / Monotechnics</span>
+                  <span className="px-2.5 py-1 bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-black text-xs rounded-lg shrink-0">100</span>
+                </div>
+                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-2xl font-semibold text-gray-900 dark:text-white flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 border border-gray-200/60 dark:border-white/5">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Colleges of Education (NCE)</span>
+                  <span className="px-2.5 py-1 bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs rounded-lg shrink-0 self-start sm:self-auto">No UTME Required</span>
+                </div>
             </div>
           </div>
           

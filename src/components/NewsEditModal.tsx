@@ -13,7 +13,16 @@ interface NewsEditModalProps {
 }
 
 const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, onSave }) => {
-  const [formData, setFormData] = useState<Partial<NewsItem>>({});
+  const [formData, setFormData] = useState<Partial<NewsItem>>({
+    title: '',
+    excerpt: '',
+    fullContent: '',
+    category: 'National',
+    image: '',
+    images: [],
+    sourceUrl: '',
+    tags: []
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,11 +48,22 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
     e.preventDefault();
     if (!news) return;
     
-    console.log("Saving news with data:", formData);
+    const finalImages = formData.images && formData.images.length > 0
+      ? formData.images
+      : (formData.image ? [formData.image] : []);
+    const finalImage = formData.image || finalImages[0] || '';
+
+    const payload: Partial<NewsItem> = {
+      ...formData,
+      image: finalImage,
+      images: finalImages
+    };
+
+    console.log("Saving news with data:", payload);
     setIsSaving(true);
     setError(null);
     try {
-      await onSave(formData);
+      await onSave(payload);
       onClose();
     } catch (err: any) {
       console.error("NewsEditModal save error:", err);
@@ -110,7 +130,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   <input
                     type="text"
                     required
-                    value={formData.title}
+                    value={formData.title || ''}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white"
                     placeholder="Enter article title"
@@ -122,7 +142,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                     <Tag size={12} /> Category
                   </label>
                   <select
-                    value={formData.category}
+                    value={formData.category || 'National'}
                     onChange={e => setFormData({ ...formData, category: e.target.value as UniversityCategory })}
                     className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white appearance-none"
                   >
@@ -150,7 +170,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   </label>
                   <input
                     type="url"
-                    value={formData.sourceUrl}
+                    value={formData.sourceUrl || ''}
                     onChange={e => setFormData({ ...formData, sourceUrl: e.target.value })}
                     className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white"
                     placeholder="https://unilag.edu.ng/..."
@@ -167,7 +187,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   <textarea
                     rows={4}
                     required
-                    value={formData.excerpt}
+                    value={formData.excerpt || ''}
                     onChange={e => setFormData({ ...formData, excerpt: e.target.value })}
                     className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white resize-none"
                     placeholder="Brief summary of the news..."
@@ -218,7 +238,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   <textarea
                     rows={10}
                     required
-                    value={formData.fullContent}
+                    value={formData.fullContent || ''}
                     onChange={e => setFormData({ ...formData, fullContent: e.target.value })}
                     className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white resize-none font-mono"
                     placeholder="## Introduction\n\nDetailed content goes here..."

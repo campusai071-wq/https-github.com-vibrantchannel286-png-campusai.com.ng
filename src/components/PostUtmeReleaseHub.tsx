@@ -24,175 +24,444 @@ interface SchoolReleaseStatus {
   examDate?: string;
   cutoffScore?: string;
   eligibilityText?: string;
+  registrationFee?: number | string;
+  citationUrl?: string;
   isSyncedLive?: boolean;
 }
 
 // Fixed pre-loaded statuses for common top schools as a solid baseline
 const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
-  "University of Lagos": {
+  "University of Jos": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal. Registration deadline: August 28, 2026. CBT Screening: September 7, 2026.",
-    portalLink: "https://studentportal.unilag.edu.ng/",
-    publishDate: "May 25, 2026",
-    deadlineDate: "August 28, 2026",
-    examDate: "September 7, 2026",
-    cutoffScore: "200",
-    eligibilityText: "5 O'Level credits including English & Mathematics in one sitting"
-  },
-  "University of Ibadan": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "UI 2026/2027 Post-UTME form sales and registration are active. Registration deadline: August 31, 2026. CBT Screening: September 14, 2026.",
-    portalLink: "https://admissions.ui.edu.ng/",
-    publishDate: "May 24, 2026",
-    deadlineDate: "August 31, 2026",
-    examDate: "September 14, 2026",
-    cutoffScore: "200",
-    eligibilityText: "Minimum credit levels in relevant prerequisite combo"
-  },
-  "Obafemi Awolowo University": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "OAU 2026/2027 Post-UTME registration guidelines officially released. Deadline: August 25, 2026. CBT Exam commences: September 8, 2026.",
-    portalLink: "https://admissions.oauife.edu.ng/",
-    publishDate: "May 28, 2026",
-    deadlineDate: "August 25, 2026",
-    examDate: "September 8, 2026",
-    cutoffScore: "200",
-    eligibilityText: "JAMB matching subjects & 5 credits"
-  },
-  "University of Benin": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "UNIBEN 2026/2027 Post-UTME portal is open. Deadline: September 5, 2026. CBT Screening: September 18, 2026.",
-    portalLink: "https://uniben.waeup.org/",
-    publishDate: "May 22, 2026",
-    deadlineDate: "September 5, 2026",
-    examDate: "September 18, 2026",
-    cutoffScore: "200",
-    eligibilityText: "Screening of O-level upload is mandatory"
+    details: "UNIJOS 2026/2027 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.",
+    portalLink: "https://portal.unijos.edu.ng",
+    publishDate: "Monday, 13 July 2026",
+    deadlineDate: "Saturday, 12 September 2026",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://www.unijos.edu.ng/",
+    eligibilityText: "Minimum JAMB score: 180"
   },
   "University of Nigeria, Nsukka": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNN 2026/2027 Post-UTME application is active. Application deadline: August 29, 2026. CBT Exam: September 12, 2026.",
+    details: "UNN 2026/2027 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered for admission.",
     portalLink: "https://unnportal.unn.edu.ng/",
     publishDate: "May 26, 2026",
-    deadlineDate: "August 29, 2026",
-    examDate: "September 12, 2026",
-    cutoffScore: "200",
-    eligibilityText: "JAMB and O'level scores parsed proportionally"
+    deadlineDate: "will be considered for admission",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/unn-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 160"
   },
-  "Federal University of Technology, Akure": {
-    isOut: true,
-    statusText: "Form Released (Point-Based)",
-    details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: August 24, 2026. FUTA uses O'Level + JAMB points (no written exam).",
-    portalLink: "https://www.futa.edu.ng",
-    publishDate: "May 20, 2026",
-    deadlineDate: "August 24, 2026",
-    cutoffScore: "180",
-    eligibilityText: "Written exams are fully WAIVED of CBT guidelines. O'Level verification"
-  },
-  "Lagos State University": {
-    isOut: true,
-    statusText: "Form Released",
-    details: "LASU 2026/2027 screening application portal is active. Online screening closes: August 22, 2026.",
-    portalLink: "https://lidc.lasu.edu.ng/",
-    publishDate: "May 21, 2026",
-    deadlineDate: "August 22, 2026",
-    cutoffScore: "195",
-    eligibilityText: "Point-based O'level scores aggregate calculation"
-  },
-  "Federal University of Technology, Minna": {
+  "University of Benin": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTMinna 2026/2027 registration active. Deadline: September 2, 2026. CBT screening date: September 15, 2026.",
-    portalLink: "https://futminna.edu.ng",
-    publishDate: "May 18, 2026",
-    deadlineDate: "September 2, 2026",
-    examDate: "September 15, 2026",
-    cutoffScore: "180"
-  },
-  "Federal University of Technology, Owerri": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "FUTO 2026/2027 screening forms out and active. Registration deadline: August 30, 2026. CBT Exam: September 10, 2026.",
-    portalLink: "https://portal.futo.edu.ng/",
-    publishDate: "May 23, 2026",
-    deadlineDate: "August 30, 2026",
-    examDate: "September 10, 2026",
-    cutoffScore: "180"
-  },
-  "University of Port Harcourt": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "UNIPORT 2026/2027 Post-UTME registration active. Registration closes: August 26, 2026. CBT Exam: September 9, 2026.",
-    portalLink: "https://www.uniport.edu.ng",
+    details: "UNIBEN 2026/2027 Post-UTME portal is open for registration. Strict application deadline applies. Screening of O-Level upload on CAPS is mandatory.",
+    portalLink: "https://unibenportal.com/#application",
     publishDate: "May 22, 2026",
-    deadlineDate: "August 26, 2026",
-    examDate: "September 9, 2026",
-    cutoffScore: "150"
+    deadlineDate: "strict",
+    cutoffScore: "200",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/uniben-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "University of Ibadan": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UI 2026/2027 Post-UTME form sales and registration are active on the admissions portal. Check subject compatibility before registering.",
+    portalLink: "https://admissions.ui.edu.ng/#/",
+    publishDate: "May 24, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "200",
+    registrationFee: 5000,
+    citationUrl: "https://myschoolgist.com/news/ui-post-utme/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Obafemi Awolowo University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "OAU 2026/2027 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.",
+    portalLink: "https://eportal2.oauife.edu.ng/ug/admissions",
+    publishDate: "May 28, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "200",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/oau-post-utme-de-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "University of Ilorin": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNILORIN 2026/2027 Post-UTME registration portal is active for first-choice candidates meeting score requirements.",
+    portalLink: "https://admissions.unilorin.edu.ng/",
+    publishDate: "May 29, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/unilorin-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Bayero University, Kano": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "BUK 2026/2027 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.",
+    portalLink: "https://buk.edu.ng/",
+    publishDate: "May 27, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/buk-post-utme/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   },
   "Ahmadu Bello University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ABU Zaria 2026/2027 Post-UTME forms are out on the portal. Registration deadline: September 8, 2026. CBT Screening: September 21, 2026.",
-    portalLink: "https://portal.abu.edu.ng/",
+    details: "ABU Zaria 2026/2027 Post-UTME screening form is out on the portal. Online registration is active.",
+    portalLink: "https://portal.abu.edu.ng/forms",
     publishDate: "May 19, 2026",
-    deadlineDate: "September 8, 2026",
-    examDate: "September 21, 2026",
-    cutoffScore: "180"
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/abu-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   },
-  "University of Ilorin": {
-    isOut: false,
-    statusText: "Awaiting Form Release",
-    details: "UNILORIN is yet to officially release the 2026/2027 Post-UTME registrations. Announcement is expected by late June/July.",
-    cutoffScore: "180"
+  "University of Port Harcourt": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIPORT 2026/2027 Post-UTME registration link is live. Ensure O'Level details are properly uploaded.",
+    portalLink: "https://utmedetails.uniport.edu.ng/welcome_utme.php",
+    publishDate: "May 22, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/uniport-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   },
-  "University of Jos": {
-    isOut: false,
-    statusText: "Awaiting Form Release",
-    details: "UNIJOS 2026/2027 Post-UTME guidelines are pending senate approvals. Form is expected in July.",
-    cutoffScore: "170"
+  "Federal University of Technology, Akure": {
+    isOut: true,
+    statusText: "Form Released (Point-Based)",
+    details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: Friday, 31 July 2026.",
+    portalLink: "https://www.futa.edu.ng/",
+    publishDate: "May 20, 2026",
+    deadlineDate: "Friday, 31 July 2026",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/futa-post-utme-de-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "University of Lagos": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNILAG 2026/2027 Post-UTME screening portal is active on the applications site.",
+    portalLink: "https://applications.unilag.edu.ng/home",
+    publishDate: "May 25, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "200",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/unilag-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Federal University of Technology, Owerri": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUTO 2026/2027 screening forms are out and active on the undergraduate portal.",
+    portalLink: "https://portal.futo.edu.ng/#undergraduate",
+    publishDate: "May 23, 2026",
+    deadlineDate: "Friday, 31 July 2026",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/futo-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150"
+  },
+  "Osun State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIOSUN 2026/2027 Post-UTME screening application portal is active.",
+    portalLink: "https://admissions.uniosun.edu.ng/",
+    publishDate: "May 28, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "160",
+    registrationFee: 3000,
+    citationUrl: "https://myschoolgist.com/news/uniosun-post-utme/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Olabisi Onabanjo University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "OOU 2026/2027 Post-UTME & DE screening forms are out. Registration deadline: Friday, 22 July 2026.",
+    portalLink: "https://putme.oouagoiwoye.edu.ng/",
+    publishDate: "May 24, 2026",
+    deadlineDate: "Friday, 22 July 2026",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/oou-post-utme-de/",
+    eligibilityText: "Minimum JAMB score: 160"
+  },
+  "Lagos State University": {
+    isOut: true,
+    statusText: "Form Released",
+    details: "LASU 2026/2027 admission screening portal is active for first choice applicants.",
+    portalLink: "https://services.lidc.lasu.edu.ng/admissionscreening/",
+    publishDate: "May 21, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "195",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/lasu-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Ekiti State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "EKSU 2026/2027 Post-UTME online screening portal is active.",
+    portalLink: "https://eksuportal.eksu.edu.ng/",
+    publishDate: "May 26, 2026",
+    deadlineDate: "will not be considered for admission",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/eksu-post-utme/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Federal University Oye-Ekiti": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: 2 August 2026.",
+    portalLink: "https://putme.fuoye.edu.ng/utme/",
+    publishDate: "May 25, 2026",
+    deadlineDate: "2 August 2026",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/fuoye-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150"
   },
   "Nnamdi Azikiwe University": {
-    isOut: false,
-    statusText: "Awaiting Form Release",
-    details: "UNIZIK has not released 2026/2027 registration schedules yet. Monitor the admissions site regularly.",
-    cutoffScore: "180"
-  },
-  "Adamawa State Polytechnic": {
     isOut: true,
-    statusText: "Form Closed",
-    details: "Application has closed. Screening forms for the 2026/2027 academic session are no longer available on the official portal.",
-    portalLink: "https://spy.admissions.cloud",
-    publishDate: "May 20, 2026",
-    cutoffScore: "100"
+    statusText: "Registration Active",
+    details: "UNIZIK 2026/2027 Post-UTME screening application portal is active.",
+    portalLink: "https://apply.unizik.edu.ng/auth/login",
+    publishDate: "May 28, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/unizik-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "University of Uyo": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIUYO 2026/2027 Post-UTME screening form is out. Registration closes Friday, 7 August 2026.",
+    portalLink: "https://eportals.uniuyo.edu.ng/",
+    publishDate: "May 29, 2026",
+    deadlineDate: "Friday, 7 August 2026",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/uniuyo-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150"
+  },
+  "Delta State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "DELSU Abraka 2026/2027 Post-UTME portal is live for registration.",
+    portalLink: "https://portal.delsuces.online/",
+    publishDate: "May 22, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/delsu-post-utme-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Ladoke Akintola University of Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "LAUTECH 2026/2027 Post-UTME screening portal is open for candidates with 170+ score.",
+    portalLink: "https://eportal.lautech.edu.ng/ug/admissions",
+    publishDate: "May 27, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "170",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/lautech-post-utme/",
+    eligibilityText: "Minimum JAMB score: 170"
+  },
+  "Kwara State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "KWASU Malete 2026/2027 Post-UTME form is officially out on the portal.",
+    portalLink: "https://portal.kwasu.edu.ng/",
+    publishDate: "May 30, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/kwara-state-university-post-utme-form-out/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Nasarawa State University, Keffi": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "NSUK Keffi 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://portal.nsuk.edu.ng/",
+    publishDate: "May 29, 2026",
+    deadlineDate: "the programme selected by the candidate",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/nsuk-post-utme-de-form/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Sule Lamido University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "SLU 2026/2027 Post-UTME application form is active on the admissions portal.",
+    portalLink: "https://admissions.slu.edu.ng/",
+    publishDate: "May 31, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/slu-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 160"
+  },
+  "Federal University, Wukari": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUWUKARI 2026/2027 Post-UTME & DE screening registration portal is active.",
+    portalLink: "https://ug.fuwportal.edu.ng/putme_registration.php",
+    publishDate: "May 28, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/fuwukari-post-utme-de-13054/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Federal University of Health Sciences, Otukpo": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUHSO 2026/2027 Post-UTME application portal is live for prospective healthcare candidates.",
+    portalLink: "https://postutme.fuhso.edu.ng/apply",
+    publishDate: "May 30, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/fuhso-post-utme/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Kogi State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "PAAU / KSU Anyigba 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://portal.paau.edu.ng/pd_dip/utme_dashboard",
+    publishDate: "May 25, 2026",
+    deadlineDate: "Wednesday, 1 July 2026",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/ksu-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150"
+  },
+  "Confluence University of Science and Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "CUSTECH Osara 2026/2027 Post-UTME screening application portal is active.",
+    portalLink: "https://eportal.custech.edu.ng/utme/index.php",
+    publishDate: "May 29, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/custech-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150"
+  },
+  "Plateau State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "PLASU Bokkos 2026/2027 Post-UTME online registration portal is live.",
+    portalLink: "https://plasu.edu.ng/",
+    publishDate: "May 27, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/plasu-post-utme/",
+    eligibilityText: "Minimum JAMB score: 160"
+  },
+  "Modibbo Adama University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "MAU Yola 2026/2027 Post-UTME screening application portal is open.",
+    portalLink: "https://mau.edu.ng/",
+    publishDate: "May 26, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/mautech-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 160"
+  },
+  "Abubakar Tafawa Balewa University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ATBU Bauchi 2026/2027 Post-UTME screening login portal is active.",
+    portalLink: "http://screening.atbu.edu.ng/pages/login.php",
+    publishDate: "May 24, 2026",
+    deadlineDate: "See official portal",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/atbu-post-utme-screening/",
+    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   }
 };
 
-// Helper function to robustly check if a Post-UTME form is closed
-export const isClosedForm = (s: { statusText?: string; details?: string }): boolean => {
-  const statusStr = (s.statusText || '').toLowerCase();
-  const detailsStr = (s.details || '').toLowerCase();
-  
+export const isClosedForm = (s?: Partial<SchoolReleaseStatus> | null): boolean => {
+  if (!s) return false;
+  const statusText = (s.statusText || '').toLowerCase();
+  const details = (s.details || '').toLowerCase();
+  const deadline = (s.deadlineDate || '').toLowerCase();
   return (
-    statusStr.includes('close') ||
-    statusStr.includes('ended') ||
-    statusStr.includes('expired') ||
-    statusStr.includes('passed') ||
-    statusStr.includes('stopped') ||
-    detailsStr.includes('form is closed') ||
-    detailsStr.includes('registration has closed') ||
-    detailsStr.includes('application has closed') ||
-    detailsStr.includes('portal is closed') ||
-    detailsStr.includes('registration is closed') ||
-    detailsStr.includes('form has ended')
+    statusText.includes('closed') ||
+    statusText.includes('ended') ||
+    statusText.includes('expired') ||
+    details.includes('form is officially closed') ||
+    details.includes('registration is closed') ||
+    details.includes('registration closed') ||
+    deadline.includes('closed') ||
+    deadline.includes('expired')
   );
 };
 
-// Comprehensive Nigerian school acronyms & aliases dictionary for smart search
+
+export const sanitizeField = (newValue?: string | null, fallbackValue?: string): string | undefined => {
+  if (!newValue) return fallbackValue;
+  const lower = newValue.toString().toLowerCase().trim();
+  if (
+    lower.includes("not provided") ||
+    lower.includes("not mentioned") ||
+    lower.includes("not specified") ||
+    lower.includes("no specific") ||
+    lower.includes("not found") ||
+    lower === "none" ||
+    lower === "null" ||
+    lower === "undefined"
+  ) {
+    return fallbackValue;
+  }
+  return newValue.toString();
+};
+
+export const getBaselineRelease = (schoolName: string): Partial<SchoolReleaseStatus> | undefined => {
+  if (!schoolName) return undefined;
+  const norm = schoolName.toLowerCase().trim();
+  for (const [key, val] of Object.entries(BASELINE_RELEASES)) {
+    const keyNorm = key.toLowerCase().trim();
+    if (norm === keyNorm || norm.includes(keyNorm) || keyNorm.includes(norm)) {
+      return val;
+    }
+  }
+  for (const [aliasKey, aliasList] of Object.entries(SCHOOL_ALIASES)) {
+    if (norm.includes(aliasKey) || aliasList.some(a => norm.includes(a))) {
+      for (const [key, val] of Object.entries(BASELINE_RELEASES)) {
+        if (key.toLowerCase().includes(aliasKey) || aliasList.some(a => key.toLowerCase().includes(a))) {
+          return val;
+        }
+      }
+    }
+  }
+  return undefined;
+};
+
 const SCHOOL_ALIASES: Record<string, string[]> = {
   "unilag": ["university of lagos"],
   "ui": ["university of ibadan"],
@@ -820,9 +1089,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 statusText: result.statusText || (result.isOut ? "Registration Active" : "Form Awaiting / TBA"),
                 details: result.details || s.details,
                 portalLink: result.portalLink || s.portalLink,
-                publishDate: result.publishDate || "Verified Today",
-                cutoffScore: result.cutoffScore || s.cutoffScore,
-                eligibilityText: result.eligibilityText || s.eligibilityText,
+                publishDate: sanitizeField(result.publishDate, s.publishDate) || "Verified Today",
+                cutoffScore: sanitizeField(result.cutoffScore, s.cutoffScore),
+                eligibilityText: sanitizeField(result.eligibilityText, s.eligibilityText),
                 isSyncedLive: true
               };
             }
@@ -1602,7 +1871,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
             portalLink: baseline.portalLink || u.url,
             publishDate: baseline.publishDate,
             cutoffScore: baseline.cutoffScore || "150 (Baseline)",
-            eligibilityText: baseline.eligibilityText
+            eligibilityText: baseline.eligibilityText,
+            registrationFee: baseline.registrationFee,
+            citationUrl: baseline.citationUrl
           };
         } else {
           // Defaults for other institutions in the general list of 250+ schools
@@ -1623,7 +1894,25 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
       const uniqueFormatted: SchoolReleaseStatus[] = [];
       const seenNames = new Set<string>();
       
-      for (const item of [...targetUserSchools, ...formatted]) {
+      const enrichedTargetUserSchools = targetUserSchools.map(item => {
+        const base = getBaselineRelease(item.schoolName);
+        if (!base) return item;
+        return {
+          ...item,
+          isOut: base.isOut ?? item.isOut,
+          statusText: sanitizeField(item.statusText, base.statusText) || base.statusText || item.statusText,
+          details: sanitizeField(item.details, base.details) || base.details || item.details,
+          portalLink: item.portalLink || base.portalLink,
+          publishDate: sanitizeField(item.publishDate, base.publishDate) || base.publishDate || "May 2026",
+          cutoffScore: sanitizeField(item.cutoffScore, base.cutoffScore) || base.cutoffScore || "150",
+          eligibilityText: sanitizeField(item.eligibilityText, base.eligibilityText) || base.eligibilityText || item.eligibilityText,
+          registrationFee: item.registrationFee || base.registrationFee,
+          citationUrl: item.citationUrl || base.citationUrl,
+          deadlineDate: sanitizeField(item.deadlineDate, base.deadlineDate) || base.deadlineDate || item.deadlineDate
+        };
+      });
+
+      for (const item of [...enrichedTargetUserSchools, ...formatted]) {
         const normalized = item.schoolName.trim().toLowerCase();
         // Extract base name without parentheses or suffixes if we want to match more deeply
         const baseMath = normalized.split('(')[0].trim();
@@ -1707,13 +1996,13 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 ...updated[index],
                 isOut: syncItem.isOut,
                 statusText: syncItem.statusText || "Form Released ⚡",
-                details: syncItem.details || updated[index].details,
+                details: sanitizeField(syncItem.details, updated[index].details) || updated[index].details,
                 portalLink: syncItem.portalLink || updated[index].portalLink,
-                publishDate: syncItem.publishDate || "Synced Today",
+                publishDate: sanitizeField(syncItem.publishDate, updated[index].publishDate) || "Synced Today",
                 deadlineDate: resolvedDeadline,
                 examDate: syncItem.examDate || updated[index].examDate,
-                cutoffScore: syncItem.cutoffScore && !syncItem.cutoffScore.toLowerCase().includes("not specified") ? syncItem.cutoffScore : updated[index].cutoffScore,
-                eligibilityText: syncItem.eligibilityText || updated[index].eligibilityText,
+                cutoffScore: sanitizeField(syncItem.cutoffScore, updated[index].cutoffScore),
+                eligibilityText: sanitizeField(syncItem.eligibilityText, updated[index].eligibilityText),
                 isSyncedLive: true
               };
               matchCount++;
@@ -1796,7 +2085,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
   const categoriesList = ['All', 'Federal', 'State', 'Private', 'Polytechnic', 'COE', 'Nursing'];
 
   return (
-    <div className="container mx-auto px-4 md:px-8 py-10 max-w-[1440px] relative z-10" id="postutme-tracker">
+    <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 max-w-[1440px] relative z-10 pb-36 md:pb-28" id="postutme-tracker">
       <SEO />
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
@@ -2230,87 +2519,91 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
       </div>
 
       {/* FILTERS & SEARCH MODULE */}
-      <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-3xl flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* Search Searchbar */}
-        <div className="relative w-full lg:max-w-xs">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search school name or acronym (e.g. UNILAG, UI)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/40 text-xs pl-10 pr-4 py-2.5 rounded-xl border border-white/5 outline-none focus:border-cyan-500/40 text-white"
-          />
-        </div>
+      <div className="mb-6 p-4 md:p-5 bg-white/5 border border-white/10 rounded-3xl flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search school name or acronym (UNILAG, UI...)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/40 text-xs pl-10 pr-4 py-2.5 rounded-xl border border-white/5 outline-none focus:border-cyan-500/40 text-white placeholder:text-gray-500"
+            />
+          </div>
 
-        {/* Exam Type Filter Pills */}
-        <div className="flex items-center gap-1 bg-black/30 p-1 rounded-2xl border border-white/5 shrink-0 w-full lg:w-auto overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setExamTypeFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
-              examTypeFilter === 'all' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            All Types
-          </button>
-          <button
-            onClick={() => setExamTypeFilter('cbt')}
-            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
-              examTypeFilter === 'cbt' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            ✍️ CBT Exam ({schools.filter(s => getExamTypeInfo(s.schoolName).isCbtExam).length})
-          </button>
-          <button
-            onClick={() => setExamTypeFilter('point_based')}
-            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
-              examTypeFilter === 'point_based' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            📊 Point-Based ({schools.filter(s => !getExamTypeInfo(s.schoolName).isCbtExam).length})
-          </button>
-        </div>
-
-        {/* Status Tab buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none ${statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
-          >
-            All Schools ({schools.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('released')}
-            className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'released' ? 'bg-emerald-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
-          >
-            <CheckCircle2 size={12} /> Released ({schools.filter(s => s.isOut && !isClosedForm(s)).length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('closed')}
-            className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'closed' ? 'bg-red-500 text-white' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
-          >
-            <X size={12} /> Closed ({schools.filter(s => isClosedForm(s)).length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('awaiting')}
-            className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'awaiting' ? 'bg-amber-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
-          >
-            <AlertCircle size={12} /> Awaiting ({schools.filter(s => !s.isOut && !isClosedForm(s)).length})
-          </button>
-        </div>
-
-        {/* Category Filters Select */}
-        <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto shrink-0 no-scrollbar py-1">
-          <Filter size={12} className="text-gray-500 hidden sm:block shrink-0" />
-          {categoriesList.map(cat => (
+          {/* Exam Type Filter Pills */}
+          <div className="flex items-center gap-1 bg-black/30 p-1 rounded-2xl border border-white/5 shrink-0 overflow-x-auto no-scrollbar">
             <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-widest shrink-0 transition-all ${categoryFilter === cat ? 'bg-white/15 text-white border border-white/20' : 'bg-transparent text-gray-400 hover:text-white'}`}
+              onClick={() => setExamTypeFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                examTypeFilter === 'all' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
             >
-              {cat}
+              All Types
             </button>
-          ))}
+            <button
+              onClick={() => setExamTypeFilter('cbt')}
+              className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
+                examTypeFilter === 'cbt' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              ✍️ CBT Exam ({schools.filter(s => getExamTypeInfo(s.schoolName).isCbtExam).length})
+            </button>
+            <button
+              onClick={() => setExamTypeFilter('point_based')}
+              className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
+                examTypeFilter === 'point_based' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📊 Point-Based ({schools.filter(s => !getExamTypeInfo(s.schoolName).isCbtExam).length})
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 border-t border-white/5 pt-3">
+          {/* Status Tab buttons */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none ${statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
+            >
+              All ({schools.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('released')}
+              className={`px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1 ${statusFilter === 'released' ? 'bg-emerald-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
+            >
+              <CheckCircle2 size={11} /> Released ({schools.filter(s => s.isOut && !isClosedForm(s)).length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('closed')}
+              className={`px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1 ${statusFilter === 'closed' ? 'bg-red-500 text-white' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
+            >
+              <X size={11} /> Closed ({schools.filter(s => isClosedForm(s)).length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('awaiting')}
+              className={`px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1 ${statusFilter === 'awaiting' ? 'bg-amber-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
+            >
+              <AlertCircle size={11} /> Awaiting ({schools.filter(s => !s.isOut && !isClosedForm(s)).length})
+            </button>
+          </div>
+
+          {/* Category Filters Select */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <Filter size={11} className="text-gray-500 hidden sm:block shrink-0" />
+            {categoriesList.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-2.5 py-1 rounded-lg text-[8.5px] font-extrabold uppercase tracking-wider shrink-0 transition-all ${categoryFilter === cat ? 'bg-white/15 text-white border border-white/20' : 'bg-transparent text-gray-400 hover:text-white'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -2521,7 +2814,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           <p className="text-gray-500 text-xs mt-1">Try resetting the status filter or category headers</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {filteredSchools.map((s, idx) => {
             const examInfo = getExamTypeInfo(s.schoolName);
             const { deadlineMs, examMs, deadlineFormatted, examFormatted } = resolveSchoolDates(s);
@@ -2575,17 +2868,23 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
 
                 {/* Publishing details and score thresholds if out */}
                 {s.isOut && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 py-2 border-y border-white/5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 p-2.5 bg-black/30 border border-white/5 rounded-2xl">
                     {s.publishDate && (
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-bold text-gray-500 uppercase">Released On</span>
-                        <span className="text-[9px] font-black text-gray-300">{s.publishDate}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider truncate">Released On</span>
+                        <span className="text-[9.5px] font-black text-gray-200 truncate">{sanitizeField(s.publishDate, "2026/2027 Session")}</span>
                       </div>
                     )}
                     {s.cutoffScore && (
-                      <div className="flex flex-col">
-                        <span className="text-[7px] font-bold text-gray-500 uppercase">Cutoff Mark</span>
-                        <span className="text-[9px] font-black text-cyan-400">{s.cutoffScore.replace(/\s*\(Baseline\)/gi, '')}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider truncate">Cutoff Mark</span>
+                        <span className="text-[9.5px] font-black text-cyan-400 truncate">{sanitizeField(s.cutoffScore, "150")?.replace(/\s*\(Baseline\)/gi, '')}</span>
+                      </div>
+                    )}
+                    {s.registrationFee && (
+                      <div className="flex flex-col min-w-0 col-span-2 sm:col-span-1">
+                        <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider truncate">Reg. Fee</span>
+                        <span className="text-[9.5px] font-black text-emerald-400 truncate">₦{typeof s.registrationFee === 'number' ? s.registrationFee.toLocaleString() : s.registrationFee}</span>
                       </div>
                     )}
                   </div>
@@ -2628,20 +2927,53 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
               </div>
 
               {/* Action Buttons list */}
-              <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-4 border-t border-white/5">
+              <div className="mt-5 grid grid-cols-2 gap-2 pt-4 border-t border-white/5">
                 {/* Calculate chances trigger action */}
                 <button
                   onClick={() => onCalculateChances(s.schoolName)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600/95 hover:bg-blue-600 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95"
+                  className="col-span-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2.5 bg-blue-600/90 hover:bg-blue-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl transition-all active:scale-95 truncate"
+                  title="Calculate Chances"
                 >
-                  <Calculator size={11} className="shrink-0" /> Calculate Chances
+                  <Calculator size={11} className="shrink-0" />
+                  <span className="truncate">Calculate</span>
                 </button>
+
+                {/* Portal redirect button */}
+                {isClosedForm(s) ? (
+                  <button
+                    disabled
+                    className="col-span-1 inline-flex items-center justify-center gap-1 px-2.5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 font-black text-[9px] uppercase tracking-wider rounded-xl cursor-not-allowed select-none truncate"
+                  >
+                    <X size={11} className="shrink-0" />
+                    <span className="truncate">Form Closed</span>
+                  </button>
+                ) : s.isOut ? (
+                  <a
+                    href={getValidPortalUrl(s.portalLink, s.schoolName)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="col-span-1 inline-flex items-center justify-center gap-1 px-2.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] uppercase tracking-wider rounded-xl transition-all active:scale-95 text-center truncate shadow-sm"
+                    title="Visit Official Portal"
+                  >
+                    <span className="truncate">Visit Portal</span>
+                    <ExternalLink size={11} className="shrink-0" />
+                  </a>
+                ) : (
+                  <button
+                    disabled
+                    className="col-span-1 inline-flex items-center justify-center gap-1 px-2.5 py-2.5 bg-white/5 text-gray-500 font-black text-[9px] uppercase tracking-wider rounded-xl select-none cursor-not-allowed border border-white/5 truncate"
+                  >
+                    <span className="truncate">Pending</span>
+                  </button>
+                )}
 
                 {/* Live Verify Button */}
                 <button
                   onClick={() => handleSingleSchoolVerify(s.schoolName)}
                   disabled={verifyingSchools[s.schoolName]}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 border rounded-xl font-black text-[9px] uppercase tracking-widest transition-all active:scale-95 ${
+                  className={`inline-flex items-center justify-center gap-1 px-2.5 py-2 border rounded-xl font-black text-[8.5px] uppercase tracking-wider transition-all active:scale-95 truncate ${
+                    s.citationUrl ? 'col-span-1' : 'col-span-2'
+                  } ${
                     verifyingSchools[s.schoolName]
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 cursor-not-allowed'
                       : s.isSyncedLive
@@ -2651,49 +2983,37 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 >
                   {verifyingSchools[s.schoolName] ? (
                     <>
-                      <RotateCw className="animate-spin text-amber-400" size={11} />
-                      Verifying...
+                      <RotateCw className="animate-spin text-amber-400 shrink-0" size={10} />
+                      <span className="truncate">Verifying...</span>
                     </>
                   ) : s.isSyncedLive ? (
                     <>
-                      <CheckCircle2 className="text-emerald-400 inline-block" size={11} />
-                      Verified
+                      <CheckCircle2 className="text-emerald-400 shrink-0" size={10} />
+                      <span className="truncate">Verified</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="text-cyan-400 animate-pulse" size={11} />
-                      Verify Portal
+                      <Sparkles className="text-cyan-400 animate-pulse shrink-0" size={10} />
+                      <span className="truncate">Verify Live</span>
                     </>
                   )}
                 </button>
 
-                {/* Portal redirect button */}
-                {isClosedForm(s) ? (
-                  <button
-                    disabled
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 font-black text-[9px] uppercase tracking-widest rounded-xl select-none cursor-not-allowed"
-                  >
-                    Form Closed <X size={11} className="shrink-0" />
-                  </button>
-                ) : s.isOut ? (
+                {/* Citation Source link */}
+                {s.citationUrl && (
                   <a
-                    href={getValidPortalUrl(s.portalLink, s.schoolName)}
+                    href={s.citationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm shadow-blue-200/50 text-center"
+                    className="col-span-1 inline-flex items-center justify-center gap-1 px-2 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black text-[8.5px] uppercase tracking-wider rounded-xl transition-all active:scale-95 text-center truncate"
+                    title="Citation Source"
                   >
-                    Visit Portal <ExternalLink size={11} className="shrink-0" />
+                    <span className="truncate">Source</span>
+                    <ExternalLink size={10} className="shrink-0" />
                   </a>
-                ) : (
-                  <button
-                    disabled
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/5 text-gray-600 font-black text-[9px] uppercase tracking-widest rounded-xl select-none cursor-not-allowed border border-transparent-5 border-white/5"
-                  >
-                    Form Pending
-                  </button>
                 )}
               </div>
-            </motion.div>
+</motion.div>
           );
         })}
         </div>

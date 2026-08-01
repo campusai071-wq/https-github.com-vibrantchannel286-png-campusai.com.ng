@@ -27,10 +27,10 @@
       "merit_cutoffs_2024_2025": {
         "Medicine and Surgery": 78.125,
         "Nursing Science": 71.875,
-        "Computer Science": 71.0,
+        "Computer Science": 71,
         "Law": 67.25,
         "Accounting": 65.25,
-        "Pharmacy": 68.0
+        "Pharmacy": 68
       }
     },
     "general_jamb_cutoff": 200
@@ -419,7 +419,23 @@
       "jamb_cutoff": 140
     },
     "general_jamb_cutoff": 140
+  },
+  {
+    "name": "Ekiti State University",
+    "slug": "eksu",
+    "category": "State",
+    "url": "https://eksuportal.eksu.edu.ng/"
+  },
+  {
+    "name": "Ladoke Akintola University of Technology",
+    "slug": "lautech",
+    "category": "State",
+    "url": "https://eportal.lautech.edu.ng/ug/admissions"
+  },
+  {
+    "name": "Confluence University of Science and Technology",
+    "slug": "custech",
+    "category": "State",
+    "url": "https://eportal.custech.edu.ng/utme/index.php"
   }
 ]
-
-

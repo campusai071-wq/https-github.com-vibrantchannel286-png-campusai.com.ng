@@ -366,35 +366,69 @@ const getPostUtmeStatus = (schoolName: string): PostUtmeStatusInfo => {
   });
 
   if (n.includes("lagos") || n.includes("unilag"))
-    return active("UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal. Registration ends soon.", "https://studentportal.unilag.edu.ng/");
+    return active("UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal.", "https://applications.unilag.edu.ng/home");
   if (n.includes("ibadan") || n.includes("ui"))
-    return active("UI 2026/2027 Post-UTME form sales and registration are active. Ensure subject compatibility before registering.", "https://admissions.ui.edu.ng/");
+    return active("UI 2026/2027 Post-UTME form sales and registration are active on the portal. Fee: ₦5,000.", "https://admissions.ui.edu.ng/#/");
   if (n.includes("awolowo") || n.includes("oau") || n.includes("ife"))
-    return active("OAU 2026/2027 Post-UTME registration guidelines have been officially released. Portal is fully open.", "https://admissions.oauife.edu.ng/");
+    return active("OAU 2026/2027 Post-UTME registration guidelines officially released.", "https://eportal2.oauife.edu.ng/ug/admissions");
   if (n.includes("benin") || n.includes("uniben"))
-    return active("UNIBEN 2026/2027 Post-UTME portal is open for registration. Exam dates will be communicated via your registered profile.", "https://uniben.waeup.org/");
+    return active("UNIBEN 2026/2027 Post-UTME portal is open for registration. Fee: ₦2,000.", "https://unibenportal.com/#application");
   if (n.includes("nsukka") || n.includes("nigeria") || n.includes("unn"))
-    return active("UNN 2026/2027 Post-UTME application is active. Direct Entry candidates should also complete their registration on the school portal.", "https://unnportal.unn.edu.ng/");
+    return active("UNN 2026/2027 Post-UTME screening application is active on the portal. Cutoff: 160.", "https://unnportal.unn.edu.ng/");
   if (n.includes("futa") || n.includes("technology, akure"))
-    return { isOut: true, statusText: "Form Released (Point-Based)", badgeColor: "bg-emerald-500/15 border-emerald-500/35", textColor: "text-emerald-400", iconBg: "bg-emerald-500/10", details: "FUTA 2026/2027 Point-Based screening registrations are active. FUTA uses O'Level + JAMB points (no written Post-UTME exam).", portalLink: "https://www.futa.edu.ng" };
+    return { isOut: true, statusText: "Form Released (Point-Based)", badgeColor: "bg-emerald-500/15 border-emerald-500/35", textColor: "text-emerald-400", iconBg: "bg-emerald-500/10", details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: Friday, 31 July 2026.", portalLink: "https://www.futa.edu.ng/" };
   if (n.includes("lasu") || n.includes("lagos state"))
-    return active("LASU 2026/2027 screening application portal is active. Check guidelines to ensure your O'Level match is perfect.", "https://lidc.lasu.edu.ng/");
+    return active("LASU 2026/2027 screening application portal is active. Cutoff: 195.", "https://services.lidc.lasu.edu.ng/admissionscreening/");
   if (n.includes("futminna") || n.includes("technology, minna"))
-    return active("FUTMinna 2026/2027 dynamic online registration is currently active. CBT screening date schedules TBA.", "https://futminna.edu.ng");
+    return active("FUTMinna 2026/2027 dynamic online registration is currently active. Cutoff: 180.", "https://futminna.edu.ng");
   if (n.includes("futo") || n.includes("technology, owerri"))
-    return active("FUTO 2026/2027 screening forms are out and active. Remember FUTO requires standard UTME targets.", "https://portal.futo.edu.ng/");
+    return active("FUTO 2026/2027 screening forms are out and active. Registration deadline: Friday, 31 July 2026.", "https://portal.futo.edu.ng/#undergraduate");
   if (n.includes("port harcourt") || n.includes("uniport"))
-    return active("UNIPORT 2026/2027 Post-UTME registration link is live. Please ensure to check portal deadlines.", "https://www.uniport.edu.ng");
+    return active("UNIPORT 2026/2027 Post-UTME registration link is live. Cutoff: 150.", "https://utmedetails.uniport.edu.ng/welcome_utme.php");
   if (n.includes("ilorin") || n.includes("unilorin"))
-    return pending("UNILORIN is yet to officially list the 2026/2027 Post-UTME registrations. Announcement is expected by late June/July.");
-  if (n.includes("jos") || n.includes("unijos"))
-    return pending("UNIJOS 2026/2027 Post-UTME guidelines are pending senate approvals. Form is expected in July.");
-  if (n.includes("nnamdi azikiwe") || n.includes("unizik"))
-    return pending("UNIZIK has not released 2026/2027 registration schedules yet. Monitor the admissions site regularly.");
+    return active("UNILORIN 2026/2027 Post-UTME registration is active on the admissions portal. Cutoff: 180.", "https://admissions.unilorin.edu.ng/");
+  if (n.includes("bayero") || n.includes("buk"))
+    return active("BUK 2026/2027 Post-UTME online screening portal is live for candidates with 180+ score.", "https://buk.edu.ng/");
   if (n.includes("abu") || n.includes("abello") || n.includes("zaria"))
-    return active("ABU Zaria 2026/2027 Post-UTME forms are out on the portal. CBT exams to be conducted at ABU campus.", "https://portal.abu.edu.ng/");
+    return active("ABU Zaria 2026/2027 Post-UTME forms are out on the portal. Cutoff: 180.", "https://portal.abu.edu.ng/forms");
+  if (n.includes("nnamdi azikiwe") || n.includes("unizik"))
+    return active("UNIZIK 2026/2027 Post-UTME screening registration application link is live. Cutoff: 180.", "https://apply.unizik.edu.ng/auth/login");
+  if (n.includes("uyo") || n.includes("uniuyo"))
+    return active("UNIUYO 2026/2027 Post-UTME screening form is out. Registration deadline: Friday, 7 August 2026.", "https://eportals.uniuyo.edu.ng/");
+  if (n.includes("osun state") || n.includes("uniosun"))
+    return active("UNIOSUN 2026/2027 Post-UTME screening application portal is active. Fee: ₦3,000.", "https://admissions.uniosun.edu.ng/");
+  if (n.includes("olabisi onabanjo") || n.includes("oou"))
+    return active("OOU 2026/2027 Post-UTME screening forms out. Deadline: Friday, 22 July 2026.", "https://putme.oouagoiwoye.edu.ng/");
+  if (n.includes("ekiti state") || n.includes("eksu"))
+    return active("EKSU 2026/2027 Post-UTME online screening portal is active. Cutoff: 160.", "https://eksuportal.eksu.edu.ng/");
+  if (n.includes("fuoye") || n.includes("oye-ekiti"))
+    return active("FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: 2 August 2026.", "https://putme.fuoye.edu.ng/utme/");
+  if (n.includes("delta state") || n.includes("delsu"))
+    return active("DELSU 2026/2027 Post-UTME screening portal is active for registration.", "https://portal.delsuces.online/");
+  if (n.includes("lautech") || n.includes("ladoke akintola"))
+    return active("LAUTECH 2026/2027 Post-UTME screening portal is active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
+  if (n.includes("kwara state") || n.includes("kwasu"))
+    return active("KWASU 2026/2027 Post-UTME registration portal is active.", "https://portal.kwasu.edu.ng/");
+  if (n.includes("nasarawa state") || n.includes("nsuk"))
+    return active("NSUK Keffi 2026/2027 Post-UTME screening application portal is active.", "https://portal.nsuk.edu.ng/");
+  if (n.includes("sule lamido") || n.includes("slu"))
+    return active("SLU 2026/2027 Post-UTME screening registration portal is active. Cutoff: 160.", "https://admissions.slu.edu.ng/");
+  if (n.includes("wukari") || n.includes("fuwukari"))
+    return active("FUWukari 2026/2027 Post-UTME registration portal is active.", "https://ug.fuwportal.edu.ng/putme_registration.php");
+  if (n.includes("otukpo") || n.includes("fuhso"))
+    return active("FUHSO 2026/2027 Post-UTME screening application portal is active.", "https://postutme.fuhso.edu.ng/apply");
+  if (n.includes("kogi state") || n.includes("ksu") || n.includes("paau"))
+    return active("PAAU / KSU 2026/2027 Post-UTME screening dashboard is active. Deadline: Wednesday, 1 July 2026.", "https://portal.paau.edu.ng/pd_dip/utme_dashboard");
+  if (n.includes("custech") || n.includes("confluence"))
+    return active("CUSTECH 2026/2027 Post-UTME screening portal is active.", "https://eportal.custech.edu.ng/utme/index.php");
+  if (n.includes("plateau state") || n.includes("plasu"))
+    return active("PLASU 2026/2027 Post-UTME screening portal is active. Cutoff: 160.", "https://plasu.edu.ng/");
+  if (n.includes("modibbo adama") || n.includes("mau"))
+    return active("MAU Yola 2026/2027 Post-UTME screening application portal is active.", "https://mau.edu.ng/");
+  if (n.includes("abubakar tafawa balewa") || n.includes("atbu"))
+    return active("ATBU 2026/2027 Post-UTME screening login portal is active.", "http://screening.atbu.edu.ng/pages/login.php");
 
-  return active(`${schoolName} 2026/2027 Post-UTME dynamic screening and registrations are officially out across general quotas. Confirm steps on the official portal.`);
+  return active(`${schoolName} 2026/2027 Post-UTME screening registration is active on the official portal. Confirm steps on official site.`);
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

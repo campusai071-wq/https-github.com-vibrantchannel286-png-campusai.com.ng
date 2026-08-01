@@ -95,9 +95,7 @@ export const triggerBrowserNotification = async (title: string, body: string, sl
     const url = slug ? `${window.location.origin}/news/${slug}` : window.location.origin;
     const options = {
       body: body,
-      icon: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=128&h=128&q=80',
       tag: slug || 'campusai-update',
-      badge: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=128&h=128&q=80',
       vibrate: [200, 100, 200],
       data: { url: url }
     };

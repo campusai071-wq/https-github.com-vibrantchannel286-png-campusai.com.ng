@@ -333,7 +333,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       if (lastCreatedAt) {
         payload.startAfterValue = lastCreatedAt;
       }
-      const res = await axios.post(getApiUrl('/api/proxy-firestore'), payload);
+      const res = await axios.post(getApiUrl('/api/fstore-query'), payload);
       if (res.data.success) {
         console.log(`getCloudNews: Proxy fetch successful. Retrieved ${res.data.data.length} items.`);
         const cloudNews = res.data.data.map((item: any) => ({
@@ -417,7 +417,7 @@ export const getCloudNewsCount = async (): Promise<number> => {
 
   if (!hasLocalFirebase) {
     try {
-      const res = await axios.post(getApiUrl('/api/proxy-firestore-count'), { collectionName: 'news' });
+      const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
       if (res.data.success) {
         return res.data.count;
       }
@@ -716,10 +716,25 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
   const token = 'CAMPUS@2026';
   const syncLocal = () => {
     clearNewsCache();
+
+    // 1. Update in-memory MOCK_NEWS array
+    for (let i = 0; i < MOCK_NEWS.length; i++) {
+      if (MOCK_NEWS[i].id === id || MOCK_NEWS[i].slug === id) {
+        MOCK_NEWS[i] = { ...MOCK_NEWS[i], ...updates };
+      }
+    }
+
+    // 2. Update localStorage published news
     const current = getPublishedNews();
     if (current && current.length > 0) {
       const updated = current.map(n => (n.id === id || n.slug === id) ? { ...n, ...updates } : n);
       localStorage.setItem(NEWS_KEY, stringify(updated));
+    } else {
+      // If local storage was empty, save this item into local storage
+      const existingItem = MOCK_NEWS.find(n => n.id === id || n.slug === id);
+      if (existingItem) {
+        localStorage.setItem(NEWS_KEY, stringify([{ ...existingItem, ...updates }]));
+      }
     }
   };
 
@@ -745,7 +760,7 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
 
   try {
     const newsRef = doc(db, "news", id);
-    await updateDoc(newsRef, { ...updates, updatedAt: Timestamp.now() });
+    await setDoc(newsRef, { ...updates, updatedAt: Timestamp.now() }, { merge: true });
     syncLocal();
   } catch (e) {
     console.warn(`Direct update failed for ID ${id}, trying slug-based update...`, e);
@@ -754,11 +769,14 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
       const q = query(newsCollectionRef, where("slug", "==", id), limit(1));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
-        await updateDoc(querySnapshot.docs[0].ref, { ...updates, updatedAt: Timestamp.now() });
+        await setDoc(querySnapshot.docs[0].ref, { ...updates, updatedAt: Timestamp.now() }, { merge: true });
+        syncLocal();
+      } else {
         syncLocal();
       }
     } catch (slugErr) {
       console.error("Error updating news item:", slugErr);
+      syncLocal();
     }
   }
 };

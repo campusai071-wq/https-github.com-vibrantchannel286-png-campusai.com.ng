@@ -36,7 +36,8 @@ export const ArticleImagesUploader: React.FC<ArticleImagesUploaderProps> = ({
         }
       });
       
-      const newFeatured = featuredImage || combined[0] || '';
+      // Set the newly uploaded image as the featured primary image
+      const newFeatured = newBase64s[0] || combined[0] || '';
       onChangeImages(combined, newFeatured);
     } catch (err) {
       console.error("Error compressing images:", err);
@@ -50,7 +51,8 @@ export const ArticleImagesUploader: React.FC<ArticleImagesUploaderProps> = ({
     if (!urlInput.trim()) return;
     const url = urlInput.trim();
     const updated = images.includes(url) ? images : [...images, url];
-    const newFeatured = featuredImage || url;
+    // Automatically make newly added URL the primary picture
+    const newFeatured = url;
     onChangeImages(updated, newFeatured);
     setUrlInput('');
   };
@@ -59,7 +61,7 @@ export const ArticleImagesUploader: React.FC<ArticleImagesUploaderProps> = ({
     const targetUrl = images[indexToRemove];
     const updatedList = images.filter((_, idx) => idx !== indexToRemove);
     let newFeatured = featuredImage;
-    if (featuredImage === targetUrl) {
+    if (featuredImage === targetUrl || !updatedList.includes(featuredImage)) {
       newFeatured = updatedList[0] || '';
     }
     onChangeImages(updatedList, newFeatured);

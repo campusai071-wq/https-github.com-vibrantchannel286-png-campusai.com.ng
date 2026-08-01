@@ -327,7 +327,7 @@ app.post("/api/indexnow", async (req: any, res: any) => {
   }
 });
 
-app.post("/api/proxy-firestore", async (req: any, res: any) => {
+app.post(["/api/proxy-firestore", "/api/fstore-query"], async (req: any, res: any) => {
   try {
     const { collectionName, orderByField, orderDirection, limitCount, whereField, whereOperator, whereValue, startAfterValue } = req.body;
     console.log(`[Proxy] Fetching collection: ${collectionName}, Order: ${orderByField}, Limit: ${limitCount}, Filter: ${whereField} ${whereOperator} ${whereValue}, StartAfter: ${startAfterValue}`);
@@ -440,7 +440,7 @@ app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => 
   }
 });
 
-app.post("/api/proxy-firestore-count", async (req: any, res: any) => {
+app.post(["/api/proxy-firestore-count", "/api/fstore-count"], async (req: any, res: any) => {
   try {
     const { collectionName } = req.body;
     console.log(`[Proxy Count] Retrieving count for collection: ${collectionName}`);
@@ -567,20 +567,20 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
     }
     try {
       const docRef = doc(dbInstance, "news", id);
-      await updateDoc(docRef, {
+      await setDoc(docRef, {
         ...data,
         updatedAt: new Date()
-      });
+      }, { merge: true });
       console.log(`[Client Fallback] Successfully updated news doc: ${id}`);
       return { success: true };
     } catch (err) {
       const q = query(collection(dbInstance, "news"), where("slug", "==", id), limit(1));
       const qSnap = await getDocs(q);
       if (!qSnap.empty) {
-        await updateDoc(qSnap.docs[0].ref, {
+        await setDoc(qSnap.docs[0].ref, {
           ...data,
           updatedAt: new Date()
-        });
+        }, { merge: true });
         console.log(`[Client Fallback] Successfully updated news doc by slug: ${id}`);
         return { success: true };
       }
@@ -711,10 +711,10 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
             docSnap = qSnap.docs[0];
           }
         }
-        await targetRef.update({
+        await targetRef.set({
           ...updates,
           updatedAt: AdminTimestamp.now()
-        });
+        }, { merge: true });
         console.log(`[Admin API] Successfully updated news doc via Admin SDK: ${targetRef.id}`);
         return res.json({ success: true });
       } catch (adminErr: any) {
@@ -1696,162 +1696,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
   let lastErr: any = null;
   let successResult: any = null;
 
-  // ─── TRY OTHER PROVIDERS FIRST (Groq, OpenRouter, Mistral, Cohere) ───
-  const messages: any[] = [];
-  if (params?.systemInstruction) {
-    messages.push({ role: 'system', content: params.systemInstruction });
-  }
-
-  if (params && params.contents) {
-    if (typeof params.contents === "string") {
-      messages.push({ role: 'user', content: params.contents });
-    } else if (Array.isArray(params.contents)) {
-      params.contents.forEach((turn: any) => {
-        const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
-        let contentText = "";
-        if (Array.isArray(turn.parts)) {
-          contentText = turn.parts.map((p: any) => p.text || "").join(" ");
-        } else if (typeof turn.parts === "string") {
-          contentText = turn.parts;
-        } else if (turn.text) {
-          contentText = turn.text;
-        }
-        if (contentText) {
-          messages.push({ role, content: contentText });
-        }
-      });
-    }
-  }
-
-  const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" || 
-                          params?.responseMimeType === "application/json" ||
-                          (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
-
-  // 1. Try Groq
-  if (!successResult && process.env.GROQ_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying Groq...");
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const completion = await groq.chat.completions.create({
-        messages: messages as any,
-        model: 'llama-3.3-70b-versatile',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Groq generation succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.error("[API Gemini Proxy] Groq failed:", e.message || e);
-    }
-  }
-
-  // 2. Try OpenRouter
-  if (!successResult && process.env.OPENROUTER_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying OpenRouter...");
-      const openrouter = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: "https://openrouter.ai/api/v1"
-      });
-      const completion = await openrouter.chat.completions.create({
-        messages: messages as any,
-        model: 'meta-llama/llama-3.3-70b-instruct',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] OpenRouter generation succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.error("[API Gemini Proxy] OpenRouter failed:", e.message || e);
-    }
-  }
-
-  // 2.5 Try Nvidia API Catalog
-  if (!successResult && process.env.NVIDIA_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying Nvidia API Catalog...");
-      const nvidia = new OpenAI({
-        apiKey: process.env.NVIDIA_API_KEY,
-        baseURL: "https://integrate.api.nvidia.com/v1"
-      });
-      const completion = await nvidia.chat.completions.create({
-        messages: messages as any,
-        model: 'meta/llama-3.3-70b-instruct',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Nvidia generation succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.error("[API Gemini Proxy] Nvidia failed:", e.message || e);
-    }
-  }
-
-  // 3. Try Mistral
-  if (!successResult && process.env.MISTRAL_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying Mistral...");
-      const mistral = new OpenAI({
-        apiKey: process.env.MISTRAL_API_KEY,
-        baseURL: "https://api.mistral.ai/v1"
-      });
-      const completion = await mistral.chat.completions.create({
-        messages: messages as any,
-        model: 'mistral-small-latest',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Mistral generation succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.error("[API Gemini Proxy] Mistral failed:", e.message || e);
-    }
-  }
-
-  // 4. Try Cohere
-  if (!successResult && process.env.COHERE_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying Cohere...");
-      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-      const coherePrompt = `${params?.systemInstruction ? `System: ${params.systemInstruction}\n\n` : ''}${messages.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
-      const response = await cohere.generate({
-        prompt: coherePrompt,
-        model: 'command-r-plus',
-      });
-      const text = response.generations[0]?.text || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Cohere generation succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.error("[API Gemini Proxy] Cohere failed:", e.message || e);
-    }
-  }
-  
-  // Nested search loop: Outer loop tries candidate API keys, Inner loop tries models
+  // ─── 1. TRY PRIMARY GEMINI PROVIDERS FIRST ───
   if (!successResult) {
     for (const activeKey of keysPool) {
       const keyType = activeKey.startsWith('AQ.') ? "AQ.* (Auth)" : activeKey.startsWith('AIza') ? "AIzaSy* (Standard)" : "Unknown";
@@ -2053,6 +1898,164 @@ app.post("/api/gemini", async (req: any, res: any) => {
     }
   }
 
+  // ─── 2. TRY SECONDARY PROVIDERS ONLY IF GEMINI FAILS ───
+  if (!successResult) {
+    console.log("[API Gemini Proxy] Gemini models failed or unconfigured, trying fallback providers...");
+    const messages: any[] = [];
+    if (params?.systemInstruction) {
+      messages.push({ role: 'system', content: params.systemInstruction });
+    }
+
+    if (params && params.contents) {
+      if (typeof params.contents === "string") {
+        messages.push({ role: 'user', content: params.contents });
+      } else if (Array.isArray(params.contents)) {
+        params.contents.forEach((turn: any) => {
+          const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
+          let contentText = "";
+          if (Array.isArray(turn.parts)) {
+            contentText = turn.parts.map((p: any) => p.text || "").join(" ");
+          } else if (typeof turn.parts === "string") {
+            contentText = turn.parts;
+          } else if (turn.text) {
+            contentText = turn.text;
+          }
+          if (contentText) {
+            messages.push({ role, content: contentText });
+          }
+        });
+      }
+    }
+
+    const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" || 
+                            params?.responseMimeType === "application/json" ||
+                            (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
+
+    // 1. Try Groq
+    if (!successResult && process.env.GROQ_API_KEY) {
+      try {
+        console.log("[API Gemini Proxy] Trying Groq fallback...");
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const completion = await groq.chat.completions.create({
+          messages: messages as any,
+          model: 'llama-3.3-70b-versatile',
+          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log("[API Gemini Proxy] Groq generation succeeded.");
+          successResult = {
+            text,
+            candidates: [{ content: { parts: [{ text }] } }]
+          };
+        }
+      } catch (e: any) {
+        console.warn("[API Gemini Proxy] Groq fallback skipped:", e.message || e);
+      }
+    }
+
+    // 2. Try OpenRouter
+    if (!successResult && process.env.OPENROUTER_API_KEY) {
+      try {
+        console.log("[API Gemini Proxy] Trying OpenRouter fallback...");
+        const openrouter = new OpenAI({
+          apiKey: process.env.OPENROUTER_API_KEY,
+          baseURL: "https://openrouter.ai/api/v1"
+        });
+        const completion = await openrouter.chat.completions.create({
+          messages: messages as any,
+          model: 'meta-llama/llama-3.3-70b-instruct',
+          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log("[API Gemini Proxy] OpenRouter generation succeeded.");
+          successResult = {
+            text,
+            candidates: [{ content: { parts: [{ text }] } }]
+          };
+        }
+      } catch (e: any) {
+        console.warn("[API Gemini Proxy] OpenRouter fallback skipped:", e.message || e);
+      }
+    }
+
+    // 2.5 Try Nvidia API Catalog
+    if (!successResult && process.env.NVIDIA_API_KEY) {
+      try {
+        console.log("[API Gemini Proxy] Trying Nvidia API Catalog fallback...");
+        const nvidia = new OpenAI({
+          apiKey: process.env.NVIDIA_API_KEY,
+          baseURL: "https://integrate.api.nvidia.com/v1"
+        });
+        const completion = await nvidia.chat.completions.create({
+          messages: messages as any,
+          model: 'meta/llama-3.3-70b-instruct',
+          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log("[API Gemini Proxy] Nvidia generation succeeded.");
+          successResult = {
+            text,
+            candidates: [{ content: { parts: [{ text }] } }]
+          };
+        }
+      } catch (e: any) {
+        console.warn("[API Gemini Proxy] Nvidia fallback skipped:", e.message || e);
+      }
+    }
+
+    // 3. Try Mistral
+    if (!successResult && process.env.MISTRAL_API_KEY) {
+      try {
+        console.log("[API Gemini Proxy] Trying Mistral fallback...");
+        const mistral = new OpenAI({
+          apiKey: process.env.MISTRAL_API_KEY,
+          baseURL: "https://api.mistral.ai/v1"
+        });
+        const completion = await mistral.chat.completions.create({
+          messages: messages as any,
+          model: 'mistral-small-latest',
+          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log("[API Gemini Proxy] Mistral generation succeeded.");
+          successResult = {
+            text,
+            candidates: [{ content: { parts: [{ text }] } }]
+          };
+        }
+      } catch (e: any) {
+        console.warn("[API Gemini Proxy] Mistral fallback skipped:", e.message || e);
+      }
+    }
+
+    // 4. Try Cohere
+    if (!successResult && process.env.COHERE_API_KEY) {
+      try {
+        console.log("[API Gemini Proxy] Trying Cohere fallback...");
+        const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+        const coherePrompt = `${params?.systemInstruction ? `System: ${params.systemInstruction}\n\n` : ''}${messages.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
+        const response = await cohere.generate({
+          prompt: coherePrompt,
+          model: 'command-r-plus',
+        });
+        const text = response.generations[0]?.text || "";
+        if (text) {
+          console.log("[API Gemini Proxy] Cohere generation succeeded.");
+          successResult = {
+            text,
+            candidates: [{ content: { parts: [{ text }] } }]
+          };
+        }
+      } catch (e: any) {
+        console.warn("[API Gemini Proxy] Cohere fallback skipped:", e.message || e);
+      }
+    }
+  }
+
   if (successResult) {
     return res.json(successResult);
   }
@@ -2096,135 +2099,18 @@ app.post("/api/gemini", async (req: any, res: any) => {
 });
 
 app.post("/api/ai/generate", async (req: any, res: any) => {
-  const { prompt, history = [], systemInstruction, useGeminiFallback } = req.body;
+  const { prompt, history = [], systemInstruction } = req.body;
 
   if (!isAllowedOrigin(req)) {
     return res.status(403).json({ error: "Origin not allowed" });
   }
 
-  const messages = [
-    ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
-    ...history.map((m: any) => ({
-      role: m.role === 'model' ? 'assistant' : 'user',
-      content: m.text
-    })),
-    { role: 'user', content: prompt }
-  ];
-
-  if (!useGeminiFallback) {
-    // 1. Try Groq
-    if (process.env.GROQ_API_KEY) {
-      try {
-        console.log("[API AI] Trying Groq...");
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const completion = await groq.chat.completions.create({
-          messages: messages as any,
-          model: 'llama-3.3-70b-versatile',
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API AI] Groq generation succeeded.");
-          return res.json({ text });
-        }
-      } catch (e: any) {
-        console.error("[API AI] Groq failed:", e.message || e);
-      }
-    }
-
-    // 2. Try OpenRouter
-    if (process.env.OPENROUTER_API_KEY) {
-      try {
-        console.log("[API AI] Trying OpenRouter...");
-        const openrouter = new OpenAI({
-          apiKey: process.env.OPENROUTER_API_KEY,
-          baseURL: "https://openrouter.ai/api/v1"
-        });
-        const completion = await openrouter.chat.completions.create({
-          messages: messages as any,
-          model: 'meta-llama/llama-3.3-70b-instruct',
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API AI] OpenRouter generation succeeded.");
-          return res.json({ text });
-        }
-      } catch (e: any) {
-        console.error("[API AI] OpenRouter failed:", e.message || e);
-      }
-    }
-
-    // 2.5 Try Nvidia API Catalog
-    if (process.env.NVIDIA_API_KEY) {
-      try {
-        console.log("[API AI] Trying Nvidia API Catalog...");
-        const nvidia = new OpenAI({
-          apiKey: process.env.NVIDIA_API_KEY,
-          baseURL: "https://integrate.api.nvidia.com/v1"
-        });
-        const completion = await nvidia.chat.completions.create({
-          messages: messages as any,
-          model: 'meta/llama-3.3-70b-instruct',
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API AI] Nvidia generation succeeded.");
-          return res.json({ text });
-        }
-      } catch (e: any) {
-        console.error("[API AI] Nvidia failed:", e.message || e);
-      }
-    }
-
-    // 3. Try Mistral
-    if (process.env.MISTRAL_API_KEY) {
-      try {
-        console.log("[API AI] Trying Mistral...");
-        const mistral = new OpenAI({
-          apiKey: process.env.MISTRAL_API_KEY,
-          baseURL: "https://api.mistral.ai/v1"
-        });
-        const completion = await mistral.chat.completions.create({
-          messages: messages as any,
-          model: 'mistral-small-latest',
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API AI] Mistral generation succeeded.");
-          return res.json({ text });
-        }
-      } catch (e: any) {
-        console.error("[API AI] Mistral failed:", e.message || e);
-      }
-    }
-
-    // 4. Try Cohere
-    if (process.env.COHERE_API_KEY) {
-      try {
-        console.log("[API AI] Trying Cohere...");
-        const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-        const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${history.map((m: any) => `${m.role === 'model' ? 'Assistant' : 'User'}: ${m.text}`).join('\n')}\nUser: ${prompt}`;
-        const response = await cohere.generate({
-          prompt: coherePrompt,
-          model: 'command-r-plus',
-        });
-        const text = response.generations[0]?.text || "";
-        if (text) {
-          console.log("[API AI] Cohere generation succeeded.");
-          return res.json({ text });
-        }
-      } catch (e: any) {
-        console.error("[API AI] Cohere failed:", e.message || e);
-      }
-    }
-  }
-
-  // 5. Try Gemini
-  console.log("[API AI] Trying Gemini...");
+  // 1. Try Primary Provider (Gemini) First
+  console.log("[API AI] Trying Gemini primary provider...");
   const rawPool = getGeminiKeys();
   const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
   
   if (keysPool.length > 0) {
-    let lastErr: any = null;
     for (const activeKey of keysPool) {
       try {
         const gemini = createGeminiClient(activeKey);
@@ -2256,13 +2142,127 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
           return res.json({ text, groundingChunks });
         }
       } catch (error: any) {
-        lastErr = error;
-        console.error("[API AI] Gemini key failed:", error.message || error);
+        console.warn("[API AI] Gemini key failed:", error.message || error);
       }
     }
   }
 
-  // 6. Sovereign Fallback
+  // 2. Secondary Provider Fallbacks (Groq, OpenRouter, Nvidia, Mistral, Cohere)
+  const messages = [
+    ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
+    ...history.map((m: any) => ({
+      role: m.role === 'model' ? 'assistant' : 'user',
+      content: m.text
+    })),
+    { role: 'user', content: prompt }
+  ];
+
+  // 2a. Try Groq
+  if (process.env.GROQ_API_KEY) {
+    try {
+      console.log("[API AI] Trying Groq fallback...");
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const completion = await groq.chat.completions.create({
+        messages: messages as any,
+        model: 'llama-3.3-70b-versatile',
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API AI] Groq fallback generation succeeded.");
+        return res.json({ text });
+      }
+    } catch (e: any) {
+      console.warn("[API AI] Groq fallback skipped:", e.message || e);
+    }
+  }
+
+  // 2b. Try OpenRouter
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      console.log("[API AI] Trying OpenRouter fallback...");
+      const openrouter = new OpenAI({
+        apiKey: process.env.OPENROUTER_API_KEY,
+        baseURL: "https://openrouter.ai/api/v1"
+      });
+      const completion = await openrouter.chat.completions.create({
+        messages: messages as any,
+        model: 'meta-llama/llama-3.3-70b-instruct',
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API AI] OpenRouter fallback generation succeeded.");
+        return res.json({ text });
+      }
+    } catch (e: any) {
+      console.warn("[API AI] OpenRouter fallback skipped:", e.message || e);
+    }
+  }
+
+  // 2c. Try Nvidia API Catalog
+  if (process.env.NVIDIA_API_KEY) {
+    try {
+      console.log("[API AI] Trying Nvidia API Catalog fallback...");
+      const nvidia = new OpenAI({
+        apiKey: process.env.NVIDIA_API_KEY,
+        baseURL: "https://integrate.api.nvidia.com/v1"
+      });
+      const completion = await nvidia.chat.completions.create({
+        messages: messages as any,
+        model: 'meta/llama-3.3-70b-instruct',
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API AI] Nvidia fallback generation succeeded.");
+        return res.json({ text });
+      }
+    } catch (e: any) {
+      console.warn("[API AI] Nvidia fallback skipped:", e.message || e);
+    }
+  }
+
+  // 2d. Try Mistral
+  if (process.env.MISTRAL_API_KEY) {
+    try {
+      console.log("[API AI] Trying Mistral fallback...");
+      const mistral = new OpenAI({
+        apiKey: process.env.MISTRAL_API_KEY,
+        baseURL: "https://api.mistral.ai/v1"
+      });
+      const completion = await mistral.chat.completions.create({
+        messages: messages as any,
+        model: 'mistral-small-latest',
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API AI] Mistral fallback generation succeeded.");
+        return res.json({ text });
+      }
+    } catch (e: any) {
+      console.warn("[API AI] Mistral fallback skipped:", e.message || e);
+    }
+  }
+
+  // 2e. Try Cohere
+  if (process.env.COHERE_API_KEY) {
+    try {
+      console.log("[API AI] Trying Cohere fallback...");
+      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+      const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${history.map((m: any) => `${m.role === 'model' ? 'Assistant' : 'User'}: ${m.text}`).join('\n')}\nUser: ${prompt}`;
+      const response = await cohere.generate({
+        prompt: coherePrompt,
+        model: 'command-r-plus',
+      });
+      const text = response.generations[0]?.text || "";
+      if (text) {
+        console.log("[API AI] Cohere fallback generation succeeded.");
+        return res.json({ text });
+      }
+    } catch (e: any) {
+      console.warn("[API AI] Cohere fallback skipped:", e.message || e);
+    }
+  }
+
+  // 3. Sovereign Fallback
   try {
     console.log("[API AI] Triggering Sovereign Fallback...");
     const fallbackResponse = generateSovereignGeminiFallback(prompt, { contents: prompt, systemInstruction });
@@ -2342,13 +2342,72 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
   const searchContext = searchResults.map((r: any) => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`).join("\n\n");
   const urlsUsed = searchResults.map((r: any) => r.url);
 
-  // 2. Try Priority AI providers first, falling back to Gemini
+  // 2. Try Primary Gemini provider first, falling back to secondary providers
   let successPost: any = null;
 
-  // 1. Try Groq
-  if (process.env.GROQ_API_KEY) {
+  // 1. Try Gemini
+  const rawPool = getGeminiKeys();
+  const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
+
+  if (keysPool.length > 0) {
+    for (const activeKey of keysPool) {
+      try {
+        const gemini = createGeminiClient(activeKey);
+        const prompt = `We saw this news topic/snippet: "${searchQuery}".
+Web search results on this topic:
+${searchContext || "No search results found."}
+
+Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
+The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
+Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
+
+Return the output strictly as a JSON object with this exact shape:
+{
+  "title": "An engaging, professional, and catchy headline",
+  "fullContent": "The complete post/article written in clean Markdown.",
+  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
+  "excerpt": "A short, 1-2 sentence compelling summary of the article."
+}`;
+
+        const result = await (gemini.client as GoogleGenAI).models.generateContent({
+          model: "gemini-flash-latest",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                fullContent: { type: Type.STRING },
+                category: { type: Type.STRING },
+                excerpt: { type: Type.STRING }
+              },
+              required: ["title", "fullContent", "category", "excerpt"]
+            }
+          }
+        });
+
+        let text = result.text || "";
+        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+          text = result.candidates[0].content.parts[0].text;
+        }
+
+        if (text) {
+          console.log("[API Blog Generator] Gemini blog post generation succeeded.");
+          const parsed = JSON.parse(text.trim());
+          successPost = parsed;
+          break;
+        }
+      } catch (error: any) {
+        console.warn("[API Blog Generator] Gemini key skipped/failed:", error.message || error);
+      }
+    }
+  }
+
+  // 2. Try Groq fallback
+  if (!successPost && process.env.GROQ_API_KEY) {
     try {
-      console.log("[API Blog Generator] Trying Groq...");
+      console.log("[API Blog Generator] Trying Groq fallback...");
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       const completion = await groq.chat.completions.create({
         messages: [
@@ -2379,14 +2438,14 @@ Return the output strictly as a JSON object with this exact shape:
         successPost = parsed;
       }
     } catch (e: any) {
-      console.error("[API Blog Generator] Groq failed:", e.message || e);
+      console.warn("[API Blog Generator] Groq fallback skipped:", e.message || e);
     }
   }
 
-  // 2. Try OpenRouter
+  // 3. Try OpenRouter fallback
   if (!successPost && process.env.OPENROUTER_API_KEY) {
     try {
-      console.log("[API Blog Generator] Trying OpenRouter...");
+      console.log("[API Blog Generator] Trying OpenRouter fallback...");
       const openrouter = new OpenAI({
         apiKey: process.env.OPENROUTER_API_KEY,
         baseURL: "https://openrouter.ai/api/v1"
@@ -2420,14 +2479,14 @@ Return the output strictly as a JSON object with this exact shape:
         successPost = parsed;
       }
     } catch (e: any) {
-      console.error("[API Blog Generator] OpenRouter failed:", e.message || e);
+      console.warn("[API Blog Generator] OpenRouter fallback skipped:", e.message || e);
     }
   }
 
-  // 2.5 Try Nvidia API Catalog
+  // 4. Try Nvidia API Catalog fallback
   if (!successPost && process.env.NVIDIA_API_KEY) {
     try {
-      console.log("[API Blog Generator] Trying Nvidia API Catalog...");
+      console.log("[API Blog Generator] Trying Nvidia API Catalog fallback...");
       const nvidia = new OpenAI({
         apiKey: process.env.NVIDIA_API_KEY,
         baseURL: "https://integrate.api.nvidia.com/v1"
@@ -2461,14 +2520,14 @@ Return the output strictly as a JSON object with this exact shape:
         successPost = parsed;
       }
     } catch (e: any) {
-      console.error("[API Blog Generator] Nvidia failed:", e.message || e);
+      console.warn("[API Blog Generator] Nvidia fallback skipped:", e.message || e);
     }
   }
 
-  // 3. Try Mistral
+  // 5. Try Mistral fallback
   if (!successPost && process.env.MISTRAL_API_KEY) {
     try {
-      console.log("[API Blog Generator] Trying Mistral...");
+      console.log("[API Blog Generator] Trying Mistral fallback...");
       const mistral = new OpenAI({
         apiKey: process.env.MISTRAL_API_KEY,
         baseURL: "https://api.mistral.ai/v1"
@@ -2502,14 +2561,14 @@ Return the output strictly as a JSON object with this exact shape:
         successPost = parsed;
       }
     } catch (e: any) {
-      console.error("[API Blog Generator] Mistral failed:", e.message || e);
+      console.warn("[API Blog Generator] Mistral fallback skipped:", e.message || e);
     }
   }
 
-  // 4. Try Cohere
+  // 6. Try Cohere fallback
   if (!successPost && process.env.COHERE_API_KEY) {
     try {
-      console.log("[API Blog Generator] Trying Cohere...");
+      console.log("[API Blog Generator] Trying Cohere fallback...");
       const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
       const prompt = `System: You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided.
 
@@ -2539,68 +2598,7 @@ Return the output strictly as a JSON object with this exact shape:
         successPost = parsed;
       }
     } catch (e: any) {
-      console.error("[API Blog Generator] Cohere failed:", e.message || e);
-    }
-  }
-
-  // 5. Try Gemini using the keys pool
-  if (!successPost) {
-    const rawPool = getGeminiKeys();
-    const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
-
-    if (keysPool.length > 0) {
-      for (const activeKey of keysPool) {
-        try {
-          const gemini = createGeminiClient(activeKey);
-          const prompt = `We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${searchContext || "No search results found."}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}`;
-
-          const result = await (gemini.client as GoogleGenAI).models.generateContent({
-            model: "gemini-flash-latest",
-            contents: prompt,
-            config: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  fullContent: { type: Type.STRING },
-                  category: { type: Type.STRING },
-                  excerpt: { type: Type.STRING }
-                },
-                required: ["title", "fullContent", "category", "excerpt"]
-              }
-            }
-          });
-
-          let text = result.text || "";
-          if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-            text = result.candidates[0].content.parts[0].text;
-          }
-
-          if (text) {
-            console.log("[API Blog Generator] Gemini blog post generation succeeded.");
-            const parsed = JSON.parse(text.trim());
-            successPost = parsed;
-            break;
-          }
-        } catch (error: any) {
-          console.error("[API Blog Generator] Gemini key failed:", error.message || error);
-        }
-      }
+      console.warn("[API Blog Generator] Cohere fallback skipped:", e.message || e);
     }
   }
 

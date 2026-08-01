@@ -760,7 +760,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
               />
               <img 
                 src={allPictures[0]} 
-                alt={news.title}
+                alt=""
+                aria-hidden="true"
                 onClick={() => setLightboxIndex(0)}
                 referrerPolicy="no-referrer"
                 className="relative z-10 w-full max-h-[600px] object-contain object-top mx-auto cursor-zoom-in group-hover:scale-102 transition-transform duration-500"

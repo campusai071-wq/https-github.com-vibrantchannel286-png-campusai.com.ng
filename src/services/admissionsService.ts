@@ -9,23 +9,201 @@ const INSTITUTIONS_COL = 'admission_institutions';
 const OVERRIDES_COL = 'admission_requirement_overrides';
 const ARTICLES_COL = 'admission_articles';
 
+export const DEFAULT_MASTER_COURSES: MasterCourse[] = [
+  {
+    id: 'computer-science',
+    courseName: 'Computer Science',
+    faculty: 'Science',
+    utmeSubjects: ['English Language', 'Mathematics', 'Physics', 'Chemistry'],
+    olevelRequirements: ['Mathematics', 'English Language', 'Physics', 'Chemistry', 'Biology/Further Mathematics'],
+    directEntryRequirements: 'Two A-Level passes in Mathematics and Physics, or NCE/ND with Upper Credit in Computer Science.',
+    updatedAt: null
+  },
+  {
+    id: 'medicine-and-surgery',
+    courseName: 'Medicine and Surgery',
+    faculty: 'Basic Medical Sciences',
+    utmeSubjects: ['English Language', 'Biology', 'Chemistry', 'Physics'],
+    olevelRequirements: ['English Language', 'Mathematics', 'Physics', 'Chemistry', 'Biology'],
+    directEntryRequirements: 'A-Level passes in Biology/Zoology, Chemistry, and Physics in one sitting, or B.Sc in related field with First Class/Second Class Upper.',
+    updatedAt: null
+  },
+  {
+    id: 'law',
+    courseName: 'Law',
+    faculty: 'Law',
+    utmeSubjects: ['English Language', 'Literature in English', 'CRK/IRS', 'Government/Economics'],
+    olevelRequirements: ['English Language', 'Mathematics', 'Literature in English', 'Government', 'CRK/IRS/Economics'],
+    directEntryRequirements: 'Two A-Level passes in Arts or Social Science subjects, or Diploma in Law with Upper Credit.',
+    updatedAt: null
+  },
+  {
+    id: 'nursing-science',
+    courseName: 'Nursing Science',
+    faculty: 'Health Sciences',
+    utmeSubjects: ['English Language', 'Biology', 'Chemistry', 'Physics'],
+    olevelRequirements: ['English Language', 'Mathematics', 'Physics', 'Chemistry', 'Biology'],
+    directEntryRequirements: 'Registered Nurse (RN) license or A-Level passes in Biology, Chemistry, and Physics.',
+    updatedAt: null
+  },
+  {
+    id: 'electrical-engineering',
+    courseName: 'Electrical / Electronics Engineering',
+    faculty: 'Engineering',
+    utmeSubjects: ['English Language', 'Mathematics', 'Physics', 'Chemistry'],
+    olevelRequirements: ['English Language', 'Mathematics', 'Physics', 'Chemistry', 'Further Mathematics/Technical Drawing'],
+    directEntryRequirements: 'A-Level passes in Mathematics and Physics, or ND/HND Upper Credit in Electrical Engineering.',
+    updatedAt: null
+  },
+  {
+    id: 'accounting',
+    courseName: 'Accounting / Accountancy',
+    faculty: 'Management Sciences',
+    utmeSubjects: ['English Language', 'Mathematics', 'Economics', 'Government/Commerce'],
+    olevelRequirements: ['English Language', 'Mathematics', 'Economics', 'Financial Accounting/Commerce', 'Government'],
+    directEntryRequirements: 'Two A-Level passes including Economics and Accounting, or ATS/ICAN Stage 1.',
+    updatedAt: null
+  }
+];
+
+export const DEFAULT_INSTITUTIONS: AdmissionInstitution[] = [
+  {
+    id: 'unilag',
+    name: 'University of Lagos (UNILAG)',
+    state: 'Lagos',
+    type: 'University',
+    category: 'Federal',
+    courses: ['Computer Science', 'Medicine and Surgery', 'Law', 'Electrical / Electronics Engineering', 'Accounting'],
+    updatedAt: null
+  },
+  {
+    id: 'ui',
+    name: 'University of Ibadan (UI)',
+    state: 'Oyo',
+    type: 'University',
+    category: 'Federal',
+    courses: ['Medicine and Surgery', 'Computer Science', 'Law', 'Nursing Science'],
+    updatedAt: null
+  },
+  {
+    id: 'abu',
+    name: 'Ahmadu Bello University (ABU)',
+    state: 'Kaduna',
+    type: 'University',
+    category: 'Federal',
+    courses: ['Computer Science', 'Medicine and Surgery', 'Electrical / Electronics Engineering', 'Accounting'],
+    updatedAt: null
+  },
+  {
+    id: 'unn',
+    name: 'University of Nigeria, Nsukka (UNN)',
+    state: 'Enugu',
+    type: 'University',
+    category: 'Federal',
+    courses: ['Medicine and Surgery', 'Nursing Science', 'Law', 'Electrical / Electronics Engineering'],
+    updatedAt: null
+  },
+  {
+    id: 'oau',
+    name: 'Obafemi Awolowo University (OAU)',
+    state: 'Osun',
+    type: 'University',
+    category: 'Federal',
+    courses: ['Computer Science', 'Medicine and Surgery', 'Law', 'Accounting'],
+    updatedAt: null
+  },
+  {
+    id: 'lasu',
+    name: 'Lagos State University (LASU)',
+    state: 'Lagos',
+    type: 'University',
+    category: 'State',
+    courses: ['Computer Science', 'Law', 'Nursing Science', 'Accounting'],
+    updatedAt: null
+  }
+];
+
+export const DEFAULT_ADMISSION_ARTICLES: AdmissionArticle[] = [
+  {
+    id: 'jamb_2026_policy_meeting',
+    slug: 'jamb-2026-policy-meeting',
+    title: 'JAMB 2026 Official Policy Guidelines & Minimum Cutoff Benchmarks',
+    category: 'Policy & Guidelines',
+    summary: 'Official breakdown of the 2026 JAMB policy meeting conclusions regarding minimum UTME score thresholds for Universities, Polytechnics, and Colleges of Education.',
+    content: '### Key Policy Takeaways\n\n1. **University Cut-off Minimum**: 140 score baseline for Federal and State universities, though individual competitive courses maintain higher thresholds (e.g. 200+ for Medicine & Law).\n2. **Polytechnic Baseline**: Minimum 100-120 JAMB score.\n3. **O-Level Verification**: Uploading 5 O-Level credit passes on JAMB CAPS is mandatory prior to admission consideration.',
+    last_verified: null,
+    next_review: null,
+    version: 1,
+    official_sources: ['https://www.jamb.gov.ng'],
+    institution: 'JAMB Headquarters',
+    keywords: ['policy', 'jamb', 'cutoff', '2026', 'guidelines'],
+    updatedAt: null
+  },
+  {
+    id: 'post_utme_2026_releases',
+    slug: 'post-utme-2026-releases',
+    title: '2026/2027 Post-UTME Screening Procedures & Eligibility Rules',
+    category: 'Post-UTME',
+    summary: 'Comprehensive instructions on how candidates can register for institutional screening exercises, calculate aggregate scores, and upload credentials.',
+    content: '### Post-UTME Registration Overview\n\n- Ensure your institution choice is declared as **First Choice** on JAMB CAPS.\n- Prepare your O-Level result printout (WAEC/NECO/NABTEB) and JAMB result slip.\n- Calculate institutional aggregate (typically 50% JAMB + 30% Post-UTME + 20% O-Level).',
+    last_verified: null,
+    next_review: null,
+    version: 1,
+    official_sources: ['https://myschool.ng'],
+    institution: 'National Universities Commission',
+    keywords: ['post-utme', 'screening', 'aggregate', 'registration'],
+    updatedAt: null
+  },
+  {
+    id: 'jamb_de_outstanding_clearance',
+    slug: 'jamb-de-outstanding-clearance',
+    title: 'JAMB Direct Entry (DE) A-Level Verification & Clearance Protocol',
+    category: 'Direct Entry',
+    summary: 'Direct Entry candidates with IJMB, JUPEB, NCE, or ND results must verify their certificate authenticity through the JAMB DE portal.',
+    content: '### Direct Entry Guidelines\n\n- All JUPEB & IJMB results must be verified directly by awarding exam bodies.\n- Candidates without verified A-Level results on CAPS will not be cleared by target universities.\n- Ensure matriculation status is accurately declared.',
+    last_verified: null,
+    next_review: null,
+    version: 1,
+    official_sources: ['https://www.jamb.gov.ng'],
+    institution: 'JAMB DE Portal',
+    keywords: ['direct entry', 'jupeb', 'ijmb', 'verification', 'de'],
+    updatedAt: null
+  },
+  {
+    id: 'jamb_returnee_advisory',
+    slug: 'jamb-returnee-advisory',
+    title: 'JAMB CAPS Transfer & Program Acceptance Regulations 2026',
+    category: 'CAPS Portal',
+    summary: 'How to accept or reject program transfers on JAMB CAPS without losing admission opportunities.',
+    content: '### CAPS Transfer Rules\n\n- If your preferred program is full, institutions may offer a transfer to a related course.\n- Candidates must log into JAMB CAPS, navigate to "Transfer Approval", and accept before the offer expires.\n- Unaccepted transfers automatically revert to candidate pool after the deadline.',
+    last_verified: null,
+    next_review: null,
+    version: 1,
+    official_sources: ['https://www.jamb.gov.ng'],
+    institution: 'JAMB CAPS',
+    keywords: ['caps', 'transfer', 'acceptance', 'jamb portal'],
+    updatedAt: null
+  }
+];
+
 export const admissionsService = {
   /**
    * Master Courses
    */
   getAllMasterCourses: async (): Promise<MasterCourse[]> => {
-    if (!db) return [];
+    if (!db) return DEFAULT_MASTER_COURSES;
     try {
       const snap = await getDocs(collection(db, COURSES_COL));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as MasterCourse));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as MasterCourse));
+      return list.length > 0 ? list : DEFAULT_MASTER_COURSES;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, COURSES_COL);
-      return [];
+      return DEFAULT_MASTER_COURSES;
     }
   },
 
   getMasterCourse: async (idOrName: string): Promise<MasterCourse | null> => {
-    if (!db) return null;
+    if (!db) return DEFAULT_MASTER_COURSES.find(c => c.id === idOrName || c.courseName === idOrName) || null;
     try {
       const id = slugify(idOrName);
       const snap = await getDoc(doc(db, COURSES_COL, id));
@@ -35,10 +213,10 @@ export const admissionsService = {
       const qSnap = await getDocs(q);
       if (!qSnap.empty) return { id: qSnap.docs[0].id, ...qSnap.docs[0].data() } as MasterCourse;
       
-      return null;
+      return DEFAULT_MASTER_COURSES.find(c => c.id === idOrName || c.courseName === idOrName) || null;
     } catch (e) {
       handleFirestoreError(e, OperationType.GET, COURSES_COL + '/' + idOrName);
-      return null;
+      return DEFAULT_MASTER_COURSES.find(c => c.id === idOrName || c.courseName === idOrName) || null;
     }
   },
 
@@ -46,18 +224,19 @@ export const admissionsService = {
    * Institutions
    */
   getAllInstitutions: async (): Promise<AdmissionInstitution[]> => {
-    if (!db) return [];
+    if (!db) return DEFAULT_INSTITUTIONS;
     try {
       const snap = await getDocs(collection(db, INSTITUTIONS_COL));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionInstitution));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionInstitution));
+      return list.length > 0 ? list : DEFAULT_INSTITUTIONS;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, INSTITUTIONS_COL);
-      return [];
+      return DEFAULT_INSTITUTIONS;
     }
   },
 
   getInstitution: async (idOrName: string): Promise<AdmissionInstitution | null> => {
-    if (!db) return null;
+    if (!db) return DEFAULT_INSTITUTIONS.find(i => i.id === idOrName || i.name === idOrName) || null;
     try {
       const id = slugify(idOrName);
       const snap = await getDoc(doc(db, INSTITUTIONS_COL, id));
@@ -67,10 +246,10 @@ export const admissionsService = {
       const qSnap = await getDocs(q);
       if (!qSnap.empty) return { id: qSnap.docs[0].id, ...qSnap.docs[0].data() } as AdmissionInstitution;
       
-      return null;
+      return DEFAULT_INSTITUTIONS.find(i => i.id === idOrName || i.name === idOrName) || null;
     } catch (e) {
       handleFirestoreError(e, OperationType.GET, INSTITUTIONS_COL + '/' + idOrName);
-      return null;
+      return DEFAULT_INSTITUTIONS.find(i => i.id === idOrName || i.name === idOrName) || null;
     }
   },
 
@@ -96,6 +275,31 @@ export const admissionsService = {
   /**
    * Admin Seeding Tools (Internal use)
    */
+  seedAllBaselineData: async (): Promise<{ coursesSeeded: number; institutionsSeeded: number; articlesSeeded: number }> => {
+    if (!db) throw new Error("Firestore is not connected.");
+
+    let coursesSeeded = 0;
+    let institutionsSeeded = 0;
+    let articlesSeeded = 0;
+
+    for (const c of DEFAULT_MASTER_COURSES) {
+      await admissionsService.upsertMasterCourse(c);
+      coursesSeeded++;
+    }
+
+    for (const inst of DEFAULT_INSTITUTIONS) {
+      await admissionsService.upsertInstitution(inst);
+      institutionsSeeded++;
+    }
+
+    for (const art of DEFAULT_ADMISSION_ARTICLES) {
+      await admissionsService.upsertAdmissionArticle(art);
+      articlesSeeded++;
+    }
+
+    return { coursesSeeded, institutionsSeeded, articlesSeeded };
+  },
+
   upsertMasterCourse: async (course: Partial<MasterCourse>) => {
     if (!db) return;
     
@@ -237,13 +441,14 @@ export const admissionsService = {
   },
 
   getAllAdmissionArticles: async (): Promise<AdmissionArticle[]> => {
-    if (!db) return [];
+    if (!db) return DEFAULT_ADMISSION_ARTICLES;
     try {
       const snap = await getDocs(collection(db, ARTICLES_COL));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionArticle));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionArticle));
+      return list.length > 0 ? list : DEFAULT_ADMISSION_ARTICLES;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, ARTICLES_COL);
-      return [];
+      return DEFAULT_ADMISSION_ARTICLES;
     }
   }
 };

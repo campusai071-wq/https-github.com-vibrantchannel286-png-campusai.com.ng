@@ -1,5 +1,8 @@
 
 const universityData = [
+  {"name": "Confluence University of Science and Technology", "slug": "custech", "category": "State", "url": "https://eportal.custech.edu.ng/utme/index.php"},
+  {"name": "Ladoke Akintola University of Technology", "slug": "lautech", "category": "State", "url": "https://eportal.lautech.edu.ng/ug/admissions"},
+  {"name": "Ekiti State University", "slug": "eksu", "category": "State", "url": "https://eksuportal.eksu.edu.ng/"},
   {"name": "University of Lagos", "slug": "unilag", "category": "Federal", "url": "https://www.unilag.edu.ng"},
   {"name": "University of Ibadan", "slug": "ui", "category": "Federal", "url": "https://www.ui.edu.ng"},
   {"name": "Ahmadu Bello University", "slug": "abu-zaria", "category": "Federal", "url": "https://www.abu.edu.ng"},

@@ -99,23 +99,54 @@ const getHotIndexScore = (item: NewsItem): number => {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-export const UniversityAvatar: React.FC<{ category: string }> = ({ category }) => {
+export const UniversityAvatar: React.FC<{ category: string; title?: string }> = ({ category, title }) => {
   const gradient: Record<string, string> = {
-    Federal:      'from-blue-600 to-indigo-900',
-    State:        'from-emerald-500 to-teal-800',
-    Private:      'from-purple-600 to-fuchsia-900',
-    JAMB:         'from-red-600 to-orange-700',
-    Polytechnic:  'from-orange-500 to-red-800',
-    COE:          'from-cyan-500 to-blue-800',
-    National:     'from-gray-800 to-black',
-    Jobs:         'from-emerald-600 to-green-900',
-    Scholarships: 'from-yellow-500 to-amber-800',
-    NYSC:         'from-green-700 to-emerald-900',
+    Federal:      'from-blue-900 via-indigo-950 to-slate-950 text-blue-200 border-blue-500/30',
+    State:        'from-emerald-900 via-teal-950 to-slate-950 text-emerald-200 border-emerald-500/30',
+    Private:      'from-purple-900 via-fuchsia-950 to-slate-950 text-purple-200 border-purple-500/30',
+    JAMB:         'from-rose-900 via-red-950 to-slate-950 text-rose-200 border-rose-500/30',
+    Polytechnic:  'from-amber-900 via-orange-950 to-slate-950 text-amber-200 border-amber-500/30',
+    COE:          'from-cyan-900 via-blue-950 to-slate-950 text-cyan-200 border-cyan-500/30',
+    National:     'from-slate-900 via-gray-900 to-black text-gray-200 border-gray-700/30',
+    Jobs:         'from-emerald-900 via-green-950 to-slate-950 text-emerald-200 border-emerald-500/30',
+    Scholarships: 'from-amber-900 via-yellow-950 to-slate-950 text-yellow-200 border-yellow-500/30',
+    NYSC:         'from-green-900 via-emerald-950 to-slate-950 text-emerald-200 border-emerald-500/30',
   };
+
+  const bgStyle = gradient[category] || 'from-slate-900 via-indigo-950 to-slate-950 text-blue-200 border-blue-500/30';
+
   return (
-    <div className={`relative w-full h-full bg-gradient-to-br ${gradient[category] || 'from-gray-700 to-gray-900'} flex items-center justify-center overflow-hidden`}>
-      <div className="absolute inset-0 bg-white/5 opacity-10" />
-      <Newspaper className="text-white/40" size={48} />
+    <div className={`relative w-full h-full bg-gradient-to-br ${bgStyle} flex flex-col justify-between p-5 overflow-hidden select-none border-b border-white/10`}>
+      {/* Background pattern elements */}
+      <div className="absolute -right-6 -bottom-6 opacity-15 pointer-events-none transform -rotate-12">
+        <Newspaper size={140} />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-white/5 pointer-events-none" />
+
+      {/* Header icon / badge */}
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-[8px] font-black uppercase tracking-widest text-white shadow-md">
+          <Globe size={10} className="text-cyan-400" /> {category || 'CAMPUSAI UPDATE'}
+        </div>
+        <Sparkles size={14} className="text-white/40" />
+      </div>
+
+      {/* Title preview or graphic text in readable high contrast */}
+      {title ? (
+        <div className="relative z-10 my-auto py-1">
+          <p className="text-xs md:text-sm font-black text-white leading-snug line-clamp-3 drop-shadow-md">
+            {title}
+          </p>
+        </div>
+      ) : (
+        <div className="relative z-10 my-auto flex items-center justify-center">
+          <Newspaper size={36} className="text-white/50" />
+        </div>
+      )}
+
+      <div className="relative z-10 flex items-center gap-1 text-[7.5px] font-bold text-white/70 uppercase tracking-wider">
+        <ShieldCheck size={10} className="text-emerald-400 shrink-0" /> Verified Report
+      </div>
     </div>
   );
 };
@@ -134,13 +165,13 @@ export const NewsCard: React.FC<{
 }> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => {
   const [imgError, setImgError] = useState(false);
   const displayImage = React.useMemo(() => {
-    if (imgError) return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80';
+    if (imgError) return null;
     if (news.image && typeof news.image === 'string' && news.image.trim()) return news.image.trim();
     if (news.images && Array.isArray(news.images)) {
       const valid = news.images.find(i => i && typeof i === 'string' && i.trim());
       if (valid) return valid.trim();
     }
-    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80';
+    return null;
   }, [imgError, news.image, news.images]);
   const totalImages = news.images && news.images.length > 0 ? news.images.length : (news.image ? 1 : 0);
 
@@ -198,17 +229,18 @@ export const NewsCard: React.FC<{
             />
             <img 
               src={displayImage} 
-              alt={news.title}
+              alt=""
+              aria-hidden="true"
               onError={() => setImgError(true)}
               referrerPolicy="no-referrer"
               className="relative z-10 w-full h-full object-contain object-top group-hover:scale-105 transition-transform duration-500" 
             />
           </>
         ) : (
-          <UniversityAvatar category={news.category} />
+          <UniversityAvatar category={news.category} title={news.title} />
         )}
         <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
-          <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/10">
+          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/20 shadow-md">
             {news.category}
           </div>
           {totalImages > 1 && (

@@ -28,27 +28,17 @@ const HeroSection: React.FC<HeroSectionProps> = ({
       {/* Hero Content */}
       <div className="container mx-auto px-4 md:px-8 relative z-10 grid md:grid-cols-2 gap-12 items-center">
         <div className="text-left">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="inline-block px-4 py-1.5 mb-6 text-[10px] font-black tracking-widest text-blue-400 uppercase border border-blue-400/20 rounded-full bg-blue-400/5"
-          >
+          <div className="inline-block px-4 py-1.5 mb-6 text-[10px] font-black tracking-widest text-blue-400 uppercase border border-blue-400/20 rounded-full bg-blue-400/5">
             {badgeText}
-          </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }}
-            className="text-4xl md:text-6xl font-black mb-6 tracking-tighter leading-[1.1] text-white"
-          >
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter leading-[1.1] text-white">
             {title || (
               <>Check Your <span className="text-blue-500">2026 Admission</span><br/>Chances</>
             )}
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
-            className="text-base md:text-xl text-gray-400 mb-10 leading-relaxed"
-          >
+          </h1>
+          <p className="text-base md:text-xl text-gray-400 mb-10 leading-relaxed max-w-xl">
             {subtitle || "Nigeria's most accurate AI admission strategist. Real-time aggregate calculation and merit probability mapping for your success."}
-          </motion.p>
+          </p>
           
           <div className="flex justify-start gap-4">
             <motion.button 

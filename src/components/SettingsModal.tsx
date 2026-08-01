@@ -443,7 +443,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                               <select 
                                 aria-label="Post Category"
                                 className="bg-white dark:bg-gray-950 p-4 rounded-xl outline-none border border-transparent focus:border-blue-500 text-gray-900 dark:text-white"
-                                value={newPost.category}
+                                value={newPost.category || 'Federal'}
                                 onChange={e => setNewPost({...newPost, category: e.target.value as any})}
                               >
                                 <option className="text-gray-900 dark:text-white bg-white dark:bg-gray-950">Federal</option>

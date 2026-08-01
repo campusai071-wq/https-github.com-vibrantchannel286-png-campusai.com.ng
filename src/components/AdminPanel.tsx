@@ -100,6 +100,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [isSavingOverride, setIsSavingOverride] = useState(false);
   const [overridesError, setOverridesError] = useState('');
   const [overridesSuccess, setOverridesSuccess] = useState('');
+  const [seedStatus, setSeedStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [bulkJSONText, setBulkJSONText] = useState('');
 
   // New override form state
@@ -318,13 +319,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     if (!editingNews) return;
     setIsSavingNews(true);
     try {
-      await updateNewsItem(editingNews.id, {
+      const finalImages = editingNews.images && editingNews.images.length > 0
+        ? editingNews.images
+        : (editingNews.image ? [editingNews.image] : []);
+      const finalImage = editingNews.image || finalImages[0] || '';
+      const updatedItem = {
         ...editingNews,
-        updatedAt: new Date().toISOString() // Force timestamp update
-      });
+        image: finalImage,
+        images: finalImages,
+        updatedAt: new Date().toISOString()
+      };
+      await updateNewsItem(editingNews.id, updatedItem);
       
       // Refresh local list for immediate visual feedback in Admin Panel
-      setPublishedNews(prev => prev.map(n => n.id === editingNews.id ? editingNews : n));
+      setPublishedNews(prev => prev.map(n => n.id === editingNews.id ? updatedItem : n));
       
       // Clear cache and notify app
       window.dispatchEvent(new Event('campusai_news_updated'));
@@ -2024,27 +2032,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                           <input 
                             placeholder="Scholar Name"
-                            value={newTestimonial.name}
+                            value={newTestimonial.name || ''}
                             onChange={e => setNewTestimonial({...newTestimonial, name: e.target.value})}
                             className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl text-xs font-bold outline-none border-transparent focus:border-blue-500"
                           />
                           <input 
                             placeholder="Role (e.g. 2024 Aspirant)"
-                            value={newTestimonial.role}
+                            value={newTestimonial.role || ''}
                             onChange={e => setNewTestimonial({...newTestimonial, role: e.target.value})}
                             className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl text-xs font-bold outline-none border-transparent focus:border-blue-500"
                           />
                         </div>
                         <input 
                           placeholder="Institution (Optional)"
-                          value={newTestimonial.school}
+                          value={newTestimonial.school || ''}
                           onChange={e => setNewTestimonial({...newTestimonial, school: e.target.value})}
                           className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl text-xs font-bold outline-none border-transparent focus:border-blue-500"
                         />
                         <textarea 
                           placeholder="Testimonial Content..."
                           rows={3}
-                          value={newTestimonial.content}
+                          value={newTestimonial.content || ''}
                           onChange={e => setNewTestimonial({...newTestimonial, content: e.target.value})}
                           className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl text-xs font-bold outline-none border-transparent focus:border-blue-500 resize-none"
                         />
@@ -2052,7 +2060,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black uppercase text-gray-400">Rating:</span>
                             <select 
-                              value={newTestimonial.rating}
+                              value={newTestimonial.rating || 5}
                               onChange={e => setNewTestimonial({...newTestimonial, rating: parseInt(e.target.value)})}
                               className="bg-white dark:bg-gray-950 rounded-lg text-xs font-bold p-1"
                             >
@@ -2145,33 +2153,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                     <div className="flex-1 text-center md:text-left">
                       <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Admissions Intelligence Seeder</h4>
-                      <p className="text-xs text-gray-400 mt-1">Bulk import official JAMB requirement data into the knowledge base.</p>
+                      <p className="text-xs text-gray-400 mt-1">Write baseline JAMB requirement data (e.g. Computer Science & UNILAG mapping) into your Firestore database.</p>
                     </div>
                     <button 
                       onClick={async () => {
-                        if (!window.confirm("Seed initial Computer Science requirements?")) return;
                         setIsContentLoading(true);
+                        setSeedStatus(null);
                         try {
-                          await admissionsService.upsertMasterCourse({
-                            courseName: "Computer Science",
-                            faculty: "Sciences",
-                            utmeSubjects: ["Mathematics", "Physics", "Chemistry"],
-                            olevelRequirements: [
-                              "Five (5) SSCE credit passes in English Language, Mathematics, Physics, Chemistry, and any other Science subject.",
-                              "Minimum of C6 in all relevant subjects"
-                            ],
-                            directEntryRequirements: "Two (2) 'A' Level passes in Mathematics and Physics."
+                          const res = await admissionsService.seedAllBaselineData();
+                          setSeedStatus({
+                            type: 'success',
+                            message: `✅ Successfully seeded baseline data to Firestore: ${res.coursesSeeded} Courses, ${res.institutionsSeeded} Institutions, and ${res.articlesSeeded} JAMB Policy Articles!`
                           });
-                          await admissionsService.upsertInstitution({
-                            name: "University of Lagos (UNILAG)",
-                            type: "University",
-                            category: "Federal",
-                            state: "Lagos",
-                            courses: ["Computer Science"]
+                        } catch (e: any) {
+                          setSeedStatus({
+                            type: 'error',
+                            message: `❌ Seeding failed: ${e?.message || 'Unknown error'}`
                           });
-                          alert("Successfully seeded Computer Science baseline and UNILAG mapping.");
-                        } catch (e) {
-                          alert("Seeding failed.");
                         } finally {
                           setIsContentLoading(false);
                         }
@@ -2182,6 +2180,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       {isContentLoading ? <Loader2 size={16} className="animate-spin" /> : <><Sparkles size={16} /> Seed Initial Data</>}
                     </button>
                   </div>
+
+                  {seedStatus && (
+                    <div className={`p-4 rounded-2xl border text-xs font-bold transition-all ${
+                      seedStatus.type === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                    }`}>
+                      {seedStatus.message}
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-4">
@@ -2370,6 +2378,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     />
                   </div>
                 </div>
+
+                <ArticleImagesUploader
+                  images={editingNews.images || (editingNews.image ? [editingNews.image] : [])}
+                  featuredImage={editingNews.image || ''}
+                  onChangeImages={(imgs, feat) => setEditingNews({ ...editingNews, images: imgs, image: feat })}
+                  onInsertMarkdown={(imgUrl) => {
+                    setEditingNews({
+                      ...editingNews,
+                      fullContent: (editingNews.fullContent || '') + `\n\n![Image](${imgUrl})\n\n`
+                    });
+                  }}
+                />
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4 flex items-center justify-between">

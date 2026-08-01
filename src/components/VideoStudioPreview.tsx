@@ -60,8 +60,8 @@ const VideoStudioPreview: React.FC = () => {
               {/* Preview Box Side */}
               <div className="lg:w-1/2 w-full">
                 <div className="relative aspect-video bg-black rounded-[32px] md:rounded-[40px] border border-white/10 shadow-2xl flex items-center justify-center group overflow-hidden">
-                  {/* Fake Video Still */}
-                  <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80')] bg-cover bg-center grayscale group-hover:scale-105 transition-transform duration-1000"></div>
+                  {/* Fake Video Still Background */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950/80 via-blue-950/60 to-gray-950 group-hover:scale-105 transition-transform duration-1000"></div>
                   
                   {/* UI Elements */}
                   <div className="absolute top-6 left-6 flex flex-col gap-1 z-30">
