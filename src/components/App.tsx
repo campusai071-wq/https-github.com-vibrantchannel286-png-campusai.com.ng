@@ -807,8 +807,83 @@ const AppContent: React.FC = () => {
             </div>
           } />
 
+          <Route path="/postutme" element={
+            <div className="pt-24 min-h-screen bg-gray-950">
+              <SEO 
+                title="2026/2027 Post-UTME Screening Hub & Release Dates"
+                description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
+                canonical="/postutme"
+              />
+              <PostUtmeReleaseHub 
+                onCalculateChances={(schoolName) => {
+                    const nameLower = schoolName.toLowerCase();
+                    let slug = '';
+                    if (nameLower.includes('lagos') && !nameLower.includes('state')) slug = 'unilag';
+                    else if (nameLower.includes('lasu') || nameLower.includes('lagos state')) slug = 'lasu';
+                    else if (nameLower.includes('ibadan') || nameLower.includes(' ui')) slug = 'ui';
+                    else if (nameLower.includes('awolowo') || nameLower.includes('oau')) slug = 'oau';
+                    else if (nameLower.includes('benin') || nameLower.includes('uniben')) slug = 'uniben';
+                    else if (nameLower.includes('ilorin') || nameLower.includes('unilorin')) slug = 'unilorin';
+                    else if (nameLower.includes('nsukka') || nameLower.includes('unn') || nameLower.includes('nigeria')) slug = 'unn';
+                    else if (nameLower.includes('akure') || nameLower.includes('futa')) slug = 'futa';
+                    else if (nameLower.includes('abu') || nameLower.includes('abello')) slug = 'abu';
+
+                    if (slug) {
+                      navigate(`/${slug}-aggregate-calculator`);
+                    } else {
+                      setSelectedSchoolForChances(schoolName);
+                      navigate('/calculator');
+                    }
+                    window.scrollTo(0, 0);
+                }}
+                user={user}
+                onLoginRequest={() => setIsAuthModalOpen(true)}
+              />
+            </div>
+          } />
+
+          <Route path="/post-utme" element={
+            <div className="pt-24 min-h-screen bg-gray-950">
+              <SEO 
+                title="2026/2027 Post-UTME Screening Hub & Release Dates"
+                description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
+                canonical="/postutme"
+              />
+              <PostUtmeReleaseHub 
+                onCalculateChances={(schoolName) => {
+                    const nameLower = schoolName.toLowerCase();
+                    let slug = '';
+                    if (nameLower.includes('lagos') && !nameLower.includes('state')) slug = 'unilag';
+                    else if (nameLower.includes('lasu') || nameLower.includes('lagos state')) slug = 'lasu';
+                    else if (nameLower.includes('ibadan') || nameLower.includes(' ui')) slug = 'ui';
+                    else if (nameLower.includes('awolowo') || nameLower.includes('oau')) slug = 'oau';
+                    else if (nameLower.includes('benin') || nameLower.includes('uniben')) slug = 'uniben';
+                    else if (nameLower.includes('ilorin') || nameLower.includes('unilorin')) slug = 'unilorin';
+                    else if (nameLower.includes('nsukka') || nameLower.includes('unn') || nameLower.includes('nigeria')) slug = 'unn';
+                    else if (nameLower.includes('akure') || nameLower.includes('futa')) slug = 'futa';
+                    else if (nameLower.includes('abu') || nameLower.includes('abello')) slug = 'abu';
+
+                    if (slug) {
+                      navigate(`/${slug}-aggregate-calculator`);
+                    } else {
+                      setSelectedSchoolForChances(schoolName);
+                      navigate('/calculator');
+                    }
+                    window.scrollTo(0, 0);
+                }}
+                user={user}
+                onLoginRequest={() => setIsAuthModalOpen(true)}
+              />
+            </div>
+          } />
+
           <Route path="/result-slip" element={
             <div className="pt-24 min-h-screen bg-gray-950">
+              <SEO 
+                title="2026/2027 Post-UTME Screening Hub & Release Dates"
+                description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
+                canonical="/postutme"
+              />
               <PostUtmeReleaseHub 
                 onCalculateChances={(schoolName) => {
                     const nameLower = schoolName.toLowerCase();

@@ -218,6 +218,7 @@ app.get("/sitemap.xml", async (req: any, res: any) => {
       "",
       "/calculator",
       "/news",
+      "/postutme",
       "/admissions",
       "/syllabus",
       "/result-slip",

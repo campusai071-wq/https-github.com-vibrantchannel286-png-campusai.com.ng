@@ -2824,6 +2824,8 @@ export interface SyncedPostUtmeForm {
   details: string;
   portalLink: string;
   publishDate?: string;
+  deadlineDate?: string;
+  examDate?: string;
   cutoffScore?: string;
   eligibilityText?: string;
 }
@@ -2844,9 +2846,11 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
 
 CRITICAL RULES:
 1. Only include institutions EXPLICITLY confirmed to have released 2026/2027 forms.
-2. Extract official portal links (.edu.ng or .gov.ng only).
-3. Current date is ${todayStr}. Discard 2024/2025 news.
-4. RETURN VALID JSON ONLY.
+2. Extract the EXACT SPECIFIC OFFICIAL CUTOFF MARK for each university (e.g. 200 for UNILAG, 180 for FUTO, 195 for LASU, etc.). Do not assign generic estimates. If not specified, return "Not specified".
+3. Extract exact official registration deadline date if mentioned. If none is mentioned, leave deadlineDate null or undefined (do not assign default/fake deadlines).
+4. Extract official portal links (.edu.ng or .gov.ng only).
+5. Current date is ${todayStr}. Discard 2024/2025 news.
+6. RETURN VALID JSON ONLY.
 
 SEARCH RESULTS:
 ${searchResults}
@@ -2861,6 +2865,8 @@ JSON SCHEMA:
       "details": "string",
       "portalLink": "string",
       "publishDate": "string",
+      "deadlineDate": "string",
+      "examDate": "string",
       "cutoffScore": "string",
       "eligibilityText": "string"
     }
@@ -2882,6 +2888,8 @@ JSON SCHEMA:
                     details:         { type: Type.STRING },
                     portalLink:      { type: Type.STRING },
                     publishDate:     { type: Type.STRING },
+                    deadlineDate:    { type: Type.STRING },
+                    examDate:        { type: Type.STRING },
                     cutoffScore:     { type: Type.STRING },
                     eligibilityText: { type: Type.STRING } },
                   required: ["schoolName", "isOut", "statusText", "details", "portalLink", "publishDate", "cutoffScore", "eligibilityText"]
@@ -2937,9 +2945,10 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
 
 CRITICAL:
 1. Current date is ${todayStr}. 2026/2027 announcements from 2026 are current. 2024/2025 announcements are PAST.
-2. Verify if the form is actually open NOW or still pending.
-3. Official portal link must be .edu.ng or .gov.ng only.
-4. RETURN VALID JSON ONLY.
+2. Verify whether the form is active, pending, or CLOSED/EXPIRED.
+3. If the registration deadline has passed or portal is closed, set statusText to "Form Closed" or "Registration Closed".
+4. Official portal link must be .edu.ng or .gov.ng only.
+5. RETURN VALID JSON ONLY.
 
 SEARCH FINDINGS:
 ${searchResults}
@@ -2952,6 +2961,8 @@ JSON SCHEMA:
   "details": "string",
   "portalLink": "string",
   "publishDate": "string",
+  "deadlineDate": "string",
+  "examDate": "string",
   "cutoffScore": "string",
   "eligibilityText": "string"
 }`,
@@ -2966,6 +2977,8 @@ JSON SCHEMA:
               details:         { type: Type.STRING },
               portalLink:      { type: Type.STRING },
               publishDate:     { type: Type.STRING },
+              deadlineDate:    { type: Type.STRING },
+              examDate:        { type: Type.STRING },
               cutoffScore:     { type: Type.STRING },
               eligibilityText: { type: Type.STRING } },
             required: ["schoolName", "isOut", "statusText", "details", "portalLink", "publishDate", "cutoffScore", "eligibilityText"]

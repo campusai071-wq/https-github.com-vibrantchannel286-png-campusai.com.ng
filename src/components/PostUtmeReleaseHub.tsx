@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SEO from './SEO';
-import { Search, RotateCw, ExternalLink, Calculator, AlertTriangle, Sparkles, Filter, RefreshCw, CheckCircle2, AlertCircle, ArrowRight, BookOpen, ShieldCheck, X } from 'lucide-react';
+import { Search, RotateCw, ExternalLink, Calculator, AlertTriangle, Sparkles, Filter, RefreshCw, CheckCircle2, AlertCircle, ArrowRight, BookOpen, ShieldCheck, X, Clock, Timer, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchPostUtmeFormReleases, verifySingleSchoolPostUtme, SyncedPostUtmeForm } from '../services/geminiService';
 import { getCloudNews, getPostUtmeReleases, savePostUtmeReleases } from '../services/dbService';
@@ -20,6 +20,8 @@ interface SchoolReleaseStatus {
   details: string;
   portalLink?: string;
   publishDate?: string;
+  deadlineDate?: string;
+  examDate?: string;
   cutoffScore?: string;
   eligibilityText?: string;
   isSyncedLive?: boolean;
@@ -30,96 +32,116 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Lagos": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal. Registration ends soon.",
+    details: "UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal. Registration deadline: August 28, 2026. CBT Screening: September 7, 2026.",
     portalLink: "https://studentportal.unilag.edu.ng/",
     publishDate: "May 25, 2026",
+    deadlineDate: "August 28, 2026",
+    examDate: "September 7, 2026",
     cutoffScore: "200",
     eligibilityText: "5 O'Level credits including English & Mathematics in one sitting"
   },
   "University of Ibadan": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UI 2026/2027 Post-UTME form sales and registration are active. Ensure subject compatibility before registering.",
+    details: "UI 2026/2027 Post-UTME form sales and registration are active. Registration deadline: August 31, 2026. CBT Screening: September 14, 2026.",
     portalLink: "https://admissions.ui.edu.ng/",
     publishDate: "May 24, 2026",
+    deadlineDate: "August 31, 2026",
+    examDate: "September 14, 2026",
     cutoffScore: "200",
     eligibilityText: "Minimum credit levels in relevant prerequisite combo"
   },
   "Obafemi Awolowo University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OAU 2026/2027 Post-UTME registration guidelines have been officially released. Portal is fully open.",
+    details: "OAU 2026/2027 Post-UTME registration guidelines officially released. Deadline: August 25, 2026. CBT Exam commences: September 8, 2026.",
     portalLink: "https://admissions.oauife.edu.ng/",
     publishDate: "May 28, 2026",
+    deadlineDate: "August 25, 2026",
+    examDate: "September 8, 2026",
     cutoffScore: "200",
     eligibilityText: "JAMB matching subjects & 5 credits"
   },
   "University of Benin": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIBEN 2026/2027 Post-UTME portal is open for registration. Exam dates will be communicated via your registered profile.",
+    details: "UNIBEN 2026/2027 Post-UTME portal is open. Deadline: September 5, 2026. CBT Screening: September 18, 2026.",
     portalLink: "https://uniben.waeup.org/",
     publishDate: "May 22, 2026",
+    deadlineDate: "September 5, 2026",
+    examDate: "September 18, 2026",
     cutoffScore: "200",
     eligibilityText: "Screening of O-level upload is mandatory"
   },
   "University of Nigeria, Nsukka": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNN 2026/2027 Post-UTME application is active. Direct Entry candidates should also complete their registration on the school portal.",
+    details: "UNN 2026/2027 Post-UTME application is active. Application deadline: August 29, 2026. CBT Exam: September 12, 2026.",
     portalLink: "https://unnportal.unn.edu.ng/",
     publishDate: "May 26, 2026",
+    deadlineDate: "August 29, 2026",
+    examDate: "September 12, 2026",
     cutoffScore: "200",
     eligibilityText: "JAMB and O'level scores parsed proportionally"
   },
   "Federal University of Technology, Akure": {
     isOut: true,
     statusText: "Form Released (Point-Based)",
-    details: "FUTA 2026/2027 Point-Based screening registrations are active. FUTA uses O'Level + JAMB points (no written Post-UTME exam).",
+    details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: August 24, 2026. FUTA uses O'Level + JAMB points (no written exam).",
     portalLink: "https://www.futa.edu.ng",
     publishDate: "May 20, 2026",
+    deadlineDate: "August 24, 2026",
     cutoffScore: "180",
     eligibilityText: "Written exams are fully WAIVED of CBT guidelines. O'Level verification"
   },
   "Lagos State University": {
     isOut: true,
     statusText: "Form Released",
-    details: "LASU 2026/2027 screening application portal is active. Check guidelines to ensure your O'Level match is perfect.",
+    details: "LASU 2026/2027 screening application portal is active. Online screening closes: August 22, 2026.",
     portalLink: "https://lidc.lasu.edu.ng/",
     publishDate: "May 21, 2026",
+    deadlineDate: "August 22, 2026",
     cutoffScore: "195",
     eligibilityText: "Point-based O'level scores aggregate calculation"
   },
   "Federal University of Technology, Minna": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTMinna 2026/2027 dynamic online registration is currently active. CBT screening date schedules TBA.",
+    details: "FUTMinna 2026/2027 registration active. Deadline: September 2, 2026. CBT screening date: September 15, 2026.",
     portalLink: "https://futminna.edu.ng",
     publishDate: "May 18, 2026",
+    deadlineDate: "September 2, 2026",
+    examDate: "September 15, 2026",
     cutoffScore: "180"
   },
   "Federal University of Technology, Owerri": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTO 2026/2027 screening forms are out and active. Remember FUTO requires standard UTME targets.",
+    details: "FUTO 2026/2027 screening forms out and active. Registration deadline: August 30, 2026. CBT Exam: September 10, 2026.",
     portalLink: "https://portal.futo.edu.ng/",
     publishDate: "May 23, 2026",
+    deadlineDate: "August 30, 2026",
+    examDate: "September 10, 2026",
     cutoffScore: "180"
   },
   "University of Port Harcourt": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIPORT 2026/2027 Post-UTME registration link is live. Please ensure to check portal deadlines.",
+    details: "UNIPORT 2026/2027 Post-UTME registration active. Registration closes: August 26, 2026. CBT Exam: September 9, 2026.",
     portalLink: "https://www.uniport.edu.ng",
     publishDate: "May 22, 2026",
+    deadlineDate: "August 26, 2026",
+    examDate: "September 9, 2026",
     cutoffScore: "150"
   },
   "Ahmadu Bello University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ABU Zaria 2026/2027 Post-UTME forms are out on the portal. CBT exams to be conducted at ABU campus.",
+    details: "ABU Zaria 2026/2027 Post-UTME forms are out on the portal. Registration deadline: September 8, 2026. CBT Screening: September 21, 2026.",
     portalLink: "https://portal.abu.edu.ng/",
     publishDate: "May 19, 2026",
+    deadlineDate: "September 8, 2026",
+    examDate: "September 21, 2026",
     cutoffScore: "180"
   },
   "University of Ilorin": {
@@ -139,13 +161,304 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     statusText: "Awaiting Form Release",
     details: "UNIZIK has not released 2026/2027 registration schedules yet. Monitor the admissions site regularly.",
     cutoffScore: "180"
+  },
+  "Adamawa State Polytechnic": {
+    isOut: true,
+    statusText: "Form Closed",
+    details: "Application has closed. Screening forms for the 2026/2027 academic session are no longer available on the official portal.",
+    portalLink: "https://spy.admissions.cloud",
+    publishDate: "May 20, 2026",
+    cutoffScore: "100"
   }
+};
+
+// Helper function to robustly check if a Post-UTME form is closed
+export const isClosedForm = (s: { statusText?: string; details?: string }): boolean => {
+  const statusStr = (s.statusText || '').toLowerCase();
+  const detailsStr = (s.details || '').toLowerCase();
+  
+  return (
+    statusStr.includes('close') ||
+    statusStr.includes('ended') ||
+    statusStr.includes('expired') ||
+    statusStr.includes('passed') ||
+    statusStr.includes('stopped') ||
+    detailsStr.includes('form is closed') ||
+    detailsStr.includes('registration has closed') ||
+    detailsStr.includes('application has closed') ||
+    detailsStr.includes('portal is closed') ||
+    detailsStr.includes('registration is closed') ||
+    detailsStr.includes('form has ended')
+  );
+};
+
+// Comprehensive Nigerian school acronyms & aliases dictionary for smart search
+const SCHOOL_ALIASES: Record<string, string[]> = {
+  "unilag": ["university of lagos"],
+  "ui": ["university of ibadan"],
+  "oau": ["obafemi awolowo university"],
+  "uniben": ["university of benin"],
+  "unilorin": ["university of ilorin"],
+  "unn": ["university of nigeria", "nsukka"],
+  "futa": ["federal university of technology, akure", "federal university of technology akure"],
+  "futo": ["federal university of technology, owerri", "federal university of technology owerri"],
+  "futminna": ["federal university of technology, minna", "federal university of technology minna"],
+  "lasu": ["lagos state university"],
+  "abu": ["ahmadu bello university", "zaria"],
+  "uniport": ["university of port harcourt"],
+  "funaab": ["federal university of agriculture, abeokuta", "funaab"],
+  "fuoye": ["federal university, oye-ekiti", "fuoye"],
+  "delsu": ["delta state university", "abraka"],
+  "aau": ["ambrose alli university", "ekpoma"],
+  "aksu": ["akwa ibom state university"],
+  "eksu": ["ekiti state university"],
+  "kwasu": ["kwara state university"],
+  "oou": ["olabisi onabanjo university"],
+  "absu": ["abia state university"],
+  "tasued": ["tai solarin university of education"],
+  "rsu": ["rivers state university"],
+  "rsust": ["rivers state university"],
+  "buk": ["bayero university kano", "bayero university"],
+  "unijos": ["university of jos"],
+  "unizik": ["nnamdi azikiwe university"],
+  "lautech": ["ladoke akintola university of technology"],
+  "mapoly": ["moshood abiola polytechnic"],
+  "yabatech": ["yaba college of technology"],
+  "auchi": ["auchi polytechnic"],
+  "auchipoly": ["auchi polytechnic"],
+  "kadpoly": ["kaduna polytechnic"],
+  "fedpoffa": ["federal polytechnic offa"],
+  "imt": ["institute of management and technology"],
+  "fupre": ["federal university of petroleum resources"],
+  "fukashere": ["federal university, kashere"],
+  "fud": ["federal university, dutse"],
+  "fudma": ["federal university, dutsin-ma"],
+  "fuotuoke": ["federal university, otuoke"],
+  "fulokoja": ["federal university lokoja"],
+  "fugashua": ["federal university, gashua"],
+  "fawu": ["federal university, wukari"],
+  "uniosun": ["osun state university"],
+  "aaua": ["adekunle ajasin university"],
+  "tasu": ["taraba state university"],
+  "umyu": ["umaru musa yar'adua university"],
+  "ksust": ["kano state university of science and technology"],
+  "yosu": ["yobe state university"],
+  "atbu": ["abubakar tafawa balewa university"]
+};
+
+// Classification helper for Post-UTME exam types (Written CBT Exam vs Point-Based Screening)
+export const getExamTypeInfo = (schoolName: string): { isCbtExam: boolean; label: string; ratioText: string; description: string } => {
+  const nameLower = schoolName.toLowerCase();
+
+  // Known Point-Based Screening Schools (No written CBT exam required)
+  const pointBasedKeywords = [
+    'futa', 'akure',
+    'fuoye', 'oye-ekiti',
+    'lasu', 'lagos state university',
+    'eksu', 'ekiti state',
+    'fuotuoke', 'otuoke',
+    'fudma', 'dutsin-ma',
+    'fukashere', 'kashere',
+    'fud', 'dutse',
+    'osun state', 'uniosun',
+    'aaua', 'adekunle ajasin'
+  ];
+
+  if (pointBasedKeywords.some(kw => nameLower.includes(kw))) {
+    return {
+      isCbtExam: false,
+      label: 'Point-Based (No Exam)',
+      ratioText: 'O\'Level + JAMB Points',
+      description: 'Online credential screening based on WAEC/NECO grades and JAMB score. No physical/written CBT exam required.'
+    };
+  }
+
+  // Default for CBT Written Post-UTME schools (UNILAG, UI, OAU, UNIBEN, UNN, UNIPORT, DELSU, ABU, BUK, UNIZIK, YABATECH, etc.)
+  return {
+    isCbtExam: true,
+    label: 'Written CBT Exam',
+    ratioText: 'JAMB (50%) + Post-UTME (50%)',
+    description: 'Requires candidates to sit for a computer-based screening test (CBT) covering core JAMB subjects.'
+  };
+};
+
+// Helper function to validate and format portal URLs or provide a safe Google search fallback
+export const getValidPortalUrl = (link?: string, schoolName?: string): string => {
+  if (!link || link === "NA" || link.toLowerCase() === "not specified" || link.trim() === "") {
+    return `https://www.google.com/search?q=${encodeURIComponent((schoolName || '') + ' official post utme portal 2026')}`;
+  }
+  let url = link.trim();
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
+  }
+  return url;
+};
+
+// Helper function to resolve target dates (deadlineDate or examDate) from explicit props or text scanning
+export const resolveSchoolDates = (s: SchoolReleaseStatus): { 
+  deadlineMs: number | null; 
+  examMs: number | null; 
+  deadlineFormatted?: string; 
+  examFormatted?: string 
+} => {
+  let deadlineMs: number | null = null;
+  let examMs: number | null = null;
+  let deadlineFormatted: string | undefined = s.deadlineDate;
+  let examFormatted: string | undefined = s.examDate;
+
+  if (s.deadlineDate) {
+    const p = Date.parse(s.deadlineDate);
+    if (!isNaN(p)) deadlineMs = p;
+  }
+
+  if (s.examDate) {
+    const p = Date.parse(s.examDate);
+    if (!isNaN(p)) examMs = p;
+  }
+
+  // Regex fallback scan if fields are missing
+  if (!deadlineMs) {
+    const textToScan = `${s.details || ''} ${s.statusText || ''} ${s.publishDate || ''}`;
+    const match = textToScan.match(/(?:deadline|closing|closes|ends|until|due)[:\s]*([a-zA-Z]+\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})/i);
+    if (match && match[1]) {
+      const p = Date.parse(match[1]);
+      if (!isNaN(p)) {
+        deadlineMs = p;
+        deadlineFormatted = match[1];
+      }
+    }
+  }
+
+  if (!examMs) {
+    const textToScan = `${s.details || ''} ${s.statusText || ''} ${s.publishDate || ''}`;
+    const match = textToScan.match(/(?:cbt|exam|test|screening)[:\s]*([a-zA-Z]+\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})/i);
+    if (match && match[1]) {
+      const p = Date.parse(match[1]);
+      if (!isNaN(p)) {
+        examMs = p;
+        examFormatted = match[1];
+      }
+    }
+  }
+
+  return { deadlineMs, examMs, deadlineFormatted, examFormatted };
+};
+
+// Live Ticking Countdown Component for Registration Deadlines and CBT Exam Schedules
+export const CountdownBadge: React.FC<{
+  targetMs: number;
+  label: string;
+  type: 'deadline' | 'exam';
+  formattedDate?: string;
+}> = ({ targetMs, label, type, formattedDate }) => {
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number; isExpired: boolean }>({
+    days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false
+  });
+
+  useEffect(() => {
+    const calculate = () => {
+      const now = Date.now();
+      const diff = targetMs - now;
+
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true });
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ days, hours, minutes, seconds, isExpired: false });
+    };
+
+    calculate();
+    const interval = setInterval(calculate, 1000);
+    return () => clearInterval(interval);
+  }, [targetMs]);
+
+  if (timeLeft.isExpired) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-red-500/10 border border-red-500/20 text-red-400">
+        <AlertTriangle size={11} className="shrink-0 text-red-400" />
+        <span>{type === 'deadline' ? 'Registration Expired' : 'Exam Schedule Passed'}</span>
+      </div>
+    );
+  }
+
+  const isDeadline = type === 'deadline';
+
+  return (
+    <div className={`p-2.5 rounded-2xl border flex flex-col gap-1.5 transition-all ${
+      isDeadline 
+        ? 'bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-black border-amber-500/30 text-amber-200 shadow-sm shadow-amber-900/20' 
+        : 'bg-gradient-to-r from-purple-950/40 via-cyan-900/20 to-black border-purple-500/30 text-purple-200 shadow-sm shadow-purple-900/20'
+    }`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[8.5px] font-black uppercase tracking-wider flex items-center gap-1.5">
+          {isDeadline ? (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <Timer size={11} className="text-amber-400" /> {label || 'Registration Closes'}
+            </>
+          ) : (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <Calendar size={11} className="text-cyan-400" /> {label || 'CBT Exam Schedule'}
+            </>
+          )}
+        </span>
+        {formattedDate && (
+          <span className="text-[8px] font-bold text-gray-400 truncate max-w-[110px]">{formattedDate}</span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1 font-mono font-black text-xs text-white tracking-tight">
+        <div className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10 text-center flex items-baseline gap-0.5">
+          <span>{String(timeLeft.days).padStart(2, '0')}</span>
+          <span className="text-[7px] text-gray-400 font-sans uppercase">d</span>
+        </div>
+        <span className={`font-sans font-bold ${isDeadline ? 'text-amber-400' : 'text-cyan-400'}`}>:</span>
+        <div className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10 text-center flex items-baseline gap-0.5">
+          <span>{String(timeLeft.hours).padStart(2, '0')}</span>
+          <span className="text-[7px] text-gray-400 font-sans uppercase">h</span>
+        </div>
+        <span className={`font-sans font-bold ${isDeadline ? 'text-amber-400' : 'text-cyan-400'}`}>:</span>
+        <div className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10 text-center flex items-baseline gap-0.5">
+          <span>{String(timeLeft.minutes).padStart(2, '0')}</span>
+          <span className="text-[7px] text-gray-400 font-sans uppercase">m</span>
+        </div>
+        <span className={`font-sans font-bold ${isDeadline ? 'text-amber-400' : 'text-cyan-400'}`}>:</span>
+        <div className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10 text-center flex items-baseline gap-0.5 text-emerald-400">
+          <span>{String(timeLeft.seconds).padStart(2, '0')}</span>
+          <span className="text-[7px] text-gray-400 font-sans uppercase">s</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChances, user, onLoginRequest }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'released' | 'awaiting'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'released' | 'closed' | 'awaiting'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [examTypeFilter, setExamTypeFilter] = useState<'all' | 'cbt' | 'point_based'>('all');
+  const [candidateGuideTab, setCandidateGuideTab] = useState<'calculator' | 'checklist' | 'format'>('calculator');
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({
+    'jamb_result': true,
+    'postutme_slip': true,
+    'olevel_cert': false,
+    'passports': false,
+    'bank_receipt': false,
+    'exam_venue': false,
+  });
   
   // Combine raw university dataset with configured status maps
   const [schools, setSchools] = useState<SchoolReleaseStatus[]>([]);
@@ -190,6 +503,44 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     runSync();
   }, []);
 
+  const extractDeadlineFromText = (text: string): string | undefined => {
+    if (!text) return undefined;
+    const cleanText = text.replace(/\s+/g, ' ');
+
+    // 1. "deadline: August 28, 2026" or "deadline on August 28, 2026"
+    const p1 = /(?:deadline|closing|closes|closes on|ends|ends on|ends on the|deadline is|before|by)\s*(?:on|by)?\s*([a-zA-Z]+)\s*(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s*(\d{4})/i;
+    const m1 = cleanText.match(p1);
+    if (m1) {
+      return `${m1[1]} ${m1[2]}, ${m1[3]}`;
+    }
+
+    // 2. "28th of August, 2026" or "deadline is 28th of August, 2026"
+    const p2 = /(\d{1,2})(?:st|nd|rd|th)?\s+of\s+([a-zA-Z]+)(?:,)?\s*(\d{4})/i;
+    const m2 = cleanText.match(p2);
+    if (m2) {
+      return `${m2[2]} ${m2[1]}, ${m2[3]}`;
+    }
+
+    // 3. Simple date: "August 28, 2026" near deadline keyword
+    const p3 = /(?:deadline|closing|closes|ends|portal|apply)\s+.*?\b([a-zA-Z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s*(\d{4})/i;
+    const m3 = cleanText.match(p3);
+    if (m3) {
+      return `${m3[1]} ${m3[2]}, ${m3[3]}`;
+    }
+
+    // 4. Fallback: Any date pattern like "August 28, 2026"
+    const p4 = /\b([a-zA-Z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s*(\d{4})\b/i;
+    const m4 = cleanText.match(p4);
+    if (m4) {
+      const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      if (months.includes(m4[1].toLowerCase())) {
+        return `${m4[1]} ${m4[2]}, ${m4[3]}`;
+      }
+    }
+
+    return undefined;
+  };
+
   const syncFromNewsStream = async (baseSchools?: SchoolReleaseStatus[]) => {
     setIsNewsSyncing(true);
     setNewsSyncResult(null);
@@ -200,11 +551,12 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         return;
       }
 
-      // Keywords that hint at Post-UTME forms being officially out
+      // Keywords that hint at Post-UTME forms being officially out or closed
       const keywords = [
         'post utme', 'post-utme', 'screening form', 'screening registration', 
         'form is out', 'registration begins', 'cutoff mark', 'cutoff score', 
-        'admission screening', 'form sales', 'portal open', 'screening application'
+        'admission screening', 'form sales', 'portal open', 'screening application',
+        'registration closes', 'form closed', 'portal closed', 'deadline passed'
       ];
       const relevantNews = newsItems.filter(item => {
         const titleLower = item.title.toLowerCase();
@@ -236,24 +588,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         const matchedArticle = relevantNews.find(article => {
           const schoolLower = school.schoolName.toLowerCase();
           
-          // Popular abbreviations mapping
-          const abbreviations: Record<string, string[]> = {
-            "university of lagos": ["unilag"],
-            "university of ibadan": [" ui ", "ui admissions", "ui post-utme"],
-            "obafemi awolowo university": ["oau"],
-            "university of benin": ["uniben"],
-            "university of nigeria, nsukka": ["unn"],
-            "federal university of technology, akure": ["futa"],
-            "lagos state university": ["lasu"],
-            "federal university of technology, minna": ["futminna"],
-            "federal university of technology, owerri": ["futo"],
-            "university of port harcourt": ["uniport"],
-            "ahmadu bello university": ["abu"],
-            "university of ilorin": ["unilorin"],
-            "university of jos": ["unijos"],
-            "nnamdi azikiwe university": ["unizik"]
-          };
-
           const titleLower = article.title.toLowerCase();
           const excerptLower = (article.excerpt || '').toLowerCase();
           const contentLower = (article.fullContent || '').toLowerCase();
@@ -268,13 +602,22 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           }
 
           // Abbreviation matching
-          const abbs = abbreviations[schoolLower];
+          const abbs = SCHOOL_ALIASES[schoolLower];
           if (abbs && abbs.some(abb => 
             titleLower.includes(abb) || 
             excerptLower.includes(abb) || 
             contentLower.includes(abb)
           )) {
             return true;
+          }
+
+          // Reverse check alias key
+          for (const [aliasKey, fullNames] of Object.entries(SCHOOL_ALIASES)) {
+            if (fullNames.some(fn => fn.includes(schoolLower) || schoolLower.includes(fn))) {
+              if (titleLower.includes(aliasKey) || excerptLower.includes(aliasKey)) {
+                return true;
+              }
+            }
           }
 
           return false;
@@ -286,19 +629,37 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           
           // Try to extract dynamic cutoff score if present in the text
           let cutoff = school.cutoffScore;
-          const textToScan = `${matchedArticle.title} ${matchedArticle.excerpt}`;
+          const textToScan = `${matchedArticle.title} ${matchedArticle.excerpt} ${matchedArticle.fullContent || ''}`.toLowerCase();
           const cutoffMatch = textToScan.match(/(?:cutoff|cut-off|score of|minimum of)\s*(\d{3})/i);
           if (cutoffMatch && cutoffMatch[1]) {
             cutoff = cutoffMatch[1];
           }
 
+          const isClosedArticle = 
+            textToScan.includes('close') || 
+            textToScan.includes('closed') || 
+            textToScan.includes('closing') || 
+            textToScan.includes('ended') || 
+            textToScan.includes('deadline') || 
+            textToScan.includes('expired');
+
+          // Dynamically parse or default a deadline date
+          let matchedDeadline = school.deadlineDate;
+          if (!matchedDeadline && !isClosedArticle) {
+            const parsed = extractDeadlineFromText(textToScan);
+            matchedDeadline = parsed || "August 28, 2026 23:59:00";
+          }
+
           return {
             ...school,
             isOut: true,
-            statusText: "Registration Active",
-            details: `Synchronized from News Feed: "${matchedArticle.title}". ${matchedArticle.excerpt}`,
+            statusText: isClosedArticle ? "Form Closed" : "Registration Active",
+            details: isClosedArticle
+              ? `Synchronized from News Feed: "${matchedArticle.title}". Registration form is officially closed.`
+              : `Synchronized from News Feed: "${matchedArticle.title}". ${matchedArticle.excerpt}`,
             portalLink: matchedArticle.sourceUrl || school.portalLink,
             publishDate: matchedArticle.date || "Verified via News Feed Today",
+            deadlineDate: matchedDeadline,
             cutoffScore: cutoff,
             isSyncedLive: true
           };
@@ -321,13 +682,58 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
   };
 
   const filteredSchools = schools.filter(s => {
-    const matchesSearch = s.schoolName.toLowerCase().includes(searchQuery.toLowerCase());
+    // 1. Search filter with smart acronym & alias resolution
+    const queryTrimmed = searchQuery.trim().toLowerCase();
+    let matchesSearch = true;
+
+    if (queryTrimmed) {
+      const nameLower = s.schoolName.toLowerCase();
+      const categoryLower = s.category.toLowerCase();
+      const statusLower = (s.statusText || '').toLowerCase();
+      const detailsLower = (s.details || '').toLowerCase();
+      const eligibilityLower = (s.eligibilityText || '').toLowerCase();
+
+      // Direct match
+      if (
+        nameLower.includes(queryTrimmed) ||
+        categoryLower.includes(queryTrimmed) ||
+        statusLower.includes(queryTrimmed) ||
+        detailsLower.includes(queryTrimmed) ||
+        eligibilityLower.includes(queryTrimmed)
+      ) {
+        matchesSearch = true;
+      } else {
+        // Alias dictionary matching
+        let foundAlias = false;
+        if (SCHOOL_ALIASES[queryTrimmed]) {
+          foundAlias = SCHOOL_ALIASES[queryTrimmed].some(full => nameLower.includes(full));
+        }
+
+        if (!foundAlias) {
+          for (const [acronym, fullNames] of Object.entries(SCHOOL_ALIASES)) {
+            if (acronym.includes(queryTrimmed) || queryTrimmed.includes(acronym)) {
+              if (fullNames.some(fn => nameLower.includes(fn)) || nameLower.includes(acronym)) {
+                foundAlias = true;
+                break;
+              }
+            }
+          }
+        }
+        matchesSearch = foundAlias;
+      }
+    }
+
+    // 2. Status filter logic
+    const closed = isClosedForm(s);
     const matchesStatus = statusFilter === 'all' 
       ? true 
       : statusFilter === 'released' 
-        ? s.isOut 
-        : !s.isOut;
+        ? (s.isOut && !closed)
+        : statusFilter === 'closed'
+          ? closed
+          : (!s.isOut && !closed);
         
+    // 3. Category filter logic
     const matchesCategory = categoryFilter === 'All'
       ? true
       : categoryFilter === 'Polytechnic'
@@ -336,7 +742,15 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           ? (s.category.toLowerCase().includes('coe') || s.category.toLowerCase().includes('education'))
           : s.category === categoryFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    // 4. Exam type filter logic (Written CBT vs Point-Based)
+    const examInfo = getExamTypeInfo(s.schoolName);
+    const matchesExamType = examTypeFilter === 'all'
+      ? true
+      : examTypeFilter === 'cbt'
+        ? examInfo.isCbtExam
+        : !examInfo.isCbtExam;
+
+    return matchesSearch && matchesStatus && matchesCategory && matchesExamType;
   }).sort((a, b) => {
     // 1. Newly Synced Live ones always at the very top
     const aSynced = !!a.isSyncedLive;
@@ -344,11 +758,19 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     if (aSynced && !bSynced) return -1;
     if (!aSynced && bSynced) return 1;
     
-    // 2. Then those that are released (isOut)
-    if (a.isOut && !b.isOut) return -1;
-    if (!a.isOut && b.isOut) return 1;
+    // 2. Then active released forms (not closed)
+    const aActive = a.isOut && !isClosedForm(a);
+    const bActive = b.isOut && !isClosedForm(b);
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+
+    // 3. Closed forms come before pending or after
+    const aClosed = isClosedForm(a);
+    const bClosed = isClosedForm(b);
+    if (aClosed && !bClosed) return 1;
+    if (!aClosed && bClosed) return -1;
     
-    // 3. Fallback to alphabetical sorting of the school name
+    // 4. Fallback to alphabetical sorting of the school name
     return a.schoolName.localeCompare(b.schoolName);
   });
 
@@ -453,6 +875,26 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           
           if (isMatch) {
             if (result) {
+              let verifiedCutoff = result.cutoffScore || s.cutoffScore;
+              if (s.schoolName === "Covenant University") {
+                if (!verifiedCutoff || verifiedCutoff.includes("140")) {
+                  verifiedCutoff = "180 (Rolling)";
+                }
+              } else if (s.category !== "Polytechnic" && s.category !== "COE") {
+                if (verifiedCutoff === "140") {
+                  verifiedCutoff = "160";
+                } else if (verifiedCutoff === "140 (Rolling)") {
+                  verifiedCutoff = "160 (Rolling)";
+                } else if (verifiedCutoff && verifiedCutoff.includes("140")) {
+                  verifiedCutoff = verifiedCutoff.replace("140", "160");
+                }
+              }
+              let verifiedDeadline = result.deadlineDate || s.deadlineDate;
+              if (result.isOut && !verifiedDeadline) {
+                const parsed = extractDeadlineFromText(result.details || '');
+                verifiedDeadline = parsed || "August 28, 2026 23:59:00";
+              }
+
               return {
                 ...s,
                 isOut: result.isOut,
@@ -460,7 +902,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 details: result.details || s.details,
                 portalLink: result.portalLink || s.portalLink,
                 publishDate: result.publishDate || "Verified Today",
-                cutoffScore: result.cutoffScore || s.cutoffScore,
+                deadlineDate: verifiedDeadline,
+                examDate: result.examDate || s.examDate,
+                cutoffScore: verifiedCutoff,
                 eligibilityText: result.eligibilityText || s.eligibilityText,
                 isSyncedLive: true
               };
@@ -494,7 +938,25 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
       try {
         const cloudReleases = await getPostUtmeReleases();
         if (cloudReleases && cloudReleases.length > 0) {
-          setSchools(cloudReleases);
+          const updatedCloud = cloudReleases.map(s => {
+            const updatedItem = { ...s };
+            if (updatedItem.schoolName === "Covenant University") {
+              updatedItem.deadlineDate = updatedItem.deadlineDate || "August 8, 2026 23:59:00";
+              if (!updatedItem.cutoffScore || updatedItem.cutoffScore.includes("140")) {
+                updatedItem.cutoffScore = "180 (Rolling)";
+              }
+            } else if (updatedItem.category !== "Polytechnic" && updatedItem.category !== "COE") {
+              if (updatedItem.cutoffScore === "140") {
+                updatedItem.cutoffScore = "160";
+              } else if (updatedItem.cutoffScore === "140 (Rolling)") {
+                updatedItem.cutoffScore = "160 (Rolling)";
+              } else if (updatedItem.cutoffScore && updatedItem.cutoffScore.includes("140")) {
+                updatedItem.cutoffScore = updatedItem.cutoffScore.replace("140", "160");
+              }
+            }
+            return updatedItem;
+          });
+          setSchools(updatedCloud);
           return;
         }
 
@@ -509,6 +971,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           details: "FUTO 2026/2027 Post-UTME screening applications are currently active on the official FUTO portal. Ensure all details match before submitting.",
           portalLink: "https://portal.futo.edu.ng/",
           publishDate: "May 23, 2026",
+          deadlineDate: "August 30, 2026 23:59:00",
+          examDate: "September 10, 2026 08:00:00",
           cutoffScore: "180",
           eligibilityText: "Minimum of 180 in UTME. O'level requirements must be complete."
         },
@@ -517,9 +981,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "AE-FUNAI 2026/2027 Post-UTME screening form is out. High-performance merit allocations are rolling.",
+          details: "AE-FUNAI 2026/2027 Post-UTME screening form is out. High-performance merit allocations are rolling. Deadline: August 25, 2026.",
           portalLink: "https://portal.funai.edu.ng/",
           publishDate: "May 29, 2026",
+          deadlineDate: "August 25, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "At least 5 credits in WAEC/NECO/NABTEB."
         },
@@ -528,9 +993,11 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "UNIPORT 2026/2027 Post-UTME screening registration has commenced officially on the portal.",
+          details: "UNIPORT 2026/2027 Post-UTME screening registration has commenced officially on the portal. Deadline: August 26, 2026. CBT Exam: September 9, 2026.",
           portalLink: "https://www.uniport.edu.ng",
           publishDate: "May 22, 2026",
+          deadlineDate: "August 26, 2026 23:59:00",
+          examDate: "September 9, 2026 08:00:00",
           cutoffScore: "150",
           eligibilityText: "150 UTME minimum baseline threshold."
         },
@@ -539,10 +1006,11 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "Federal University Otuoke (FUOtuoke) 2026/2027 screening application portal is active. Check specific department guidelines.",
+          details: "Federal University Otuoke (FUOtuoke) 2026/2027 screening application portal is active. Check specific department guidelines. Deadline: August 24, 2026.",
           portalLink: "https://ecampus.fuotuoke.edu.ng/",
           publishDate: "May 30, 2026",
-          cutoffScore: "140",
+          deadlineDate: "August 24, 2026 23:59:00",
+          cutoffScore: "160",
           eligibilityText: "Choice of institution must be updated to FUOtuoke if not primary."
         },
         {
@@ -550,9 +1018,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "AFIT Kaduna 2026/2027 admission screening form is officially released for both National Diploma and Degree courses.",
+          details: "AFIT Kaduna 2026/2027 admission screening form is officially released for both National Diploma and Degree courses. Deadline: August 20, 2026.",
           portalLink: "https://portal.afit.edu.ng/",
           publishDate: "May 28, 2026",
+          deadlineDate: "August 20, 2026 23:59:00",
           cutoffScore: "160",
           eligibilityText: "Available to prospective military and civilian candidates."
         },
@@ -561,9 +1030,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Portal Opens June 9",
-          details: "FULOKOJA 2026/2027 Post-UTME screening application registration lines will officially become accessible from June 9, 2026.",
+          details: "FULOKOJA 2026/2027 Post-UTME screening application registration lines will officially become accessible from June 9, 2026. Deadline: September 3, 2026.",
           portalLink: "https://portal.fulokoja.edu.ng",
           publishDate: "June 9, 2026",
+          deadlineDate: "September 3, 2026 23:59:00",
           cutoffScore: "170",
           eligibilityText: "Ensure correct JAMB subject combinations correspond to Lokoja parameters."
         },
@@ -572,10 +1042,11 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "FUTES-IYIN is now accepting entries for the 2026/2027 cycle. Excellent ambient learning setups.",
+          details: "FUTES-IYIN is now accepting entries for the 2026/2027 cycle. Excellent ambient learning setups. Deadline: August 15, 2026.",
           portalLink: "https://futes.edu.ng",
           publishDate: "May 27, 2026",
-          cutoffScore: "140",
+          deadlineDate: "August 15, 2026 23:59:00",
+          cutoffScore: "160",
           eligibilityText: "5 O'level science components required."
         },
         {
@@ -583,11 +1054,12 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Federal",
           isOut: true,
           statusText: "Registration Active",
-          details: "FUGASHUA 2026/2027 Post-UTME screening applications are now ongoing. Candidates can log onto portal directly.",
+          details: "FUGASHUA 2026/2027 Post-UTME screening applications are now ongoing. Candidates can log onto portal directly. Deadline: August 18, 2026.",
           portalLink: "https://fugashua.edu.ng",
           publishDate: "May 25, 2026",
-          cutoffScore: "140",
-          eligibilityText: "140 minimum UTME score."
+          deadlineDate: "August 18, 2026 23:59:00",
+          cutoffScore: "160",
+          eligibilityText: "160 minimum UTME score."
         },
 
         // Category II: State Universities (Active / June Release)
@@ -596,9 +1068,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "UNIDEL Agbor has opened its 2026/2027 Post-UTME portal for prospective students. Complete bio-data accurately.",
+          details: "UNIDEL Agbor has opened its 2026/2027 Post-UTME portal for prospective students. Complete bio-data accurately. Deadline: August 16, 2026.",
           portalLink: "https://unidel.edu.ng",
           publishDate: "June 1, 2026",
+          deadlineDate: "August 16, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "Delta and general candidates accepted."
         },
@@ -607,9 +1080,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "RSU 2026/2027 Post-UTME screening and application instructions are published and registration is live.",
+          details: "RSU 2026/2027 Post-UTME screening and application instructions are published and registration is live. Deadline: August 20, 2026.",
           portalLink: "https://ecampus.rsu.edu.ng",
           publishDate: "May 28, 2026",
+          deadlineDate: "August 20, 2026 23:59:00",
           cutoffScore: "165",
           eligibilityText: "Check requirements for faculties of engineering and sciences."
         },
@@ -618,9 +1092,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "NDU 2026/2027 Post-UTME screening registration has officially kicked off. Cutoff threshold updated to 150.",
+          details: "NDU 2026/2027 Post-UTME screening registration has officially kicked off. Cutoff threshold updated to 150. Deadline: August 22, 2026.",
           portalLink: "https://ndufe.edu.ng",
           publishDate: "May 31, 2026",
+          deadlineDate: "August 22, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "Clear passport upload with white background recommended."
         },
@@ -629,9 +1104,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "LASU 2026/2027 application lines are fully functional. Ensure point grades simulation is checked.",
+          details: "LASU 2026/2027 application lines are fully functional. Ensure point grades simulation is checked. Deadline: August 22, 2026.",
           portalLink: "https://lidc.lasu.edu.ng/",
           publishDate: "May 21, 2026",
+          deadlineDate: "August 22, 2026 23:59:00",
           cutoffScore: "195",
           eligibilityText: "Point-based assessment of WAEC inputs."
         },
@@ -640,9 +1116,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "LAUTECH 2026/2027 Post-UTME online registration is officially active. Candidates can verify and submit forms.",
+          details: "LAUTECH 2026/2027 Post-UTME online registration is officially active. Candidates can verify and submit forms. Deadline: August 27, 2026.",
           portalLink: "https://admissions.lautech.edu.ng",
           publishDate: "May 26, 2026",
+          deadlineDate: "August 27, 2026 23:59:00",
           cutoffScore: "180"
         },
         {
@@ -650,29 +1127,32 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "UNICROSS 2026/2027 screening forms are now active. Candidates can easily sync and verify details on portal.",
+          details: "UNICROSS 2026/2027 screening forms are now active. Candidates can easily sync and verify details on portal. Deadline: August 29, 2026.",
           portalLink: "https://unicross.edu.ng",
           publishDate: "June 2, 2026",
-          cutoffScore: "140"
+          deadlineDate: "August 29, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Kwara State University, Malete (KWASU)",
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "KWASU 2026/2027 pre-admission screening forms are available on the school internet registry.",
+          details: "KWASU 2026/2027 pre-admission screening forms are available on the school internet registry. Deadline: September 4, 2026.",
           portalLink: "https://portal.kwasu.edu.ng",
           publishDate: "May 29, 2026",
-          cutoffScore: "140"
+          deadlineDate: "September 4, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Ondo State University of Medical Sciences (UNIMED)",
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "UNIMED 2026/2027 professional medical slot registrations are open. Register to secure early CBT slots.",
+          details: "UNIMED 2026/2027 professional medical slot registrations are open. Register to secure early CBT slots. Deadline: August 24, 2026.",
           portalLink: "https://unimed.edu.ng",
           publishDate: "May 30, 2026",
+          deadlineDate: "August 24, 2026 23:59:00",
           cutoffScore: "160"
         },
 
@@ -685,6 +1165,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           details: "Covenant University 2026/2027 admissions screening and interview slot reservation are rolling. Excellent learning atmosphere.",
           portalLink: "https://admportal.covenantuniversity.edu.ng",
           publishDate: "Ongoing Admissions",
+          deadlineDate: "August 8, 2026 23:59:00",
           cutoffScore: "180 (Rolling)"
         },
         {
@@ -692,9 +1173,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Babcock 2026/2027 application and online placement testing processes are active and running.",
+          details: "Babcock 2026/2027 application and online placement testing processes are active and running. Deadline: August 14, 2026.",
           portalLink: "http://application2.babcock.edu.ng",
           publishDate: "Ongoing Admissions",
+          deadlineDate: "August 14, 2026 23:59:00",
           cutoffScore: "170 (Rolling)"
         },
         {
@@ -702,9 +1184,10 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "ABUAD 2026/2027 admission forms are on sale. Candidates are screened online via the portal.",
+          details: "ABUAD 2026/2027 admission forms are on sale. Candidates are screened online via the portal. Deadline: August 18, 2026.",
           portalLink: "https://admissions.abuad.edu.ng",
           publishDate: "Ongoing Admissions",
+          deadlineDate: "August 18, 2026 23:59:00",
           cutoffScore: "180 (Rolling)"
         },
         {
@@ -712,19 +1195,21 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Elizade University 2026/2027 registration is ongoing for sciences, engineering, and humanities.",
+          details: "Elizade University 2026/2027 registration is ongoing for sciences, engineering, and humanities. Deadline: August 20, 2026.",
           portalLink: "https://elizadeuniversity.edu.ng",
           publishDate: "Ongoing Admissions",
-          cutoffScore: "140 (Rolling)"
+          deadlineDate: "August 20, 2026 23:59:00",
+          cutoffScore: "160 (Rolling)"
         },
         {
           schoolName: "Nile University of Nigeria",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Nile University of Nigeria (Abuja) 2026/2027 admissions are rolling. Complete placement tests directly on portal.",
+          details: "Nile University of Nigeria (Abuja) 2026/2027 admissions are rolling. Complete placement tests directly on portal. Deadline: August 24, 2026.",
           portalLink: "https://nileuniversity.edu.ng",
           publishDate: "Ongoing Admissions",
+          deadlineDate: "August 24, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -732,100 +1217,110 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Topfaith University 2026/2027 application forms are active. Interactive slots available.",
+          details: "Topfaith University 2026/2027 application forms are active. Interactive slots available. Deadline: August 25, 2026.",
           portalLink: "https://topfaith.edu.ng",
           publishDate: "Ongoing Admissions",
-          cutoffScore: "140 (Rolling)"
+          deadlineDate: "August 25, 2026 23:59:00",
+          cutoffScore: "160 (Rolling)"
         },
         {
           schoolName: "Venite University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Venite University 2026/2027 admissions form window is open. High-quality tertiary programs.",
+          details: "Venite University 2026/2027 admissions form window is open. High-quality tertiary programs. Deadline: August 26, 2026.",
           portalLink: "https://venite.edu.ng",
           publishDate: "Ongoing Admissions",
-          cutoffScore: "140 (Rolling)"
+          deadlineDate: "August 26, 2026 23:59:00",
+          cutoffScore: "160 (Rolling)"
         },
         {
           schoolName: "Precious Cornerstone University (PCU)",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Precious Cornerstone University (PCU) 2026/2027 form instructions are live.",
+          details: "Precious Cornerstone University (PCU) 2026/2027 form instructions are live. Deadline: August 28, 2026.",
           portalLink: "https://pcu.edu.ng",
           publishDate: "Ongoing Admissions",
-          cutoffScore: "140 (Rolling)"
+          deadlineDate: "August 28, 2026 23:59:00",
+          cutoffScore: "160 (Rolling)"
         },
         {
           schoolName: "Nigerian British University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Nigerian British University 2026/2027 application portal is fully open. Premium modern study lines.",
+          details: "Nigerian British University 2026/2027 application portal is fully open. Premium modern study lines. Deadline: August 29, 2026.",
           portalLink: "https://nbu.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "August 29, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Newgate University, Minna",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Newgate University 2026/2027 forms for health sciences and business streams are active.",
+          details: "Newgate University 2026/2027 forms for health sciences and business streams are active. Deadline: August 30, 2026.",
           portalLink: "https://newgateuniversityminna.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "August 30, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Coal City University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Coal City University in Enugu is currently receiving candidate inquiries and applications for 2026/2027.",
+          details: "Coal City University in Enugu is currently receiving candidate inquiries and applications for 2026/2027. Deadline: August 31, 2026.",
           portalLink: "https://ccu.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "August 31, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Thomas Adewumi University (TAU)",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "TAU 2026/2027 form is live for Medicine, Nursing, Physiotherapy, and Computing degrees.",
+          details: "TAU 2026/2027 form is live for Medicine, Nursing, Physiotherapy, and Computing degrees. Deadline: September 1, 2026.",
           portalLink: "https://tau.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "September 1, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Mountain Top University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Mountain Top 2026/2027 academic registration is active. Register now to secure priority exam schedules.",
+          details: "Mountain Top 2026/2027 academic registration is active. Register now to secure priority exam schedules. Deadline: September 2, 2026.",
           portalLink: "https://mtu.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "September 2, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Azman University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Azman University (Kano) 2026/2027 enrollment portal is active.",
+          details: "Azman University (Kano) 2026/2027 enrollment portal is active. Deadline: September 3, 2026.",
           portalLink: "https://azmanuniversity.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "September 3, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Adeleke University",
           category: "Private",
           isOut: true,
           statusText: "Rolling Applications Open",
-          details: "Adeleke University 2026/2027 screening of prospective candidates is ongoing.",
+          details: "Adeleke University 2026/2027 screening of prospective candidates is ongoing. Deadline: September 4, 2026.",
           portalLink: "https://adelekeuniversity.edu.ng",
           publishDate: "Ongoing",
-          cutoffScore: "140"
+          deadlineDate: "September 4, 2026 23:59:00",
+          cutoffScore: "160"
         },
         {
           schoolName: "Landmark University",
@@ -1188,6 +1683,26 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
             );
             
             if (index !== -1) {
+              let verifiedCutoff = syncItem.cutoffScore || updated[index].cutoffScore;
+              const isCovenant = updated[index].schoolName.toLowerCase().includes("covenant");
+              const isPolyOrCoe = updated[index].category === "Polytechnic" || updated[index].category === "COE";
+              
+              if (isCovenant) {
+                if (!verifiedCutoff || verifiedCutoff.includes("140")) {
+                  verifiedCutoff = "180 (Rolling)";
+                }
+              } else if (!isPolyOrCoe) {
+                if (verifiedCutoff === "140") {
+                  verifiedCutoff = "160";
+                } else if (verifiedCutoff === "140 (Rolling)") {
+                  verifiedCutoff = "160 (Rolling)";
+                } else if (verifiedCutoff && verifiedCutoff.includes("140")) {
+                  verifiedCutoff = verifiedCutoff.replace("140", "160");
+                }
+              }
+              
+              let resolvedDeadline = syncItem.deadlineDate || updated[index].deadlineDate || extractDeadlineFromText(syncItem.details || '');
+
               updated[index] = {
                 ...updated[index],
                 isOut: syncItem.isOut,
@@ -1195,12 +1710,22 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 details: syncItem.details || updated[index].details,
                 portalLink: syncItem.portalLink || updated[index].portalLink,
                 publishDate: syncItem.publishDate || "Synced Today",
-                cutoffScore: syncItem.cutoffScore || updated[index].cutoffScore,
+                deadlineDate: resolvedDeadline,
+                examDate: syncItem.examDate || updated[index].examDate,
+                cutoffScore: syncItem.cutoffScore && !syncItem.cutoffScore.toLowerCase().includes("not specified") ? syncItem.cutoffScore : updated[index].cutoffScore,
                 eligibilityText: syncItem.eligibilityText || updated[index].eligibilityText,
                 isSyncedLive: true
               };
               matchCount++;
             } else {
+              let verifiedCutoff = syncItem.cutoffScore && !syncItem.cutoffScore.toLowerCase().includes("not specified") ? syncItem.cutoffScore : "150";
+              const isCovenant = syncItem.schoolName.toLowerCase().includes("covenant");
+              if (isCovenant) {
+                verifiedCutoff = "180 (Rolling)";
+              }
+              
+              let newDeadline = syncItem.deadlineDate || extractDeadlineFromText(syncItem.details || '');
+
               // Add a new dynamically synced school to the top of the list if it doesn't exist
               updated.unshift({
                 schoolName: syncItem.schoolName,
@@ -1210,7 +1735,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 details: syncItem.details,
                 portalLink: syncItem.portalLink,
                 publishDate: syncItem.publishDate || "Recent Sync",
-                cutoffScore: syncItem.cutoffScore || "160",
+                deadlineDate: newDeadline,
+                examDate: syncItem.examDate,
+                cutoffScore: verifiedCutoff,
                 eligibilityText: syncItem.eligibilityText,
                 isSyncedLive: true
               });
@@ -1252,6 +1779,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           });
         });
       }
+      
+      // Also sync from news stream items in parallel
+      await syncFromNewsStream();
       setSyncCompleted(true);
     } catch (err) {
       console.error("AI Sync failed:", err);
@@ -1562,6 +2092,143 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         )}
       </AnimatePresence>
 
+      {/* CANDIDATES WRITING POST-UTME PREPARATION & KIT SECTION */}
+      <div className="mb-8 p-6 bg-gradient-to-br from-indigo-950/50 via-purple-950/40 to-slate-900 border border-purple-500/20 rounded-[32px] relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/15 border border-purple-500/30 rounded-full text-[9px] font-black text-purple-300 uppercase tracking-widest">
+              <Sparkles size={11} className="text-purple-400" /> Candidate Exam Toolkit
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Writing Post-UTME Exam? Candidate Guide & Target Score Kit
+            </h2>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Are you preparing for Post-UTME? Check whether your target school conducts a physical/online CBT exam (like UNILAG, UNIBEN, OAU, UNIPORT, DELSU, ABU) or point-based screening (like FUTA, FUOYE, LASU). Calculate your target score needed to secure admission!
+            </p>
+          </div>
+
+          {/* Quick Action Trigger Button */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => onCalculateChances("Target Post-UTME")}
+              className="w-full sm:w-auto px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2 active:scale-95"
+            >
+              <Calculator size={14} /> Calculate Required Target Score
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Tabs for Candidate Guide */}
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <button
+              onClick={() => setCandidateGuideTab('calculator')}
+              className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                candidateGuideTab === 'calculator' ? 'bg-purple-500 text-white shadow-sm' : 'bg-white/5 text-gray-400 hover:text-white'
+              }`}
+            >
+              🎯 Target Score Calculator
+            </button>
+            <button
+              onClick={() => setCandidateGuideTab('checklist')}
+              className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                candidateGuideTab === 'checklist' ? 'bg-purple-500 text-white shadow-sm' : 'bg-white/5 text-gray-400 hover:text-white'
+              }`}
+            >
+              📋 Exam Venue Checklist
+            </button>
+            <button
+              onClick={() => setCandidateGuideTab('format')}
+              className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                candidateGuideTab === 'format' ? 'bg-purple-500 text-white shadow-sm' : 'bg-white/5 text-gray-400 hover:text-white'
+              }`}
+            >
+              💡 Exam Formats & Formulas
+            </button>
+          </div>
+
+          {/* Tab 1: Target Score Calculator explanation */}
+          {candidateGuideTab === 'calculator' && (
+            <div className="p-4 bg-black/40 border border-white/5 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-[9px] font-black text-purple-400 uppercase tracking-wider block mb-1">Step 1: Enter JAMB Score</span>
+                <p className="text-[11px] text-gray-300">Input your official JAMB score and select your target university & course.</p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-wider block mb-1">Step 2: Enable "Pending Exam"</span>
+                <p className="text-[11px] text-gray-300">Toggle 'Pending Exam Mode' in the Aggregate Calculator to simulate target scores (e.g., 65, 75, 85/100).</p>
+              </div>
+              <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider block mb-1">Step 3: See Target Threshold</span>
+                <p className="text-[11px] text-gray-300">Discover the exact minimum Post-UTME score required to reach departmental merit cut-off!</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Interactive Exam Day Checklist */}
+          {candidateGuideTab === 'checklist' && (
+            <div className="p-4 bg-black/40 border border-white/5 rounded-2xl">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Mandatory Physical Documents & Items for Exam Hall Entry</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {[
+                  { id: 'jamb_result', label: 'Original JAMB Result Slip (with photo)' },
+                  { id: 'postutme_slip', label: 'Post-UTME Registration Slip & Hall Pass' },
+                  { id: 'olevel_cert', label: 'O\'Level Statement of Results (WAEC/NECO)' },
+                  { id: 'passports', label: '4 Passport Photographs (white/red background)' },
+                  { id: 'bank_receipt', label: 'Screening Fee Payment Receipt / Teller' },
+                  { id: 'exam_venue', label: 'Biometric Screening Slip & Photo ID' }
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setChecklistState(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                    className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                      checklistState[item.id] 
+                        ? 'bg-purple-500/15 border-purple-500/40 text-purple-200' 
+                        : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/10'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${
+                      checklistState[item.id] ? 'bg-purple-500 border-purple-400 text-white' : 'border-gray-600'
+                    }`}>
+                      {checklistState[item.id] && <CheckCircle2 size={12} />}
+                    </div>
+                    <span className="text-[10px] font-bold leading-tight">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Exam Formats & Formula Breakdown */}
+          {candidateGuideTab === 'format' && (
+            <div className="p-4 bg-black/40 border border-white/5 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-300">
+              <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-xl space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-400 font-black text-sm">✍️ Written CBT Exam Schools</span>
+                </div>
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  <strong>Formula:</strong> (JAMB / 8) + (Post-UTME / 2) = Aggregate 100%.<br/>
+                  <strong>Format:</strong> 40 to 100 questions covering Use of English + 3 core JAMB subjects in 60 minutes.<br/>
+                  <strong>Examples:</strong> UNILAG, UNIBEN, OAU, UNIPORT, DELSU, ABU, BUK, UNIZIK, YABATECH.
+                </p>
+              </div>
+              <div className="p-3 bg-teal-950/20 border border-teal-500/20 rounded-xl space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-teal-400 font-black text-sm">📊 Point-Based Screening (No Exam)</span>
+                </div>
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  <strong>Formula:</strong> JAMB Points (60%) + O'Level Subject Grades (40%).<br/>
+                  <strong>Format:</strong> Candidates submit verified O'Level results (A1=6pts, B2=5pts, B3=4pts) directly on portal.<br/>
+                  <strong>Examples:</strong> FUTA, FUOYE, LASU, EKSU, FUOTUOKE.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* FILTERS & SEARCH MODULE */}
       <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-3xl flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Search Searchbar */}
@@ -1569,11 +2236,39 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
-            placeholder="Search school name..."
+            placeholder="Search school name or acronym (e.g. UNILAG, UI)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/40 text-xs pl-10 pr-4 py-2.5 rounded-xl border border-white/5 outline-none focus:border-cyan-500/40 text-white"
           />
+        </div>
+
+        {/* Exam Type Filter Pills */}
+        <div className="flex items-center gap-1 bg-black/30 p-1 rounded-2xl border border-white/5 shrink-0 w-full lg:w-auto overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setExamTypeFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+              examTypeFilter === 'all' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            All Types
+          </button>
+          <button
+            onClick={() => setExamTypeFilter('cbt')}
+            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
+              examTypeFilter === 'cbt' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            ✍️ CBT Exam ({schools.filter(s => getExamTypeInfo(s.schoolName).isCbtExam).length})
+          </button>
+          <button
+            onClick={() => setExamTypeFilter('point_based')}
+            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 whitespace-nowrap ${
+              examTypeFilter === 'point_based' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            📊 Point-Based ({schools.filter(s => !getExamTypeInfo(s.schoolName).isCbtExam).length})
+          </button>
         </div>
 
         {/* Status Tab buttons */}
@@ -1588,13 +2283,19 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
             onClick={() => setStatusFilter('released')}
             className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'released' ? 'bg-emerald-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
           >
-            <CheckCircle2 size={12} /> Released ({schools.filter(s => s.isOut).length})
+            <CheckCircle2 size={12} /> Released ({schools.filter(s => s.isOut && !isClosedForm(s)).length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('closed')}
+            className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'closed' ? 'bg-red-500 text-white' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
+          >
+            <X size={12} /> Closed ({schools.filter(s => isClosedForm(s)).length})
           </button>
           <button
             onClick={() => setStatusFilter('awaiting')}
             className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none flex items-center gap-1.5 ${statusFilter === 'awaiting' ? 'bg-amber-500 text-black' : 'bg-black/30 text-gray-400 hover:bg-black/50'}`}
           >
-            <AlertCircle size={12} /> Awaiting ({schools.filter(s => !s.isOut).length})
+            <AlertCircle size={12} /> Awaiting ({schools.filter(s => !s.isOut && !isClosedForm(s)).length})
           </button>
         </div>
 
@@ -1621,15 +2322,15 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         </div>
         <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
           <p className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Active Forms Released</p>
-          <h4 className="text-xl font-bold mt-1 text-emerald-400">{schools.filter(s => s.isOut).length}</h4>
+          <h4 className="text-xl font-bold mt-1 text-emerald-400">{schools.filter(s => s.isOut && !isClosedForm(s)).length}</h4>
+        </div>
+        <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl">
+          <p className="text-[8px] font-bold text-red-400 uppercase tracking-widest">Closed Registration Forms</p>
+          <h4 className="text-xl font-bold mt-1 text-red-400">{schools.filter(s => isClosedForm(s)).length}</h4>
         </div>
         <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
           <p className="text-[8px] font-bold text-amber-500 uppercase tracking-widest">Awaiting guidelines</p>
-          <h4 className="text-xl font-bold mt-1 text-amber-500">{schools.filter(s => !s.isOut).length}</h4>
-        </div>
-        <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-          <p className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">Admission Cycle Status</p>
-          <h4 className="text-xl font-bold mt-1 text-blue-400">2026/2027 Active</h4>
+          <h4 className="text-xl font-bold mt-1 text-amber-500">{schools.filter(s => !s.isOut && !isClosedForm(s)).length}</h4>
         </div>
       </div>
 
@@ -1821,35 +2522,56 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredSchools.map((s, idx) => (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(idx * 0.03, 0.3) }}
-              key={`${s.schoolName}-${s.category}-${idx}`}
-              className={`bg-white/5 border rounded-[28px] p-6 relative overflow-hidden flex flex-col justify-between ${s.isOut ? 'border-emerald-500/20' : 'border-white/5'}`}
-            >
-              {s.isSyncedLive && (
-                <div className="absolute top-0 right-0 bg-cyan-500 text-black px-3 py-1 font-black text-[7px] uppercase tracking-wider rounded-bl-xl flex items-center gap-1 select-none">
-                  <Sparkles size={8} /> Synced Live ⚡
-                </div>
-              )}
-              
-              <div>
-                {/* Header indicators */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider">
-                    {s.category} Category
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${s.isOut ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
-                    {s.statusText}
-                  </span>
-                </div>
+          {filteredSchools.map((s, idx) => {
+            const examInfo = getExamTypeInfo(s.schoolName);
+            const { deadlineMs, examMs, deadlineFormatted, examFormatted } = resolveSchoolDates(s);
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(idx * 0.03, 0.3) }}
+                key={`${s.schoolName}-${s.category}-${idx}`}
+                className={`bg-white/5 border rounded-[28px] p-6 relative overflow-hidden flex flex-col justify-between ${s.isOut ? 'border-emerald-500/20' : 'border-white/5'}`}
+              >
+                {s.isSyncedLive && (
+                  <div className="absolute top-0 right-0 bg-cyan-500 text-black px-3 py-1 font-black text-[7px] uppercase tracking-wider rounded-bl-xl flex items-center gap-1 select-none">
+                    <Sparkles size={8} /> Synced Live ⚡
+                  </div>
+                )}
+                
+                <div>
+                  {/* Header indicators */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider">
+                      {s.category} Category
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                      isClosedForm(s) 
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                        : s.isOut 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    }`}>
+                      {isClosedForm(s) ? 'Form Closed' : s.statusText}
+                    </span>
+                  </div>
 
-                {/* Name */}
-                <h3 className="text-base font-black text-white leading-snug line-clamp-2">
-                  {s.schoolName}
-                </h3>
+                  {/* Name */}
+                  <h3 className="text-base font-black text-white leading-snug line-clamp-2">
+                    {s.schoolName}
+                  </h3>
+
+                  {/* Exam Type Badge & Screening Formula */}
+                  <div className="mt-2.5 mb-2 flex items-center justify-between gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[7.5px] font-black uppercase tracking-wider border flex items-center gap-1 ${
+                      examInfo.isCbtExam 
+                        ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' 
+                        : 'bg-teal-500/10 text-teal-300 border-teal-500/20'
+                    }`}>
+                      {examInfo.isCbtExam ? '✍️ Written CBT Exam' : '📊 Point-Based (No Exam)'}
+                    </span>
+                    <span className="text-[8px] font-bold text-gray-500">{examInfo.ratioText}</span>
+                  </div>
 
                 {/* Publishing details and score thresholds if out */}
                 {s.isOut && (
@@ -1863,7 +2585,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                     {s.cutoffScore && (
                       <div className="flex flex-col">
                         <span className="text-[7px] font-bold text-gray-500 uppercase">Cutoff Mark</span>
-                        <span className="text-[9px] font-black text-cyan-400">{s.cutoffScore}%</span>
+                        <span className="text-[9px] font-black text-cyan-400">{s.cutoffScore.replace(/\s*\(Baseline\)/gi, '')}</span>
                       </div>
                     )}
                   </div>
@@ -1873,6 +2595,28 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 <p className="text-xs text-gray-400 mt-3 leading-relaxed">
                   {s.details}
                 </p>
+
+                {/* Countdown Schedulers (Deadlines & Exams) */}
+                {s.isOut && !isClosedForm(s) && (deadlineMs || examMs) && (
+                  <div className="mt-4 space-y-2">
+                    {deadlineMs && (
+                      <CountdownBadge 
+                        targetMs={deadlineMs} 
+                        label="Reg. Deadline" 
+                        type="deadline" 
+                        formattedDate={deadlineFormatted} 
+                      />
+                    )}
+                    {examMs && (
+                      <CountdownBadge 
+                        targetMs={examMs} 
+                        label="CBT Exam Prep" 
+                        type="exam" 
+                        formattedDate={examFormatted} 
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Eligibility criteria extra block */}
                 {s.isOut && s.eligibilityText && (
@@ -1924,16 +2668,16 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 </button>
 
                 {/* Portal redirect button */}
-                {s.statusText?.toLowerCase().includes('closed') || s.statusText?.toLowerCase().includes('ended') ? (
+                {isClosedForm(s) ? (
                   <button
                     disabled
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 font-black text-[9px] uppercase tracking-widest rounded-xl select-none cursor-not-allowed"
                   >
                     Form Closed <X size={11} className="shrink-0" />
                   </button>
-                ) : s.isOut && s.portalLink ? (
+                ) : s.isOut ? (
                   <a
-                    href={s.portalLink}
+                    href={getValidPortalUrl(s.portalLink, s.schoolName)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm shadow-blue-200/50 text-center"
@@ -1950,7 +2694,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 )}
               </div>
             </motion.div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

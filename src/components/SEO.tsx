@@ -21,9 +21,23 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
   const rawPath = typeof window !== 'undefined' ? window.location.pathname : "";
   const cleanPath = rawPath === '/' ? '' : rawPath.split('?')[0].replace(/\/+$/, "");
   
-  // SEO standards: Title < 65, Desc < 160
-  const cleanDescription = (description || defaultDescription).substring(0, 160);
-  const cleanTitle = (title ? `${title} | ${siteName}` : "JAMB Aggregate Calculator 2026 | Check Admission Chances - CampusAI").substring(0, 65);
+  // SEO standards: Title < 70, Desc < 160
+  const cleanDescription = (description || defaultDescription).length > 160
+    ? (description || defaultDescription).substring(0, 157) + '...'
+    : (description || defaultDescription);
+
+  let formattedTitle = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
+  if (title) {
+    if (title.toLowerCase().includes('campusai')) {
+      formattedTitle = title;
+    } else {
+      formattedTitle = `${title} | CampusAI`;
+    }
+  }
+
+  const cleanTitle = formattedTitle.length > 70
+    ? formattedTitle.substring(0, 67) + '...'
+    : formattedTitle;
   const fullUrl = canonical ? `${siteDomain}${canonical}` : `${siteDomain}${cleanPath || '/'}`;
   const defaultImage = `${siteDomain}/og-image.png`;
   const ogImage = image || defaultImage;

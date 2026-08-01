@@ -134,13 +134,13 @@ export const NewsCard: React.FC<{
 }> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => {
   const [imgError, setImgError] = useState(false);
   const displayImage = React.useMemo(() => {
-    if (imgError) return null;
+    if (imgError) return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80';
     if (news.image && typeof news.image === 'string' && news.image.trim()) return news.image.trim();
     if (news.images && Array.isArray(news.images)) {
       const valid = news.images.find(i => i && typeof i === 'string' && i.trim());
       if (valid) return valid.trim();
     }
-    return null;
+    return 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80';
   }, [imgError, news.image, news.images]);
   const totalImages = news.images && news.images.length > 0 ? news.images.length : (news.image ? 1 : 0);
 

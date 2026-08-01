@@ -59,7 +59,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
-  let title = "JAMB Aggregate Calculator 2026 | Check Admission Chances - CampusAI";
+  let title = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
   let description = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let jsonLd: any = null;
@@ -119,7 +119,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
           
           if (docData.image) imageUrl = docData.image;
 
-          title = `${articleTitle} | 2026 Admission News - CampusAI`;
+          title = `${articleTitle} | CampusAI News`;
           description = articleExcerpt.substring(0, 155);
 
           const renderedContent = renderMarkdownToHtml(articleBody);
@@ -208,7 +208,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
         } else {
           // Fallback static article generated from slug if docData is not retrieved
           const formattedTitle = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          title = `${formattedTitle} | 2026 Admission News - CampusAI`;
+          title = `${formattedTitle} | CampusAI News`;
           description = `Latest updates on ${formattedTitle}. Check official registration details, cutoff marks, and admission requirements on CampusAI Nigeria.`;
 
           serverBodyHtml = `
@@ -248,8 +248,47 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
         console.error("[SEO] Error fetching news item:", err);
       }
     }
+  } else if (cleanPath === '/postutme' || cleanPath === '/post-utme' || cleanPath === '/result-slip' || cleanPath === '/result') {
+    title = "2026/2027 Post-UTME Screening Hub & Release Dates | CampusAI";
+    description = "Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "Post-UTME Release Hub 2026",
+      "url": canonical,
+      "description": description
+    };
+  } else if (cleanPath === '/status') {
+    title = "System Status & Service Uptime | CampusAI Nigeria";
+    description = "Real-time status and uptime for CampusAI Nigeria admission strategist nodes, database sync, and calculator services.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "CampusAI System Status",
+      "url": canonical,
+      "description": description
+    };
+  } else if (cleanPath === '/dashboard') {
+    title = "Student Admission Dashboard & Tracker 2026 | CampusAI";
+    description = "Monitor your JAMB scores, university merit chances, and academic progress in real-time with personalized AI insights on CampusAI.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Student Admission Dashboard 2026",
+      "url": canonical,
+      "description": description
+    };
+  } else if (cleanPath === '/terms' || cleanPath === '/terms-of-service') {
+    title = "Terms of Service | CampusAI Nigeria";
+    description = "Read CampusAI Nigeria terms of service, platform usage rules, AI consultation disclaimer, and account guidelines.";
+  } else if (cleanPath === '/privacy' || cleanPath === '/privacy-policy' || cleanPath === '/calculator-privacy' || cleanPath === '/calculation-privacy') {
+    title = "Privacy Policy | CampusAI Nigeria";
+    description = "CampusAI data protection standards, user privacy guidelines, cookie policies, and secure profile data handling practices.";
+  } else if (cleanPath === '/cookies' || cleanPath === '/cookie-policy') {
+    title = "Cookie Policy | CampusAI Nigeria";
+    description = "CampusAI cookie policy and tracking preference details.";
   } else if (cleanPath === '/news') {
-    title = "Nigerian Higher Education Admissions News & Updates 2026 | CampusAI";
+    title = "2026/2027 JAMB & Admission News Hub | CampusAI";
     description = "Stay informed with real-time JAMB updates, university Post-UTME registration dates, cutoff marks, and admission news across Nigerian institutions.";
     jsonLd = {
       "@context": "https://schema.org",
@@ -319,7 +358,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   } else if (cleanPath.endsWith('-aggregate-calculator')) {
     const schoolSlug = cleanPath.split('/').pop()?.replace("-aggregate-calculator", "").toUpperCase();
     if (schoolSlug) {
-      title = `${schoolSlug} Aggregate Calculator 2026 | Admission Chances - CampusAI`;
+      title = `${schoolSlug} 2026 Aggregate Calculator | CampusAI`;
       description = `Calculate your 2026 ${schoolSlug} aggregate score and check your admission chances instantly. Use the official formula, cutoff marks, and catchment area rules for ${schoolSlug}.`;
       jsonLd = {
         "@context": "https://schema.org",
@@ -364,9 +403,17 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
     };
   }
 
-  // Ensure title and description are within SEO limits
-  title = title.substring(0, 65);
-  description = description.substring(0, 160);
+  // Ensure title and description are properly formatted without mid-word chopping
+  if (title.length > 70) {
+    const truncated = title.substring(0, 67);
+    const lastSpace = truncated.lastIndexOf(' ');
+    title = (lastSpace > 25 ? truncated.substring(0, lastSpace) : truncated) + '...';
+  }
+  if (description.length > 160) {
+    const truncatedDesc = description.substring(0, 157);
+    const lastSpace = truncatedDesc.lastIndexOf(' ');
+    description = (lastSpace > 50 ? truncatedDesc.substring(0, lastSpace) : truncatedDesc) + '...';
+  }
 
   // Replace existing title
   html = html.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);
