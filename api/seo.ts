@@ -17,6 +17,24 @@ function formatDate(val: any): string {
   return String(val);
 }
 
+function formatIsoDate(val: any): string {
+  if (!val) return new Date().toISOString();
+  if (typeof val === 'string') {
+    const parsed = Date.parse(val);
+    if (!isNaN(parsed)) return new Date(parsed).toISOString();
+  }
+  let ms = 0;
+  if (typeof val.toMillis === 'function') ms = val.toMillis();
+  else if (typeof val.toDate === 'function') ms = val.toDate().getTime();
+  else if (typeof val === 'object') {
+    if ('seconds' in val) ms = val.seconds * 1000;
+    else if ('_seconds' in val) ms = val._seconds * 1000;
+  } else if (typeof val === 'number') ms = val;
+
+  if (ms > 0) return new Date(ms).toISOString();
+  return new Date().toISOString();
+}
+
 function renderMarkdownToHtml(markdown: string): string {
   if (!markdown) return '';
   
@@ -62,10 +80,16 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   let title = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
   let description = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
   let imageUrl = `${siteDomain}/og-image.png`;
+  let isArticle = false;
+  let articleAuthor = "Emmanuel Iweh";
+  let articleSection = "JAMB News";
+  let publishedTimeIso = new Date().toISOString();
+  let modifiedTimeIso = new Date().toISOString();
   let jsonLd: any = null;
   let serverBodyHtml = '';
 
   if (cleanPath.startsWith('/news/')) {
+    isArticle = true;
     const rawSlug = cleanPath.split('/')[2];
     const slug = rawSlug ? decodeURIComponent(rawSlug).trim() : '';
     if (slug) {
@@ -112,15 +136,21 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
           const articleTitle = docData.title || "Admission News Update";
           const articleExcerpt = docData.excerpt || docData.description || description;
           const articleBody = docData.fullContent || docData.content || docData.body || articleExcerpt;
-          const authorName = docData.author || "Emmanuel Iweh";
-          const categoryName = docData.category || "JAMB News";
+          articleAuthor = docData.author || "Emmanuel Iweh";
+          articleSection = docData.category || "JAMB News";
           const pubDateStr = formatDate(docData.date || docData.createdAt);
-          const pubDateIso = docData.date ? new Date(docData.date).toISOString() : new Date().toISOString();
-          
-          if (docData.image) imageUrl = docData.image;
+          publishedTimeIso = formatIsoDate(docData.date || docData.createdAt);
+          modifiedTimeIso = formatIsoDate(docData.updatedAt || docData.date || docData.createdAt);
 
           title = `${articleTitle} | CampusAI News`;
           description = articleExcerpt.substring(0, 155);
+
+          // Image selection: if valid HTTP image URL exists, use it. Otherwise, use generated OG image!
+          if (docData.image && typeof docData.image === 'string' && docData.image.trim().startsWith('http')) {
+            imageUrl = docData.image.trim();
+          } else {
+            imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent(articleTitle)}&category=${encodeURIComponent(articleSection)}`;
+          }
 
           const renderedContent = renderMarkdownToHtml(articleBody);
 
@@ -135,11 +165,11 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
             "description": description,
             "articleBody": articleBody,
             "image": [imageUrl],
-            "datePublished": pubDateIso,
-            "dateModified": pubDateIso,
+            "datePublished": publishedTimeIso,
+            "dateModified": modifiedTimeIso,
             "author": [{
               "@type": "Person",
-              "name": authorName,
+              "name": articleAuthor,
               "url": siteDomain
             }],
             "publisher": {
@@ -163,10 +193,10 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
               </div>
 
               <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 12px; font-weight: 700; color: #64748b;">
-                <span style="background-color: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 900;">${categoryName}</span>
+                <span style="background-color: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 900;">${articleSection}</span>
                 <span>Published: ${pubDateStr}</span>
                 <span>•</span>
-                <span>By <strong style="color: #0eb38c;">${authorName}</strong></span>
+                <span>By <strong style="color: #0eb38c;">${articleAuthor}</strong></span>
                 ${docData.views ? `<span>•</span> <span>${docData.views.toLocaleString()} Reads</span>` : ''}
               </div>
 
@@ -210,6 +240,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
           const formattedTitle = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           title = `${formattedTitle} | CampusAI News`;
           description = `Latest updates on ${formattedTitle}. Check official registration details, cutoff marks, and admission requirements on CampusAI Nigeria.`;
+          imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent(formattedTitle)}&category=${encodeURIComponent('JAMB News')}`;
 
           serverBodyHtml = `
             <article id="server-news-article" style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #0f172a; line-height: 1.6; background-color: #ffffff;">
@@ -403,49 +434,73 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
     };
   }
 
-  // Ensure title and description are properly formatted without mid-word chopping
-  if (title.length > 70) {
-    const truncated = title.substring(0, 67);
+  // Formatting constraints
+  let cleanTitle = title;
+  if (cleanTitle.length > 70) {
+    const truncated = cleanTitle.substring(0, 67);
     const lastSpace = truncated.lastIndexOf(' ');
-    title = (lastSpace > 25 ? truncated.substring(0, lastSpace) : truncated) + '...';
+    cleanTitle = (lastSpace > 25 ? truncated.substring(0, lastSpace) : truncated) + '...';
   }
-  if (description.length > 160) {
-    const truncatedDesc = description.substring(0, 157);
+
+  let cleanDescription = description;
+  if (cleanDescription.length > 160) {
+    const truncatedDesc = cleanDescription.substring(0, 157);
     const lastSpace = truncatedDesc.lastIndexOf(' ');
-    description = (lastSpace > 50 ? truncatedDesc.substring(0, lastSpace) : truncatedDesc) + '...';
+    cleanDescription = (lastSpace > 50 ? truncatedDesc.substring(0, lastSpace) : truncatedDesc) + '...';
   }
 
-  // Replace existing title
-  html = html.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);
-  
-  // Replace existing description
-  html = html.replace(/<meta[^>]*name="description"[^>]*>/gi, `<meta data-rh="true" name="description" content="${description}">`);
-  
-  // Replace existing og:title
-  html = html.replace(/<meta[^>]*property="og:title"[^>]*>/gi, `<meta data-rh="true" property="og:title" content="${title}">`);
-  
-  // Replace existing og:description
-  html = html.replace(/<meta[^>]*property="og:description"[^>]*>/gi, `<meta data-rh="true" property="og:description" content="${description}">`);
-  
-  // Replace existing og:image
-  html = html.replace(/<meta[^>]*property="og:image"[^>]*>/gi, `<meta data-rh="true" property="og:image" content="${imageUrl}">`);
-  if (html.includes('property="og:image:secure_url"')) {
-    html = html.replace(/<meta[^>]*property="og:image:secure_url"[^>]*>/gi, `<meta data-rh="true" property="og:image:secure_url" content="${imageUrl}">`);
-  }
-  if (html.includes('name="twitter:image"')) {
-    html = html.replace(/<meta[^>]*name="twitter:image"[^>]*>/gi, `<meta data-rh="true" name="twitter:image" content="${imageUrl}">`);
-  }
-  
-  // Replace existing og:url
-  html = html.replace(/<meta[^>]*property="og:url"[^>]*>/gi, `<meta data-rh="true" property="og:url" content="${canonical}">`);
+  // Build complete dynamic Open Graph & Twitter meta tags block
+  const imageType = imageUrl.endsWith('.png') ? 'image/png' : imageUrl.includes('.svg') || imageUrl.includes('/api/og-image') ? 'image/svg+xml' : 'image/jpeg';
 
-  // Replace or inject canonical tag with data-rh="true"
-  const canonicalTag = `<link data-rh="true" rel="canonical" href="${canonical}" />`;
-  if (!html.includes('rel="canonical"')) {
-    html = html.replace('</head>', `  ${canonicalTag}\n  </head>`);
-  } else {
-    html = html.replace(/<link[^>]*rel="canonical"[^>]*>/gi, canonicalTag);
-  }
+  const metaTags = `
+    <!-- Primary Page Metadata -->
+    <title data-rh="true">${cleanTitle}</title>
+    <meta data-rh="true" name="description" content="${cleanDescription}">
+    <meta data-rh="true" name="keywords" content="JAMB 2026, aggregate calculator, cutoff marks 2026, Nigerian university admission, Post-UTME updates, UNILAG, LASU, UI, OAU, FUTA, UNIBEN">
+    <meta data-rh="true" name="author" content="${articleAuthor}">
+    <link data-rh="true" rel="canonical" href="${canonical}">
+
+    <!-- Open Graph / Facebook / WhatsApp / Telegram / LinkedIn / Discord -->
+    <meta data-rh="true" property="og:type" content="${isArticle ? 'article' : 'website'}">
+    <meta data-rh="true" property="og:site_name" content="CampusAI Nigeria">
+    <meta data-rh="true" property="og:title" content="${cleanTitle}">
+    <meta data-rh="true" property="og:description" content="${cleanDescription}">
+    <meta data-rh="true" property="og:image" content="${imageUrl}">
+    <meta data-rh="true" property="og:image:secure_url" content="${imageUrl}">
+    <meta data-rh="true" property="og:image:type" content="${imageType}">
+    <meta data-rh="true" property="og:image:width" content="1200">
+    <meta data-rh="true" property="og:image:height" content="630">
+    <meta data-rh="true" property="og:image:alt" content="${cleanTitle}">
+    <meta data-rh="true" property="og:url" content="${canonical}">
+    <meta data-rh="true" property="og:locale" content="en_NG">
+    ${isArticle ? `
+    <meta data-rh="true" property="article:published_time" content="${publishedTimeIso}">
+    <meta data-rh="true" property="article:modified_time" content="${modifiedTimeIso}">
+    <meta data-rh="true" property="article:author" content="${articleAuthor}">
+    <meta data-rh="true" property="article:section" content="${articleSection}">
+    ` : ''}
+
+    <!-- Twitter Card Tags -->
+    <meta data-rh="true" name="twitter:card" content="summary_large_image">
+    <meta data-rh="true" name="twitter:site" content="@CampusAI_NG">
+    <meta data-rh="true" name="twitter:creator" content="@CampusAI_NG">
+    <meta data-rh="true" name="twitter:title" content="${cleanTitle}">
+    <meta data-rh="true" name="twitter:description" content="${cleanDescription}">
+    <meta data-rh="true" name="twitter:image" content="${imageUrl}">
+    <meta data-rh="true" name="twitter:image:alt" content="${cleanTitle}">
+  `;
+
+  // Strip existing conflicting title, meta description, og:*, twitter:*, article:* and canonical tags
+  html = html.replace(/<title[^>]*>.*?<\/title>/gi, '');
+  html = html.replace(/<meta[^>]*name="description"[^>]*>/gi, '');
+  html = html.replace(/<meta[^>]*property="og:[^"]*"[^>]*>/gi, '');
+  html = html.replace(/<meta[^>]*name="twitter:[^"]*"[^>]*>/gi, '');
+  html = html.replace(/<meta[^>]*property="twitter:[^"]*"[^>]*>/gi, '');
+  html = html.replace(/<meta[^>]*property="article:[^"]*"[^>]*>/gi, '');
+  html = html.replace(/<link[^>]*rel="canonical"[^>]*>/gi, '');
+
+  // Inject metaTags block before </head>
+  html = html.replace('</head>', `${metaTags}\n</head>`);
 
   // Inject JSON-LD
   if (jsonLd) {
@@ -469,4 +524,3 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
 
   return html;
 }
-

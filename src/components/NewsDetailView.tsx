@@ -538,6 +538,11 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         description={news.excerpt} 
         image={news.image}
         article={true} 
+        author={news.author || "Emmanuel Iweh"}
+        publishedTime={news.date}
+        modifiedTime={(news as any).updatedAt || news.date}
+        section={news.category || "JAMB News"}
+        canonical={`/news/${news.slug || news.id}`}
         originalSource={news.sourceUrl || "https://jamb.gov.ng"}
       />
 

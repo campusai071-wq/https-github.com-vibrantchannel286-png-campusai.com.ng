@@ -11,6 +11,7 @@ export interface NewsItem {
   title: string;
   category: UniversityCategory;
   date: string;
+  author?: string;
   image: string;
   images?: string[];
   excerpt: string;

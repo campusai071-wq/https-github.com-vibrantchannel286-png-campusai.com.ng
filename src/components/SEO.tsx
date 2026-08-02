@@ -11,9 +11,26 @@ interface SEOProps {
   originalSource?: string;
   isCalculator?: boolean;
   canonical?: string;
+  author?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  section?: string;
 }
 
-const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords, originalSource, isCalculator, canonical }) => {
+const SEO: React.FC<SEOProps> = ({
+  title,
+  description,
+  image,
+  article,
+  keywords,
+  originalSource,
+  isCalculator,
+  canonical,
+  author = "Emmanuel Iweh",
+  publishedTime,
+  modifiedTime,
+  section = "JAMB News"
+}) => {
   const siteName = "CampusAI Nigeria";
   const defaultDescription = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
   
@@ -39,8 +56,16 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
     ? formattedTitle.substring(0, 67) + '...'
     : formattedTitle;
   const fullUrl = canonical ? `${siteDomain}${canonical}` : `${siteDomain}${cleanPath || '/'}`;
-  const defaultImage = `${siteDomain}/og-image.png`;
-  const ogImage = image || defaultImage;
+
+  // If no custom image passed, generate dynamic OG image
+  const defaultImage = article 
+    ? `${siteDomain}/api/og-image?title=${encodeURIComponent(title || "CampusAI News")}&category=${encodeURIComponent(section)}`
+    : `${siteDomain}/og-image.png`;
+
+  const ogImage = image && image.trim().startsWith('http') ? image.trim() : defaultImage;
+
+  const pubIso = publishedTime ? new Date(publishedTime).toISOString() : new Date().toISOString();
+  const modIso = modifiedTime ? new Date(modifiedTime).toISOString() : pubIso;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -55,9 +80,15 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
       "name": "CampusAI Nigeria",
       "logo": {
         "@type": "ImageObject",
-        "url": defaultImage
+        "url": `${siteDomain}/favicon.ico.png`
       }
-    }
+    },
+    ...(article ? {
+      "headline": title || cleanTitle,
+      "datePublished": pubIso,
+      "dateModified": modIso,
+      "author": [{ "@type": "Person", "name": author }]
+    } : {})
   };
 
   return (
@@ -66,22 +97,34 @@ const SEO: React.FC<SEOProps> = ({ title, description, image, article, keywords,
       <title>{cleanTitle}</title>
       <meta name="description" content={cleanDescription} />
       <meta name="keywords" content={keywords || "JAMB 2026, aggregate calculator, cutoff marks 2026, Nigerian university admission, admission chances, UNILAG, LASU, UI, OAU"} />
+      <meta name="author" content={author} />
       <link rel="canonical" href={fullUrl} />
 
-      {/* Open Graph / Facebook */}
+      {/* Open Graph / Facebook / WhatsApp / Telegram / LinkedIn / Discord */}
       <meta property="og:type" content={article ? "article" : "website"} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:title" content={cleanTitle} />
       <meta property="og:description" content={cleanDescription} />
       <meta property="og:image" content={ogImage} />
+      <meta property="og:image:secure_url" content={ogImage} />
+      <meta property="og:image:alt" content={cleanTitle} />
       <meta property="og:site_name" content={siteName} />
+      <meta property="og:locale" content="en_NG" />
 
-      {/* Twitter */}
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content={fullUrl} />
-      <meta property="twitter:title" content={cleanTitle} />
-      <meta property="twitter:description" content={cleanDescription} />
-      <meta property="twitter:image" content={ogImage} />
+      {article && <meta property="article:published_time" content={pubIso} />}
+      {article && <meta property="article:modified_time" content={modIso} />}
+      {article && <meta property="article:author" content={author} />}
+      {article && <meta property="article:section" content={section} />}
+
+      {/* Twitter Card Tags */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="@CampusAI_NG" />
+      <meta name="twitter:creator" content="@CampusAI_NG" />
+      <meta name="twitter:url" content={fullUrl} />
+      <meta name="twitter:title" content={cleanTitle} />
+      <meta name="twitter:description" content={cleanDescription} />
+      <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:image:alt" content={cleanTitle} />
 
       {/* Authority Meta Tags */}
       <meta name="google-site-verification" content="n07lx2H6ou5qr0uS9BwlEYwX-27Jt2E27QYnJpD0jHQ" />
