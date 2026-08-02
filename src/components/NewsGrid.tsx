@@ -395,6 +395,10 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     }
   };
   const [searchQuery, setSearchQuery]       = useState('');
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [usagePercent, setUsagePercent]     = useState(0);
   const [syncError, setSyncError]           = useState<string | null>(null);
@@ -741,7 +745,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     
     const handleNewsUpdate = () => {
       // If a search is currently active, re-fetch the larger search pool
-      loadLocalNews(filter, searchQuery.trim().length > 0 ? 1000 : undefined);
+      loadLocalNews(filter, searchQueryRef.current.trim().length > 0 ? 1000 : undefined);
     };
 
     window.addEventListener('campusai_news_updated', handleNewsUpdate);
@@ -751,7 +755,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       window.removeEventListener('campusai_bookmarks_updated', handleBookmarksUpdate);
       clearInterval(interval);
     };
-  }, [user?.uid, filter, loadLocalNews, searchQuery]);
+  }, [user?.uid, filter, loadLocalNews]);
 
   // ── Filtered / sorted news list ─────────────────────────────────────────────
 

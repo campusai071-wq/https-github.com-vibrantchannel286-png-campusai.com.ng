@@ -1776,10 +1776,23 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
 `;
     }
 
-    const knowledge = await getAllKnowledgeFragments();
-    const learnedPrompt = knowledge.length > 0
-      ? "ADDITIONAL LEARNED KNOWLEDGE (USE THIS TO OVERRIDE STATIC DATA IF IT CONTRADICTS):\n" + knowledge.map(k => `- ${k.key}: ${k.value}`).join('\n') + "\n\n"
-      : "";
+    const allKnowledge = await getAllKnowledgeFragments();
+    const knowledge = allKnowledge.filter(k => {
+      const keyStr = String(k.key || '').toLowerCase();
+      const valStr = String(k.value || '').toLowerCase();
+      const uniStr = university.toLowerCase();
+      // Keep if it mentions the university or is a general rule
+      return keyStr.includes(uniStr) || valStr.includes(uniStr) || keyStr.includes('general');
+    });
+
+    let learnedPrompt = "";
+    if (knowledge.length > 0) {
+      let combined = knowledge.map(k => `- ${k.key}: ${k.value}`).join('\n');
+      if (combined.length > 10000) {
+        combined = combined.substring(0, 10000) + "... [TRUNCATED TO FIT CONTEXT LIMIT]";
+      }
+      learnedPrompt = "ADDITIONAL LEARNED KNOWLEDGE (USE THIS TO OVERRIDE STATIC DATA IF IT CONTRADICTS):\n" + combined + "\n\n";
+    }
 
     let officialCutoffData = "";
     try {
@@ -1790,13 +1803,60 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
       ]);
 
       const parts = [];
-      if (search2026 && search2026.length > 50) parts.push(`[Online Real-Time Grounding - 2026/2027 Current Release]:\n${search2026}`);
-      if (searchHistoric && searchHistoric.length > 50) parts.push(`[Online Real-Time Grounding - Historical Benchmarks (2024/2025/2023)]:\n${searchHistoric}`);
-      if (searchSchedule && searchSchedule.length > 50) parts.push(`[Online Real-Time Grounding - 2026/2027 School Registration Status & Exam Schedule/Format]:\n${searchSchedule}`);
+      if (search2026 && search2026.length > 50) parts.push(`[2026/2027 Current Release]:\n${search2026}`);
+      if (searchHistoric && searchHistoric.length > 50) parts.push(`[Historical Benchmarks]:\n${searchHistoric}`);
+      if (searchSchedule && searchSchedule.length > 50) parts.push(`[Registration Status & Exam Schedule]:\n${searchSchedule}`);
 
-      officialCutoffData = parts.length > 0
-        ? "OFFICIAL ONLINE GROUNDING DATA (CRITICAL HIGH-PRECISION RESOURCE, USE TO EXTRACT ACTUAL SCORES AND LIVE STATUS/SCHEDULES):\n" + parts.join("\n\n")
-        : "No specific online search grounding available. Rely on standard historical competitiveness and general institutional parameters.";
+      if (parts.length > 0) {
+        // Run a fast, small AI request to extract exact facts
+        const rawSearchContext = parts.join("\n\n");
+        const extractionPrompt = `You are a data extraction assistant. Extract admission facts for ${course} at ${university} from the following raw search results.
+Return ONLY a valid JSON object matching this schema. For each fact, return an evidence object. If a fact is not found, set its value to null but keep the object structure.
+{
+  "departmentalCutoff": {
+    "value": "extracted mark/score or null",
+    "type": "official_policy | historical_cutoff | prediction",
+    "sourceUrl": "URL or source name",
+    "sourceAuthority": "e.g., Official University, News Outlet",
+    "publishedDate": "YYYY-MM-DD or null",
+    "retrievedDate": "Today's Date",
+    "confidenceLevel": "High | Medium | Low",
+    "conflictingValues": [{"value": "160", "sourceUrl": "myschool.ng"}]
+  },
+  "postUtmeDeadline": { /* same evidence object structure */ },
+  "screeningStatus": { /* same evidence object structure */ },
+  "screeningFee": { /* same evidence object structure */ },
+  "examSchedule": { /* same evidence object structure */ }
+}
+
+Conflict Resolution & Source Hierarchy Strategy:
+1. Precedence: Official university websites (.edu.ng) > JAMB/NUC > Reputable news > Student blogs.
+2. If multiple sources report different values, DO NOT provide a range. Provide the value from the highest authority source in "value", and list the alternative values in "conflictingValues".
+3. Use "confidenceLevel" (High/Medium/Low) based on source authority and data freshness.
+
+Raw Search Results:
+${rawSearchContext.substring(0, 15000)}`;
+        
+        const extractionResponse = await runAIWithFallback(async (ai) => {
+          return await ai.models.generateContent({
+            model: "gemini-flash-latest",
+            contents: extractionPrompt,
+            config: { responseMimeType: "application/json" }
+          });
+        });
+        
+        let extractedFacts = extractionResponse.text || "{}";
+        extractedFacts = extractedFacts.replace(/```json/gi, "").replace(/```/gi, "").trim();
+        
+        try {
+          const parsed = JSON.parse(extractedFacts);
+          officialCutoffData = "STRUCTURED SEARCH FACTS (Use this as supporting evidence):\n" + JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          officialCutoffData = "STRUCTURED SEARCH FACTS:\n" + extractedFacts;
+        }
+      } else {
+        officialCutoffData = "No specific online search grounding available. Rely on standard historical competitiveness and general institutional parameters.";
+      }
     } catch (searchError) {
       console.warn("Search for official cutoff failed:", searchError);
       officialCutoffData = "Search failed due to rate limits or connectivity. Rely on standard competitive thresholds.";
@@ -1932,10 +1992,20 @@ Return JSON:
   "departmentalCutoff": "string (CRITICAL GROUNDING REQUIREMENT: Extract or search for the exact published or verified departmental cutoff mark / aggregate score for ${course} at ${university} from the ONLINE GROUNDING DATA or Google Search. Output the exact score or percentage e.g. '58.5%' or '72.0%'. DO NOT default or estimate to 65.0% unless that exact score is explicitly verified for ${course} at ${university}!).",
   "cutoff": "string (cutoff label/range, e.g. '60.0% - 68.0%')",
   "mathBreakdown": "string (concise explanation of the calculation of the aggregate)",
+  "scoreBreakdown": [
+    { "factor": "string (e.g. 'Aggregate')", "impact": "string (e.g. '+18')" },
+    { "factor": "string (e.g. 'Subject Combination')", "impact": "string (e.g. '+12')" },
+    { "factor": "string (e.g. 'Catchment')", "impact": "string (e.g. '-8')" },
+    { "factor": "string (e.g. 'Course Competitiveness')", "impact": "string (e.g. '-6')" }
+  ],
   "subjectCombinationValidation": { "valid": boolean, "reason": "string" },
   "reliability": "string ('high' | 'medium' | 'low')",
+  "confidenceReasoning": "string (Explain WHY the confidence is high/medium/low, e.g. 'Official cutoff verified, current Post-UTME ongoing.')",
+  "evidencePanel": [
+    { "type": "string (e.g. 'official_policy' | 'historical_cutoff' | 'prediction')", "value": "string", "sourceUrl": "string (URL or Domain)", "publishedDate": "string", "retrievedDate": "string", "confidenceLevel": "string ('High' | 'Medium' | 'Low')" }
+  ],
   "recommendation": "string (clear brief strategic advice, maximum 2 sentences, ideal for a quick summary card, tailored to their tier status)",
-  "detailedStrategy": "string (a highly detailed, structured, and scannable admission strategy analysis, containing exactly three markdown sections: '### 1. Verdict Summary', '### 2. The Reality Check', and '### 3. Actionable Next Steps'. Use bullet points for steps. Match the tone and requirements of the candidate's score tier exactly as instructed: Borderline (Score == Cutoff), Strong (Score is 1-5.99% above), Very Strong / Excellent (Score is >=6% above), or Low Probability (Score < Cutoff).)",
+  "detailedStrategy": "string (a highly detailed, structured, and scannable admission strategy analysis, containing exactly three markdown sections: '### 1. Verdict Summary', '### 2. The Reality Check', and '### 3. Actionable Next Steps'. Incorporate institution-specific fee details and deadline dates from the extracted online evidence directly into the Actionable Next Steps. E.g., 'UI normally publishes Post-UTME updates on its portal. Registration is currently active with a ₦5,000 fee...'. Match the tone and requirements of the candidate's score tier exactly as instructed: Borderline (Score == Cutoff), Strong (Score is 1-5.99% above), Very Strong / Excellent (Score is >=6% above), or Low Probability (Score < Cutoff).)",
   "probability": number (estimated percentage chance from 0 to 100),
   "verdict": "Very Strong / Excellent" | "Strong" | "Borderline" | "Low Probability",
   "alternatives": [{ "name": "string", "typicalCutoff": "string", "reasoning": "string" }],
@@ -2346,11 +2416,11 @@ export function buildCleanChatContents(history: ChatMessage[], newMessage: strin
 
     if (formattedContents.length > 0 && formattedContents[formattedContents.length - 1].role === role) {
       const lastIndex = formattedContents.length - 1;
-      formattedContents[lastIndex].parts[0].text += '\n\n' + msg.text.substring(0, 4000);
+      formattedContents[lastIndex].parts[0].text += '\n\n' + msg.text.substring(0, 1500);
     } else {
       formattedContents.push({
         role,
-        parts: [{ text: msg.text.substring(0, 4000) }]
+        parts: [{ text: msg.text.substring(0, 1500) }]
       });
     }
   }
@@ -2359,7 +2429,8 @@ export function buildCleanChatContents(history: ChatMessage[], newMessage: strin
     formattedContents.pop();
   }
 
-  let sliced = formattedContents.slice(-12);
+  // Keep only the last 6 turns to keep context lightweight
+  let sliced = formattedContents.slice(-6);
   if (sliced.length > 0 && sliced[0].role === 'model') {
     sliced = sliced.slice(1);
   }
@@ -2436,10 +2507,18 @@ Optimized Search Query:`
 
     let learnedKnowledge = "";
     try {
-      const knowledge = await getAllKnowledgeFragments();
+      const allKnowledge = await getAllKnowledgeFragments();
+      const msgLower = String(sanitizedMessage).toLowerCase();
+      const knowledge = allKnowledge.filter((k: any) => {
+        const keyLower = String(k.key || '').toLowerCase();
+        return keyLower.includes('general') || msgLower.includes(keyLower);
+      });
       if (knowledge.length > 0) {
-        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n"
-          + knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+        let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+        if (combined.length > 10000) {
+          combined = combined.substring(0, 10000) + "... [TRUNCATED]";
+        }
+        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
       }
     } catch (e) {
       console.warn("Could not load knowledge fragments:", e);
@@ -2643,10 +2722,18 @@ Optimized Search Query:`
 
     let learnedKnowledge = "";
     try {
-      const knowledge = await getAllKnowledgeFragments();
+      const allKnowledge = await getAllKnowledgeFragments();
+      const msgLower = String(sanitizedMessage).toLowerCase();
+      const knowledge = allKnowledge.filter((k: any) => {
+        const keyLower = String(k.key || '').toLowerCase();
+        return keyLower.includes('general') || msgLower.includes(keyLower);
+      });
       if (knowledge.length > 0) {
-        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n"
-          + knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+        let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+        if (combined.length > 10000) {
+          combined = combined.substring(0, 10000) + "... [TRUNCATED]";
+        }
+        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
       }
     } catch (e) {
       console.warn("Could not load knowledge fragments:", e);

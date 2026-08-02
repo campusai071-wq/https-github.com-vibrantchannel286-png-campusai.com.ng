@@ -18,6 +18,7 @@ interface PdfExportModalProps {
     confidenceLevel: string;
     stateOfOrigin: string;
     subjects: { name: string; grade: string }[];
+    hasOLevel?: boolean;
     aiResult: any;
   };
 }
@@ -52,6 +53,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
     confidenceLevel,
     stateOfOrigin,
     subjects,
+    hasOLevel = true,
     aiResult
   } = resultData;
 
@@ -167,6 +169,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
     }
   };
 const handleDownloadText = () => {
+    const oLevelText = hasOLevel 
+      ? `O-LEVEL (BEST 5) SUBJECTS:\n${subjects.map((s, idx) => `${idx + 1}. ${s.name}: ${s.grade}`).join('\n')}`
+      : `O-LEVEL VERIFICATION:\n- Required subjects satisfied\n- Grades not collected because ${targetUni?.name || 'this institution'}'s aggregate calculation does not use individual O'Level grades.`;
+
     const textContent = `
 ========================================
 CAMPUSAI.NG - OFFICIAL ADMISSION SCREENING SLIP
@@ -180,8 +186,7 @@ EXAMINATION SCORES:
 - Post-UTME Score: ${isPostUtmePending ? 'Pending Exam (Estimated 70%)' : `${postUtmeScore || '0'} / 100`}
 - State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}
 ----------------------------------------
-O-LEVEL (BEST 5) SUBJECTS:
-${subjects.map((s, idx) => `${idx + 1}. ${s.name}: ${s.grade}`).join('\n')}
+${oLevelText}
 ----------------------------------------
 AGGREGATE SCORE RESULT:
 - Calculated Aggregate: ${aggregateScore}%
@@ -355,15 +360,28 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
 
             {/* O-Level Breakdown Table (Fixed 5 columns) */}
             <div className="space-y-2.5">
-              <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">O'Level Best 5 Grades</h4>
-              <div className="grid grid-cols-5 gap-2.5">
-                {subjects.map((sub, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-center">
-                    <p className="text-[9px] font-bold text-gray-500 truncate" title={sub.name}>{sub.name}</p>
-                    <p className="text-base font-black text-gray-900 mt-0.5">{sub.grade}</p>
+              <h4 className="text-xs font-black uppercase tracking-widest text-gray-500">
+                {hasOLevel ? "O'Level Best 5 Grades" : "O'Level Verification"}
+              </h4>
+              {hasOLevel ? (
+                <div className="grid grid-cols-5 gap-2.5">
+                  {subjects.map((sub, idx) => (
+                    <div key={idx} className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-center">
+                      <p className="text-[9px] font-bold text-gray-500 truncate" title={sub.name}>{sub.name}</p>
+                      <p className="text-base font-black text-gray-900 mt-0.5">{sub.grade}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-left">
+                  <div className="flex items-center gap-2 text-emerald-700 font-bold text-[11px] uppercase tracking-wider mb-2">
+                    <ShieldCheck size={14} /> Subject Combination Verified
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-gray-600 font-medium">
+                    Required subjects are satisfied. Grades are not collected because {targetUni?.name || 'this institution'}'s aggregate calculation does not use individual O'Level grades.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Admission Probability & Verdict */}

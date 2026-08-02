@@ -1998,8 +1998,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
     const isAllC6 = subjects.every(s => s.grade === 'C6');
     if (isAllC6 && (!computedScoringSystem || computedScoringSystem.hasOLevel) && !forceBypassAccreditation) {
-      setIsC6AlertOpen(true);
-      return;
+      // Don't show C6 alert if the institution doesn't even use O-Level grades
+      if (computedScoringSystem && computedScoringSystem.hasOLevel === false) {
+        // Skip alert
+      } else {
+        setIsC6AlertOpen(true);
+        return;
+      }
     }
 
     if (isCourseSuspectedNotOffered && !forceBypassAccreditation) {
@@ -3324,16 +3329,24 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           
                           <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
                           
-                          <div className="mt-4 flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
-                            <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
-                            <div className="flex gap-1">
-                              <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
-                              <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                              <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                          <div className="mt-4 flex flex-col items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
+                              <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
+                              <div className="flex gap-1">
+                                <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
+                                <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                                <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                              </div>
+                              <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                {confidenceLevel}
+                              </span>
                             </div>
-                            <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                              {confidenceLevel}
-                            </span>
+                            
+                            {aiResult.confidenceReasoning && (
+                              <p className="text-[10px] text-gray-400 font-medium max-w-sm text-center leading-relaxed px-4">
+                                {aiResult.confidenceReasoning}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -3394,6 +3407,39 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </>
                     );
                   })()}
+
+                  {/* Evidence Panel */}
+                  {aiResult.evidencePanel && aiResult.evidencePanel.length > 0 && (
+                    <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
+                      <details className="group">
+                        <summary className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between cursor-pointer list-none select-none">
+                          <span className="flex items-center gap-2"><Database size={12} className="text-emerald-400" /> Evidence Used</span>
+                          <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                        </summary>
+                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                          {aiResult.evidencePanel.map((evidence: any, idx: number) => (
+                            <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-left">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[9px] font-black uppercase text-gray-400">{evidence.type.replace(/_/g, ' ')}</span>
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                  evidence.confidenceLevel === 'High' ? 'bg-emerald-500/10 text-emerald-400' :
+                                  evidence.confidenceLevel === 'Medium' ? 'bg-cyan-500/10 text-cyan-400' :
+                                  'bg-amber-500/10 text-amber-400'
+                                }`}>
+                                  {evidence.confidenceLevel} Confidence
+                                </span>
+                              </div>
+                              <p className="text-sm font-bold text-white mb-2">{evidence.value}</p>
+                              <div className="flex items-center justify-between text-[9px] text-gray-500">
+                                <span>Source: {evidence.sourceUrl || 'Unknown'}</span>
+                                {evidence.retrievedDate && <span>Retrieved: {evidence.retrievedDate}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  )}
 
                   {/* Post-UTME status */}
                   {targetUni && (() => {
@@ -3471,13 +3517,28 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </summary>
                       <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
                         <p className="text-[11px] text-gray-300">Your admission chance is based on multiple weighted factors including:</p>
-                        <ul className="space-y-2 text-[10px] font-semibold text-gray-400">
-                          <li className="flex items-center gap-2"><span>•</span> JAMB score relative to historical performance (approx. 35%)</li>
-                          <li className="flex items-center gap-2"><span>•</span> O'Level grades and required subject matching (approx. 20%)</li>
-                          <li className="flex items-center gap-2"><span>•</span> Aggregate score vs standard departmental cutoffs (approx. 25%)</li>
-                          <li className="flex items-center gap-2"><span>•</span> Departmental competitiveness & quota constraints (approx. 15%)</li>
-                          <li className="flex items-center gap-2"><span>•</span> Catchment/ELDS state considerations (approx. 5%)</li>
-                        </ul>
+                        
+                        {aiResult.scoreBreakdown && aiResult.scoreBreakdown.length > 0 ? (
+                          <div className="space-y-2 mt-3">
+                            {aiResult.scoreBreakdown.map((breakdown: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between p-2.5 bg-white/[0.02] border border-white/5 rounded-lg">
+                                <span className="text-[10px] font-bold text-gray-400">{breakdown.factor}</span>
+                                <span className={`text-[10px] font-black ${breakdown.impact.startsWith('+') ? 'text-emerald-400' : breakdown.impact.startsWith('-') ? 'text-red-400' : 'text-gray-300'}`}>
+                                  {breakdown.impact}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <ul className="space-y-2 text-[10px] font-semibold text-gray-400">
+                            <li className="flex items-center gap-2"><span>•</span> JAMB score relative to historical performance (approx. 35%)</li>
+                            <li className="flex items-center gap-2"><span>•</span> O'Level grades and required subject matching (approx. 20%)</li>
+                            <li className="flex items-center gap-2"><span>•</span> Aggregate score vs standard departmental cutoffs (approx. 25%)</li>
+                            <li className="flex items-center gap-2"><span>•</span> Departmental competitiveness & quota constraints (approx. 15%)</li>
+                            <li className="flex items-center gap-2"><span>•</span> Catchment/ELDS state considerations (approx. 5%)</li>
+                          </ul>
+                        )}
+                        
                       </div>
                     </details>
                   </div>
@@ -4791,6 +4852,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             confidenceLevel,
             stateOfOrigin,
             subjects,
+            hasOLevel: computedScoringSystem ? computedScoringSystem.hasOLevel : true,
             aiResult
           }}
         />

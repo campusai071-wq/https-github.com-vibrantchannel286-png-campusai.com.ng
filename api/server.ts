@@ -996,15 +996,47 @@ const getTavilyKeys = (): string[] => {
 };
 
 const getSerperKeys = (): string[] => {
+  // First, check if there are explicit Serper keys in env
+  const explicitKeys: string[] = [];
+  Object.entries(process.env).forEach(([envKey, envValue]) => {
+    if (envValue && typeof envValue === 'string') {
+      const trimmed = envValue.trim();
+      const lowerKey = envKey.toLowerCase();
+      if (lowerKey.includes('serper') || lowerKey.includes('serp_api') || lowerKey.includes('serpapi')) {
+        const hexMatch = trimmed.match(/\b([a-f0-9]{32,64})\b/i);
+        if (hexMatch) {
+          explicitKeys.push(hexMatch[1]);
+        } else if (trimmed.length >= 30) {
+          explicitKeys.push(trimmed);
+        }
+      }
+    }
+  });
+
+  if (explicitKeys.length > 0) {
+    return [...new Set(explicitKeys)];
+  }
+
+  // Fallback to robustKeyExtract but make sure we do NOT include hex parts of Firecrawl/Gemini/Firebase keys
   const allPossible = robustKeyExtract();
-  return allPossible.filter(k => 
-    !k.startsWith('AIzaSy') && 
-    !k.startsWith('AQ.') && 
-    !k.startsWith('tvly-') && 
-    !k.startsWith('fc-') &&
-    k.length >= 30 &&
-    /^[a-f0-9]+$/i.test(k) // Serper keys are hex
-  );
+  const firecrawlKeys = getFirecrawlKeys();
+  const geminiKeys = getGeminiKeys();
+
+  return allPossible.filter(k => {
+    if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-') || k.startsWith('fc-')) return false;
+    if (k.length < 30 || !/^[a-f0-9]+$/i.test(k)) return false;
+    
+    // Ensure this key is not a substring of any Firecrawl key
+    for (const fc of firecrawlKeys) {
+      if (fc.includes(k)) return false;
+    }
+    // Ensure this key is not a substring of any Gemini key
+    for (const gem of geminiKeys) {
+      if (gem.includes(k)) return false;
+    }
+    
+    return true;
+  });
 };
 
 const getFirecrawlKeys = (): string[] => {
@@ -1691,7 +1723,6 @@ app.post("/api/gemini", async (req: any, res: any) => {
   // Create a priority list of models to try
   const modelPool = [modelToTry];
   if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
-  if (modelToTry !== "gemini-2.5-flash") modelPool.push("gemini-2.5-flash");
 
   let lastErr: any = null;
   let successResult: any = null;
@@ -1901,7 +1932,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
   // ─── 2. TRY SECONDARY PROVIDERS ONLY IF GEMINI FAILS ───
   if (!successResult) {
     console.log("[API Gemini Proxy] Gemini models failed or unconfigured, trying fallback providers...");
-    const messages: any[] = [];
+    let messages: any[] = [];
     if (params?.systemInstruction) {
       messages.push({ role: 'system', content: params.systemInstruction });
     }
@@ -1931,6 +1962,26 @@ app.post("/api/gemini", async (req: any, res: any) => {
                             params?.responseMimeType === "application/json" ||
                             (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
 
+    // Truncate messages if too long (Groq limit is 12k tokens, roughly 45k chars)
+    let totalLength = messages.reduce((acc, m) => acc + m.content.length, 0);
+    if (totalLength > 30000) {
+      console.warn(`[API Gemini Proxy] Messages too long (${totalLength} chars). Truncating to fit fallback limits...`);
+      // Start removing from the beginning, except the first system/user prompt if possible, or just truncate the longest message
+      messages.forEach(m => {
+        if (m.content.length > 10000) {
+          m.content = m.content.substring(0, 10000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+        }
+      });
+      // Recalculate
+      totalLength = messages.reduce((acc, m) => acc + m.content.length, 0);
+      if (totalLength > 30000) {
+        messages = [messages[messages.length - 1]]; // Keep only the last message
+        if (messages[0].content.length > 25000) {
+           messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+        }
+      }
+    }
+
     // 1. Try Groq
     if (!successResult && process.env.GROQ_API_KEY) {
       try {
@@ -1939,6 +1990,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
         const completion = await groq.chat.completions.create({
           messages: messages as any,
           model: 'llama-3.3-70b-versatile',
+          max_tokens: 3000,
           ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
         });
         const text = completion.choices[0]?.message?.content || "";
@@ -2148,7 +2200,7 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
   }
 
   // 2. Secondary Provider Fallbacks (Groq, OpenRouter, Nvidia, Mistral, Cohere)
-  const messages = [
+  let messages = [
     ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
     ...history.map((m: any) => ({
       role: m.role === 'model' ? 'assistant' : 'user',
@@ -2156,6 +2208,23 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
     })),
     { role: 'user', content: prompt }
   ];
+
+  let totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
+  if (totalLength > 30000) {
+    console.warn(`[API AI Proxy] Messages too long (${totalLength} chars). Truncating...`);
+    messages.forEach(m => {
+      if (m.content && m.content.length > 10000) {
+        m.content = m.content.substring(0, 10000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+      }
+    });
+    totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
+    if (totalLength > 30000) {
+      messages = [messages[messages.length - 1]];
+      if (messages[0].content.length > 25000) {
+        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+      }
+    }
+  }
 
   // 2a. Try Groq
   if (process.env.GROQ_API_KEY) {
@@ -2165,6 +2234,7 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       const completion = await groq.chat.completions.create({
         messages: messages as any,
         model: 'llama-3.3-70b-versatile',
+        max_tokens: 3000,
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text) {
@@ -2408,13 +2478,20 @@ Return the output strictly as a JSON object with this exact shape:
   if (!successPost && process.env.GROQ_API_KEY) {
     try {
       console.log("[API Blog Generator] Trying Groq fallback...");
+      
+      let safeSearchContext = searchContext || "No search results found.";
+      if (safeSearchContext.length > 20000) {
+        console.warn(`[API Blog Generator] searchContext too long (${safeSearchContext.length} chars). Truncating...`);
+        safeSearchContext = safeSearchContext.substring(0, 20000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+      }
+
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       const completion = await groq.chat.completions.create({
         messages: [
           { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
           { role: "user", content: `We saw this news topic/snippet: "${searchQuery}".
 Web search results on this topic:
-${searchContext || "No search results found."}
+${safeSearchContext}
 
 Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
 The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
@@ -2429,6 +2506,7 @@ Return the output strictly as a JSON object with this exact shape:
 }` }
         ] as any,
         model: 'llama-3.3-70b-versatile',
+        max_tokens: 3000,
         response_format: { type: "json_object" }
       });
       const text = completion.choices[0]?.message?.content || "";
@@ -2790,6 +2868,14 @@ app.post("/api/search", async (req: any, res: any) => {
 
   let allResults: any[] = [];
 
+  // Helper helper to enforce timeouts on promises
+  const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs))
+    ]);
+  };
+
   // 1. Search local Firestore news first
   try {
     console.log(`[API Search] Searching local news for: "${query}"`);
@@ -2798,8 +2884,13 @@ app.post("/api/search", async (req: any, res: any) => {
     let localMatches: any[] = [];
     
     if (words.length > 0) {
-      // Get more recent news to filter locally (up to 300)
-      const snap = await newsRef.orderBy("date", "desc").limit(300).get();
+      // Get more recent news to filter locally (up to 300) with a strict 3-second timeout to prevent hanging
+      const snap: any = await withTimeout(
+        newsRef.orderBy("date", "desc").limit(300).get(),
+        3000,
+        "Local news query"
+      );
+      
       snap.forEach((doc: any) => {
         const data = doc.data();
         const title = (data.title || "").toLowerCase();
@@ -2836,7 +2927,7 @@ app.post("/api/search", async (req: any, res: any) => {
       allResults = [...localMatches];
     }
   } catch (e: any) {
-    console.log("[API Search] Local Firestore search failed:", e.message);
+    console.log("[API Search] Local Firestore search failed or timed out:", e.message);
   }
 
   // 2. Try Gemini for Search Grounding (Primary)
@@ -2845,7 +2936,9 @@ app.post("/api/search", async (req: any, res: any) => {
 
   console.log(`[API Search] Trying Gemini native search grounding for: "${query}"`);
   const rawPool = getGeminiKeys();
-  const searchModels = ['gemini-flash-latest', 'gemini-2.5-flash'];
+  const searchModels = ['gemini-flash-latest'];
+
+  let abortGrounding = false;
 
   for (let i = 0; i < rawPool.length; i++) {
     const apiKey = rawPool[i];
@@ -2853,14 +2946,26 @@ app.post("/api/search", async (req: any, res: any) => {
 
     for (const searchModel of searchModels) {
       try {
-        const ai = new GoogleGenAI({ apiKey });
-        const result = await ai.models.generateContent({
-          model: searchModel,
-          contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
-          config: {
-            tools: [{ googleSearch: {} }]
+        // Do NOT set timeout in httpOptions, as googleSearch tool demands a longer backend deadline.
+        // Instead, wrap the request promise using our local withTimeout function.
+        const ai = new GoogleGenAI({ 
+          apiKey,
+          httpOptions: {
+            headers: { 'User-Agent': 'aistudio-build' }
           }
         });
+        
+        const result = await withTimeout(
+          ai.models.generateContent({
+            model: searchModel,
+            contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
+            config: {
+              tools: [{ googleSearch: {} }]
+            }
+          }),
+          10000,
+          `Gemini search grounding ${searchModel}`
+        );
         
         let text = result.text || "";
         if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -2894,15 +2999,21 @@ app.post("/api/search", async (req: any, res: any) => {
       } catch (e: any) {
         const errMsg = e.message || String(e);
         const isQuotaOrBusy = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota") || errMsg.includes("503") || errMsg.includes("UNAVAILABLE");
+        const isPermanentError = errMsg.includes("not supported") || errMsg.includes("not enabled") || errMsg.includes("permission") || errMsg.includes("403") || (/\b400\b/.test(errMsg) && !errMsg.includes("timed out") && !errMsg.includes("timeout")) || errMsg.includes("invalid") || errMsg.includes("unauthorized") || errMsg.includes("not authorized");
+        
         if (isQuotaOrBusy) {
           console.log(`[API Search] Gemini key ${i + 1} (${searchModel}): quota or temporary load limit reached, switching model/key...`);
+        } else if (isPermanentError) {
+          console.log(`[API Search] Permanent error on Gemini Search Grounding (e.g. tool not supported/enabled on standard keys): ${errMsg.substring(0, 100)}. Aborting search grounding to fall back fast.`);
+          abortGrounding = true;
+          break;
         } else {
           console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) notice:`, errMsg.substring(0, 100));
         }
       }
     }
 
-    if (keySucceeded || searchSuccess) break;
+    if (abortGrounding || keySucceeded || searchSuccess) break;
   }
 
   // 3. Fallback to Tavily/Serper if Gemini fails
@@ -3512,6 +3623,7 @@ ${searchResults[4]}
         const completion = await groq.chat.completions.create({
           messages: messages as any,
           model: 'llama-3.3-70b-versatile',
+          max_tokens: 4000, // News takes more tokens
           response_format: { type: "json_object" }
         });
         const text = completion.choices[0]?.message?.content || "";

@@ -4,7 +4,8 @@ import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
-  Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText
+  Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -252,6 +253,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Content ─────────────────────────────────────────────────────────────────
   const [publishedNews, setPublishedNews] = useState<NewsItem[]>([]);
+  const [adminNewsLimit, setAdminNewsLimit] = useState(20);
+  const [hasMoreAdminNews, setHasMoreAdminNews] = useState(true);
+  const [isAdminNewsLoading, setIsAdminNewsLoading] = useState(false);
+
+  const loadAdminNews = useCallback(async (limitOverride?: number) => {
+    setIsAdminNewsLoading(true);
+    try {
+      const limitToUse = limitOverride ?? adminNewsLimit;
+      const news = await getCloudNews(true, true, undefined, undefined, limitToUse);
+      setPublishedNews(news);
+      setHasMoreAdminNews(news.length >= limitToUse);
+    } catch (e) {
+      console.error("Failed to load admin news:", e);
+    } finally {
+      setIsAdminNewsLoading(false);
+    }
+  }, [adminNewsLimit]);
+
+  const handleLoadMoreNews = async () => {
+    const nextLimit = adminNewsLimit + 20;
+    setAdminNewsLimit(nextLimit);
+    await loadAdminNews(nextLimit);
+  };
   const [showPostForm, setShowPostForm]   = useState(false);
   const [newsFilter, setNewsFilter] = useState<'live' | 'pending'>('live');
   // ✅ FIX: newPost no longer stores a stale date — date is always computed fresh at publish time
@@ -419,13 +443,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
     }
     const [news, _, asuu] = await Promise.all([
-      getCloudNews(true, true, undefined, undefined, 200),
+      getCloudNews(true, true, undefined, undefined, adminNewsLimit),
       getTickerHeadlines(),
       getASUUStatusFromDB(),
     ]);
     setPublishedNews(news);
+    setHasMoreAdminNews(news.length >= adminNewsLimit);
     if (asuu) setAsuuStatus(asuu);
-  }, []);
+  }, [adminNewsLimit]);
 
   const loadUsers = useCallback(async () => {
     setIsUserLoading(true);
@@ -618,7 +643,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         // AI Synced news starts as pending (defaultLiveStatus = false)
         await archiveNewsItems(liveData, false);
         await updateGlobalSyncMetadata(Date.now());
-        setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
+        const updatedNews = await getCloudNews(true, true, undefined, undefined, adminNewsLimit);
+        setPublishedNews(updatedNews);
+        setHasMoreAdminNews(updatedNews.length >= adminNewsLimit);
         
         // Dispatch global events
         window.dispatchEvent(new Event('campusai_news_updated'));
@@ -664,7 +691,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setShowPostForm(false);
       // ✅ FIX: Reset form fully so next open always starts clean
       setNewPost({ category: 'National' });
-      setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
+      const updatedNews = await getCloudNews(true, true, undefined, undefined, adminNewsLimit);
+      setPublishedNews(updatedNews);
+      setHasMoreAdminNews(updatedNews.length >= adminNewsLimit);
       
       // Dispatch update event globally to reload all feeds
       window.dispatchEvent(new Event('campusai_news_updated'));
@@ -712,7 +741,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setAiSources([]);
       setShowAIBlogForm(false);
       
-      setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
+      const updatedNews = await getCloudNews(true, true, undefined, undefined, adminNewsLimit);
+      setPublishedNews(updatedNews);
+      setHasMoreAdminNews(updatedNews.length >= adminNewsLimit);
       
       // Dispatch update event globally to reload all feeds
       window.dispatchEvent(new Event('campusai_news_updated'));
@@ -1897,6 +1928,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                       );
                     })}
+                    {hasMoreAdminNews && publishedNews.filter(item => newsFilter === 'live' ? item.isLive : !item.isLive).length > 0 && (
+                      <div className="flex justify-center pt-4">
+                        <button
+                          onClick={handleLoadMoreNews}
+                          disabled={isAdminNewsLoading}
+                          className="px-6 py-2.5 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-300 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 transition-all active:scale-[0.98] border border-gray-100 dark:border-gray-800 shadow-sm"
+                        >
+                          {isAdminNewsLoading ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <ChevronDown size={12} />
+                          )}
+                          Load More Articles
+                        </button>
+                      </div>
+                    )}
                     {publishedNews.filter(item => newsFilter === 'live' ? item.isLive : !item.isLive).length === 0 && (
                       <div className="py-20 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[32px]">
                         <Newspaper size={32} className="mx-auto text-gray-200 mb-3" />

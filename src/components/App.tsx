@@ -375,14 +375,6 @@ const AppContent: React.FC = () => {
         }
         window.dispatchEvent(new Event('storage'));
       }
-      
-      const { getCloudNews, sortNewsBySyncAndDate } = await import('../services/dbService');
-      const newsItems = await getCloudNews(true);
-      
-      // Sort news by date descending to ensure latest are at the top
-      const sortedNews = [...newsItems].sort((a, b) => sortNewsBySyncAndDate(a, b));
-
-      setNews(sortedNews);
     };
 
     loadGlobalSettings();
@@ -709,7 +701,7 @@ const AppContent: React.FC = () => {
   const openArticle = (article: NewsItem) => {
     const slug = article.slug || slugify(article.title);
     setActiveArticle(article);
-    navigate(`/news/${slug}`);
+    navigate(`/news/${slug}`, { state: { article } });
     window.scrollTo(0, 0);
   };
 
