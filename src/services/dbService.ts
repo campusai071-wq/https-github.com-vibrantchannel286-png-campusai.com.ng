@@ -362,7 +362,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
           isLive: item.isLive ?? true,
           category: normalizeCategory(item.category || 'National', item.title || '')
         }));
-        const mergedNews = [...cloudNews, ...MOCK_NEWS];
+        const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
         cachedRawNews = mergedNews;
         lastRawFetchTime = now;
         return filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
@@ -421,7 +421,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
 
     console.log(`getCloudNews: Retrieved ${cloudNews.length} items from Firestore.`);
 
-    const mergedNews = [...cloudNews, ...MOCK_NEWS];
+    const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
 
     cachedRawNews = mergedNews;
     lastRawFetchTime = now;

@@ -498,7 +498,11 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       if (newNews.length === 0) {
         setHasMore(false);
       } else {
-        setNewsList(prev => [...prev, ...newNews]);
+        setNewsList(prev => {
+          const existingIds = new Set(prev.map(n => n.id || n.slug));
+          const uniqueNew = newNews.filter(n => !existingIds.has(n.id || n.slug));
+          return [...prev, ...uniqueNew];
+        });
         setLastCreatedAt(newNews[newNews.length - 1].createdAt);
         setHasMore(newNews.length >= 20);
       }

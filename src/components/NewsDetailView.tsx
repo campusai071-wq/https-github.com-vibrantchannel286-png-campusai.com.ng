@@ -376,6 +376,13 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     toggleBookmarkForId(news.id);
   }, [news, toggleBookmarkForId]);
 
+  const handleDiscussWithAI = useCallback(() => {
+    if (!news) return;
+    window.dispatchEvent(new CustomEvent('campusai_open_ai', {
+      detail: `Hello CampusAI, I have a question about this article: "${news.title}". Can you give me a key summary and candidate checklist?`
+    }));
+  }, [news]);
+
   // ── AI article expansion ──────────────────────────────────────────────────
   const handleExpandArticle = useCallback(async () => {
     if (!news || isExpanding) return;
@@ -677,34 +684,32 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         </div>
 
         {/* Quick Intelligence Actions */}
-        {user && (
-          <div className={`mb-10 p-6 rounded-[40px] border flex flex-col md:flex-row items-center justify-between gap-4 ${isAdmin ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30'}`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white ${isAdmin ? 'bg-amber-500' : 'bg-blue-500'}`}>
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <h4 className={`text-sm font-black uppercase tracking-widest ${isAdmin ? 'text-amber-900 dark:text-amber-300' : 'text-blue-900 dark:text-blue-300'}`}>
-                  {isAdmin ? 'Admin Intelligence' : 'AI Assistant'}
-                </h4>
-                <p className={`text-[10px] font-bold uppercase tracking-widest ${isAdmin ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                  {isAdmin ? (isEditing ? "Manual Editing Active" : "Manage content with AI or edit manually.") : "Get a deeper summary and candidate checklist."}
-                </p>
-              </div>
+        <div className={`mb-10 p-6 rounded-[40px] border flex flex-col md:flex-row items-center justify-between gap-4 ${isAdmin ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800' : 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white ${isAdmin ? 'bg-amber-500' : 'bg-blue-500'}`}>
+              <Sparkles size={20} />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {!isEditing ? (
+            <div>
+              <h4 className={`text-sm font-black uppercase tracking-widest ${isAdmin ? 'text-amber-900 dark:text-amber-300' : 'text-blue-900 dark:text-blue-300'}`}>
+                {isAdmin ? 'Admin Intelligence' : 'AI Assistant'}
+              </h4>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isAdmin ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                {isAdmin ? (isEditing ? "Manual Editing Active" : "Manage content with AI or edit manually.") : "Get a deeper summary and candidate checklist."}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin ? (
+              !isEditing ? (
                 <>
-                  {isAdmin && (
-                    <button
-                      onClick={handleCleanRubbish}
-                      disabled={isCleaning}
-                      className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      {isCleaning ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
-                      {isCleaning ? "Scrubbing..." : "Scrub Rubbish"}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleCleanRubbish}
+                    disabled={isCleaning}
+                    className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isCleaning ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                    {isCleaning ? "Scrubbing..." : "Scrub Rubbish"}
+                  </button>
                   <button
                     onClick={handleExpandArticle}
                     disabled={isExpanding}
@@ -713,24 +718,20 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     {isExpanding ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
                     {isExpanding ? "Expanding..." : "Enhance Article"}
                   </button>
-                  {isAdmin && (
-                    <>
-                      <button
-                        onClick={startEditing}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
-                      >
-                        <Edit3 size={14} />
-                        Edit Manually
-                      </button>
-                      <button
-                        onClick={handleDeleteArticle}
-                        className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
-                      >
-                        <Trash2 size={14} />
-                        Delete Article
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={startEditing}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                  >
+                    <Edit3 size={14} />
+                    Edit Manually
+                  </button>
+                  <button
+                    onClick={handleDeleteArticle}
+                    className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-rose-500/20 active:scale-95 transition-all"
+                  >
+                    <Trash2 size={14} />
+                    Delete Article
+                  </button>
                 </>
               ) : (
                 <>
@@ -749,10 +750,18 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     Cancel
                   </button>
                 </>
-              )}
-            </div>
+              )
+            ) : (
+              <button
+                onClick={handleDiscussWithAI}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <Sparkles size={14} />
+                Discuss with AI
+              </button>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Article body */}
         <article className="prose prose-xl max-w-full overflow-hidden dark:prose-invert break-words">
@@ -824,15 +833,30 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           {!(news.fullContent || (news as any).content) && !isExpanding && !isEditing && (
             <div className="mb-10 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-800 flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
-                <h4 className="text-sm font-black text-blue-800 dark:text-blue-300 uppercase tracking-widest mb-1">Deep Dive Available</h4>
-                <p className="text-xs font-bold text-blue-600 dark:text-blue-400">Our AI can rewrite this summary into a detailed, comprehensive article for you.</p>
+                <h4 className="text-sm font-black text-blue-800 dark:text-blue-300 uppercase tracking-widest mb-1">
+                  {isAdmin ? "Deep Dive Available" : "Ask CampusAI"}
+                </h4>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                  {isAdmin
+                    ? "Our AI can rewrite this summary into a detailed, comprehensive article for you."
+                    : "Have questions about this briefing? Discuss it directly with CampusAI Assistant."}
+                </p>
               </div>
-              <button
-                onClick={handleExpandArticle}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
-              >
-                <Wand2 size={14} /> Expand with AI
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={handleExpandArticle}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  <Wand2 size={14} /> Expand with AI
+                </button>
+              ) : (
+                <button
+                  onClick={handleDiscussWithAI}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  <Sparkles size={14} /> Discuss with AI
+                </button>
+              )}
             </div>
           )}
 
