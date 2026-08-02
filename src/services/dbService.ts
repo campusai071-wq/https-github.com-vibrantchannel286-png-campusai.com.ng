@@ -76,24 +76,37 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
   const cleanSlug = slug.split('?')[0].replace(/\/$/, '');
 
   if (!db) {
-    const mock = MOCK_NEWS.find(n => (n.slug || slugify(n.title)) === cleanSlug) || null;
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }
     return null;
   }
   try {
+    // 1. Check direct doc lookup by ID
+    try {
+      const docRef = doc(db, "news", cleanSlug);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          ...data,
+          category: normalizeCategory(data.category || 'National', data.title || '')
+        } as NewsItem;
+      }
+    } catch (e) {}
+
+    // 2. Query where slug == cleanSlug
     const newsRef = collection(db, "news");
     const q = query(newsRef, where("slug", "==", cleanSlug));
     let querySnapshot;
     try {
       querySnapshot = await getDocsFromServer(q);
     } catch (e) {
-      // Fallback to cache if offline
       querySnapshot = await getDocs(q);
     }
     if (!querySnapshot.empty) {
-      // If there are duplicates, pick the most recently updated one
       let bestDoc = querySnapshot.docs[0];
       if (querySnapshot.docs.length > 1) {
         let bestTime = 0;
@@ -112,14 +125,22 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
         category: normalizeCategory(data.category || 'National', data.title || '')
       } as NewsItem;
     }
-    const mock = MOCK_NEWS.find(n => (n.slug || slugify(n.title)) === cleanSlug) || null;
+
+    // 3. Fallback: Search all cloud news by ID, slug, or title slugification
+    const allNews = await getCloudNews(true);
+    const cloudMatch = allNews.find(n => n.id === cleanSlug || n.slug === cleanSlug || slugify(n.title) === cleanSlug);
+    if (cloudMatch) {
+      return cloudMatch;
+    }
+
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }
     return null;
   } catch (e) {
     console.error("Error fetching news by slug:", e);
-    const mock = MOCK_NEWS.find(n => (n.slug || slugify(n.title)) === cleanSlug) || null;
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }

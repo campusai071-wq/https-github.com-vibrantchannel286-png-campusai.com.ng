@@ -293,7 +293,10 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   };
 
   useEffect(() => {
-    if (slug) {
+    if (initialNews) {
+      setNews(initialNews);
+      setIsLoadingNews(false);
+    } else if (slug) {
       setNews(null); // Clear state to show loader and reset related news
       loadNews();
     }
@@ -306,7 +309,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     return () => {
       window.removeEventListener('campusai_news_updated', handleNewsUpdated);
     };
-  }, [slug, loadNews]);
+  }, [slug, loadNews, initialNews]);
 
   // ── Load comments + bookmark state when article id is available ───────────
   const loadComments = useCallback(async (newsId: string) => {
@@ -483,23 +486,23 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   // ── Loading / not found states ────────────────────────────────────────────
   if (isLoadingNews) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen w-full flex flex-col items-center justify-center space-y-4 p-6">
         <Loader2 size={48} className="animate-spin text-blue-600" />
-        <p className="text-sm font-black uppercase tracking-widest text-gray-400">Decrypting Intelligence...</p>
+        <p className="text-sm font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Decrypting Intelligence...</p>
       </div>
     );
   }
 
   if (!news) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-6">
+      <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen w-full flex flex-col items-center justify-center space-y-6 p-6">
         <div className="w-20 h-20 bg-gray-100 dark:bg-gray-900 rounded-[32px] flex items-center justify-center text-gray-400">
           <ShieldCheck size={40} />
         </div>
         <div className="text-center max-w-lg">
           <h2 className="text-2xl font-black dark:text-white uppercase tracking-tight mb-2">Intelligence Not Found</h2>
-          <p className="text-gray-500 font-bold">The requested report does not exist or has been archived.</p>
-          <p className="text-[10px] text-gray-400 mt-2 uppercase font-black tracking-widest">Slug: {slug}</p>
+          <p className="text-gray-500 dark:text-gray-400 font-bold">The requested report does not exist or has been archived.</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 uppercase font-black tracking-widest">Slug: {slug}</p>
         </div>
 
         {restoreError && (

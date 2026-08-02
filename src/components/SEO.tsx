@@ -64,8 +64,32 @@ const SEO: React.FC<SEOProps> = ({
 
   const ogImage = image && image.trim().startsWith('http') ? image.trim() : defaultImage;
 
-  const pubIso = publishedTime ? new Date(publishedTime).toISOString() : new Date().toISOString();
-  const modIso = modifiedTime ? new Date(modifiedTime).toISOString() : pubIso;
+  const safeToIso = (val?: any): string => {
+    if (!val) return new Date().toISOString();
+    try {
+      if (val instanceof Date) {
+        return isNaN(val.getTime()) ? new Date().toISOString() : val.toISOString();
+      }
+      if (typeof val === 'object' && val !== null) {
+        if (typeof val.toDate === 'function') {
+          const d = val.toDate();
+          return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+        }
+        if (typeof val.seconds === 'number') {
+          const d = new Date(val.seconds * 1000);
+          return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+        }
+      }
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString();
+      }
+    } catch (e) {}
+    return new Date().toISOString();
+  };
+
+  const pubIso = safeToIso(publishedTime);
+  const modIso = modifiedTime ? safeToIso(modifiedTime) : pubIso;
 
   const structuredData = {
     "@context": "https://schema.org",

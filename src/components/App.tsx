@@ -92,6 +92,7 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
         />
       )}
       <NewsDetailView 
+        news={currentNews}
         user={user} 
         isAdmin={isAuthorizedAdmin}
         onClose={closeArticle} 
@@ -394,6 +395,7 @@ const AppContent: React.FC = () => {
         console.error("App: reloadNews error:", err);
       }
     };
+    reloadNews();
     window.addEventListener('campusai_news_updated', reloadNews);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
