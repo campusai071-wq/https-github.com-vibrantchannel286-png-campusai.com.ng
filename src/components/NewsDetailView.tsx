@@ -539,7 +539,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
       <SEO 
         title={news.title} 
         description={news.excerpt} 
-        image={news.image}
+        image={news.image || (Array.isArray(news.images) && news.images.length > 0 ? news.images[0] : undefined)}
         article={true} 
         author={news.author || "Emmanuel Iweh"}
         publishedTime={news.date}

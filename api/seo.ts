@@ -145,11 +145,17 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
           title = `${articleTitle} | CampusAI News`;
           description = articleExcerpt.substring(0, 155);
 
-          // Image selection: if valid HTTP image URL exists, use it. Otherwise, use generated OG image!
-          if (docData.image && typeof docData.image === 'string' && docData.image.trim().startsWith('http')) {
-            imageUrl = docData.image.trim();
+          const rawArticleImg = docData.image || (Array.isArray(docData.images) && docData.images.length > 0 ? docData.images[0] : null) || docData.imageUrl || docData.coverImage || docData.featuredImage;
+
+          if (typeof rawArticleImg === 'string' && rawArticleImg.trim()) {
+            const trimmedImg = rawArticleImg.trim();
+            if (trimmedImg.startsWith('http://') || trimmedImg.startsWith('https://')) {
+              imageUrl = trimmedImg;
+            } else {
+              imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
+            }
           } else {
-            imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent(articleTitle)}&category=${encodeURIComponent(articleSection)}`;
+            imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
           }
 
           const renderedContent = renderMarkdownToHtml(articleBody);
@@ -450,7 +456,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   }
 
   // Build complete dynamic Open Graph & Twitter meta tags block
-  const imageType = (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg')) ? 'image/jpeg' : imageUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+  const imageType = (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg') || imageUrl.includes('/api/article-image')) ? 'image/jpeg' : imageUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
 
   const metaTags = `
     <!-- Primary Page Metadata -->

@@ -57,12 +57,16 @@ const SEO: React.FC<SEOProps> = ({
     : formattedTitle;
   const fullUrl = canonical ? `${siteDomain}${canonical}` : `${siteDomain}${cleanPath || '/'}`;
 
-  // If no custom image passed, generate dynamic OG image
-  const defaultImage = article 
-    ? `${siteDomain}/api/og-image?title=${encodeURIComponent(title || "CampusAI News")}&category=${encodeURIComponent(section)}`
-    : `${siteDomain}/og-image.png`;
+  const newsSlug = (canonical || cleanPath).includes('/news/') ? (canonical || cleanPath).split('/news/')[1] : "";
 
-  const ogImage = image && image.trim().startsWith('http') ? image.trim() : defaultImage;
+  let ogImage = `${siteDomain}/og-image.png`;
+  if (image && typeof image === 'string' && (image.trim().startsWith('http://') || image.trim().startsWith('https://'))) {
+    ogImage = image.trim();
+  } else if (newsSlug) {
+    ogImage = `${siteDomain}/api/article-image?slug=${encodeURIComponent(newsSlug.split('?')[0].replace(/\/$/, ''))}`;
+  } else if (article) {
+    ogImage = `${siteDomain}/api/og-image?title=${encodeURIComponent(title || "CampusAI News")}&category=${encodeURIComponent(section)}`;
+  }
 
   const safeToIso = (val?: any): string => {
     if (!val) return new Date().toISOString();

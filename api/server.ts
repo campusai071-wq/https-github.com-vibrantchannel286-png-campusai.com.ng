@@ -16,6 +16,7 @@ import { initializeApp as initAdminApp, applicationDefault } from "firebase-admi
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "firebase-admin/firestore";
 import { injectSEO as seoInject } from "./seo.js";
 import { handleOgImageRequest } from "./ogImage.js";
+import { handleArticleImageRequest } from "./articleImage.js";
 
 const getFirebaseAppletConfig = (): any => {
   try {
@@ -4081,6 +4082,9 @@ app.post("/api/admin/keys/ping", async (req: any, res: any) => {
 
 // Dynamic Open Graph Image Generation for Social Media Crawlers (WhatsApp, FB, Telegram, Twitter, LinkedIn, Discord)
 app.get(['/api/og-image', '/api/og-image.svg', '/api/og-image.png', '/og-image.svg', '/og-image.png'], handleOgImageRequest);
+
+// Dynamic Article Cover Image Handler for social media previews
+app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, dbInstance));
 
 // Catch-all for undefined API routes to help debug Vercel path mapping
 app.use("/api", (req, res) => {
