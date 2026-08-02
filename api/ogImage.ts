@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Resvg } from '@resvg/resvg-js';
 
 function escapeXml(unsafe: string): string {
   return unsafe
@@ -163,16 +164,38 @@ export function handleOgImageRequest(req: Request, res: Response) {
     const title = typeof req.query.title === 'string' ? req.query.title : undefined;
     const category = typeof req.query.category === 'string' ? req.query.category : undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+    const format = typeof req.query.format === 'string' ? req.query.format : undefined;
 
     const svgContent = generateOgImageSvg(title, category, date);
 
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    if (req.path.endsWith('.svg') || format === 'svg') {
+      res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400');
+      return res.status(200).send(svgContent);
+    }
+
+    // Convert SVG to PNG for WhatsApp, Facebook, Twitter, LinkedIn Open Graph previews
+    const resvg = new Resvg(svgContent, {
+      fitTo: { mode: 'width', value: 1200 },
+    });
+    const pngData = resvg.render();
+    const pngBuffer = pngData.asPng();
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', String(pngBuffer.length));
     res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400');
-    return res.status(200).send(svgContent);
+    return res.status(200).send(pngBuffer);
   } catch (err: any) {
     console.error("[OG Image Generation Error]:", err);
-    const fallbackSvg = generateOgImageSvg("CampusAI Nigeria", "ADMISSION NEWS", "2026 SEASON");
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    return res.status(200).send(fallbackSvg);
+    try {
+      const fallbackSvg = generateOgImageSvg("CampusAI Nigeria", "ADMISSION NEWS", "2026 SEASON");
+      const resvg = new Resvg(fallbackSvg, { fitTo: { mode: 'width', value: 1200 } });
+      const pngBuffer = resvg.render().asPng();
+      res.setHeader('Content-Type', 'image/png');
+      return res.status(200).send(pngBuffer);
+    } catch (e) {
+      res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+      return res.status(200).send(generateOgImageSvg());
+    }
   }
 }

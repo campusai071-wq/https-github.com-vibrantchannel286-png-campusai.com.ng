@@ -450,7 +450,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   }
 
   // Build complete dynamic Open Graph & Twitter meta tags block
-  const imageType = imageUrl.endsWith('.png') ? 'image/png' : imageUrl.includes('.svg') || imageUrl.includes('/api/og-image') ? 'image/svg+xml' : 'image/jpeg';
+  const imageType = (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg')) ? 'image/jpeg' : imageUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
 
   const metaTags = `
     <!-- Primary Page Metadata -->

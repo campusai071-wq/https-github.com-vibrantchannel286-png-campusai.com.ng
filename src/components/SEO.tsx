@@ -131,6 +131,9 @@ const SEO: React.FC<SEOProps> = ({
       <meta property="og:description" content={cleanDescription} />
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:secure_url" content={ogImage} />
+      <meta property="og:image:type" content={ogImage.endsWith('.jpg') || ogImage.endsWith('.jpeg') ? "image/jpeg" : ogImage.endsWith('.svg') ? "image/svg+xml" : "image/png"} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={cleanTitle} />
       <meta property="og:site_name" content={siteName} />
       <meta property="og:locale" content="en_NG" />
