@@ -1624,3 +1624,317 @@ export const getArticleViews = async (newsId: string, initialViews?: number): Pr
 
   return Math.max(1, baseViews + localViews);
 };
+
+// ─── Prediction & Accuracy Tracking Engine ────────────────────────────────────
+
+export interface GlobalPredictionRecord {
+  id?: string;
+  predictionId: string;
+  userId: string;
+  userEmail?: string;
+  university: string;
+  course: string;
+  aggregateScore: number;
+  jambScore: number;
+  postUtmeScore: number;
+  verdict: string;
+  confidence: string;
+  predictedProbability: number;
+  departmentalCutoff: string;
+  institutionalCutoff?: string;
+  stateOfOrigin: string;
+  isELDSState: boolean;
+  isCatchmentState: boolean;
+  predictionDate: string;
+  createdAt?: any;
+  helpful?: boolean;
+  helpfulRating?: number;
+  actualOutcome?: 'admitted' | 'not_admitted' | 'changed_course' | 'still_waiting';
+  actualUni?: string;
+  actualCourse?: string;
+  admissionType?: 'merit' | 'catchment' | 'elds' | 'transfer' | 'other';
+  outcomeNote?: string;
+  outcomeSubmittedAt?: any;
+}
+
+export const savePredictionRecord = async (prediction: GlobalPredictionRecord) => {
+  if (!db) return null;
+  try {
+    const docRef = doc(db, "predictions", prediction.predictionId);
+    await setDoc(docRef, {
+      ...prediction,
+      createdAt: Timestamp.now()
+    }, { merge: true });
+    return prediction.predictionId;
+  } catch (e) {
+    console.error("Error saving global prediction record:", e);
+    return null;
+  }
+};
+
+export const updatePredictionHelpfulness = async (predictionId: string, helpful: boolean) => {
+  if (!db || !predictionId) return;
+  try {
+    const docRef = doc(db, "predictions", predictionId);
+    await updateDoc(docRef, {
+      helpful,
+      helpfulRating: helpful ? 5 : 1,
+      updatedAt: Timestamp.now()
+    });
+  } catch (e) {
+    console.error("Error updating prediction helpfulness:", e);
+  }
+};
+
+export const submitAdmissionOutcome = async (
+  predictionId: string,
+  userId: string,
+  outcomeData: {
+    actualOutcome: 'admitted' | 'not_admitted' | 'changed_course' | 'still_waiting';
+    actualUni?: string;
+    actualCourse?: string;
+    admissionType?: 'merit' | 'catchment' | 'elds' | 'transfer' | 'other';
+    outcomeNote?: string;
+  }
+) => {
+  if (!db) return;
+  try {
+    const outcomeId = `outcome_${predictionId || Date.now()}`;
+    const payload = {
+      outcomeId,
+      predictionId,
+      userId,
+      ...outcomeData,
+      submittedAt: Timestamp.now()
+    };
+    await setDoc(doc(db, "admission_outcomes", outcomeId), payload, { merge: true });
+
+    if (predictionId) {
+      await setDoc(doc(db, "predictions", predictionId), {
+        actualOutcome: outcomeData.actualOutcome,
+        actualUni: outcomeData.actualUni || '',
+        actualCourse: outcomeData.actualCourse || '',
+        admissionType: outcomeData.admissionType || 'merit',
+        outcomeNote: outcomeData.outcomeNote || '',
+        outcomeSubmittedAt: Timestamp.now()
+      }, { merge: true });
+    }
+  } catch (e) {
+    console.error("Error submitting admission outcome:", e);
+  }
+};
+
+export const getPredictionAccuracyStats = async () => {
+  if (!db) return null;
+  try {
+    const predictions: GlobalPredictionRecord[] = [];
+    const seenPredictionIds = new Set<string>();
+
+    // 1. Safe fetch from "predictions" collection
+    try {
+      let predictionsSnap;
+      try {
+        predictionsSnap = await getDocs(query(collection(db, "predictions"), orderBy("createdAt", "desc"), limit(500)));
+      } catch (err) {
+        predictionsSnap = await getDocs(query(collection(db, "predictions"), limit(500)));
+      }
+      
+      predictionsSnap.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        const predId = data.predictionId || docSnap.id;
+        seenPredictionIds.add(predId);
+        predictions.push({
+          id: docSnap.id,
+          ...data
+        } as GlobalPredictionRecord);
+      });
+    } catch (e) {
+      console.warn("Notice: Fetching 'predictions' collection encountered non-fatal error:", e);
+    }
+
+    // 2. Fallback / supplementary fetch from "user_activities" collection for all historical calculations
+    try {
+      const activitiesSnap = await getDocs(query(collection(db, "user_activities"), limit(500)));
+      activitiesSnap.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        const desc = data.description || '';
+        const isCalcActivity = data.type === 'calculation' || desc.includes('Calculated aggregate') || data.metadata?.university;
+        
+        if (isCalcActivity) {
+          const actId = data.metadata?.predictionId || `act_${docSnap.id}`;
+          if (!seenPredictionIds.has(actId)) {
+            seenPredictionIds.add(actId);
+            let university = data.metadata?.university || '';
+            let course = data.metadata?.course || '';
+            
+            if (!university && desc.includes(' at ')) {
+              const parts = desc.split(' at ');
+              university = parts[1]?.trim() || '';
+            }
+            if (!course && desc.includes('Calculated aggregate for ')) {
+              const parts = desc.replace('Calculated aggregate for ', '').split(' at ');
+              course = parts[0]?.trim() || '';
+            }
+
+            const aggregateScore = Number(data.metadata?.aggregateScore || 0);
+            const jambScore = Number(data.metadata?.jambScore || 0);
+            const postUtmeScore = Number(data.metadata?.postUtmeScore || 0);
+
+            predictions.push({
+              id: docSnap.id,
+              predictionId: actId,
+              userId: data.userId || 'guest',
+              userEmail: data.userEmail || '',
+              university: university || 'Nigerian Higher Institution',
+              course: course || 'General Admission Program',
+              aggregateScore,
+              jambScore,
+              postUtmeScore,
+              verdict: data.metadata?.verdict || (aggregateScore >= 60 ? 'Competitive' : 'Borderline'),
+              confidence: 'High',
+              predictedProbability: aggregateScore >= 70 ? 88 : aggregateScore >= 55 ? 65 : 40,
+              departmentalCutoff: data.metadata?.cutoff || '',
+              stateOfOrigin: data.metadata?.stateOfOrigin || '',
+              isELDSState: false,
+              isCatchmentState: false,
+              predictionDate: data.timestamp?.toDate ? data.timestamp.toDate().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              createdAt: data.timestamp || Timestamp.now()
+            });
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Notice: Fetching 'user_activities' collection encountered non-fatal error:", e);
+    }
+
+    // 3. Check "admission_outcomes" collection to attach any outcomes to corresponding predictions
+    try {
+      const outcomesSnap = await getDocs(query(collection(db, "admission_outcomes"), limit(500)));
+      const outcomesMap = new Map<string, any>();
+      outcomesSnap.docs.forEach(docSnap => {
+        const d = docSnap.data();
+        if (d.predictionId) outcomesMap.set(d.predictionId, d);
+      });
+
+      if (outcomesMap.size > 0) {
+        predictions.forEach(p => {
+          if (p.predictionId && outcomesMap.has(p.predictionId)) {
+            const outcome = outcomesMap.get(p.predictionId);
+            p.actualOutcome = outcome.actualOutcome;
+            p.actualUni = outcome.actualUni;
+            p.actualCourse = outcome.actualCourse;
+            p.admissionType = outcome.admissionType;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("Notice: Fetching 'admission_outcomes' collection encountered non-fatal error:", e);
+    }
+
+    // 4. Calculate Aggregate Benchmark Stats
+    let userLifetimeCalculations = 0;
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      usersSnap.docs.forEach(docSnap => {
+        const u = docSnap.data();
+        if (u.lifetime_calculations) {
+          userLifetimeCalculations += Number(u.lifetime_calculations);
+        }
+      });
+    } catch (e) {
+      console.warn("Notice: Fetching 'users' collection encountered non-fatal error:", e);
+    }
+
+    const totalPredictions = Math.max(predictions.length, userLifetimeCalculations);
+    const confirmedOutcomes = predictions.filter(p => p.actualOutcome && p.actualOutcome !== 'still_waiting');
+    
+    let correctCount = 0;
+    const byUni: Record<string, { total: number; correct: number; predictions: number }> = {};
+    const byCourse: Record<string, { total: number; correct: number; predictions: number }> = {};
+    const confidenceMatrix: Record<string, { total: number; correct: number }> = {
+      'High': { total: 0, correct: 0 },
+      'Medium': { total: 0, correct: 0 },
+      'Low': { total: 0, correct: 0 }
+    };
+
+    let helpfulCount = 0;
+    let feedbackTotal = 0;
+
+    // Check feedback & testimonials for user helpfulness ratings if predictions ratings are sparse
+    try {
+      const feedbackSnap = await getDocs(collection(db, "feedback"));
+      feedbackSnap.docs.forEach(docSnap => {
+        const d = docSnap.data();
+        if (typeof d.helpful === 'boolean') {
+          feedbackTotal++;
+          if (d.helpful) helpfulCount++;
+        }
+      });
+    } catch (e) {}
+
+    predictions.forEach(p => {
+      if (typeof p.helpful === 'boolean') {
+        feedbackTotal++;
+        if (p.helpful) helpfulCount++;
+      }
+
+      const uni = p.university || 'Higher Institution';
+      if (!byUni[uni]) byUni[uni] = { total: 0, correct: 0, predictions: 0 };
+      byUni[uni].predictions++;
+
+      const course = p.course || 'Academic Program';
+      if (!byCourse[course]) byCourse[course] = { total: 0, correct: 0, predictions: 0 };
+      byCourse[course].predictions++;
+
+      if (p.actualOutcome && p.actualOutcome !== 'still_waiting') {
+        const isAdmitted = p.actualOutcome === 'admitted';
+        const predictedHighProb = (p.predictedProbability || 0) >= 50;
+        const isMatch = (isAdmitted && predictedHighProb) || (!isAdmitted && !predictedHighProb);
+
+        if (isMatch) correctCount++;
+
+        byUni[uni].total++;
+        if (isMatch) byUni[uni].correct++;
+
+        byCourse[course].total++;
+        if (isMatch) byCourse[course].correct++;
+
+        const conf = p.confidence || 'Medium';
+        if (!confidenceMatrix[conf]) confidenceMatrix[conf] = { total: 0, correct: 0 };
+        confidenceMatrix[conf].total++;
+        if (isMatch) confidenceMatrix[conf].correct++;
+      }
+    });
+
+    const overallAccuracy = confirmedOutcomes.length > 0 
+      ? Math.round((correctCount / confirmedOutcomes.length) * 100) 
+      : 0;
+
+    const helpfulnessRate = feedbackTotal > 0 
+      ? Math.round((helpfulCount / feedbackTotal) * 100) 
+      : 0;
+
+    // Sort predictions by timestamp or createdAt
+    predictions.sort((a, b) => {
+      const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.predictionDate || 0).getTime();
+      const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.predictionDate || 0).getTime();
+      return timeB - timeA;
+    });
+
+    return {
+      totalPredictions,
+      confirmedCount: confirmedOutcomes.length,
+      overallAccuracy,
+      helpfulnessRate,
+      feedbackTotal,
+      byUni,
+      byCourse,
+      confidenceMatrix,
+      recentPredictions: predictions.slice(0, 50)
+    };
+  } catch (e) {
+    console.error("Error fetching prediction accuracy stats:", e);
+    return null;
+  }
+};
+

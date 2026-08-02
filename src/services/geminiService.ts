@@ -1472,7 +1472,7 @@ const enforceAdmissionTiers = (
   const diff = score - cutoffVal;
   const quotaText = isELDS ? "ELDS quota" : isCatchment ? "Catchment quota" : "Merit quota";
 
-  const seasonalTimeline = `\n\n### 4. 2026/2027 Admission Season Context (July 2026)\n*   **Current Phase:** We are currently in the peak of the **Post-UTME Registration** window for the 2026/2027 academic session.\n*   **School Status:** While a few early institutions have started releasing guidelines or scheduling, **the vast majority of schools have not yet written their screening exams**.\n*   **Strategic Action:** If your Post-UTME is pending, treat this month as your prime preparation sprint. If your current aggregate is borderline or below cutoff, use this active registration phase to explore a JAMB Change of Course or Institution on your CAPS portal before primary merit lists lock.`;
+  const seasonalTimeline = `\n\n### 4. 2026/2027 Admission Season Context\n*   **Current Phase:** Post-UTME screening & admission list processing phase.\n*   **Registration Status:** Major institutions (including UNIBEN, FUTA, DELSU, OOU, etc.) have concluded Post-UTME registrations, while others remain active. Always verify current registration status on your institution's official portal.\n*   **Strategic Action:** If registration for your target school is closed, track your JAMB CAPS portal for screening score uploads, transfer offers, and official admission list releases. If your aggregate score is below cutoff, explore a JAMB Change of Course or Institution on CAPS while options remain open.`;
 
   if (diff < 0 && (isARBool || isPendingBool)) {
     // Parse O'Level points from string
@@ -1947,8 +1947,11 @@ Perform an exhaustive admission probability check under these STRICT architectur
 
 8. REAL-TIME SCHOOL SCREENING SCHEDULE & MODE OF EVALUATION (CRITICAL):
    - Analyze the "School Registration Status & Exam Schedule/Format" section in the search grounding data.
-   - Specifically mention the current real-time state of "${university}"'s Post-UTME screening: tell the candidate whether the 2026/2027 forms are open/active, if registrations are ongoing, and mention any official exam/screening dates or deadlines.
-   - If the search data shows that "${university}" evaluates candidates using an exam-less, point-based, or O'Level screening method, state this clearly in "detailedStrategy" to relieve exam anxiety.
+   - Specifically mention the current real-time state of "${university}"'s Post-UTME screening.
+   - DISTINGUISH BETWEEN EXAM VS ONLINE SCREENING SCHOOLS:
+     * For CBT Exam Schools (e.g., UNIBEN, UNILAG, UNIPORT, OAU, UI, DELSU): Explicitly state whether registrations are closed, CBT exams are ongoing, or candidates are awaiting screening CBT score releases.
+     * For Purely Online O'Level Screening Schools (e.g., FUTA, FUOYE, LASU, OOU, UNN, UNIUYO, FUTO, PAAU): Explicitly state that NO Post-UTME exam is written at this institution. Candidates are evaluated purely via online point-based O'Level & JAMB score ranking, and registration is currently closed while aggregate rankings and CAPS admission lists are being processed.
+   - DO NOT tell candidates to register if registration for "${university}" is already closed. DO NOT tell candidates to write or prepare for an exam if "${university}" conducts purely online screening without an exam. Advise them to verify their screening details on the portal, track O'Level uploads on JAMB CAPS, and monitor CAPS for admission updates or Change of Course options.
    - Integrate these specific, live dates or status updates naturally into your narrative (under '### 2. The Reality Check' or '### 3. Actionable Next Steps') so the candidate knows exactly what the immediate timeline is for their school.
 
 9. CRITICAL RULES FOR ANALYSIS (MANDATORY):

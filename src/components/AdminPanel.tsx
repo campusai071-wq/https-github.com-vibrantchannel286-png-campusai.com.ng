@@ -20,7 +20,7 @@ import {
   getTrafficStats, resetTrafficStats, purgeUserActivities,
   getAllCutoffOverrides, saveCutoffOverride, deleteCutoffOverride, CutoffOverride,
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
-  saveKnowledgeFragment
+  saveKnowledgeFragment, getPredictionAccuracyStats
 } from '../services/dbService';
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
@@ -77,13 +77,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb'
   >('analytics');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
@@ -103,6 +103,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [overridesSuccess, setOverridesSuccess] = useState('');
   const [seedStatus, setSeedStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [bulkJSONText, setBulkJSONText] = useState('');
+  const [accuracyStats, setAccuracyStats] = useState<any>(null);
+  const [isAccuracyLoading, setIsAccuracyLoading] = useState(false);
+
+  const loadAccuracyData = useCallback(async () => {
+    setIsAccuracyLoading(true);
+    try {
+      const stats = await getPredictionAccuracyStats();
+      setAccuracyStats(stats);
+    } catch (e) {
+      console.error("Error loading accuracy stats:", e);
+    } finally {
+      setIsAccuracyLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'accuracy') {
+      loadAccuracyData();
+    }
+  }, [activeTab, loadAccuracyData]);
 
   // New override form state
   const [newUniName, setNewUniName] = useState('');
@@ -991,12 +1011,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab}
+                  {tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -2340,6 +2360,163 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     >
                       {isContentLoading ? 'Publishing...' : 'Validate & Publish Article(s)'}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── ACCURACY & PIPELINE EVALUATION TAB ── */}
+              {activeTab === 'accuracy' && (
+                <div className="space-y-8 text-left">
+                  {/* Pipeline Header */}
+                  <div className="p-8 bg-gradient-to-br from-slate-900 via-cyan-950 to-indigo-950 rounded-[32px] border border-cyan-500/20 text-white space-y-4 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Sparkles size={18} className="text-cyan-400" />
+                          <h3 className="text-base font-black uppercase tracking-wider text-cyan-400">
+                            CampusAI Decision Engine Evaluation
+                          </h3>
+                        </div>
+                        <p className="text-xs text-gray-300 font-medium max-w-2xl leading-relaxed">
+                          Measuring model prediction accuracy, user feedback helpfulness, and actual JAMB/Post-UTME admission outcomes across Nigerian higher institutions.
+                        </p>
+                      </div>
+                      <button
+                        onClick={loadAccuracyData}
+                        disabled={isAccuracyLoading}
+                        className="px-5 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center gap-2 self-start sm:self-center shrink-0 active:scale-95"
+                      >
+                        <RefreshCw size={14} className={isAccuracyLoading ? 'animate-spin' : ''} />
+                        Refresh Benchmarks
+                      </button>
+                    </div>
+
+                    {/* Quick Metric Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-white/10">
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Global Predictions</p>
+                        <p className="text-2xl font-black text-white mt-1">
+                          {accuracyStats?.totalPredictions ?? 0}
+                        </p>
+                        <p className="text-[8.5px] text-gray-400 font-medium mt-1">Logged in Firestore</p>
+                      </div>
+
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Model Accuracy</p>
+                        <p className="text-2xl font-black text-emerald-400 mt-1">
+                          {accuracyStats?.confirmedCount ? `${accuracyStats.overallAccuracy}%` : 'N/A'}
+                        </p>
+                        <p className="text-[8.5px] text-emerald-400/80 font-bold mt-1">
+                          {accuracyStats?.confirmedCount ?? 0} Confirmed Outcomes
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Helpfulness Index</p>
+                        <p className="text-2xl font-black text-cyan-400 mt-1">
+                          {accuracyStats?.feedbackTotal ? `${accuracyStats.helpfulnessRate}%` : 'N/A'}
+                        </p>
+                        <p className="text-[8.5px] text-cyan-300/80 font-bold mt-1">
+                          {accuracyStats?.feedbackTotal ?? 0} User Ratings
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">High Conf. Match</p>
+                        <p className="text-2xl font-black text-purple-400 mt-1">
+                          {accuracyStats?.confidenceMatrix?.High?.total
+                            ? `${Math.round((accuracyStats.confidenceMatrix.High.correct / accuracyStats.confidenceMatrix.High.total) * 100)}%`
+                            : 'N/A'}
+                        </p>
+                        <p className="text-[8.5px] text-purple-300/80 font-bold mt-1">
+                          {accuracyStats?.confidenceMatrix?.High?.total ?? 0} High Conf. Validated
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Architecture Pipeline Visualizer */}
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                      <Brain size={16} className="text-cyan-500" /> Pipeline Verification Flow
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-center text-[8.5px] font-black uppercase tracking-wider">
+                      {[
+                        '1. Student Input',
+                        '2. Calculator',
+                        '3. Knowledge Base',
+                        '4. Official Search',
+                        '5. Evidence Extract',
+                        '6. Conflict Resolution',
+                        '7. AI Reasoning',
+                        '8. Evaluation Loop'
+                      ].map((step, idx) => (
+                        <div key={idx} className="p-3 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between items-center min-h-[64px]">
+                          <span className="text-cyan-500 text-[10px]">0{idx + 1}</span>
+                          <span className="text-gray-900 dark:text-white leading-tight font-extrabold">{step.split('. ')[1]}</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Accuracy by University & Course */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Uni Accuracy Breakdown */}
+                    <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <Globe size={16} className="text-blue-500" /> University Calibration Metrics
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.keys(accuracyStats?.byUni || {}).length > 0 ? (
+                          Object.entries(accuracyStats.byUni).map(([uni, data]: any) => (
+                            <div key={uni} className="p-3.5 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-black text-gray-900 dark:text-white truncate max-w-[200px]">{uni}</p>
+                                <p className="text-[9px] text-gray-400 font-semibold">{data.predictions} predictions • {data.total} outcomes confirmed</p>
+                              </div>
+                              <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs rounded-lg border border-emerald-500/20">
+                                {data.total > 0 ? `${Math.round((data.correct / data.total) * 100)}%` : 'Awaiting Outcomes'}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center text-gray-400 text-xs font-semibold border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+                            No university prediction logs recorded in Firestore yet.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent Grounded Prediction Logs */}
+                    <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <Activity size={16} className="text-purple-500" /> Recent Prediction Records
+                      </h4>
+                      <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                        {(accuracyStats?.recentPredictions && accuracyStats.recentPredictions.length > 0) ? (
+                          accuracyStats.recentPredictions.map((pred: any) => (
+                            <div key={pred.id || pred.predictionId} className="p-3 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 text-xs flex justify-between items-center">
+                              <div>
+                                <p className="font-extrabold text-gray-900 dark:text-white">{pred.course} ({pred.university})</p>
+                                <p className="text-[9px] text-gray-400">Score: {pred.aggregateScore}% • Verdict: {pred.verdict}</p>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                pred.actualOutcome === 'admitted' ? 'bg-emerald-500 text-white' :
+                                pred.actualOutcome === 'not_admitted' ? 'bg-red-500 text-white' :
+                                'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                              }`}>
+                                {pred.actualOutcome || 'Pending Outcome'}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center text-gray-400 text-xs font-bold border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+                            Prediction records log automatically when users launch aggregate calculations.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

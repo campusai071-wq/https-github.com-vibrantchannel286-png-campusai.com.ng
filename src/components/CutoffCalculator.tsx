@@ -26,7 +26,7 @@ import {
   deductScholarCredit, FREE_GUEST_LIMIT, FREE_USER_LIMIT,
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
-import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc } from '../services/dbService';
+import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome } from '../services/dbService';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -365,70 +365,90 @@ const getPostUtmeStatus = (schoolName: string): PostUtmeStatusInfo => {
     details,
   });
 
-  if (n.includes("lagos") || n.includes("unilag"))
-    return active("UNILAG 2026/2027 Post-UTME screening applications are currently active on the official Portal.", "https://applications.unilag.edu.ng/home");
-  if (n.includes("ibadan") || n.includes("ui"))
-    return active("UI 2026/2027 Post-UTME form sales and registration are active on the portal. Fee: ₦5,000.", "https://admissions.ui.edu.ng/#/");
-  if (n.includes("awolowo") || n.includes("oau") || n.includes("ife"))
-    return active("OAU 2026/2027 Post-UTME registration guidelines officially released.", "https://eportal2.oauife.edu.ng/ug/admissions");
-  if (n.includes("benin") || n.includes("uniben"))
-    return active("UNIBEN 2026/2027 Post-UTME portal is open for registration. Fee: ₦2,000.", "https://unibenportal.com/#application");
-  if (n.includes("nsukka") || n.includes("nigeria") || n.includes("unn"))
-    return active("UNN 2026/2027 Post-UTME screening application is active on the portal. Cutoff: 160.", "https://unnportal.unn.edu.ng/");
-  if (n.includes("futa") || n.includes("technology, akure"))
-    return { isOut: true, statusText: "Form Released (Point-Based)", badgeColor: "bg-emerald-500/15 border-emerald-500/35", textColor: "text-emerald-400", iconBg: "bg-emerald-500/10", details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: Friday, 31 July 2026.", portalLink: "https://www.futa.edu.ng/" };
-  if (n.includes("lasu") || n.includes("lagos state"))
-    return active("LASU 2026/2027 screening application portal is active. Cutoff: 195.", "https://services.lidc.lasu.edu.ng/admissionscreening/");
-  if (n.includes("futminna") || n.includes("technology, minna"))
-    return active("FUTMinna 2026/2027 dynamic online registration is currently active. Cutoff: 180.", "https://futminna.edu.ng");
-  if (n.includes("futo") || n.includes("technology, owerri"))
-    return active("FUTO 2026/2027 screening forms are out and active. Registration deadline: Friday, 31 July 2026.", "https://portal.futo.edu.ng/#undergraduate");
-  if (n.includes("port harcourt") || n.includes("uniport"))
-    return active("UNIPORT 2026/2027 Post-UTME registration link is live. Cutoff: 150.", "https://utmedetails.uniport.edu.ng/welcome_utme.php");
-  if (n.includes("ilorin") || n.includes("unilorin"))
-    return active("UNILORIN 2026/2027 Post-UTME registration is active on the admissions portal. Cutoff: 180.", "https://admissions.unilorin.edu.ng/");
-  if (n.includes("bayero") || n.includes("buk"))
-    return active("BUK 2026/2027 Post-UTME online screening portal is live for candidates with 180+ score.", "https://buk.edu.ng/");
-  if (n.includes("abu") || n.includes("abello") || n.includes("zaria"))
-    return active("ABU Zaria 2026/2027 Post-UTME forms are out on the portal. Cutoff: 180.", "https://portal.abu.edu.ng/forms");
-  if (n.includes("nnamdi azikiwe") || n.includes("unizik"))
-    return active("UNIZIK 2026/2027 Post-UTME screening registration application link is live. Cutoff: 180.", "https://apply.unizik.edu.ng/auth/login");
-  if (n.includes("uyo") || n.includes("uniuyo"))
-    return active("UNIUYO 2026/2027 Post-UTME screening form is out. Registration deadline: Friday, 7 August 2026.", "https://eportals.uniuyo.edu.ng/");
-  if (n.includes("osun state") || n.includes("uniosun"))
-    return active("UNIOSUN 2026/2027 Post-UTME screening application portal is active. Fee: ₦3,000.", "https://admissions.uniosun.edu.ng/");
-  if (n.includes("olabisi onabanjo") || n.includes("oou"))
-    return active("OOU 2026/2027 Post-UTME screening forms out. Deadline: Friday, 22 July 2026.", "https://putme.oouagoiwoye.edu.ng/");
-  if (n.includes("ekiti state") || n.includes("eksu"))
-    return active("EKSU 2026/2027 Post-UTME online screening portal is active. Cutoff: 160.", "https://eksuportal.eksu.edu.ng/");
-  if (n.includes("fuoye") || n.includes("oye-ekiti"))
-    return active("FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: 2 August 2026.", "https://putme.fuoye.edu.ng/utme/");
-  if (n.includes("delta state") || n.includes("delsu"))
-    return active("DELSU 2026/2027 Post-UTME screening portal is active for registration.", "https://portal.delsuces.online/");
-  if (n.includes("lautech") || n.includes("ladoke akintola"))
-    return active("LAUTECH 2026/2027 Post-UTME screening portal is active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
-  if (n.includes("kwara state") || n.includes("kwasu"))
-    return active("KWASU 2026/2027 Post-UTME registration portal is active.", "https://portal.kwasu.edu.ng/");
-  if (n.includes("nasarawa state") || n.includes("nsuk"))
-    return active("NSUK Keffi 2026/2027 Post-UTME screening application portal is active.", "https://portal.nsuk.edu.ng/");
-  if (n.includes("sule lamido") || n.includes("slu"))
-    return active("SLU 2026/2027 Post-UTME screening registration portal is active. Cutoff: 160.", "https://admissions.slu.edu.ng/");
-  if (n.includes("wukari") || n.includes("fuwukari"))
-    return active("FUWukari 2026/2027 Post-UTME registration portal is active.", "https://ug.fuwportal.edu.ng/putme_registration.php");
-  if (n.includes("otukpo") || n.includes("fuhso"))
-    return active("FUHSO 2026/2027 Post-UTME screening application portal is active.", "https://postutme.fuhso.edu.ng/apply");
-  if (n.includes("kogi state") || n.includes("ksu") || n.includes("paau"))
-    return active("PAAU / KSU 2026/2027 Post-UTME screening dashboard is active. Deadline: Wednesday, 1 July 2026.", "https://portal.paau.edu.ng/pd_dip/utme_dashboard");
-  if (n.includes("custech") || n.includes("confluence"))
-    return active("CUSTECH 2026/2027 Post-UTME screening portal is active.", "https://eportal.custech.edu.ng/utme/index.php");
-  if (n.includes("plateau state") || n.includes("plasu"))
-    return active("PLASU 2026/2027 Post-UTME screening portal is active. Cutoff: 160.", "https://plasu.edu.ng/");
-  if (n.includes("modibbo adama") || n.includes("mau"))
-    return active("MAU Yola 2026/2027 Post-UTME screening application portal is active.", "https://mau.edu.ng/");
-  if (n.includes("abubakar tafawa balewa") || n.includes("atbu"))
-    return active("ATBU 2026/2027 Post-UTME screening login portal is active.", "http://screening.atbu.edu.ng/pages/login.php");
+  const closedOnline = (details: string, portalLink?: string): PostUtmeStatusInfo => ({
+    isOut: false,
+    statusText: "Online Screening (No Exam)",
+    badgeColor: "bg-blue-500/15 border-blue-500/35",
+    textColor: "text-blue-400",
+    iconBg: "bg-blue-500/10",
+    details,
+    portalLink,
+  });
 
-  return active(`${schoolName} 2026/2027 Post-UTME screening registration is active on the official portal. Confirm steps on official site.`);
+  const closedExam = (details: string, portalLink?: string): PostUtmeStatusInfo => ({
+    isOut: true,
+    statusText: "CBT Exams / Screening",
+    badgeColor: "bg-purple-500/15 border-purple-500/35",
+    textColor: "text-purple-400",
+    iconBg: "bg-purple-500/10",
+    details,
+    portalLink,
+  });
+
+  if (n.includes("lagos") || n.includes("unilag"))
+    return closedExam("UNILAG 2026/2027 Post-UTME registration is closed. CBT screening exams & results processing in progress.", "https://applications.unilag.edu.ng/home");
+  if (n.includes("ibadan") || n.includes("ui"))
+    return active("UI 2026/2027 Post-UTME form sales & exam timetable on portal. Fee: ₦5,000.", "https://admissions.ui.edu.ng/#/");
+  if (n.includes("awolowo") || n.includes("oau") || n.includes("ife"))
+    return closedExam("OAU 2026/2027 Post-UTME registration is closed. Screening CBT exams ongoing.", "https://eportal2.oauife.edu.ng/ug/admissions");
+  if (n.includes("benin") || n.includes("uniben"))
+    return closedExam("UNIBEN 2026/2027 Post-UTME registration is officially closed. Candidates are writing/awaiting screening scores and JAMB CAPS list releases.", "https://unibenportal.com/#application");
+  if (n.includes("nsukka") || n.includes("nigeria") || n.includes("unn"))
+    return closedOnline("UNN 2026/2027 Post-UTME registration is closed. UNN conducts online O'Level screening (No CBT exam written). Aggregate score processing in progress.", "https://unnportal.unn.edu.ng/");
+  if (n.includes("futa") || n.includes("technology, akure"))
+    return closedOnline("FUTA 2026/2027 Point-Based screening registration is closed. FUTA conducts purely online screening (No CBT exam written). Point ranking in progress.", "https://www.futa.edu.ng/");
+  if (n.includes("lasu") || n.includes("lagos state"))
+    return closedOnline("LASU 2026/2027 screening application portal closed. LASU evaluates via online point-based screening (No exam written). Results released on portal.", "https://services.lidc.lasu.edu.ng/admissionscreening/");
+  if (n.includes("futminna") || n.includes("technology, minna"))
+    return active("FUTMinna 2026/2027 online registration on portal. Cutoff: 180.", "https://futminna.edu.ng");
+  if (n.includes("futo") || n.includes("technology, owerri"))
+    return closedOnline("FUTO 2026/2027 screening registration closed. Online screening scores calculated from JAMB + O'Level uploaded on portal.", "https://portal.futo.edu.ng/#undergraduate");
+  if (n.includes("port harcourt") || n.includes("uniport"))
+    return closedExam("UNIPORT 2026/2027 Post-UTME registration closed. CBT screening exams & evaluations ongoing.", "https://utmedetails.uniport.edu.ng/welcome_utme.php");
+  if (n.includes("ilorin") || n.includes("unilorin"))
+    return active("UNILORIN 2026/2027 Post-UTME registration active. Cutoff: 180.", "https://admissions.unilorin.edu.ng/");
+  if (n.includes("bayero") || n.includes("buk"))
+    return active("BUK 2026/2027 Post-UTME online screening portal live for 180+ score.", "https://buk.edu.ng/");
+  if (n.includes("abu") || n.includes("abello") || n.includes("zaria"))
+    return active("ABU Zaria 2026/2027 Post-UTME forms on portal. Cutoff: 180.", "https://portal.abu.edu.ng/forms");
+  if (n.includes("nnamdi azikiwe") || n.includes("unizik"))
+    return active("UNIZIK 2026/2027 Post-UTME screening registration application link live. Cutoff: 180.", "https://apply.unizik.edu.ng/auth/login");
+  if (n.includes("uyo") || n.includes("uniuyo"))
+    return closedOnline("UNIUYO 2026/2027 Post-UTME screening registration closed. Online O'Level screening (No exam written) processing.", "https://eportals.uniuyo.edu.ng/");
+  if (n.includes("osun state") || n.includes("uniosun"))
+    return active("UNIOSUN 2026/2027 Post-UTME screening application portal active. Fee: ₦3,000.", "https://admissions.uniosun.edu.ng/");
+  if (n.includes("olabisi onabanjo") || n.includes("oou"))
+    return closedOnline("OOU 2026/2027 Post-UTME screening registration closed. Online point-based screening (No CBT exam) evaluation in progress.", "https://putme.oouagoiwoye.edu.ng/");
+  if (n.includes("ekiti state") || n.includes("eksu"))
+    return active("EKSU 2026/2027 Post-UTME online screening portal active. Cutoff: 160.", "https://eksuportal.eksu.edu.ng/");
+  if (n.includes("fuoye") || n.includes("oye-ekiti"))
+    return closedOnline("FUOYE 2026/2027 Post-UTME screening registration closed. FUOYE conducts purely online point screening (No exam written). Aggregate ranking in progress.", "https://putme.fuoye.edu.ng/utme/");
+  if (n.includes("delta state") || n.includes("delsu"))
+    return closedExam("DELSU 2026/2027 Post-UTME screening registration closed. Post-UTME CBT screening exams conducted.", "https://portal.delsuces.online/");
+  if (n.includes("lautech") || n.includes("ladoke akintola"))
+    return active("LAUTECH 2026/2027 Post-UTME screening portal active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
+  if (n.includes("kwara state") || n.includes("kwasu"))
+    return active("KWASU 2026/2027 Post-UTME registration portal active.", "https://portal.kwasu.edu.ng/");
+  if (n.includes("nasarawa state") || n.includes("nsuk"))
+    return active("NSUK Keffi 2026/2027 Post-UTME screening application portal active.", "https://portal.nsuk.edu.ng/");
+  if (n.includes("sule lamido") || n.includes("slu"))
+    return active("SLU 2026/2027 Post-UTME screening registration portal active. Cutoff: 160.", "https://admissions.slu.edu.ng/");
+  if (n.includes("wukari") || n.includes("fuwukari"))
+    return active("FUWukari 2026/2027 Post-UTME registration portal active.", "https://ug.fuwportal.edu.ng/putme_registration.php");
+  if (n.includes("otukpo") || n.includes("fuhso"))
+    return active("FUHSO 2026/2027 Post-UTME screening application portal active.", "https://postutme.fuhso.edu.ng/apply");
+  if (n.includes("kogi state") || n.includes("ksu") || n.includes("paau"))
+    return closedOnline("PAAU / KSU 2026/2027 Post-UTME screening registration closed.", "https://portal.paau.edu.ng/pd_dip/utme_dashboard");
+  if (n.includes("custech") || n.includes("confluence"))
+    return active("CUSTECH 2026/2027 Post-UTME screening portal active.", "https://eportal.custech.edu.ng/utme/index.php");
+  if (n.includes("plateau state") || n.includes("plasu"))
+    return active("PLASU 2026/2027 Post-UTME screening portal active. Cutoff: 160.", "https://plasu.edu.ng/");
+  if (n.includes("modibbo adama") || n.includes("mau"))
+    return active("MAU Yola 2026/2027 Post-UTME screening application portal active.", "https://mau.edu.ng/");
+  if (n.includes("abubakar tafawa balewa") || n.includes("atbu"))
+    return active("ATBU 2026/2027 Post-UTME screening login portal active.", "http://screening.atbu.edu.ng/pages/login.php");
+
+  return pending(`${schoolName} 2026/2027 Post-UTME status: Check official university portal for active registration windows or screening score releases.`);
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -1088,6 +1108,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [courseSearch, setCourseSearch] = useState('');
   const [availableCourses, setAvailableCourses] = useState<string[]>([]);
   const [scoringSystem, setScoringSystem] = useState<ScoringSystem | null>(null);
+  const [predictionHelpfulState, setPredictionHelpfulState] = useState<boolean | null>(null);
+  const [showOutcomeForm, setShowOutcomeForm] = useState<boolean>(false);
+  const [outcomeFormSubmitted, setOutcomeFormSubmitted] = useState<boolean>(false);
+  const [selectedOutcomeStatus, setSelectedOutcomeStatus] = useState<'admitted' | 'not_admitted' | 'changed_course' | 'still_waiting'>('admitted');
+  const [outcomeAdmissionType, setOutcomeAdmissionType] = useState<'merit' | 'catchment' | 'elds' | 'transfer' | 'other'>('merit');
 
   // Manual Override states (added in case school suddenly changes calculation formula mid-cycle)
   const [manualOverrideActive, setManualOverrideActive] = useState(false);
@@ -2058,8 +2083,30 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         parseFloat(jambScore) || 0,
         isPostUtmePending ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70) : (parseFloat(postUtmeScore) || 0)
       );
-      setAiResult(result);
+      const predictionId = `pred_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const enrichedResult = { ...result, predictionId };
+      setAiResult(enrichedResult);
       setShowResults(true);
+
+      savePredictionRecord({
+        predictionId,
+        userId: user?.uid || 'guest',
+        userEmail: user?.email || '',
+        university: targetUni.name,
+        course: targetCourse || courseSearch,
+        aggregateScore: parseFloat(aggregateScore.toString()) || 0,
+        jambScore: parseFloat(jambScore) || 0,
+        postUtmeScore: parseFloat(postUtmeScore) || 0,
+        verdict: result.verdict || 'Borderline',
+        confidence: result.reliability || 'Medium',
+        predictedProbability: result.probability || 50,
+        departmentalCutoff: result.departmentalCutoff || result.cutoff || '',
+        institutionalCutoff: result.institutionalCutoff || '',
+        stateOfOrigin: stateOfOrigin || '',
+        isELDSState: !!isELDSState,
+        isCatchmentState: !!isCatchmentState,
+        predictionDate: new Date().toISOString().split('T')[0]
+      }).catch(err => console.error("Error saving global prediction record:", err));
 
       // Automatically save this calculation attempt to history with local storage persistence
       const newAttempt: SavedProfile = {
@@ -2073,7 +2120,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         isAR,
         isPostUtmePending,
         timestamp: Date.now(),
-        aiResult: result,
+        aiResult: enrichedResult,
       };
 
       setCalculationAttempts(prev => {
@@ -3543,15 +3590,34 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     </details>
                   </div>
 
-                  <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5">
+                  <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
                     <p className="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest flex items-center gap-2"><Activity size={12} className="text-purple-400" /> Admission Strategy Analysis</p>
-                    <div className="markdown-body text-[11px] text-gray-300 leading-relaxed font-medium">
-                      <Markdown>{aiResult.detailedStrategy || aiResult.recommendation || 'No specific strategy analysis available.'}</Markdown>
+                    <div className="markdown-body text-xs text-gray-200 leading-relaxed font-normal space-y-3">
+                      <Markdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2.5 text-gray-200 text-xs leading-relaxed">{children}</p>,
+                          h1: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
+                          h2: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
+                          h3: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
+                          ul: ({ children }) => <ul className="space-y-1.5 my-2 text-xs text-gray-300 pl-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="space-y-1.5 my-2 text-xs text-gray-300 pl-1 list-decimal list-inside">{children}</ol>,
+                          li: ({ children }) => <li className="flex items-start gap-2 text-xs text-gray-300"><span className="text-cyan-400 font-bold shrink-0">•</span><span className="flex-1">{children}</span></li>,
+                          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                          pre: ({ children }) => <div className="text-xs text-gray-200 leading-relaxed font-normal my-2">{children}</div>,
+                          code: ({ children }) => <span className="text-xs text-gray-200 font-normal">{children}</span>
+                        }}
+                      >
+                        {(aiResult.detailedStrategy || aiResult.recommendation || 'No specific strategy analysis available.').trim().replace(/^```(?:markdown)?\s*/i, '').replace(/\s*```$/i, '').trim()}
+                      </Markdown>
                     </div>
                   </div>
 
                   {/* Strategic Action Plan */}
-                  {true && (
+                  {true && (() => {
+                    const postInfo = getPostUtmeStatus(targetUni?.name || 'institution');
+                    const isClosed = postInfo.statusText !== "Registration Active" && postInfo.statusText !== "Form Awaiting / TBA";
+
+                    return (
                     <div className="mt-6 p-6 bg-gradient-to-br from-amber-500/[0.03] to-orange-500/[0.02] border border-amber-500/20 rounded-2xl text-left space-y-5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
@@ -3583,8 +3649,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           {(admissionProbability >= 65 ? [
                             {
                               id: 'step1',
-                              title: 'Complete Post-UTME registration',
-                              desc: `Ensure you have registered for the Post-UTME screening on the official ${targetUni?.name || 'institution'} portal.`
+                              title: isClosed ? 'Verify Post-UTME Screening & Upload O\'Level' : 'Complete Post-UTME registration',
+                              desc: isClosed 
+                                ? `Post-UTME registration for ${targetUni?.name || 'this institution'} is closed. Verify that your screening details and WAEC/NECO O'Level results are correctly uploaded on JAMB CAPS.`
+                                : `Ensure you have registered for the Post-UTME screening on the official ${targetUni?.name || 'institution'} portal.`
                             },
                             {
                               id: 'step2',
@@ -3747,7 +3815,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Predictive Range & Sources Cited (Protects admission credibility and cites official sources) */}
                   <div className="mt-5 space-y-4">
@@ -3801,6 +3870,143 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Accuracy & Outcome Feedback System */}
+                  <div className="mt-5 p-5 bg-gradient-to-r from-cyan-950/40 via-slate-900/40 to-indigo-950/40 border border-cyan-500/20 rounded-2xl text-left space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h5 className="text-[11px] font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                          <Sparkles size={13} /> Help Calibrate CampusAI Accuracy
+                        </h5>
+                        <p className="text-[10px] text-gray-300 mt-0.5 font-medium">Was this admission prediction helpful to you?</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setPredictionHelpfulState(true);
+                            if (aiResult?.predictionId) {
+                              updatePredictionHelpfulness(aiResult.predictionId, true);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                            predictionHelpfulState === true 
+                              ? 'bg-emerald-500 text-black font-black' 
+                              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
+                          }`}
+                        >
+                          👍 Yes, Helpful
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setPredictionHelpfulState(false);
+                            if (aiResult?.predictionId) {
+                              updatePredictionHelpfulness(aiResult.predictionId, false);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                            predictionHelpfulState === false 
+                              ? 'bg-rose-500 text-white font-black' 
+                              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
+                          }`}
+                        >
+                          👎 Not Helpful
+                        </button>
+                      </div>
+                    </div>
+
+                    {!showOutcomeForm && !outcomeFormSubmitted && (
+                      <div className="pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-[9.5px] text-gray-400 font-semibold">Have you received your official JAMB / Post-UTME outcome?</span>
+                        <button
+                          onClick={() => setShowOutcomeForm(true)}
+                          className="px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9.5px] font-black uppercase rounded-lg transition-all self-start sm:self-auto"
+                        >
+                          Confirm Admission Outcome
+                        </button>
+                      </div>
+                    )}
+
+                    {showOutcomeForm && !outcomeFormSubmitted && (
+                      <div className="pt-3 border-t border-white/10 space-y-3">
+                        <p className="text-[10px] font-bold text-gray-200">Select your actual admission outcome:</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { id: 'admitted', label: '✅ Admitted' },
+                            { id: 'not_admitted', label: '❌ Not Admitted' },
+                            { id: 'changed_course', label: '🔄 Changed Course' },
+                            { id: 'still_waiting', label: '⏳ Still Waiting' }
+                          ].map(item => (
+                            <button
+                              key={item.id}
+                              onClick={() => setSelectedOutcomeStatus(item.id as any)}
+                              className={`p-2 rounded-xl text-[10px] font-bold border transition-all text-center ${
+                                selectedOutcomeStatus === item.id 
+                                  ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold' 
+                                  : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {selectedOutcomeStatus === 'admitted' && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[9.5px] text-gray-400 font-semibold">Category:</span>
+                            {['merit', 'catchment', 'elds', 'transfer'].map(cat => (
+                              <button
+                                key={cat}
+                                onClick={() => setOutcomeAdmissionType(cat as any)}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase ${
+                                  outcomeAdmissionType === cat
+                                    ? 'bg-purple-500 text-white font-black'
+                                    : 'bg-white/5 text-gray-400'
+                                }`}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            onClick={() => setShowOutcomeForm(false)}
+                            className="px-3 py-1.5 text-gray-400 hover:text-white text-[10px] font-bold"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={async () => {
+                              await submitAdmissionOutcome(
+                                aiResult?.predictionId || `pred_${Date.now()}`,
+                                user?.uid || 'guest',
+                                {
+                                  actualOutcome: selectedOutcomeStatus,
+                                  actualUni: targetUni?.name,
+                                  actualCourse: targetCourse || courseSearch,
+                                  admissionType: outcomeAdmissionType
+                                }
+                              );
+                              setOutcomeFormSubmitted(true);
+                              setShowOutcomeForm(false);
+                            }}
+                            className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase rounded-xl transition-all shadow-md"
+                          >
+                            Submit & Calibrate
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {outcomeFormSubmitted && (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] text-emerald-300 font-bold flex items-center gap-2">
+                        <span>🎉</span> Thank you! Your response helps CampusAI maintain real-world admission accuracy for future Nigerian scholars.
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats row */}
