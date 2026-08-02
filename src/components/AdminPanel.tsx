@@ -419,7 +419,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
     }
     const [news, _, asuu] = await Promise.all([
-      getCloudNews(true, true),
+      getCloudNews(true, true, undefined, undefined, 200),
       getTickerHeadlines(),
       getASUUStatusFromDB(),
     ]);
@@ -618,7 +618,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         // AI Synced news starts as pending (defaultLiveStatus = false)
         await archiveNewsItems(liveData, false);
         await updateGlobalSyncMetadata(Date.now());
-        setPublishedNews(await getCloudNews(true, true));
+        setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
         
         // Dispatch global events
         window.dispatchEvent(new Event('campusai_news_updated'));
@@ -664,7 +664,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setShowPostForm(false);
       // ✅ FIX: Reset form fully so next open always starts clean
       setNewPost({ category: 'National' });
-      setPublishedNews(await getCloudNews(true, true));
+      setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
       
       // Dispatch update event globally to reload all feeds
       window.dispatchEvent(new Event('campusai_news_updated'));
@@ -712,7 +712,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setAiSources([]);
       setShowAIBlogForm(false);
       
-      setPublishedNews(await getCloudNews(true, true));
+      setPublishedNews(await getCloudNews(true, true, undefined, undefined, 200));
       
       // Dispatch update event globally to reload all feeds
       window.dispatchEvent(new Event('campusai_news_updated'));
