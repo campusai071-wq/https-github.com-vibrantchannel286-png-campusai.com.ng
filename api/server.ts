@@ -1089,6 +1089,26 @@ app.use((req, res, next) => {
 
 const blacklistedKeys = new Map<string, { reason: string; until: number }>();
 
+let consecutiveGeminiFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 3;
+const FAIL_BLOCK_DURATION_MS = 60000; // 1 minute
+let geminiBlockedUntil = 0;
+
+const fetchWithTimeout = <T>(promise: Promise<T>, ms: number, errorMessage = 'Operation timed out'): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(errorMessage)), ms);
+    promise
+      .then((res) => {
+        clearTimeout(timeout);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+  });
+};
+
 const createGeminiClient = (apiKey: string): any => {
   // Use AIP type for AQ. keys (usually have search tool access)
   if (apiKey.startsWith('AQ')) {
@@ -1731,15 +1751,20 @@ app.post("/api/gemini", async (req: any, res: any) => {
 
   // ─── 1. TRY PRIMARY GEMINI PROVIDERS FIRST ───
   if (!successResult) {
-    for (const activeKey of keysPool) {
-      const keyType = activeKey.startsWith('AQ.') ? "AQ.* (Auth)" : activeKey.startsWith('AIza') ? "AIzaSy* (Standard)" : "Unknown";
-      const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
-      
-      console.log(`[API Gemini] Trying key of type: ${keyType} (${maskedKey})`);
-      
-      for (const modelName of modelPool) {
-      try {
-        console.log(`[API Gemini] Executing model run with: ${modelName}`);
+    if (Date.now() < geminiBlockedUntil) {
+      console.warn(`[API Gemini] Skipping Gemini providers due to ${consecutiveGeminiFailures} consecutive failures. Blocked until ${new Date(geminiBlockedUntil).toISOString()}`);
+    } else {
+      for (const activeKey of keysPool) {
+        if (successResult) break;
+        const keyType = activeKey.startsWith('AQ.') ? "AQ.* (Auth)" : activeKey.startsWith('AIza') ? "AIzaSy* (Standard)" : "Unknown";
+        const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
+        
+        console.log(`[API Gemini] Trying key of type: ${keyType} (${maskedKey})`);
+        
+        for (const modelName of modelPool) {
+          if (successResult) break;
+        try {
+          console.log(`[API Gemini] Executing model run with: ${modelName}`);
         
         // --- NORMALIZE PARAMS ---
         let contents = params.contents;
@@ -1793,7 +1818,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
             contents: updatedParams.contents,
             config: finalConfig
           };
-          result = await (gemini.client as GoogleGenAI).models.generateContent(aipParams);
+          result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 8000, "Gemini AIP timeout");
         } else {
           const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
             model: effectiveModelName,
@@ -1809,13 +1834,13 @@ app.post("/api/gemini", async (req: any, res: any) => {
             responseSchema: updatedParams.config.responseSchema,
           };
           
-          const genResult = await model.generateContent({
+          const genResult = await fetchWithTimeout(model.generateContent({
             contents: updatedParams.contents,
             generationConfig: genConfig,
             safetySettings: updatedParams.safetySettings,
             tools: updatedParams.tools,
             toolConfig: updatedParams.toolConfig,
-          });
+          }), 8000, "Gemini SDK timeout");
           
           const response = await genResult.response;
           result = {
@@ -1824,6 +1849,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
           };
         }
         
+        consecutiveGeminiFailures = 0; // reset
         console.log(`[API Gemini] Success with model: ${modelName}!`);
         
         // Explicitly extract text
@@ -1929,7 +1955,16 @@ app.post("/api/gemini", async (req: any, res: any) => {
     }
     if (successResult) break;
     }
+    if (!successResult) {
+      consecutiveGeminiFailures++;
+      console.warn(`[API Gemini] Gemini failed ${consecutiveGeminiFailures} times consecutively.`);
+      if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
+        geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
+        console.warn(`[API Gemini] Gemini blocked for ${FAIL_BLOCK_DURATION_MS}ms due to repeated failures.`);
+      }
+    }
   }
+}
 
   // ─── 2. TRY SECONDARY PROVIDERS ONLY IF GEMINI FAILS ───
   if (!successResult) {
@@ -2148,7 +2183,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
   }
 
   const finalErrorMsg = lastErr?.message || (lastErr?.response?.data?.error?.message) || "No valid API key succeeded";
-  console.log(`[API Gemini] All keys and models in pool failed. Last error:`, finalErrorMsg);
+  console.log(`[API Gemini] All keys and models in pool failed. Last issue:`, finalErrorMsg);
   res.status(500).json({ error: finalErrorMsg });
 });
 
@@ -2165,38 +2200,52 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
   const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
   
   if (keysPool.length > 0) {
-    for (const activeKey of keysPool) {
-      try {
-        const gemini = createGeminiClient(activeKey);
-        const contents = [
-          ...history.map((m: any) => ({
-            role: m.role === 'model' ? 'model' : 'user',
-            parts: [{ text: m.text }]
-          })),
-          { role: 'user', parts: [{ text: prompt }] }
-        ];
+    if (Date.now() < geminiBlockedUntil) {
+      console.warn(`[API AI] Skipping Gemini providers due to ${consecutiveGeminiFailures} consecutive failures.`);
+    } else {
+      let successResult = false;
+      for (const activeKey of keysPool) {
+        try {
+          const gemini = createGeminiClient(activeKey);
+          const contents = [
+            ...history.map((m: any) => ({
+              role: m.role === 'model' ? 'model' : 'user',
+              parts: [{ text: m.text }]
+            })),
+            { role: 'user', parts: [{ text: prompt }] }
+          ];
 
-        const config: any = {};
-        const aipParams: any = {
-          model: "gemini-flash-latest",
-          contents,
-          config
-        };
-        if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
+          const config: any = {};
+          const aipParams: any = {
+            model: "gemini-flash-latest",
+            contents,
+            config
+          };
+          if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
 
-        const result = await (gemini.client as GoogleGenAI).models.generateContent(aipParams);
-        let text = result.text || "";
-        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-          text = result.candidates[0].content.parts[0].text;
+          const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 8000, "Gemini AIP timeout");
+          let text = result.text || "";
+          if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+            text = result.candidates[0].content.parts[0].text;
+          }
+
+          if (text) {
+            console.log("[API AI] Gemini generation succeeded.");
+            consecutiveGeminiFailures = 0;
+            successResult = true;
+            const groundingChunks = (result as any).candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+            return res.json({ text, groundingChunks });
+          }
+        } catch (error: any) {
+          console.warn("[API AI] Gemini key failed:", error.message || error);
         }
-
-        if (text) {
-          console.log("[API AI] Gemini generation succeeded.");
-          const groundingChunks = (result as any).candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-          return res.json({ text, groundingChunks });
+      }
+      
+      if (!successResult) {
+        consecutiveGeminiFailures++;
+        if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
+          geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
         }
-      } catch (error: any) {
-        console.warn("[API AI] Gemini key failed:", error.message || error);
       }
     }
   }
@@ -3006,7 +3055,7 @@ app.post("/api/search", async (req: any, res: any) => {
         if (isQuotaOrBusy) {
           console.log(`[API Search] Gemini key ${i + 1} (${searchModel}): quota or temporary load limit reached, switching model/key...`);
         } else if (isPermanentError) {
-          console.log(`[API Search] Permanent error on Gemini Search Grounding (e.g. tool not supported/enabled on standard keys): ${errMsg.substring(0, 100)}. Aborting search grounding to fall back fast.`);
+          console.log(`[API Search] Gemini Search Grounding not supported/enabled on standard keys: ${errMsg.substring(0, 100)}. Aborting search grounding to fall back fast.`);
           abortGrounding = true;
           break;
         } else {
@@ -3822,7 +3871,7 @@ ${searchResults[4]}
       return res.json({ news: successNews });
     }
 
-    console.log(`[API News Sync] Critical Failure: All Gemini keys failed or no results found. Last error: ${lastErr?.message}. Returning raw search results as fallback...`);
+    console.log(`[API News Sync] Critical Failure: All Gemini keys failed or no results found. Last issue: ${lastErr?.message}. Returning raw search results as fallback...`);
     
     // Fallback: return raw search results if available, otherwise use sovereign fallback
     const rawResults = combinedResults ? combinedResults.substring(0, 500) : "No raw results.";

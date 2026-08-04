@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
 import universityData from '../data/universities';
-import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem } from '../services/geminiService';
+import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown } from '../services/geminiService';
 import {
   getLocalProfile, checkAndIncrementCalculations as checkAndIncrementRequests,
   DAILY_LIMIT, getUserProfile, saveUserProfile, incrementMeritUsage,
@@ -30,6 +30,7 @@ import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveC
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
+import CalculationAnimation from './CalculationAnimation';
 
 const PdfExportModal = React.lazy(() => import('./PdfExportModal').then(module => ({ default: module.PdfExportModal })));
 const FileUploadHubModal = React.lazy(() => import('./FileUploadHubModal').then(module => ({ default: module.FileUploadHubModal })));
@@ -476,7 +477,7 @@ const ProbabilityGauge: React.FC<{ probability: number }> = ({ probability }) =>
         <p className={`text-4xl font-black ${color}`}>{probability}%</p>
         <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mt-1">Merit Strength Index</p>
         <p className="text-[9px] text-gray-400 max-w-[180px] leading-snug mt-1.5 font-medium">
-          Based on how far your aggregate exceeds the estimated departmental cutoff
+          Based on how far your aggregate exceeds the estimated competitive benchmark
         </p>
       </div>
     </div>
@@ -1776,8 +1777,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const text  = aiResult.departmentalCutoff || aiResult.cutoff || '70%';
     const match = text.toString().match(/(\d+(\.\d+)?)/);
     const pureMeritCutoff = match ? parseFloat(match[1]) : 70;
-    const discount        = isELDSState ? 4.5 : isCatchmentState ? 2.5 : 0;
-    const adjustedCutoff  = parseFloat(Math.max(40, pureMeritCutoff - discount).toFixed(1));
+    const discount        = 0;
+    const adjustedCutoff  = pureMeritCutoff;
     const scoreBuffer     = parseFloat((aggregateScore - adjustedCutoff).toFixed(2));
     return { pureMeritCutoff, isELDS: isELDSState, isCatchment: isCatchmentState, discount, adjustedCutoff, scoreBuffer };
   }, [aiResult, isELDSState, isCatchmentState, aggregateScore]);
@@ -2058,11 +2059,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!user && guestUsage >= FREE_GUEST_LIMIT) { onLoginRequest(); return; }
 
     setIsAnalysisLoading(true);
+    setAiResult(null);
+    setShowResults(true);
     setFeedbackStatus('none');
     setAdmissionStatus('none');
     try {
       const formulaText    = resolvedScoringSystem?.explanation || "Pure Academic Formula (JAMB / 4)";
-      const computedDiscount = isELDSState ? 4.5 : isCatchmentState ? 2.5 : 0;
+      const computedDiscount = 0;
       
       // Determine if they were already beyond their daily free allowance before running this check
       const wasDailyLimitExceededBefore = (user?.daily_requests || 0) >= 1;
@@ -2322,7 +2325,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     {schoolLandingInfo.fullName} <span className="text-cyan-400">Hub</span>
                   </h2>
                   <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 tracking-wider">
-                    Verified Aggregate Formula, Departmental Cutoffs & Prep Rules
+                    Verified Aggregate Formula, Estimated Competitive Benchmarks & Prep Rules
                   </p>
                 </div>
 
@@ -2376,7 +2379,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                 {activeGuideTab === 'cutoff' && (
                   <div className="space-y-3 w-full">
-                    <p className="text-xs text-gray-300 font-medium leading-relaxed">Estimated Departmental Cutoff scores to secure merit-list admissions in 2026:</p>
+                    <p className="text-xs text-gray-300 font-medium leading-relaxed">Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                       {schoolLandingInfo.cutoffs.map((item, cIdx) => (
                         <div key={cIdx} className="p-2.5 bg-black/40 border border-white/5 rounded-xl text-center hover:border-cyan-500/20 transition-all">
@@ -2431,7 +2434,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <GraduationCap size={15} className="text-cyan-400" /> Dedicated 2026 Admission Portals
                 </h3>
                 <p className="text-[9.5px] text-gray-400 font-bold uppercase mt-1 tracking-wider leading-relaxed">
-                  Select a featured institution below to access its official aggregate formula, verified departmental cutoffs, and real student preparation forums.
+                  Select a featured institution below to access its official aggregate formula, verified estimated competitive benchmarks, and real student preparation forums.
                 </p>
               </div>
 
@@ -2808,7 +2811,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                      : '📢 General National Merit Quota Pool Evaluation'}
                   </span>
                   <span>
-                    {isELDSState ? <>As a candidate from <strong>{stateOfOrigin}</strong> (an ELDS state), you qualify for specialized admission pool consideration (official ELDS quota = 20%). In federal institutions, you compete within a separate ELDS competitive pool with an effective departmental cutoff threshold historically <strong>around 4% to 5% lower</strong> than general Merit, without changing your physical raw score.</>
+                    {isELDSState ? <>As a candidate from <strong>{stateOfOrigin}</strong> (an ELDS state), you qualify for specialized admission pool consideration (official ELDS quota = 20%). In federal institutions, you compete within a separate ELDS competitive pool with an effective estimated competitive benchmark threshold historically <strong>around 4% to 5% lower</strong> than general Merit, without changing your physical raw score.</>
                      : isCatchmentState ? <>As a candidate from <strong>{stateOfOrigin}</strong>, you fall within the official Catchment Area of <strong>{targetUni.name}</strong> (Catchment quota = 35%). This does not add physical points to your raw score; instead, you compete in a separate, localized catchment pool with an effective competitive threshold historically <strong>around 2.0% to 3.0% lower</strong> than general National Merit!</>
                      : <>As a candidate from <strong>{stateOfOrigin}</strong>, you do not qualify for Catchment or ELDS pools at <strong>{targetUni.name}</strong>. You will be evaluated strictly on the <strong>General National Merit quota (45% of slots)</strong>, requiring you to meet the full, unadjusted competitive merit threshold of the program.</>}
                   </span>
@@ -3256,7 +3259,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                     type="button"
                                     onClick={() => handleOpenCalibration(selectedHandbookUni.name, c)}
                                     className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shrink-0"
-                                    title="Correct or calibrate departmental cutoff marks"
+                                    title="Correct or calibrate estimated competitive benchmark marks"
                                   >
                                     <Sliders size={10} /> Calibrate
                                   </button>
@@ -3333,7 +3336,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         {/* ── RIGHT PANEL ── */}
         <div className="w-full">
           <AnimatePresence mode="wait">
-            {showResults && aiResult ? (
+            {showResults && (aiResult || isAnalysisLoading) ? (
               <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col space-y-8">
 
                 {/* Main result card */}
@@ -3342,99 +3345,104 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     <X size={16} />
                   </button>
 
-                                    {(() => {
-                    let chanceLevel = '🔴 Unlikely';
-                    let chanceColor = 'text-red-500';
-                    let chanceBg = 'bg-red-500/10 border-red-500/20';
+                  {/* Admission Snapshot Card ALWAYS VISIBLE */}
+                  <div className="mb-6 p-5 bg-black/40 rounded-[20px] border border-white/5 shadow-inner">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                      <Activity size={12} className="text-blue-400" /> Admission Snapshot
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Institution</p>
+                        <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetUni?.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Course</p>
+                        <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetCourse || courseSearch}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">{(isAR || isPostUtmePending) ? 'Projected' : 'Aggregate'}</p>
+                        <p className="text-lg md:text-xl font-black text-emerald-400 mt-1">{aggregateScore}%</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Quota</p>
+                        <p className="text-xs md:text-sm font-bold text-purple-400 mt-1">{stateOfOrigin || 'General'}</p>
+                      </div>
+                    </div>
+                  </div>
 
-                    if (admissionProbability >= 75) {
-                      chanceLevel = '🟢 Strong Chance';
-                      chanceColor = 'text-emerald-500';
-                      chanceBg = 'bg-emerald-500/10 border-emerald-500/20';
-                    } else if (admissionProbability >= 50) {
-                      chanceLevel = '🟡 Competitive';
-                      chanceColor = 'text-amber-400';
-                      chanceBg = 'bg-amber-500/10 border-amber-500/20';
-                    } else if (admissionProbability >= 30) {
-                      chanceLevel = '🟠 Borderline';
-                      chanceColor = 'text-orange-500';
-                      chanceBg = 'bg-orange-500/10 border-orange-500/20';
-                    }
+                  {isAnalysisLoading ? (
+                     <div className="flex flex-col items-center justify-center py-10 space-y-6">
+                        <CalculationAnimation />
+                        <span className="text-sm font-bold text-gray-400 animate-pulse font-mono uppercase tracking-wider">Analyzing Admission Chances...</span>
+                     </div>
+                  ) : aiResult ? (() => {
+                      let chanceLevel = '🔴 Unlikely';
+                      let chanceColor = 'text-red-500';
+                      let chanceBg = 'bg-red-500/10 border-red-500/20';
 
-                    if (aiResult.isOffered === false) {
-                      chanceLevel = '🔴 Not Accredited';
-                      chanceColor = 'text-red-500';
-                      chanceBg = 'bg-red-500/10 border-red-500/20';
-                    }
+                      if (admissionProbability >= 75) {
+                        chanceLevel = '🟢 Strong Chance';
+                        chanceColor = 'text-emerald-500';
+                        chanceBg = 'bg-emerald-500/10 border-emerald-500/20';
+                      } else if (admissionProbability >= 50) {
+                        chanceLevel = '🟡 Competitive';
+                        chanceColor = 'text-amber-400';
+                        chanceBg = 'bg-amber-500/10 border-amber-500/20';
+                      } else if (admissionProbability >= 30) {
+                        chanceLevel = '🟠 Borderline';
+                        chanceColor = 'text-orange-500';
+                        chanceBg = 'bg-orange-500/10 border-orange-500/20';
+                      }
 
-                    return (
-                      <>
-                        <div className="flex flex-col items-center mb-8">
-                          <div className={`px-6 py-2.5 rounded-full border mb-6 font-black text-sm md:text-base uppercase tracking-widest flex items-center justify-center ${chanceBg} ${chanceColor} shadow-lg`}>
-                             {chanceLevel}
-                          </div>
-                          
-                          <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
-                          
-                          <div className="mt-4 flex flex-col items-center justify-center gap-2">
-                            <div className="flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
-                              <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
-                              <div className="flex gap-1">
-                                <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
-                                <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                                <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                              </div>
-                              <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                                {confidenceLevel}
-                              </span>
+                      if (aiResult.isOffered === false) {
+                        chanceLevel = '🔴 Not Accredited';
+                        chanceColor = 'text-red-500';
+                        chanceBg = 'bg-red-500/10 border-red-500/20';
+                      }
+
+                      return (
+                        <>
+                          <div className="flex flex-col items-center mb-8">
+                            <div className={`px-6 py-2.5 rounded-full border mb-6 font-black text-sm md:text-base uppercase tracking-widest flex items-center justify-center ${chanceBg} ${chanceColor} shadow-lg`}>
+                               {chanceLevel}
                             </div>
                             
-                            {aiResult.confidenceReasoning && (
-                              <p className="text-[10px] text-gray-400 font-medium max-w-sm text-center leading-relaxed px-4">
-                                {aiResult.confidenceReasoning}
-                              </p>
+                            <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
+                            
+                            <div className="mt-4 flex flex-col items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
+                                <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
+                                <div className="flex gap-1">
+                                  <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
+                                  <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                                  <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                                </div>
+                                <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                  {confidenceLevel}
+                                </span>
+                              </div>
+                              
+                              {aiResult.confidenceReasoning && (
+                                <p className="text-[10px] text-gray-400 font-medium max-w-sm text-center leading-relaxed px-4">
+                                  {aiResult.confidenceReasoning}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-6">
+                            <div className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 inline-flex items-center gap-1.5">
+                              {aiResult.isOffered === false
+                                ? <><X size={10} className="text-red-400" /><span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Course Not Accredited</span></>
+                                : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Logic Verified</span></>}
+                            </div>
+                            {user?.scholarCredits > 0 && (
+                              <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/10 inline-flex items-center gap-1.5">
+                                <Crown size={10} className="text-amber-500" />
+                                <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">{user.scholarCredits} Premium Trials Left</span>
+                              </div>
                             )}
                           </div>
-                        </div>
-
-                        {/* Admission Snapshot Card */}
-                        <div className="mb-6 p-5 bg-black/40 rounded-[20px] border border-white/5 shadow-inner">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
-                            <Activity size={12} className="text-blue-400" /> Admission Snapshot
-                          </h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Institution</p>
-                              <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetUni?.name}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Course</p>
-                              <p className="text-xs md:text-sm font-bold text-white mt-1 truncate">{targetCourse || courseSearch}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">{(isAR || isPostUtmePending) ? 'Projected' : 'Aggregate'}</p>
-                              <p className="text-lg md:text-xl font-black text-emerald-400 mt-1">{aggregateScore}%</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Quota</p>
-                              <p className="text-xs md:text-sm font-bold text-purple-400 mt-1">{stateOfOrigin || 'General'}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-6">
-                          <div className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 inline-flex items-center gap-1.5">
-                            {aiResult.isOffered === false
-                              ? <><X size={10} className="text-red-400" /><span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Course Not Accredited</span></>
-                              : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Logic Verified</span></>}
-                          </div>
-                          {user?.scholarCredits > 0 && (
-                            <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/10 inline-flex items-center gap-1.5">
-                              <Crown size={10} className="text-amber-500" />
-                              <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">{user.scholarCredits} Premium Trials Left</span>
-                            </div>
-                          )}
-                        </div>
 
                         {/* Export & Upload Action Bar */}
                         <div className="flex items-center gap-3 my-6 pt-5 border-t border-white/10 flex-wrap justify-center sm:justify-start">
@@ -3453,10 +3461,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         </div>
                       </>
                     );
-                  })()}
+                  })() : null}
 
-                  {/* Evidence Panel */}
-                  {aiResult.evidencePanel && aiResult.evidencePanel.length > 0 && (
+                  {aiResult && (
+                    <>
+                      {/* Evidence Panel */}
+                      {aiResult.evidencePanel && aiResult.evidencePanel.length > 0 && (
                     <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
                       <details className="group">
                         <summary className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between cursor-pointer list-none select-none">
@@ -3580,7 +3590,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           <ul className="space-y-2 text-[10px] font-semibold text-gray-400">
                             <li className="flex items-center gap-2"><span>•</span> JAMB score relative to historical performance (approx. 35%)</li>
                             <li className="flex items-center gap-2"><span>•</span> O'Level grades and required subject matching (approx. 20%)</li>
-                            <li className="flex items-center gap-2"><span>•</span> Aggregate score vs standard departmental cutoffs (approx. 25%)</li>
+                            <li className="flex items-center gap-2"><span>•</span> Aggregate score vs standard estimated competitive benchmarks (approx. 25%)</li>
                             <li className="flex items-center gap-2"><span>•</span> Departmental competitiveness & quota constraints (approx. 15%)</li>
                             <li className="flex items-center gap-2"><span>•</span> Catchment/ELDS state considerations (approx. 5%)</li>
                           </ul>
@@ -3607,7 +3617,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           code: ({ children }) => <span className="text-xs text-gray-200 font-normal">{children}</span>
                         }}
                       >
-                        {(aiResult.detailedStrategy || aiResult.recommendation || 'No specific strategy analysis available.').trim().replace(/^```(?:markdown)?\s*/i, '').replace(/\s*```$/i, '').trim()}
+                        {formatStrategyMarkdown(aiResult.detailedStrategy || aiResult.recommendation || 'No specific strategy analysis available.')}
                       </Markdown>
                     </div>
                   </div>
@@ -3632,9 +3642,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <p className="text-[10px] text-amber-200 leading-relaxed font-semibold">
                           {parseFloat(aggregateScore.toString()) >= parseFloat((aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
-                            <>✅ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> meets or exceeds the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                            <>✅ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> meets or exceeds the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
                           ) : (
-                            <>⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the typical competitive cutoff of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                            <>⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
                           )}
                         </p>
                       </div>
@@ -4487,10 +4497,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </button>
                     </div>
                   )}
+                    </>
+                  )}
                 </div>
 
-                {/* AI Analysis */}
-                <div className={`p-6 md:p-8 bg-blue-600 rounded-[24px] shadow-lg text-white relative overflow-hidden ${isLimitedView ? 'opacity-50 grayscale' : ''}`}>
+                {aiResult && (
+                  <>
+                    {/* AI Analysis */}
+                    <div className={`p-6 md:p-8 bg-blue-600 rounded-[24px] shadow-lg text-white relative overflow-hidden ${isLimitedView ? 'opacity-50 grayscale' : ''}`}>
                   <div className="flex items-center gap-3 mb-4">
                     <Lightbulb size={18} className="text-white" />
                     <h5 className="text-lg font-black uppercase tracking-tighter">AI Analysis</h5>
@@ -4708,6 +4722,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     <MessageCircle size={14} className="group-hover:animate-bounce" /> Ask on WhatsApp
                   </button>
                 </div>
+                  </>
+                )}
               </motion.div>
 
             ) : (
@@ -4954,7 +4970,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 )}
 
                 <div className="space-y-4 mb-6">
-                  {/* Departmental Cutoff input */}
+                  {/* Estimated Competitive Benchmark input */}
                   <div>
                     <label htmlFor="cal-dept-cutoff" className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-2 block">
                       Verified Departmental Cut-off Score *

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, Share2, ShieldCheck, Award, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
+import { formatStrategyMarkdown } from '../services/geminiService';
 
 interface PdfExportModalProps {
   isOpen: boolean;
@@ -195,7 +196,7 @@ AGGREGATE SCORE RESULT:
 - Verdict: ${aiResult?.verdict || 'Competitive'}
 ----------------------------------------
 STRATEGY & RECOMMENDATION:
-${aiResult?.detailedStrategy || aiResult?.recommendation || 'Verified by CampusAI Intelligence Engine.'}
+${formatStrategyMarkdown(aiResult?.detailedStrategy || aiResult?.recommendation || 'Verified by CampusAI Intelligence Engine.')}
 ========================================
 Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculator)
     `.trim();
@@ -384,20 +385,29 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
               )}
             </div>
 
+            
             {/* Admission Probability & Verdict */}
             <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80 border border-blue-200 flex items-center justify-between gap-4">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-blue-600">Admission Prediction Verdict</span>
                 <h3 className="text-lg font-black text-gray-900 mt-0.5">{aiResult?.verdict || 'Competitive Merit Range'}</h3>
                 <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Estimated Admission Probability: <strong className="text-emerald-600">{admissionProbability}%</strong> ({confidenceLevel} confidence)
+                  Estimated Admission Probability: <strong className={
+                    admissionProbability >= 75 ? "text-emerald-600" :
+                    admissionProbability >= 50 ? "text-amber-600" :
+                    admissionProbability >= 30 ? "text-orange-600" : "text-red-600"
+                  }>{admissionProbability}%</strong> ({confidenceLevel} confidence)
                 </p>
               </div>
-              <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center text-emerald-700 font-black text-lg shrink-0">
+              <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center font-black text-lg shrink-0 ${
+                admissionProbability >= 75 ? 'bg-emerald-100 border-emerald-500 text-emerald-700' :
+                admissionProbability >= 50 ? 'bg-amber-100 border-amber-500 text-amber-700' :
+                admissionProbability >= 30 ? 'bg-orange-100 border-orange-500 text-orange-700' : 
+                'bg-red-100 border-red-500 text-red-700'
+              }`}>
                 {admissionProbability}%
               </div>
             </div>
-
             {/* Security Stamp & Footer */}
             <div className="pt-5 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-400 gap-3">
               <div className="flex items-center gap-2">
