@@ -8,7 +8,7 @@ const PolicySection: React.FC = () => {
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="flex items-center gap-3 mb-8">
             <BookOpen className="text-blue-600 dark:text-blue-400" size={32} />
-            <h2 className="text-3xl font-black text-gray-900 dark:text-white">2026 JAMB Admission Policies</h2>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white">August 2026 JAMB Admission Policies</h2>
         </div>
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">

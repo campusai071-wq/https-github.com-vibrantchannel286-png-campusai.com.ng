@@ -59,7 +59,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     handleFlutterPayment({
       callback: async (response) => {
         if (response.status === "successful") {
-          if (paymentConfig.type === 'pack' || paymentConfig.type === 'refill') {
+          if (paymentConfig.type === 'pack') {
             const currentCredits = user?.scholarCredits || 0;
             await updateUserProfile({ 
               is_premium: true, 
@@ -67,6 +67,13 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
               premium_activated_at: new Date().toISOString()
             }, user.uid);
             alert(`${paymentConfig.label} Activated Successfully! You now have ${currentCredits + 5} premium calculation trials and increased daily chats.`);
+          } else if (paymentConfig.type === 'refill') {
+            const currentCredits = user?.scholarCredits || 0;
+            const addedCredits = paymentConfig.amount === 100 ? 1 : 5;
+            await updateUserProfile({ 
+              scholarCredits: currentCredits + addedCredits
+            }, user.uid);
+            alert(`${paymentConfig.label} Unlocked! ${addedCredits} Premium Session(s) added to your scholar account.`);
           } else {
             const currentCredits = user?.scholarCredits || 0;
             await updateUserProfile({ 
@@ -166,7 +173,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                         <Check size={12} strokeWidth={4} />
                       </div>
                       <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        {paymentConfig.type === 'refill' ? 'Instant 5 Extra AI Sessions' : `Full Access to ${paymentConfig.label}`}
+                        {paymentConfig.type === 'refill' ? `Instant ${paymentConfig.amount === 100 ? '1' : '5'} Extra AI Session${paymentConfig.amount === 100 ? '' : 's'}` : `Full Access to ${paymentConfig.label}`}
                       </span>
                     </div>
                   )}

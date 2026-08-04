@@ -65,7 +65,7 @@ const Tour: React.FC<TourProps> = ({ isOpen, onClose }) => {
           icon: <Calculator className="text-blue-500" size={40} />,
           title: "Cutoff Calculator",
           subtitle: "Dynamic admission formulas",
-          description: "Instantly calculate your accurate aggregate marks complying with official 2026 guidelines. Enter your JAMB score, O'Level, and Post-UTME marks.",
+          description: "Instantly calculate your accurate aggregate marks complying with official August 2026 guidelines. Enter your JAMB score, O'Level, and Post-UTME marks.",
           highlights: [
             "Applies 50/50, 60/40, or custom exams ratio",
             "Auto-compares your score against the latest departmental cutoff benchmarks",

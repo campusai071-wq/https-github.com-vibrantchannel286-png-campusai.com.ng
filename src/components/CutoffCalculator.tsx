@@ -4706,7 +4706,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
                     <div className="flex items-center gap-1.5 text-cyan-400">
                       <ShieldCheck size={14} />
-                      <span className="text-[7.5px] font-black uppercase tracking-widest font-mono">AI Model Last updated: May 27, 2026</span>
+                      <span className="text-[7.5px] font-black uppercase tracking-widest font-mono">AI Model Last updated: August 4, 2026</span>
                     </div>
                     <div className="flex items-start gap-3">
                       <Info size={16} className="text-gray-400 shrink-0 mt-0.5" />

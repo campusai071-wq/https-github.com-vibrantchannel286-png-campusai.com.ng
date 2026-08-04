@@ -21,7 +21,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Terms of Service',
       icon: Scale,
       color: 'blue',
-      revision: 'June 2026.1',
+      revision: 'August 2026.1',
       warning: 'PLEASE READ: Campusai.com.ng is an independent AI research platform. We are NOT the official JAMB portal. Always cross-verify critical deadlines with the official government domain.',
       content: [
         {
@@ -54,7 +54,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Privacy Protocol',
       icon: Lock,
       color: 'emerald',
-      revision: 'June 2026.1',
+      revision: 'August 2026.1',
       warning: 'Your privacy is architected into the system. We use 256-bit encryption for all cloud profiles, journey logs, and mock scores.',
       content: [
         {
@@ -87,7 +87,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Cookie Policy',
       icon: Cookie,
       color: 'amber',
-      revision: 'June 2026.1',
+      revision: 'August 2026.1',
       warning: 'Cookies are small data packets used to synchronize your AI preferences and session tokens across the 2026 admission season.',
       content: [
         {

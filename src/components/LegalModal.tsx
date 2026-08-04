@@ -38,7 +38,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
                   <h3 className="text-2xl font-black tracking-tight uppercase">
                     {type === 'terms' ? 'Terms of Service' : type === 'privacy' ? 'Privacy Protocol' : 'Cookie Policy'}
                   </h3>
-                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">Revision: June 2026.1</p>
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">Revision: August 2026.1</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90"><X size={24} /></button>

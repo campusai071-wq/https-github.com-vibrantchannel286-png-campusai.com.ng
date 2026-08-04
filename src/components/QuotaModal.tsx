@@ -54,12 +54,12 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 
                 <button 
                   onClick={() => {
-                    const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '5 Extra AI Sessions' } });
+                    const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '1 Extra AI Session' } });
                     window.dispatchEvent(event);
                   }}
                   className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                 >
-                  <Zap size={18} /> Buy 5 Extra Sessions — ₦100
+                  <Zap size={18} /> Buy 1 Extra Session — ₦100
                 </button>
                 <button 
                   onClick={onClose}
