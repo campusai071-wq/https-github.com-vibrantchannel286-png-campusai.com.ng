@@ -79,6 +79,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [related, setRelated]             = useState<{ title: string; url: string }[]>([]);
   const [expansionError, setExpansionError] = useState<string | null>(null);
   const [isLiked, setIsLiked]             = useState(false);
+  const [likesList, setLikesList]         = useState<string[]>([]);
   const [isBookmarked, setIsBookmarked]   = useState(false);
   const [bookmarksList, setBookmarksList] = useState<string[]>([]);
   const [showShareSuccess, setShowShareSuccess] = useState(false);
@@ -326,11 +327,16 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     if (!news) return;
     loadComments(news.id);
 
-    // Restore bookmark state
+    // Restore bookmark and like state
     try {
       const saved: string[] = JSON.parse(localStorage.getItem('campusai_bookmarks') || '[]');
       setIsBookmarked(saved.includes(news.id));
       setBookmarksList(saved);
+    } catch {}
+    try {
+      const savedLikes: string[] = JSON.parse(localStorage.getItem('campusai_news_likes') || '[]');
+      setIsLiked(savedLikes.includes(news.id));
+      setLikesList(savedLikes);
     } catch {}
 
     // Related links
@@ -375,6 +381,21 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     if (!news) return;
     toggleBookmarkForId(news.id);
   }, [news, toggleBookmarkForId]);
+
+  const handleToggleLike = useCallback(() => {
+    if (!news) return;
+    try {
+      const current: string[] = JSON.parse(localStorage.getItem('campusai_news_likes') || '[]');
+      const updated = current.includes(news.id)
+        ? current.filter(i => i !== news.id)
+        : [...current, news.id];
+      localStorage.setItem('campusai_news_likes', JSON.stringify(updated));
+      setLikesList(updated);
+      setIsLiked(updated.includes(news.id));
+    } catch (e) {
+      console.error("Like save error:", e);
+    }
+  }, [news]);
 
   const handleDiscussWithAI = useCallback(() => {
     if (!news) return;
@@ -669,7 +690,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
               <span>{copiedLink ? 'Copied!' : 'Copy Link'}</span>
             </button>
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleToggleLike}
               className={`p-2 rounded-xl transition-all active:scale-75 ${isLiked ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-400 hover:text-blue-600'}`}
             >
               <ThumbsUp size={18} fill={isLiked ? "currentColor" : "none"} />

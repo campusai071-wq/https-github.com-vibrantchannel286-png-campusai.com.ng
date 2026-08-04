@@ -1173,8 +1173,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   const [stateOfOrigin, setStateOfOrigin] = useState('');
   const [sittings, setSittings] = useState(1);
+  const [examBoard1, setExamBoard1] = useState('WAEC (SSCE)');
+  const [examBoard2, setExamBoard2] = useState('NECO (SSCE)');
   const [isAR, setIsAR] = useState(false);
   const [isPostUtmePending, setIsPostUtmePending] = useState(false);
+  const [isDirectEntry, setIsDirectEntry] = useState(false);
+  const [deQualification, setDeQualification] = useState('JUPEB / IJMB');
+  const [dePoints, setDePoints] = useState('12');
   const [subjects, setSubjects] = useState<{ name: string; grade: OLevelGrade }[]>([
     { name: 'English Language', grade: 'C6' },
     { name: 'Mathematics',      grade: 'C6' },
@@ -1671,25 +1676,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   const aggregateScore = useMemo(() => {
     if (!targetUni) return 0;
+    if (isDirectEntry) {
+      const dePts = parseFloat(dePoints) || 12;
+      const deNormalized = Math.min(100, (dePts / 15) * 50);
+      const post = parseFloat(postUtmeScore) || 30;
+      const olevel = activeOlevelPoints;
+      let total = deNormalized + (post / 40) * 30 + olevel;
+      if (sittings > 1) total -= 2;
+      return parseFloat(Math.max(0, total).toFixed(2));
+    }
     const jamb = parseFloat(jambScore) || 0;
     const post = isPostUtmePending
       ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70)
       : (parseFloat(postUtmeScore) || 0);
     const uniName = targetUni.name;
     const isFuoye = uniName.toLowerCase().includes('fuoye') || uniName.toLowerCase().includes('oye-ekiti');
-
     if (isFuoye) {
       const jambPoints = (jamb / 400) * 60;
       const olevelPoints = activeOlevelPoints;
       const sittingBonus = sittings === 1 ? 10 : 6;
       return parseFloat((jambPoints + olevelPoints + sittingBonus).toFixed(2));
     }
-
     let total = calculateAggregateScore(jamb, post, activeOlevelPoints, uniName, computedScoringSystem);
-
     if (sittings > 1) total -= 2;
     return parseFloat(Math.max(0, total).toFixed(2));
-  }, [jambScore, postUtmeScore, targetUni, computedScoringSystem, activeOlevelPoints, sittings]);
+  }, [jambScore, postUtmeScore, targetUni, computedScoringSystem, activeOlevelPoints, sittings, isDirectEntry, dePoints]);
 
   const jambCutoffWarning = useMemo(() => {
     if (!targetUni || targetUni.category === 'COE' || isAR) return null;
@@ -2949,6 +2960,59 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
             )}
 
+            {/* Admission Type Selector: UTME vs Direct Entry */}
+            <div className="flex items-center justify-between bg-black/40 p-1.5 rounded-xl border border-white/10 mb-3">
+              <button
+                type="button"
+                onClick={() => setIsDirectEntry(false)}
+                className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${!isDirectEntry ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+              >
+                <span>🎓 UTME Candidate</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDirectEntry(true)}
+                className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${isDirectEntry ? 'bg-emerald-500 text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+              >
+                <span>📜 Direct Entry (DE)</span>
+              </button>
+            </div>
+
+            {isDirectEntry && (
+              <div className="mb-3 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Direct Entry A-Level Profile</span>
+                  <span className="text-[8px] font-bold text-gray-400">Enters into 200 Level (Year 2)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[7px] font-black uppercase text-gray-500 tracking-widest mb-1 block">Qualification Type</label>
+                    <select
+                      value={deQualification}
+                      onChange={e => setDeQualification(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black text-emerald-400 outline-none"
+                    >
+                      {['JUPEB / IJMB', 'Cambridge A-Levels', 'National Diploma (ND Upper Credit)', 'National Diploma (ND Lower Credit)', 'NCE', 'HND / Degree'].map(q => (
+                        <option key={q} value={q} className="bg-gray-950 text-white">{q}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[7px] font-black uppercase text-gray-500 tracking-widest mb-1 block">Equivalent Points (Max 15)</label>
+                    <select
+                      value={dePoints}
+                      onChange={e => setDePoints(e.target.value)}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[10px] font-black text-emerald-400 outline-none"
+                    >
+                      {['15', '14', '13', '12', '11', '10', '9', '8', '7'].map(pts => (
+                        <option key={pts} value={pts} className="bg-gray-950 text-white">{pts} Points</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* JAMB + Post-UTME scores */}
             <div className="grid grid-cols-2 gap-3">
               {/* JAMB */}
@@ -3035,6 +3099,43 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* Exam Board Selectors */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[7px] font-black uppercase text-gray-500 tracking-widest mb-1 block">Sitting 1 Exam Board</label>
+                    <select
+                      value={examBoard1}
+                      onChange={e => setExamBoard1(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-[9px] font-black text-cyan-400 outline-none"
+                    >
+                      {['WAEC (SSCE)', 'NECO (SSCE)', 'WAEC GCE', 'NECO GCE', 'NABTEB', 'JUPEB/IJMB'].map(b => (
+                        <option key={b} value={b} className="bg-gray-950 text-white">{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {sittings === 2 && (
+                    <div>
+                      <label className="text-[7px] font-black uppercase text-gray-500 tracking-widest mb-1 block">Sitting 2 Exam Board</label>
+                      <select
+                        value={examBoard2}
+                        onChange={e => setExamBoard2(e.target.value)}
+                        className="w-full px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-[9px] font-black text-cyan-400 outline-none"
+                      >
+                        {['WAEC (SSCE)', 'NECO (SSCE)', 'WAEC GCE', 'NECO GCE', 'NABTEB', 'JUPEB/IJMB'].map(b => (
+                          <option key={b} value={b} className="bg-gray-950 text-white">{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-2 bg-cyan-500/5 border border-cyan-500/10 rounded-lg flex items-start gap-2">
+                  <Info size={12} className="text-cyan-400 mt-0.5 shrink-0" />
+                  <p className="text-[7.5px] text-cyan-300/90 leading-tight font-medium">
+                    <strong className="text-cyan-200 uppercase">Grading Note:</strong> WAEC SSCE, NECO SSCE, WAEC GCE, NECO GCE, and NABTEB all share the exact same standard 9-point O-Level grading system (A1=2.0 to C6=1.0). JUPEB/IJMB are Advanced Level (A-Level) qualifications for Direct Entry.
+                  </p>
                 </div>
 
                 {isAR && (

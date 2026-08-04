@@ -1,41 +1,97 @@
 import { useEffect } from 'react';
+import { getLocalProfile } from '../services/userService';
 import { triggerBrowserNotification } from '../services/utils';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
 
 export const useDailyReminder = () => {
   useEffect(() => {
-    // Only run on client-side
     if (typeof window === 'undefined') return;
 
-    const messages = [
-      {
-        title: "CampusAI: Daily Admission Trial 🔔",
-        body: "You have a free daily admission trial waiting! Check your chances today."
-      },
-      {
-        title: "CampusAI: News Update 📰",
-        body: "New verified JAMB & Post-UTME updates are available. Stay informed!"
-      },
-      {
-        title: "CampusAI: Admission Strategy 💡",
-        body: "Don't guess! Calculate your target aggregate score for 2026."
-      }
-    ];
-
-    const checkAndTriggerReminder = () => {
-      const lastReminder = localStorage.getItem('last_daily_reminder');
+    const checkAndTrigger = () => {
+      const lastTrigger = localStorage.getItem('last_notification_trigger');
       const now = Date.now();
       const ONE_DAY = 24 * 60 * 60 * 1000;
 
-      if (!lastReminder || now - parseInt(lastReminder) > ONE_DAY) {
-        // Trigger random reminder
-        const message = messages[Math.floor(Math.random() * messages.length)];
-        triggerBrowserNotification(message.title, message.body);
-        localStorage.setItem('last_daily_reminder', now.toString());
+      if (!lastTrigger || now - parseInt(lastTrigger) > ONE_DAY) {
+        const profile = getLocalProfile();
+                
+        // Reminder for free daily calculation or used up status
+        if (!profile.is_premium) {
+           const today = new Date().toISOString().split('T')[0];
+           const isNewDay = profile.daily_last_reset !== today;
+           const dailyRequests = isNewDay ? 0 : (profile.daily_requests || 0);
+           if (dailyRequests < 1) {
+              triggerBrowserNotification(
+                "CampusAI: Daily Calculation 🔔",
+                "You have a free daily calculation waiting! Check your chances for 2026."
+              );
+           } else {
+              triggerBrowserNotification(
+                "CampusAI: Daily Calculation 🔔",
+                "You have used up your free calculation for today. Upgrade to Scholar Pack for unlimited access!"
+              );
+           }
+        }
+                
+        if (profile.is_premium) {
+           triggerBrowserNotification(
+             "CampusAI: Scholar Pack 🎓",
+             "Your Scholar Pack is active! Enjoy your premium access and features."
+           );
+        }
+                
+        localStorage.setItem('last_notification_trigger', now.toString());
       }
     };
 
-    // Check on mount, and maybe add a small delay to not block initial render
-    const timer = setTimeout(checkAndTriggerReminder, 5000);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(checkAndTrigger, 5000);
+
+    let unsubscribeNews: (() => void) | undefined;
+    if (db) {
+      let isInitial = true;
+      let maxTimestamp = Date.now() - 60000;
+      const q = query(collection(db, "news"), orderBy("createdAt", "desc"), limit(10));
+      unsubscribeNews = onSnapshot(q, (snapshot) => {
+        let newMax = maxTimestamp;
+        snapshot.docChanges().forEach((change) => {
+          const docData = change.doc.data();
+          let docTime = 0;
+          const createdAt = docData.createdAt;
+          if (createdAt && typeof createdAt.toMillis === 'function') {
+            docTime = createdAt.toMillis();
+          } else if (createdAt && typeof createdAt.seconds === 'number') {
+            docTime = createdAt.seconds * 1000;
+          } else if (typeof createdAt === 'number') {
+            docTime = createdAt;
+          } else if (typeof createdAt === 'string') {
+            docTime = new Date(createdAt).getTime();
+          } else {
+            docTime = Date.now();
+          }
+          if (docTime > newMax) {
+            newMax = docTime;
+          }
+          if (change.type === 'added' && !isInitial) {
+            if (docTime > maxTimestamp) {
+              triggerBrowserNotification(
+                `CampusAI: New Admission News 🔔`,
+                `${docData.title || 'Click to view the latest update!'}`,
+                docData.slug || ''
+              );
+            }
+          }
+        });
+        maxTimestamp = newMax;
+        isInitial = false;
+      }, (error) => {
+        console.warn("News notification listener error:", error);
+      });
+    }
+
+    return () => {
+      clearTimeout(timer);
+      if (unsubscribeNews) unsubscribeNews();
+    };
   }, []);
 };

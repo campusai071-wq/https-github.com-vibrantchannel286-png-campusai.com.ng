@@ -208,9 +208,9 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
 
              <div className="grid grid-cols-2 gap-4 pb-2 border-b border-gray-100 dark:border-gray-800/80">
                 <div className="p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-gray-150 dark:border-white/5">
-                   <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Calculations Done</p>
+                   <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Calculations</p>
                    <p className="text-lg font-extrabold text-gray-800 dark:text-white mt-1">
-                      {profile?.meritUsageCount || 0} <span className="text-[10px] font-medium text-gray-500">done</span>
+                      {profile?.lifetime_calculations || profile?.meritUsageCount || 0} <span className="text-[10px] font-medium text-gray-500">audits</span>
                    </p>
                 </div>
                 <div className="p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-gray-150 dark:border-white/5">

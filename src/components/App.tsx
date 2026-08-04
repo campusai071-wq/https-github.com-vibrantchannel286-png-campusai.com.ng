@@ -37,7 +37,7 @@ const FeedbackModal = lazy(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
 const SyllabusExplorer = lazy(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazy(() => import('./AdmissionsExplorer'));
-import { useNotificationManager } from '../hooks/useNotificationManager';
+import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -163,7 +163,7 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
 };
 
 const AppContent: React.FC = () => {
-  useNotificationManager();
+  useDailyReminder();
   const navigate = useNavigate();
   const location = useLocation();
   const isStandalone = useStandalone();
