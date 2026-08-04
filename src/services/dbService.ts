@@ -73,7 +73,7 @@ export const updateGlobalSyncMetadata = async (lastSync: number) => {
  * News Persistence & Archival
  */
 export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> => {
-  const cleanSlug = slug.split('?')[0].replace(/\/$/, '');
+  const cleanSlug = slug.split('?')[0].replace(/\/$/, '').toLowerCase();
 
   if (!db) {
     const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;

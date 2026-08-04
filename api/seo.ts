@@ -91,7 +91,7 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
   if (cleanPath.startsWith('/news/')) {
     isArticle = true;
     const rawSlug = cleanPath.split('/')[2];
-    const slug = rawSlug ? decodeURIComponent(rawSlug).trim() : '';
+    const slug = rawSlug ? decodeURIComponent(rawSlug).trim().toLowerCase() : '';
     if (slug) {
       try {
         let docData: any = null;
