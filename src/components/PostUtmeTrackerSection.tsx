@@ -214,12 +214,12 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
               key={record.schoolName}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-900 rounded-[28px] p-6 border border-gray-150 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-5 relative overflow-hidden group"
+              className="bg-white dark:bg-gray-900 rounded-[20px] sm:rounded-[28px] p-4 sm:p-6 border border-gray-150 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-3 sm:space-y-5 relative overflow-hidden group"
             >
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Top Status & Category Header */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-[9px] font-black uppercase tracking-wider">
+                  <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider">
                     {record.category}
                   </span>
                   {getStatusBadge(record.status)}
@@ -227,27 +227,27 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
 
                 {/* School Name */}
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
                     {record.schoolName}
                   </h3>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1 leading-relaxed">
+                  <p className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1 leading-relaxed line-clamp-2">
                     {record.details}
                   </p>
                 </div>
 
                 {/* Key Details Grid */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-850/60 border border-gray-100 dark:border-gray-800 space-y-2.5 text-xs">
+                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-50 dark:bg-gray-850/60 border border-gray-100 dark:border-gray-800 space-y-2 text-[10px] sm:text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-gray-400">
                       Minimum Cut-Off:
                     </span>
-                    <span className="font-black text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-md">
+                    <span className="font-black text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md">
                       {record.cutoffScore || '180'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-gray-400">
                       Target Period:
                     </span>
                     <span className="font-bold text-gray-700 dark:text-gray-300">
@@ -256,7 +256,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
                   </div>
 
                   {record.requirements && (
-                    <div className="pt-2 border-t border-gray-200 dark:border-gray-800/60 text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-normal">
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-800/60 text-[10px] sm:text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-normal line-clamp-2">
                       <span className="font-bold text-gray-900 dark:text-gray-200">Requirements: </span>
                       {record.requirements}
                     </div>
@@ -271,23 +271,23 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
                     href={record.portalLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
+                    className="w-full py-2 sm:py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
                   >
-                    Apply Now <ExternalLink size={14} />
+                    Apply Now <ExternalLink size={12} />
                   </a>
                 ) : record.status === 'NOT_OPEN' ? (
                   <button
                     onClick={() => onSelectSchool && onSelectSchool(record.schoolName)}
-                    className="w-full py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl font-black text-xs uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2 border border-amber-500/30"
+                    className="w-full py-2 sm:py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2 border border-amber-500/30"
                   >
-                    <Clock size={14} /> Awaiting Form Release
+                    <Clock size={12} /> Awaiting Form Release
                   </button>
                 ) : (
                   <button
                     disabled
-                    className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed"
+                    className="w-full py-2 sm:py-3 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg sm:rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed"
                   >
-                    <AlertCircle size={14} /> Portal Closed
+                    <AlertCircle size={12} /> Portal Closed
                   </button>
                 )}
               </div>

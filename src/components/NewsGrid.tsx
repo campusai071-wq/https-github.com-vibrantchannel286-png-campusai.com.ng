@@ -111,9 +111,10 @@ export const UniversityAvatar: React.FC<{ category: string; title?: string }> = 
     Jobs:         'from-emerald-900 via-green-950 to-slate-950 text-emerald-200 border-emerald-500/30',
     Scholarships: 'from-amber-900 via-yellow-950 to-slate-950 text-yellow-200 border-yellow-500/30',
     NYSC:         'from-green-900 via-emerald-950 to-slate-950 text-emerald-200 border-emerald-500/30',
+    Update:       'from-blue-900 via-indigo-950 to-slate-950 text-blue-200 border-blue-500/30',
   };
 
-  const bgStyle = gradient[category] || 'from-slate-900 via-indigo-950 to-slate-950 text-blue-200 border-blue-500/30';
+  const bgStyle = gradient[category || 'Update'] || gradient['Update'];
 
   return (
     <div className={`relative w-full h-full bg-gradient-to-br ${bgStyle} flex flex-col justify-between p-5 overflow-hidden select-none border-b border-white/10`}>
@@ -176,137 +177,44 @@ export const NewsCard: React.FC<{
   const totalImages = news.images && news.images.length > 0 ? news.images.length : (news.image ? 1 : 0);
 
   return (
-    <article>
+    <article className="w-full">
       <motion.div
         layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        whileHover={{ scale: 1.02, y: -5 }}
-        className="bg-white dark:bg-gray-800 rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all group flex flex-col h-full border relative border-gray-100 dark:border-gray-700"
+        whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
+        className="flex gap-4 p-3 border-b border-gray-100 dark:border-gray-800 transition-all group"
       >
-      {isRelevant && (
-        <div className="absolute top-4 left-4 z-30 flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg">
-          <Sparkles size={10} fill="currentColor" /> For You
+        {/* Thumbnail */}
+        <div className="w-24 h-24 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 cursor-pointer" onClick={onRead}>
+          {displayImage ? (
+            <img 
+              src={displayImage} 
+              alt=""
+              aria-hidden="true"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <UniversityAvatar category={news.category} />
+          )}
         </div>
-      )}
-      
-      <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
-        <button
-          onClick={e => { e.stopPropagation(); onToggleBookmark(news.id); }}
-          aria-label={isBookmarked ? "Remove from bookmarks" : "Bookmark this article"}
-          className={`p-3 rounded-2xl backdrop-blur-md transition-all active:scale-75 shadow-lg ${
-            isBookmarked ? 'bg-blue-600 text-white ring-4 ring-blue-500/20' : 'bg-black/20 text-white hover:bg-black/40'
-          }`}
-        >
-          {isBookmarked ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
-        </button>
 
-        {isAdmin && (
-          <>
-            <button
-              onClick={e => { e.stopPropagation(); onEdit?.(); }}
-              className="p-3 bg-white/90 dark:bg-gray-800/90 text-blue-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-blue-100 dark:border-blue-900/30"
+        {/* Content */}
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 hover:text-blue-600 transition-colors">
+            <a 
+              href={`/news/${news.slug || slugify(news.title)}`} 
+              onClick={e => { e.preventDefault(); onRead(); }}
             >
-              <Edit size={20} />
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); onDelete?.(); }}
-              className="p-3 bg-white/90 dark:bg-gray-800/90 text-rose-600 rounded-2xl backdrop-blur-md hover:bg-white dark:hover:bg-gray-700 transition-all active:scale-75 shadow-lg border border-rose-100 dark:border-rose-900/30"
-            >
-              <Trash2 size={20} />
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="relative h-48 md:h-56 overflow-hidden bg-gray-950 cursor-pointer group" onClick={onRead}>
-        {displayImage ? (
-          <>
-            <img 
-              src={displayImage} 
-              alt=""
-              aria-hidden="true"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-35 select-none pointer-events-none" 
-            />
-            <img 
-              src={displayImage} 
-              alt=""
-              aria-hidden="true"
-              onError={() => setImgError(true)}
-              referrerPolicy="no-referrer"
-              className="relative z-10 w-full h-full object-contain object-top group-hover:scale-105 transition-transform duration-500" 
-            />
-          </>
-        ) : (
-          <UniversityAvatar category={news.category} title={news.title} />
-        )}
-        <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
-          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-white/20 shadow-md">
-            {news.category}
+              {news.title}
+            </a>
+          </h3>
+          <div className="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2">
+            <span>{formatFallbackDate(news)}</span>
+            {news.category && <span className="text-blue-600">{news.category}</span>}
           </div>
-          {totalImages > 1 && (
-            <div className="bg-blue-600/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-black text-white uppercase tracking-widest border border-blue-400/30 flex items-center gap-1 shadow-md">
-              <ImageIcon size={10} /> {totalImages} Photos
-            </div>
-          )}
         </div>
-      </div>
-
-    <div className="p-6 md:p-8 flex flex-col flex-1">
-      <div className="flex items-center text-blue-600/50 text-[9px] font-black uppercase tracking-widest mb-4">
-        <Calendar size={12} className="mr-2" />
-        <span>{formatFallbackDate(news)}</span>
-        {news.sourceUrl && (
-          <a href={news.sourceUrl} target="_blank" rel="noopener noreferrer"
-            className="ml-4 hover:underline text-blue-800">
-            Source
-          </a>
-        )}
-      </div>
-
-      <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2">
-        <a 
-          href={`/news/${news.slug || slugify(news.title)}`} 
-          onClick={e => { e.preventDefault(); onRead(); }}
-          className="hover:underline focus:outline-hidden"
-        >
-          {news.title}
-        </a>
-      </h3>
-      <p className="text-gray-500 text-sm leading-relaxed font-medium line-clamp-3 mb-6 select-text">{news.excerpt}</p>
-
-      {news.tags && news.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          {news.tags.map((tag, index) => (
-            <button
-              key={`${tag}-${index}`}
-              onClick={e => { e.stopPropagation(); onTagClick?.(tag); }}
-              className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
-            >
-              #{tag}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-3">
-        <div className="flex gap-2">
-          <a 
-            href={`/news/${news.slug || slugify(news.title)}`}
-            onClick={e => { e.preventDefault(); onRead(); }} 
-            className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-900 text-white dark:bg-white dark:text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-all"
-          >
-            Read Report <ArrowRight size={14} />
-          </a>
-          {onDiscuss && (
-            <button onClick={e => { e.stopPropagation(); onDiscuss(); }} className="p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-cyan-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center gap-2">
-              <Brain size={16} /> Discuss
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  </motion.div>
-  </article>
+      </motion.div>
+    </article>
   );
 };
 

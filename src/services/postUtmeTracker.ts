@@ -24,8 +24,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIJOS 2026/2027 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.',
     portalLink: 'https://portal.unijos.edu.ng',
-    publishDate: 'July 13, 2026',
-    deadlineDate: 'September 12, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB cut-off score: 180. First choice candidates only.'
@@ -35,8 +33,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNN 2026/2027 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered.',
     portalLink: 'https://unnportal.unn.edu.ng/',
-    publishDate: 'May 26, 2026',
-    deadlineDate: 'Open (Ongoing)',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 160. First choice candidates & DE applicants.'
@@ -46,8 +42,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIBEN 2026/2027 Post-UTME portal is open for registration. Mandatory O-Level upload on JAMB CAPS required.',
     portalLink: 'https://unibenportal.com/#application',
-    publishDate: 'May 22, 2026',
-    deadlineDate: 'August 30, 2026',
     cutoffScore: '200',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 200. First choice applicants.'
@@ -57,8 +51,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UI 2026/2027 Post-UTME form sales and registration are active on the official admissions portal.',
     portalLink: 'https://admissions.ui.edu.ng/#/',
-    publishDate: 'May 24, 2026',
-    deadlineDate: 'September 15, 2026',
     cutoffScore: '200',
     registrationFee: 5000,
     requirements: 'Minimum JAMB score: 200. First choice candidates only.'
@@ -68,8 +60,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'OAU 2026/2027 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.',
     portalLink: 'https://eportal2.oauife.edu.ng/ug/admissions',
-    publishDate: 'May 28, 2026',
-    deadlineDate: 'August 25, 2026',
     cutoffScore: '200',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 200. First choice applicants with 5 O-Level credits.'
@@ -79,8 +69,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNILORIN 2026/2027 Post-UTME registration portal is active for first-choice candidates meeting score requirements.',
     portalLink: 'https://admissions.unilorin.edu.ng/',
-    publishDate: 'May 29, 2026',
-    deadlineDate: 'August 31, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 180. Must choose UNILORIN as 1st choice.'
@@ -90,8 +78,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'BUK 2026/2027 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.',
     portalLink: 'https://buk.edu.ng/',
-    publishDate: 'May 27, 2026',
-    deadlineDate: 'September 5, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 180.'
@@ -101,8 +87,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'ABU Zaria 2026/2027 Post-UTME screening form is out on the portal. Online registration is active.',
     portalLink: 'https://portal.abu.edu.ng/forms',
-    publishDate: 'May 19, 2026',
-    deadlineDate: 'August 28, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 180.'
@@ -112,8 +96,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIPORT 2026/2027 Post-UTME registration link is live. Ensure O-Level details are properly uploaded.',
     portalLink: 'https://utmedetails.uniport.edu.ng/welcome_utme.php',
-    publishDate: 'May 22, 2026',
-    deadlineDate: 'August 20, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -123,8 +105,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'FUTA 2026/2027 Point-Based screening registrations are active.',
     portalLink: 'https://www.futa.edu.ng/',
-    publishDate: 'May 20, 2026',
-    deadlineDate: 'August 31, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 180.'
@@ -134,8 +114,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNILAG 2026/2027 Post-UTME screening portal is active on the applications site.',
     portalLink: 'https://applications.unilag.edu.ng/home',
-    publishDate: 'May 25, 2026',
-    deadlineDate: 'August 20, 2026',
     cutoffScore: '200',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 200. Age 16+ as of Oct 31.'
@@ -145,8 +123,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'FUTO 2026/2027 screening forms are out and active on the undergraduate portal.',
     portalLink: 'https://portal.futo.edu.ng/#undergraduate',
-    publishDate: 'May 23, 2026',
-    deadlineDate: 'August 31, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -156,8 +132,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIOSUN 2026/2027 Post-UTME screening application portal is active.',
     portalLink: 'https://admissions.uniosun.edu.ng/',
-    publishDate: 'May 28, 2026',
-    deadlineDate: 'August 24, 2026',
     cutoffScore: '160',
     registrationFee: 3000,
     requirements: 'Minimum JAMB score: 160.'
@@ -167,8 +141,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Closed',
     details: 'OOU 2026/2027 Post-UTME & DE screening registration closed on July 22, 2026.',
     portalLink: 'https://putme.oouagoiwoye.edu.ng/',
-    publishDate: 'May 24, 2026',
-    deadlineDate: 'July 22, 2026',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 160.'
@@ -178,8 +150,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'LASU 2026/2027 admission screening portal is active for first choice applicants.',
     portalLink: 'https://services.lidc.lasu.edu.ng/admissionscreening/',
-    publishDate: 'May 21, 2026',
-    deadlineDate: 'August 25, 2026',
     cutoffScore: '195',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 195. Lagos indigene verification available.'
@@ -189,8 +159,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Closed',
     details: 'EKSU 2026/2027 Post-UTME online screening portal phase 1 registration is closed.',
     portalLink: 'https://eksuportal.eksu.edu.ng/',
-    publishDate: 'May 26, 2026',
-    deadlineDate: 'July 15, 2026',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 160.'
@@ -200,8 +168,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: August 2, 2026.',
     portalLink: 'https://putme.fuoye.edu.ng/utme/',
-    publishDate: 'May 25, 2026',
-    deadlineDate: 'August 2, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -211,8 +177,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIZIK 2026/2027 Post-UTME screening application portal is active.',
     portalLink: 'https://apply.unizik.edu.ng/auth/login',
-    publishDate: 'May 28, 2026',
-    deadlineDate: 'August 30, 2026',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 180.'
@@ -222,8 +186,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'UNIUYO 2026/2027 Post-UTME screening form is out. Registration closes August 7, 2026.',
     portalLink: 'https://eportals.uniuyo.edu.ng/',
-    publishDate: 'May 29, 2026',
-    deadlineDate: 'August 7, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -233,8 +195,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'DELSU Abraka 2026/2027 Post-UTME portal is live for registration.',
     portalLink: 'https://portal.delsuces.online/',
-    publishDate: 'May 22, 2026',
-    deadlineDate: 'August 28, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -244,8 +204,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'LAUTECH 2026/2027 Post-UTME screening portal is open for candidates with 170+ score.',
     portalLink: 'https://eportal.lautech.edu.ng/ug/admissions',
-    publishDate: 'May 27, 2026',
-    deadlineDate: 'August 31, 2026',
     cutoffScore: '170',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 170.'
@@ -255,8 +213,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'KWASU Malete 2026/2027 Post-UTME form is officially out on the portal.',
     portalLink: 'https://portal.kwasu.edu.ng/',
-    publishDate: 'May 30, 2026',
-    deadlineDate: 'August 30, 2026',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 160.'
@@ -266,8 +222,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'NSUK Keffi 2026/2027 Post-UTME/DE application portal is active.',
     portalLink: 'https://portal.nsuk.edu.ng/',
-    publishDate: 'May 29, 2026',
-    deadlineDate: 'August 28, 2026',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 160.'
@@ -277,8 +231,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Closed',
     details: 'PAAU / KSU Anyigba 2026/2027 Post-UTME screening registration closed on July 1, 2026.',
     portalLink: 'https://portal.paau.edu.ng/pd_dip/utme_dashboard',
-    publishDate: 'May 25, 2026',
-    deadlineDate: 'July 1, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -288,8 +240,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'CUSTECH Osara 2026/2027 Post-UTME screening application portal is active.',
     portalLink: 'https://eportal.custech.edu.ng/utme/index.php',
-    publishDate: 'May 29, 2026',
-    deadlineDate: 'August 31, 2026',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Minimum JAMB score: 150.'
@@ -299,8 +249,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Form Not Yet Open',
     details: 'UNICAL 2026/2027 Post-UTME screening form announcement is expected soon by August 2026.',
     portalLink: 'https://www.unical.edu.ng',
-    publishDate: 'Expected August 2026',
-    deadlineDate: 'To be announced',
     cutoffScore: '150',
     registrationFee: 2000,
     requirements: 'Target score 150+. Prepare O-Level result upload.'
@@ -310,8 +258,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Form Not Yet Open',
     details: 'FUTMINNA 2026/2027 screening forms are currently awaiting official release.',
     portalLink: 'https://www.futminna.edu.ng',
-    publishDate: 'Expected August 2026',
-    deadlineDate: 'To be announced',
     cutoffScore: '160',
     registrationFee: 2000,
     requirements: 'Expected cutoff 160+.'
@@ -321,8 +267,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'Covenant University 2026/2027 undergraduate screening portal is open.',
     portalLink: 'https://admissions.covenantuniversity.edu.ng',
-    publishDate: 'May 1, 2026',
-    deadlineDate: 'August 15, 2026',
     cutoffScore: '180',
     registrationFee: 7000,
     requirements: 'Covenant University screening application & 5 O-Level credits.'
@@ -332,8 +276,6 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     statusText: 'Registration Active',
     details: 'Babcock 2026/2027 admission application portal is active for session candidates.',
     portalLink: 'https://www.babcock.edu.ng',
-    publishDate: 'April 20, 2026',
-    deadlineDate: 'August 20, 2026',
     cutoffScore: '160',
     registrationFee: 5000,
     requirements: 'JAMB score 160+ and screening requirements.'
@@ -500,8 +442,6 @@ export const getPostUtmeRecordForSchool = (schoolNameOrSlug: string): PostUtmeSc
     statusText: 'Form Not Yet Open',
     details: `${schoolNameOrSlug} 2026/2027 Post-UTME screening form is expected to open soon.`,
     portalLink: 'https://jamb.gov.ng',
-    publishDate: 'Expected August 2026',
-    deadlineDate: 'To be announced',
     cutoffScore: '180',
     registrationFee: 2000,
     requirements: 'Minimum JAMB cut-off score: 180.'

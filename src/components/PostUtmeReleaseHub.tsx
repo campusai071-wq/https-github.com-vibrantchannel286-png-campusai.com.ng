@@ -1058,7 +1058,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 ...s,
                 statusText: s.isOut ? s.statusText : "Checked Live (Pending)",
                 details: s.isOut ? s.details : `Active search on the ${s.schoolName} official portal confirms that 2026/2027 Post-UTME application guidelines are still awaiting publication. Check back soon.`,
-                publishDate: "Checked Today",
                 isSyncedLive: true
               };
             }
@@ -1134,7 +1133,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 ...s,
                 statusText: s.isOut ? s.statusText : "Checked Live (Pending)",
                 details: s.isOut ? s.details : `Active search on the ${s.schoolName} official portal confirms that 2026/2027 Post-UTME application guidelines are still awaiting publication. Check back soon.`,
-                publishDate: "Checked Today",
                 isSyncedLive: true
               };
             }
@@ -1195,8 +1193,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "FUTO 2026/2027 Post-UTME screening applications are currently active on the official FUTO portal. Ensure all details match before submitting.",
           portalLink: "https://portal.futo.edu.ng/",
-          publishDate: "May 23, 2026",
-          deadlineDate: "August 30, 2026 23:59:00",
           examDate: "September 10, 2026 08:00:00",
           cutoffScore: "180",
           eligibilityText: "Minimum of 180 in UTME. O'level requirements must be complete."
@@ -1208,8 +1204,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "AE-FUNAI 2026/2027 Post-UTME screening form is out. High-performance merit allocations are rolling. Deadline: August 25, 2026.",
           portalLink: "https://portal.funai.edu.ng/",
-          publishDate: "May 29, 2026",
-          deadlineDate: "August 25, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "At least 5 credits in WAEC/NECO/NABTEB."
         },
@@ -1220,8 +1214,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "UNIPORT 2026/2027 Post-UTME screening registration has commenced officially on the portal. Deadline: August 26, 2026. CBT Exam: September 9, 2026.",
           portalLink: "https://www.uniport.edu.ng",
-          publishDate: "May 22, 2026",
-          deadlineDate: "August 26, 2026 23:59:00",
           examDate: "September 9, 2026 08:00:00",
           cutoffScore: "150",
           eligibilityText: "150 UTME minimum baseline threshold."
@@ -1233,8 +1225,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Federal University Otuoke (FUOtuoke) 2026/2027 screening application portal is active. Check specific department guidelines. Deadline: August 24, 2026.",
           portalLink: "https://ecampus.fuotuoke.edu.ng/",
-          publishDate: "May 30, 2026",
-          deadlineDate: "August 24, 2026 23:59:00",
           cutoffScore: "160",
           eligibilityText: "Choice of institution must be updated to FUOtuoke if not primary."
         },
@@ -1245,8 +1235,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "AFIT Kaduna 2026/2027 admission screening form is officially released for both National Diploma and Degree courses. Deadline: August 20, 2026.",
           portalLink: "https://portal.afit.edu.ng/",
-          publishDate: "May 28, 2026",
-          deadlineDate: "August 20, 2026 23:59:00",
           cutoffScore: "160",
           eligibilityText: "Available to prospective military and civilian candidates."
         },
@@ -1257,8 +1245,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Portal Opens June 9",
           details: "FULOKOJA 2026/2027 Post-UTME screening application registration lines will officially become accessible from June 9, 2026. Deadline: September 3, 2026.",
           portalLink: "https://portal.fulokoja.edu.ng",
-          publishDate: "June 9, 2026",
-          deadlineDate: "September 3, 2026 23:59:00",
           cutoffScore: "170",
           eligibilityText: "Ensure correct JAMB subject combinations correspond to Lokoja parameters."
         },
@@ -1269,8 +1255,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "FUTES-IYIN is now accepting entries for the 2026/2027 cycle. Excellent ambient learning setups. Deadline: August 15, 2026.",
           portalLink: "https://futes.edu.ng",
-          publishDate: "May 27, 2026",
-          deadlineDate: "August 15, 2026 23:59:00",
           cutoffScore: "160",
           eligibilityText: "5 O'level science components required."
         },
@@ -1281,8 +1265,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "FUGASHUA 2026/2027 Post-UTME screening applications are now ongoing. Candidates can log onto portal directly. Deadline: August 18, 2026.",
           portalLink: "https://fugashua.edu.ng",
-          publishDate: "May 25, 2026",
-          deadlineDate: "August 18, 2026 23:59:00",
           cutoffScore: "160",
           eligibilityText: "160 minimum UTME score."
         },
@@ -1295,8 +1277,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "UNIDEL Agbor has opened its 2026/2027 Post-UTME portal for prospective students. Complete bio-data accurately. Deadline: August 16, 2026.",
           portalLink: "https://unidel.edu.ng",
-          publishDate: "June 1, 2026",
-          deadlineDate: "August 16, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "Delta and general candidates accepted."
         },
@@ -1307,8 +1287,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "RSU 2026/2027 Post-UTME screening and application instructions are published and registration is live. Deadline: August 20, 2026.",
           portalLink: "https://ecampus.rsu.edu.ng",
-          publishDate: "May 28, 2026",
-          deadlineDate: "August 20, 2026 23:59:00",
           cutoffScore: "165",
           eligibilityText: "Check requirements for faculties of engineering and sciences."
         },
@@ -1319,8 +1297,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "NDU 2026/2027 Post-UTME screening registration has officially kicked off. Cutoff threshold updated to 150. Deadline: August 22, 2026.",
           portalLink: "https://ndufe.edu.ng",
-          publishDate: "May 31, 2026",
-          deadlineDate: "August 22, 2026 23:59:00",
           cutoffScore: "150",
           eligibilityText: "Clear passport upload with white background recommended."
         },
@@ -1331,8 +1307,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "LASU 2026/2027 application lines are fully functional. Ensure point grades simulation is checked. Deadline: August 22, 2026.",
           portalLink: "https://lidc.lasu.edu.ng/",
-          publishDate: "May 21, 2026",
-          deadlineDate: "August 22, 2026 23:59:00",
           cutoffScore: "195",
           eligibilityText: "Point-based assessment of WAEC inputs."
         },
@@ -1343,8 +1317,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "LAUTECH 2026/2027 Post-UTME online registration is officially active. Candidates can verify and submit forms. Deadline: August 27, 2026.",
           portalLink: "https://admissions.lautech.edu.ng",
-          publishDate: "May 26, 2026",
-          deadlineDate: "August 27, 2026 23:59:00",
           cutoffScore: "180"
         },
         {
@@ -1354,8 +1326,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "UNICROSS 2026/2027 screening forms are now active. Candidates can easily sync and verify details on portal. Deadline: August 29, 2026.",
           portalLink: "https://unicross.edu.ng",
-          publishDate: "June 2, 2026",
-          deadlineDate: "August 29, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1365,8 +1335,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "KWASU 2026/2027 pre-admission screening forms are available on the school internet registry. Deadline: September 4, 2026.",
           portalLink: "https://portal.kwasu.edu.ng",
-          publishDate: "May 29, 2026",
-          deadlineDate: "September 4, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1376,8 +1344,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "UNIMED 2026/2027 professional medical slot registrations are open. Register to secure early CBT slots. Deadline: August 24, 2026.",
           portalLink: "https://unimed.edu.ng",
-          publishDate: "May 30, 2026",
-          deadlineDate: "August 24, 2026 23:59:00",
           cutoffScore: "160"
         },
 
@@ -1389,8 +1355,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Covenant University 2026/2027 admissions screening and interview slot reservation are rolling. Excellent learning atmosphere.",
           portalLink: "https://admportal.covenantuniversity.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 8, 2026 23:59:00",
           cutoffScore: "180 (Rolling)"
         },
         {
@@ -1400,8 +1364,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Babcock 2026/2027 application and online placement testing processes are active and running. Deadline: August 14, 2026.",
           portalLink: "http://application2.babcock.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 14, 2026 23:59:00",
           cutoffScore: "170 (Rolling)"
         },
         {
@@ -1411,8 +1373,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "ABUAD 2026/2027 admission forms are on sale. Candidates are screened online via the portal. Deadline: August 18, 2026.",
           portalLink: "https://admissions.abuad.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 18, 2026 23:59:00",
           cutoffScore: "180 (Rolling)"
         },
         {
@@ -1422,8 +1382,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Elizade University 2026/2027 registration is ongoing for sciences, engineering, and humanities. Deadline: August 20, 2026.",
           portalLink: "https://elizadeuniversity.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 20, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -1433,8 +1391,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Nile University of Nigeria (Abuja) 2026/2027 admissions are rolling. Complete placement tests directly on portal. Deadline: August 24, 2026.",
           portalLink: "https://nileuniversity.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 24, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -1444,8 +1400,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Topfaith University 2026/2027 application forms are active. Interactive slots available. Deadline: August 25, 2026.",
           portalLink: "https://topfaith.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 25, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -1455,8 +1409,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Venite University 2026/2027 admissions form window is open. High-quality tertiary programs. Deadline: August 26, 2026.",
           portalLink: "https://venite.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 26, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -1466,8 +1418,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Precious Cornerstone University (PCU) 2026/2027 form instructions are live. Deadline: August 28, 2026.",
           portalLink: "https://pcu.edu.ng",
-          publishDate: "Ongoing Admissions",
-          deadlineDate: "August 28, 2026 23:59:00",
           cutoffScore: "160 (Rolling)"
         },
         {
@@ -1477,8 +1427,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Nigerian British University 2026/2027 application portal is fully open. Premium modern study lines. Deadline: August 29, 2026.",
           portalLink: "https://nbu.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "August 29, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1488,8 +1436,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Newgate University 2026/2027 forms for health sciences and business streams are active. Deadline: August 30, 2026.",
           portalLink: "https://newgateuniversityminna.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "August 30, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1499,8 +1445,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Coal City University in Enugu is currently receiving candidate inquiries and applications for 2026/2027. Deadline: August 31, 2026.",
           portalLink: "https://ccu.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "August 31, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1510,8 +1454,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "TAU 2026/2027 form is live for Medicine, Nursing, Physiotherapy, and Computing degrees. Deadline: September 1, 2026.",
           portalLink: "https://tau.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "September 1, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1521,8 +1463,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Mountain Top 2026/2027 academic registration is active. Register now to secure priority exam schedules. Deadline: September 2, 2026.",
           portalLink: "https://mtu.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "September 2, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1532,8 +1472,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Azman University (Kano) 2026/2027 enrollment portal is active. Deadline: September 3, 2026.",
           portalLink: "https://azmanuniversity.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "September 3, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1543,8 +1481,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Adeleke University 2026/2027 screening of prospective candidates is ongoing. Deadline: September 4, 2026.",
           portalLink: "https://adelekeuniversity.edu.ng",
-          publishDate: "Ongoing",
-          deadlineDate: "September 4, 2026 23:59:00",
           cutoffScore: "160"
         },
         {
@@ -1554,7 +1490,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Rolling Applications Open",
           details: "Landmark University 2026/2027 application lines are open for Agricultural Sciences, Engineering, and Business programs.",
           portalLink: "https://landmarkuniversity.edu.ng",
-          publishDate: "Ongoing",
           cutoffScore: "150 (Rolling)"
         },
 
@@ -1566,7 +1501,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Auchi Poly 2026/2027 registration for ND and HND full-time admission is active.",
           portalLink: "https://auchipoly.edu.ng",
-          publishDate: "May 25, 2026",
           cutoffScore: "120"
         },
         {
@@ -1576,7 +1510,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Federal Poly Nasarawa 2026/2027 applications are open. Upload O'levels immediately.",
           portalLink: "https://fedpolynas.edu.ng",
-          publishDate: "May 29, 2026",
           cutoffScore: "110"
         },
         {
@@ -1586,7 +1519,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Federal Poly Nekede 2026/2027 screening forms are fully available. Avoid manual banks checkout.",
           portalLink: "https://fpno.edu.ng",
-          publishDate: "May 26, 2026",
           cutoffScore: "120"
         },
         {
@@ -1596,7 +1528,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Ilaro Poly 2026/2027 registration is active. Point systems will define admissions list.",
           portalLink: "https://federalpolyilaro.edu.ng",
-          publishDate: "May 24, 2026",
           cutoffScore: "150"
         },
         {
@@ -1606,7 +1537,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Gateway ICT Poly 2026/2027 admission applications are on sale.",
           portalLink: "https://gaposa.edu.ng",
-          publishDate: "May 30, 2026",
           cutoffScore: "100"
         },
         {
@@ -1616,7 +1546,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "OYSCATECH 2026/2027 registration begins. Candidates should choose OYSCATECH as their primary institution.",
           portalLink: "https://oyscatech.edu.ng",
-          publishDate: "June 2, 2026",
           cutoffScore: "100"
         },
         {
@@ -1626,7 +1555,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Graceland Poly 2026/2027 application lines are live.",
           portalLink: "https://gracelandpolytechnic.edu.ng",
-          publishDate: "May 31, 2026",
           cutoffScore: "100"
         },
         {
@@ -1636,7 +1564,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "RSUST Science & Tech Poly programs are accepting 2026/2027 session entries.",
           portalLink: "https://rsu.edu.ng",
-          publishDate: "May 28, 2026",
           cutoffScore: "110"
         },
 
@@ -1648,7 +1575,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Lagos State College of Nursing Igando 2026/2027 registration form is officially on sale on the custom registry portal.",
           portalLink: "https://lascon.lagosstate.gov.ng",
-          publishDate: "May 24, 2026",
           cutoffScore: "160"
         },
         {
@@ -1658,7 +1584,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Kwara Nursing College 2026/2027 registration forms are out. Apply online.",
           portalLink: "https://kwaracon.edu.ng",
-          publishDate: "May 25, 2026",
           cutoffScore: "150"
         },
         {
@@ -1668,7 +1593,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Kogi Nursing College (Obangede) 2026/2027 registration is live in their school portal database.",
           portalLink: "https://kogicongov.edu.ng",
-          publishDate: "May 27, 2026",
           cutoffScore: "150"
         },
         {
@@ -1678,7 +1602,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Ogun State College of Nursing 2026/2027 application shapes. Check Abeokuta, Ijebu-Ode and Ilaro campuses.",
           portalLink: "https://oguncon.edu.ng",
-          publishDate: "May 23, 2026",
           cutoffScore: "150"
         },
         {
@@ -1688,7 +1611,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Makurdi College of Nursing Sciences 2026/2027 registration dates are verified. Sales of forms are rolling.",
           portalLink: "https://makcon.edu.ng",
-          publishDate: "June 1, 2026",
           cutoffScore: "140"
         },
         {
@@ -1698,7 +1620,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "St. Mary Amaigbo 2026/2027 admissions registration has commenced.",
           portalLink: "https://stmarycon.edu.ng",
-          publishDate: "May 22, 2026",
           cutoffScore: "140"
         },
         {
@@ -1708,7 +1629,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Adazi-Nnukwu healthcare nursing programs are accepting applications for the 2026/2027 session.",
           portalLink: "https://conan.edu.ng",
-          publishDate: "May 29, 2026",
           cutoffScore: "140"
         },
         {
@@ -1718,7 +1638,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "UCTH Calabar 2026/2027 registration is active under the University of Calabar Teaching Hospital management.",
           portalLink: "https://ucthcalabar.edu.ng",
-          publishDate: "May 20, 2026",
           cutoffScore: "140"
         },
         {
@@ -1728,7 +1647,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Alor College of Nursing Sciences 2026/2027 application form is on sale.",
           portalLink: "https://conalor.edu.ng",
-          publishDate: "May 28, 2026",
           cutoffScore: "140"
         },
         {
@@ -1738,7 +1656,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "ECWA Egbe Nursing 2026/2027 clinical application forms are active online.",
           portalLink: "https://egbecon.edu.ng",
-          publishDate: "May 29, 2026",
           cutoffScore: "140"
         },
         {
@@ -1748,7 +1665,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Iyienu Nursing College 2026/2027 admission screening applications are rolling.",
           portalLink: "https://iyienucon.edu.ng",
-          publishDate: "May 30, 2026",
           cutoffScore: "140"
         },
         {
@@ -1758,7 +1674,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "St. Anthony Aba 2026/2027 admissions processing is open.",
           portalLink: "https://stanthonyconaba.edu.ng",
-          publishDate: "June 2, 2026",
           cutoffScore: "140"
         },
         {
@@ -1768,7 +1683,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "ACHM College of Nursing 2026/2027 applications are open. Connect directly on target registry.",
           portalLink: "https://achmcon.edu.ng",
-          publishDate: "May 25, 2026",
           cutoffScore: "140"
         },
 
@@ -1780,7 +1694,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Adeyemi Federal College of Education 2026/2027 screening forms are active.",
           portalLink: "https://aceondo.edu.ng",
-          publishDate: "May 28, 2026",
           cutoffScore: "140"
         },
         {
@@ -1790,7 +1703,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "FCE Oyo Special 2026/2027 screening application registration line is open on search databases.",
           portalLink: "https://fcespecialoyo.edu.ng",
-          publishDate: "May 29, 2026",
           cutoffScore: "100"
         },
         {
@@ -1800,7 +1712,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "FCE Abeokuta 2026/2027 Post-UTME form window is active. Please double check courses on offer.",
           portalLink: "https://fce-abeokuta.edu.ng",
-          publishDate: "May 20, 2026",
           cutoffScore: "100"
         },
         {
@@ -1810,7 +1721,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           statusText: "Registration Active",
           details: "Osun State College of Education, Ila-Orangun 2026/2027 application portal is fully active.",
           portalLink: "https://ossceila.edu.ng",
-          publishDate: "May 31, 2026",
           cutoffScore: "100"
         }
       ];
@@ -2014,7 +1924,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                 statusText: "Released (AI Synced)",
                 details: "UNILORIN officially announced 2026 Post-UTME guidelines. Registrations open on the portal starting fresh this week.",
                 portalLink: "https://portal.unilorin.edu.ng/",
-                publishDate: "June 1, 2026",
                 isSyncedLive: true
               };
             }

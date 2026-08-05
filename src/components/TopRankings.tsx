@@ -264,7 +264,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                   key={uni.slug}
                   whileHover={{ y: -8 }}
                   onClick={() => setSelectedUniModal(uni)}
-                  className={`relative flex flex-col items-center p-7 rounded-[36px] border-2 cursor-pointer transition-all group overflow-hidden ${
+                  className={`relative flex flex-col items-center p-4 sm:p-7 rounded-[36px] border-2 cursor-pointer transition-all group overflow-hidden ${
                     uni.rank === 1 
                       ? 'bg-gradient-to-b from-yellow-50 to-white dark:from-yellow-900/20 dark:to-gray-800 border-yellow-200 dark:border-yellow-800/50 shadow-2xl shadow-yellow-500/10' 
                       : uni.rank === 2
@@ -276,8 +276,8 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                     uni.rank === 1 ? 'bg-yellow-400' : uni.rank === 2 ? 'bg-blue-400' : 'bg-orange-400'
                   }`}></div>
 
-                  <div className="relative z-10 mb-5">
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center font-black text-3xl shadow-lg border-2 ${
+                  <div className="relative z-10 mb-3 sm:mb-5">
+                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg border-2 ${
                       uni.rank === 1 
                         ? 'bg-yellow-400 border-yellow-300 text-yellow-900' 
                         : uni.rank === 2
@@ -289,17 +289,17 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                   </div>
 
                   <div className="text-center relative z-10 w-full">
-                    <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1 leading-tight line-clamp-1">
+                    <h4 className="text-base sm:text-lg font-black text-gray-900 dark:text-white mb-1 leading-tight line-clamp-1">
                       {uni.name.replace("University of ", "UN").replace("Obafemi Awolowo University", "OAU")}
                     </h4>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-5 italic line-clamp-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 sm:mb-5 italic line-clamp-1">
                       "{uni.motto.split(' ').slice(0, 3).join(' ')}..."
                     </p>
                     
                     <div className="flex flex-col gap-2 w-full">
-                      <div className="flex items-center justify-between py-2 px-3.5 bg-white/70 dark:bg-black/30 rounded-2xl border border-black/5 dark:border-white/10">
+                      <div className="flex items-center justify-between py-1.5 px-3 sm:py-2 sm:px-3.5 bg-white/70 dark:bg-black/30 rounded-2xl border border-black/5 dark:border-white/10">
                         <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Score</span>
-                        <div className="flex items-center gap-1 font-black text-sm text-gray-900 dark:text-white">
+                        <div className="flex items-center gap-1 font-black text-xs sm:text-sm text-gray-900 dark:text-white">
                           <Zap size={12} className="text-yellow-500 fill-yellow-500" />
                           {uni.overallScore}
                         </div>
@@ -327,17 +327,17 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                 <div
                   key={uni.slug}
                   onClick={() => setSelectedUniModal(uni)}
-                  className="w-full flex items-center justify-between p-4.5 bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60 rounded-[28px] hover:border-blue-500 dark:hover:border-cyan-500 transition-all cursor-pointer group shadow-sm hover:shadow-xl"
+                  className="w-full flex items-center justify-between p-3 sm:p-4.5 bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60 rounded-[20px] sm:rounded-[28px] hover:border-blue-500 dark:hover:border-cyan-500 transition-all cursor-pointer group shadow-sm hover:shadow-xl"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center justify-center font-black text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 group-hover:bg-blue-600 group-hover:text-white transition-colors text-sm">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gray-50 dark:bg-gray-900 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 group-hover:bg-blue-600 group-hover:text-white transition-colors text-xs sm:text-sm">
                       #{uni.rank}
                     </div>
                     <div className="text-left">
-                      <h5 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                      <h5 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
                         {uni.name}
                       </h5>
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                      <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
                         <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-black">
                           <Zap size={10} className="fill-emerald-500" /> {uni.overallScore} Score
                         </span>
@@ -346,7 +346,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </div>
                     </div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/40 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/40 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
                     <ChevronRight size={16} />
                   </div>
                 </div>
