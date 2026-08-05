@@ -1818,7 +1818,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
             contents: updatedParams.contents,
             config: finalConfig
           };
-          result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 8000, "Gemini AIP timeout");
+          result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
         } else {
           const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
             model: effectiveModelName,
@@ -1840,7 +1840,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
             safetySettings: updatedParams.safetySettings,
             tools: updatedParams.tools,
             toolConfig: updatedParams.toolConfig,
-          }), 8000, "Gemini SDK timeout");
+          }), 30000, "Gemini SDK timeout");
           
           const response = await genResult.response;
           result = {
@@ -1939,6 +1939,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
         const msgLower = errorMsg.toLowerCase();
         const isQuota = msgLower.includes("quota") || msgLower.includes("429") || msgLower.includes("exhausted");
         const isNotFound = msgLower.includes("not found") || msgLower.includes("404") || msgLower.includes("not supported");
+        const isTimeout = msgLower.includes("timeout") || msgLower.includes("etimedout") || msgLower.includes("econnreset");
         
         console.log(`[API Gemini] Key failed (${modelName}). status=${status} detail=${errorMsg}`);
         
@@ -1947,8 +1948,11 @@ app.post("/api/gemini", async (req: any, res: any) => {
           break; // Skip to next key since this key's quota is exhausted
         } else if (isNotFound) {
           continue; // Try next model with same key
+        } else if (isTimeout) {
+          console.warn(`[API Gemini] Timeout with model ${modelName}, trying next model/key without long blacklist.`);
+          continue; // Try next model or next key
         } else {
-          blacklistedKeys.set(activeKey, { reason: "blocked_or_invalid", until: Date.now() + 600000 }); // 10 minutes blacklist
+          blacklistedKeys.set(activeKey, { reason: "blocked_or_invalid", until: Date.now() + 120000 }); // 2 minutes temporary blacklist
           break; // Skip to next key
         }
       }
@@ -2223,7 +2227,7 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
           };
           if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
 
-          const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 8000, "Gemini AIP timeout");
+          const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
           let text = result.text || "";
           if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
             text = result.candidates[0].content.parts[0].text;

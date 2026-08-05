@@ -37,6 +37,10 @@ const FeedbackModal = lazy(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
 const SyllabusExplorer = lazy(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazy(() => import('./AdmissionsExplorer'));
+const CGPACalculator = lazy(() => import('./CGPACalculator'));
+const TopRankings = lazy(() => import('./TopRankings'));
+const UniversityDirectory = lazy(() => import('./UniversityDirectory'));
+const Sidebar = lazy(() => import('./Sidebar'));
 import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
@@ -200,6 +204,8 @@ const AppContent: React.FC = () => {
 
   // Admin Auth State
   const [adminAuth, setAdminAuth] = useState({ isLoggedIn: false, email: null as string | null });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [directoryInitialCategory, setDirectoryInitialCategory] = useState<'All' | 'Federal' | 'State' | 'Private' | 'Polytechnic' | 'COE' | 'National'>('All');
 
   // Real-time synchronization and live desktop/mobile push alerts across all users
   const lastSeenSyncRef = useRef<number>(0);
@@ -360,7 +366,7 @@ const AppContent: React.FC = () => {
     initializeUserProfile(); 
 
     const loadGlobalSettings = async () => {
-      const { getGlobalConfig } = await import('../services/dbService');
+      const { getGlobalConfig, getPostUtmeReleases } = await import('../services/dbService');
       const config = await getGlobalConfig();
       if (config) {
         if (config.whatsapp) localStorage.setItem('campusai_whatsapp', config.whatsapp);
@@ -375,6 +381,17 @@ const AppContent: React.FC = () => {
           setSocialLinks(config.socialLinks);
         }
         window.dispatchEvent(new Event('storage'));
+      }
+
+      try {
+        const cloudReleases = await getPostUtmeReleases();
+        if (cloudReleases && cloudReleases.length > 0) {
+          localStorage.setItem('post_utme_releases', JSON.stringify(cloudReleases));
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new Event('campusai_postutme_synced'));
+        }
+      } catch (err) {
+        console.warn("[App] Error loading Post-UTME releases on startup:", err);
       }
     };
 
@@ -640,7 +657,7 @@ const AppContent: React.FC = () => {
     navigate('/');
   };
 
-  const handleNavigate = useCallback((p: string) => {
+  const handleNavigate = useCallback((p: string, params?: any) => {
     if (p === 'settings') {
       setIsSettingsOpen(true);
     } else if (p === 'admin') {
@@ -650,6 +667,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('calculator');
       navigate('/calculator');
       window.scrollTo(0, 0);
+    } else if (p === 'cgpa' || p === 'cgpa-calculator') {
+      setCurrentPage('cgpa');
+      navigate('/cgpa-calculator');
+      window.scrollTo(0, 0);
     } else if (p === 'syllabus') {
       setCurrentPage('syllabus');
       navigate('/syllabus');
@@ -657,6 +678,15 @@ const AppContent: React.FC = () => {
     } else if (p === 'admissions') {
       setCurrentPage('admissions');
       navigate('/admissions');
+      window.scrollTo(0, 0);
+    } else if (p === 'universities' || p === 'directory') {
+      if (params?.category) {
+        setDirectoryInitialCategory(params.category);
+      } else {
+        setDirectoryInitialCategory('All');
+      }
+      setCurrentPage('universities');
+      navigate('/universities');
       window.scrollTo(0, 0);
     } else if (p === 'result-slip') {
       setCurrentPage('result-slip');
@@ -735,7 +765,22 @@ const AppContent: React.FC = () => {
         onLoginRequest={() => setIsAuthModalOpen(true)}
         onShareRequest={() => setIsShareOpen(true)}
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+        onOpenSidebar={() => setIsSidebarOpen(true)}
       />
+
+      <Suspense fallback={null}>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onNavigate={handleNavigate}
+          currentPage={currentPage}
+          user={user}
+          onLoginRequest={() => setIsAuthModalOpen(true)}
+          onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+          theme={theme}
+          onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        />
+      </Suspense>
 
       <main className="pb-40">
         <Suspense fallback={
@@ -798,6 +843,40 @@ const AppContent: React.FC = () => {
                 canonical="/admissions"
               />
               <AdmissionsExplorer />
+            </div>
+          } />
+
+          <Route path="/universities" element={
+            <div className="pt-20 min-h-screen bg-white dark:bg-gray-950">
+              <SEO 
+                title="2026 Institutional Gateways & Portal Directory"
+                description="Secure, direct access to verified admission portals, Post-UTME trackers, and academic profiles for over 150 Nigerian universities, polytechnics, and colleges."
+                canonical="/universities"
+              />
+              <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading Directory...</div>}>
+                <UniversityDirectory 
+                  isPremium={user?.is_premium} 
+                  onUpgrade={() => setIsScholarPackOpen(true)} 
+                  initialCategory={directoryInitialCategory}
+                />
+              </Suspense>
+            </div>
+          } />
+
+          <Route path="/universities/:slug" element={
+            <div className="pt-20 min-h-screen bg-white dark:bg-gray-950">
+              <SEO 
+                title="Institutional Portal Profile & Post-UTME Tracker"
+                description="Detailed profile, portal link, departments, and Post-UTME screening dates for Nigerian institutions."
+                canonical="/universities"
+              />
+              <Suspense fallback={<div className="py-24 text-center text-gray-400">Loading Institutional Portal...</div>}>
+                <UniversityDirectory 
+                  isPremium={user?.is_premium} 
+                  onUpgrade={() => setIsScholarPackOpen(true)} 
+                  initialCategory={directoryInitialCategory}
+                />
+              </Suspense>
             </div>
           } />
 
@@ -874,9 +953,9 @@ const AppContent: React.FC = () => {
           <Route path="/result-slip" element={
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
-                title="2026/2027 Post-UTME Screening Hub & Release Dates"
-                description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
-                canonical="/postutme"
+                title="2026/2027 Post-UTME Screening Hub & Result Slip"
+                description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and JAMB Original Result Slip printing."
+                canonical="/result-slip"
               />
               <PostUtmeReleaseHub 
                 onCalculateChances={(schoolName) => {
@@ -891,7 +970,7 @@ const AppContent: React.FC = () => {
                     else if (nameLower.includes('nsukka') || nameLower.includes('unn') || nameLower.includes('nigeria')) slug = 'unn';
                     else if (nameLower.includes('akure') || nameLower.includes('futa')) slug = 'futa';
                     else if (nameLower.includes('abu') || nameLower.includes('abello')) slug = 'abu';
-
+                    
                     if (slug) {
                       navigate(`/${slug}-aggregate-calculator`);
                     } else {
@@ -906,6 +985,17 @@ const AppContent: React.FC = () => {
             </div>
           } />
 
+          <Route path="/result-slip-guide" element={
+            <div className="pt-24 min-h-screen bg-gray-950">
+              <SEO 
+                title="JAMB Original Result Slip Printing Guide & Portal"
+                description="Step-by-step guidelines on how to print your original JAMB result slip from the e-Facility portal for Post-UTME screening."
+                canonical="/result-slip-guide"
+              />
+              <AdmissionsExplorer initialArticleId="jamb_result_slip" />
+            </div>
+          } />
+
           <Route path="/syllabus" element={
             <div className="pt-24 md:pt-32 min-h-screen bg-gray-950 px-4 md:px-8">
               <SEO 
@@ -916,6 +1006,36 @@ const AppContent: React.FC = () => {
                 onAskAI={(topicQuery) => {
                   window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: topicQuery }));
                 }}
+              />
+            </div>
+          } />
+
+          <Route path="/cgpa-calculator" element={
+            <div className="pt-24 min-h-screen bg-white dark:bg-gray-950">
+              <SEO 
+                title="CGPA Analytics Studio & GPA Planner (Coming Soon)"
+                description="Multi-semester CGPA tracking, trajectory forecasting, and grade analytics for university and polytechnic students in Nigeria."
+                canonical="/cgpa-calculator"
+              />
+              <CGPACalculator 
+                user={user} 
+                isPremium={user?.is_premium} 
+                onUpgrade={() => setIsScholarPackOpen(true)} 
+              />
+            </div>
+          } />
+
+          <Route path="/cgpa" element={
+            <div className="pt-24 min-h-screen bg-white dark:bg-gray-950">
+              <SEO 
+                title="CGPA Analytics Studio & GPA Planner (Coming Soon)"
+                description="Multi-semester CGPA tracking, trajectory forecasting, and grade analytics for university and polytechnic students in Nigeria."
+                canonical="/cgpa-calculator"
+              />
+              <CGPACalculator 
+                user={user} 
+                isPremium={user?.is_premium} 
+                onUpgrade={() => setIsScholarPackOpen(true)} 
               />
             </div>
           } />
@@ -958,6 +1078,23 @@ const AppContent: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* TOP RANKINGS SECTION */}
+                  <Suspense fallback={<div className="py-12 text-center text-gray-400">Loading Rankings...</div>}>
+                    <TopRankings onSelectUni={(slug) => {
+                      setCurrentPage('universities');
+                      navigate(`/universities/${slug}`);
+                    }} />
+                  </Suspense>
+
+                  {/* INSTITUTIONAL PORTAL DIRECTORY */}
+                  <Suspense fallback={<div className="py-12 text-center text-gray-400">Loading Portal Directory...</div>}>
+                    <UniversityDirectory 
+                      isPremium={user?.is_premium} 
+                      onUpgrade={() => setIsScholarPackOpen(true)} 
+                      initialCategory={directoryInitialCategory}
+                    />
+                  </Suspense>
 
                   {/* POLICIES SECTION */}
                   <PolicySection />

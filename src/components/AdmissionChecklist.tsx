@@ -93,6 +93,20 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
     category: 'financial',
     description: 'Receipts for compulsory departmental association dues, faculty dues, SUG fees, and departmental handbook/ID card payments.',
     tip: 'Pay only through the approved departmental bank account or designated portal cashier and obtain signed receipts.'
+  },
+  {
+    id: 'course-registration',
+    title: 'Course Registration Printout (with signatures)',
+    category: 'essential',
+    description: 'Official course registration form printed from your university portal, detailing your semester courses, and signed by your department head or academic adviser.',
+    tip: 'Always make extra photocopies after obtaining signatures. Some departments keep the original copy.'
+  },
+  {
+    id: 'school-testimonial',
+    title: 'Primary/Secondary School Testimonial',
+    category: 'essential',
+    description: 'The certificate of character and completion issued by your primary or secondary school principal.',
+    tip: 'Ensure the names on the testimonial are arranged in the exact order as they appear on your JAMB and WAEC results.'
   }
 ];
 

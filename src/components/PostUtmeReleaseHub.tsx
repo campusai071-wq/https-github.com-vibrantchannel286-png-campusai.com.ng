@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import SEO from './SEO';
 import { Search, RotateCw, ExternalLink, Calculator, AlertTriangle, Sparkles, Filter, RefreshCw, CheckCircle2, AlertCircle, ArrowRight, BookOpen, ShieldCheck, X, Clock, Timer, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchPostUtmeFormReleases, verifySingleSchoolPostUtme, SyncedPostUtmeForm } from '../services/geminiService';
-import { getCloudNews, getPostUtmeReleases, savePostUtmeReleases } from '../services/dbService';
+import { getCloudNews, getPostUtmeReleases, savePostUtmeReleases, getPostUtmeReleasesFull } from '../services/dbService';
 import universityData from '../data/universities'; // standard raw list array
 
 interface PostUtmeReleaseHubProps {
@@ -715,6 +716,7 @@ export const CountdownBadge: React.FC<{
 };
 
 const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChances, user, onLoginRequest }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'released' | 'closed' | 'awaiting'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -727,6 +729,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     'passports': false,
     'bank_receipt': false,
     'exam_venue': false,
+    'course_reg': false,
+    'testimonial': false,
   });
   
   // Combine raw university dataset with configured status maps
@@ -748,6 +752,28 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     return () => clearTimeout(timer);
   }, [schools]);
 
+  // Fast local storage sync for statistics and lists across pages
+  useEffect(() => {
+    if (schools.length === 0) return;
+    try {
+      localStorage.setItem('post_utme_releases', JSON.stringify(schools));
+      
+      const openCount = schools.filter(s => s.isOut && !isClosedForm(s)).length;
+      const closedCount = schools.filter(s => isClosedForm(s)).length;
+      const awaitingCount = schools.filter(s => !s.isOut && !isClosedForm(s)).length;
+      
+      const stats = {
+        total: schools.length,
+        open: openCount,
+        notOpen: awaitingCount,
+        closed: closedCount
+      };
+      localStorage.setItem('post_utme_stats', JSON.stringify(stats));
+    } catch (e) {
+      console.warn("Failed to write to local storage:", e);
+    }
+  }, [schools]);
+
   // Batch General verification states
   const [isGeneralVerifying, setIsGeneralVerifying] = useState(false);
   const [generalVerifyProgress, setGeneralVerifyProgress] = useState(0);
@@ -759,18 +785,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
   // States for cross-referencing news feed
   const [isNewsSyncing, setIsNewsSyncing] = useState(false);
   const [newsSyncResult, setNewsSyncResult] = useState<{ updatedCount: number; matchedSchools: string[] } | null>(null);
-
-  useEffect(() => {
-    // Wrapped in a check to avoid running on every render or if not ready
-    const runSync = async () => {
-      try {
-        await syncFromNewsStream();
-      } catch (e) {
-        console.warn("Silent failure in news stream sync:", e);
-      }
-    };
-    runSync();
-  }, []);
 
   const extractDeadlineFromText = (text: string): string | undefined => {
     if (!text) return undefined;
@@ -916,7 +930,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           let matchedDeadline = school.deadlineDate;
           if (!matchedDeadline && !isClosedArticle) {
             const parsed = extractDeadlineFromText(textToScan);
-            matchedDeadline = parsed || "August 28, 2026 23:59:00";
+            matchedDeadline = parsed || "";
           }
 
           return {
@@ -1161,7 +1175,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
               let verifiedDeadline = result.deadlineDate || s.deadlineDate;
               if (result.isOut && !verifiedDeadline) {
                 const parsed = extractDeadlineFromText(result.details || '');
-                verifiedDeadline = parsed || "August 28, 2026 23:59:00";
+                verifiedDeadline = parsed || "";
               }
 
               return {
@@ -1201,12 +1215,14 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     }
   };
 
-  // Load initial baseline or from cloud
+  // Load initial baseline or from cloud, and perform smart synchronization
   useEffect(() => {
     const loadReleases = async () => {
       try {
-        const cloudReleases = await getPostUtmeReleases();
-        if (cloudReleases && cloudReleases.length > 0) {
+        console.log("[PostUtmeReleaseHub] Checking for saved cloud releases...");
+        const fullDoc = await getPostUtmeReleasesFull();
+        if (fullDoc && fullDoc.releases && fullDoc.releases.length > 0) {
+          const cloudReleases = fullDoc.releases;
           const updatedCloud = cloudReleases.map(s => {
             const updatedItem = { ...s };
             if (updatedItem.schoolName === "Covenant University") {
@@ -1226,6 +1242,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
             return updatedItem;
           });
           setSchools(updatedCloud);
+
+          console.log("[PostUtmeReleaseHub] Loaded saved cloud data. Skipping automatic API calls on load.");
           return;
         }
 
@@ -1926,10 +1944,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
       // Persist baseline to cloud for future updates
       savePostUtmeReleases(uniqueFormatted);
       
-      // Auto-scan live news feed to cross-reference and activate statuses
-      setTimeout(() => {
-        syncFromNewsStream(uniqueFormatted);
-      }, 600);
+      // Saved baseline to cloud. No automatic scan on load.
+      console.log("[PostUtmeReleaseHub] Saved baseline to cloud.");
     } catch (e) {
       console.error("Failed to construct schools list:", e);
     }
@@ -2129,16 +2145,28 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl shrink-0">
           <ShieldCheck size={24} />
         </div>
-        <div className="space-y-1">
-          <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase tracking-widest">
-            ✅ 2026 JAMB Result Slip Alert (VERIFIED SOURCE)
-          </p>
-          <h4 className="text-sm md:text-base font-extrabold text-white">
-            Original Result Slip Printing is NOW officially released!
-          </h4>
-          <p className="text-xs text-gray-400 leading-relaxed max-w-3xl">
-            National indexes confirm that JAMB has enabled printing of original 2026 UTME result slips. Candidates can now print their original slips via the official <a href="https://efacility.jamb.gov.ng/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">JAMB e-facility portal</a>.
-          </p>
+        <div className="space-y-3 flex-1">
+          <div>
+            <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase tracking-widest">
+              ✅ 2026 JAMB Result Slip Alert (VERIFIED SOURCE)
+            </p>
+            <h4 className="text-sm md:text-base font-extrabold text-white mt-1">
+              Original Result Slip Printing is NOW officially released!
+            </h4>
+            <p className="text-xs text-gray-400 leading-relaxed max-w-3xl mt-1">
+              National indexes confirm that JAMB has enabled printing of original 2026 UTME result slips. Candidates can now print their original slips via the official <a href="https://efacility.jamb.gov.ng/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">JAMB e-facility portal</a>.
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              navigate('/result-slip-guide');
+              window.scrollTo(0, 0);
+            }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-2 w-fit"
+          >
+            <BookOpen size={14} />
+            Read Printing Guide
+          </button>
         </div>
       </div>
 
@@ -2467,7 +2495,9 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                   { id: 'olevel_cert', label: 'O\'Level Statement of Results (WAEC/NECO)' },
                   { id: 'passports', label: '4 Passport Photographs (white/red background)' },
                   { id: 'bank_receipt', label: 'Screening Fee Payment Receipt / Teller' },
-                  { id: 'exam_venue', label: 'Biometric Screening Slip & Photo ID' }
+                  { id: 'exam_venue', label: 'Biometric Screening Slip & Photo ID' },
+                  { id: 'course_reg', label: 'Course Registration Printout (with signatures)' },
+                  { id: 'testimonial', label: 'Primary/Secondary School Testimonial' }
                 ].map(item => (
                   <button
                     key={item.id}

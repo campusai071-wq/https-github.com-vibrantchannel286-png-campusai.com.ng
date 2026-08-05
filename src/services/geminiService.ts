@@ -1,7 +1,51 @@
 import { generateContent } from "./aiService";
+
+
+function extractCutoffFallback(course: string, searchData: string | null) {
+  if (!searchData) return estimateCompetitiveCutoff(course);
+  
+  const matches = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark)[^\d]{0,50}?(\d{2}\.\d{1,2})/gi);
+  if (matches && matches.length > 0) {
+    for (let m of matches) {
+      const numMatch = m.match(/(\d{2}\.\d{1,2})/);
+      if (numMatch) {
+         const val = parseFloat(numMatch[1]);
+         if (val >= 40 && val <= 90) return val;
+      }
+    }
+  }
+  
+  const matchesInt = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark)[^\d]{0,50}?(\d{2})[%\s]/gi);
+  if (matchesInt && matchesInt.length > 0) {
+    for (let m of matchesInt) {
+      const numMatch = m.match(/(\d{2})/);
+      if (numMatch) {
+         const val = parseFloat(numMatch[1]);
+         if (val >= 40 && val <= 90) return val;
+      }
+    }
+  }
+  
+  return estimateCompetitiveCutoff(course);
+}
+
+function estimateCompetitiveCutoff(course: string): number {
+  const nCourse = course.toLowerCase();
+  if (nCourse.includes('medicine') || nCourse.includes('surgery') || nCourse.includes('dental') || nCourse.includes('law')) {
+    return 75.0;
+  } else if (nCourse.includes('nursing') || nCourse.includes('pharmacy') || nCourse.includes('software') || nCourse.includes('computer science') || nCourse.includes('radiography') || nCourse.includes('physiotherapy')) {
+    return 70.0;
+  } else if (nCourse.includes('engineering') || nCourse.includes('accounting') || nCourse.includes('medical laboratory') || nCourse.includes('public health') || nCourse.includes('architecture')) {
+    return 65.0;
+  } else if (nCourse.includes('economics') || nCourse.includes('mass communication') || nCourse.includes('business administration') || nCourse.includes('microbiology') || nCourse.includes('biochemistry')) {
+    return 60.0;
+  }
+  return 55.0;
+}
+
 import axios from "axios";
 import { Type } from "@google/genai";
-import { NewsItem, ChatMessage, GroundingChunk } from "../types";
+import { NewsItem, ChatMessage, GroundingChunk, PostUtmeInfo } from "../types";
 import {
   getASUUStatusFromDB,
   getCloudNews,
@@ -534,7 +578,7 @@ const createGeminiClient = (apiKey: string) => {
   };
 };
 
-const runAIWithFallback = async (
+export const runAIWithFallback = async (
   operation: (ai: any) => Promise<any>,
   dedicatedKey?: string,
   customKeys?: string[]
@@ -571,10 +615,11 @@ const runAIWithFallback = async (
       const isQuota = msg.includes('quota') || msg.includes('429') || msg.includes('limit') || msg.includes('exhausted');
       const isInvalid = msg.includes('invalid') || msg.includes('400') || msg.includes('not valid');
       const isBlocked = msg.includes('403') || msg.includes('permission') || msg.includes('blocked');
+      const isTimeout = msg.includes('timeout') || msg.includes('timed out');
       recordKeyActivity(apiKey, false, isQuota || isBlocked);
       
-      if (isQuota || isInvalid || isBlocked) {
-        console.warn(`API Key ${attemptIndex + 1} ${isQuota ? 'exhausted' : isBlocked ? 'blocked' : 'invalid'}, rotating...`);
+      if (isQuota || isInvalid || isBlocked || isTimeout) {
+        console.warn(`API Key ${attemptIndex + 1} ${isTimeout ? 'timed out' : isQuota ? 'exhausted' : isBlocked ? 'blocked' : 'invalid'}, rotating...`);
         continue;
       }
       
@@ -938,7 +983,6 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
         Source: ${newsItem.sourceUrl}`,
         config: {
           thinkingConfig: { thinkingLevel: "HIGH" },
-          tools: [{ googleSearch: {} }, { googleMaps: {} }],
           temperature: 0.7
         }
       });
@@ -1671,7 +1715,7 @@ export const getCourseCutoffInfo = async (
     const cleanJambSubjects = Array.from(
       new Set(
         (jambSubjects || [])
-          .flatMap(s => String(s || '').split(/[_,\/\+]+/))
+          .flatMap(s => String(s || '').split(/[_,/+]+/))
           .map(s => String(s || '').trim())
           .filter(Boolean)
       )
@@ -1681,16 +1725,10 @@ export const getCourseCutoffInfo = async (
     const subjectCheck = validateMandatorySubjects(course, cleanJambSubjects);
     if (!subjectCheck.valid) {
       console.log(`Disqualified due to subject mismatch for ${course} at ${university}. Skipping external API call.`);
-      let manualOverride = await getCutoffOverride(university, course);
-      let cutoffVal = 55.0;
-      if (manualOverride && manualOverride.departmentalCutoff) {
-        const match = manualOverride.departmentalCutoff.toString().match(/(\d+(\.\d+)?)/);
-        if (match) cutoffVal = parseFloat(match[1]);
-      }
       return {
-        departmentalCutoff: `${cutoffVal}%`,
+        departmentalCutoff: "N/A",
         institutionalCutoff: "160",
-        cutoff: `${cutoffVal}%`,
+        cutoff: "N/A",
         mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
         scoreBreakdown: [
           { factor: "Aggregate", impact: `${score}%` },
@@ -1714,7 +1752,7 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v4`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v5`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -1733,102 +1771,57 @@ export const getCourseCutoffInfo = async (
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
-        if (manualOverride.explanation) cachedResult.cutoff = `${manualOverride.departmentalCutoff} (${manualOverride.explanation})`;
-      }
-
-      // Check if the cached result is missing critical detailed fields or is corrupted
-      const isCacheCorrupted = !cachedResult.detailedStrategy || 
-                               cachedResult.detailedStrategy === "undefined" || 
-                               !cachedResult.recommendation || 
-                               cachedResult.recommendation === "undefined";
-
-      const isTemplateStrategy = !!(cachedResult.detailedStrategy && (
-        cachedResult.detailedStrategy.includes("provisional aggregate score") ||
-        cachedResult.detailedStrategy.includes("under perfect conditions") ||
-        cachedResult.detailedStrategy.includes("Since your results are pending") ||
-        cachedResult.detailedStrategy.includes("your pending status") ||
-        cachedResult.detailedStrategy.includes("provisional/borderline")
-      ));
-
-      const shouldRegenerate = isCacheCorrupted || isTemplateStrategy;
-
-      if (!shouldRegenerate) {
-        // Enforce the same strong/borderline/low threshold alignment
-        const cutoffStr = cachedResult.departmentalCutoff || cachedResult.cutoff || "55";
-        const parsedCutoffMatch = cutoffStr.toString().match(/(\d+(\.\d+)?)/);
-        const parsedCutoffVal = parsedCutoffMatch ? parseFloat(parsedCutoffMatch[1]) : 55;
-
-        const enforced = enforceAdmissionTiers(
+        cachedResult.cutoff = manualOverride.departmentalCutoff;
+        const parsedCutoffVal = parseFloat(manualOverride.departmentalCutoff.replace(/[^0-9.]/g, '')) || 55.0;
+        const reEval = enforceAdmissionTiers(
           score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
           isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
         );
-        cachedResult.verdict = enforced.verdict;
-        cachedResult.probability = enforced.probability;
-
-        // Check for tone mismatch or arithmetic contradiction in cached detailedStrategy
-        const cacheTextLower = String(cachedResult.detailedStrategy || '').toLowerCase();
-        const cacheRecLower = String(cachedResult.recommendation || '').toLowerCase();
-        
-        const isPositiveCacheContradiction = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
-          cacheTextLower.includes("strong position") ||
-          cacheTextLower.includes("strong candidate") ||
-          cacheTextLower.includes("excellent position") ||
-          cacheTextLower.includes("winning position") ||
-          cacheTextLower.includes("high probability") ||
-          cacheTextLower.includes("well positioned") ||
-          cacheTextLower.includes("favourable position") ||
-          cacheTextLower.includes("favorable position") ||
-          cacheRecLower.includes("strong position") ||
-          cacheRecLower.includes("strong candidate")
-        );
-
-        const isNegativeCacheContradiction = (score >= parsedCutoffVal) && (
-          cacheTextLower.includes("is slightly below") ||
-          cacheTextLower.includes("is below") ||
-          cacheTextLower.includes("below the estimated") ||
-          cacheTextLower.includes("below the departmental") ||
-          cacheTextLower.includes("below the cutoff") ||
-          cacheTextLower.includes("lower than the") ||
-          cacheTextLower.includes("score is below") ||
-          cacheTextLower.includes("deficit of") ||
-          cacheRecLower.includes("below the") ||
-          cacheRecLower.includes("below estimated") ||
-          cacheRecLower.includes("is below")
-        );
-
-        const isCacheContradictory = isPositiveCacheContradiction || isNegativeCacheContradiction;
-
-        if (!cachedResult.detailedStrategy || cachedResult.detailedStrategy.trim() === "" || cachedResult.detailedStrategy === "undefined" || isCacheContradictory || enforced.probability < 40 || (score < parsedCutoffVal && enforced.probability < 50)) {
-          cachedResult.detailedStrategy = enforced.detailedStrategy;
-          cachedResult.recommendation = enforced.recommendation;
-        }
-
-        if (score >= parsedCutoffVal && cachedResult.detailedStrategy) {
-          cachedResult.detailedStrategy = cachedResult.detailedStrategy
-            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated competitive benchmark of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
-            .replace(/score of \d+(\.\d+)?% is lower than the/gi, `score of ${score}% is higher than the`)
-            .replace(/score is below the/gi, `score clears the`);
-        }
-
-        if (score >= parsedCutoffVal && cachedResult.recommendation) {
-          cachedResult.recommendation = cachedResult.recommendation
-            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated competitive benchmark of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
-            .replace(/score is below the/gi, `score clears the`);
-        }
-
-        if (Array.isArray(cachedResult.alternatives)) {
-          cachedResult.alternatives = sanitizeAlternativeCourses(
-            cachedResult.alternatives,
-            course,
-            cleanJambSubjects,
-            university,
-            stateOfOrigin
-          );
-        }
-
-        return cachedResult;
+        cachedResult.verdict = reEval.verdict;
+        cachedResult.probability = reEval.probability;
+        cachedResult.recommendation = reEval.recommendation;
+        cachedResult.detailedStrategy = reEval.detailedStrategy;
       }
-      console.log("Cached result was missing strategy fields, corrupt, or using hardcoded templates; bypassing cache to regenerate.");
+      if (Array.isArray(cachedResult.alternatives)) {
+        cachedResult.alternatives = sanitizeAlternativeCourses(
+          cachedResult.alternatives,
+          course,
+          cleanJambSubjects,
+          university,
+          stateOfOrigin
+        );
+      }
+      return cachedResult;
+    }
+
+    // ─── 2. GROUNDING & LIVE SEARCH ───────────────────────────────────────────
+    let officialCutoffData = "";
+    let rawSearchContext = "";
+    try {
+      const [search2026, searchHistoric, searchSchedule] = await Promise.all([
+        searchWeb(`official 2026/2027 Post-UTME estimated competitive benchmark marks for ${course} at ${university} Nigeria`).catch(() => ""),
+        searchWeb(`"${university}" "${course}" cutoff mark OR merit aggregate 2024 OR 2025 percentage score`).catch(() => ""),
+        searchWeb(`"${university}" Post-UTME 2026/2027 screening registration status form out dates OR exam schedule`).catch(() => "")
+      ]);
+
+      const parts = [];
+      if (search2026 && search2026.length > 50) parts.push(`[2026/2027 Current Release]:\n${search2026}`);
+      if (searchHistoric && searchHistoric.length > 50) parts.push(`[Historical Benchmarks]:\n${searchHistoric}`);
+      if (searchSchedule && searchSchedule.length > 50) parts.push(`[Registration Status & Exam Schedule]:\n${searchSchedule}`);
+
+      if (parts.length > 0) {
+        rawSearchContext = parts.join("\n\n");
+        officialCutoffData = "OFFICIAL ONLINE GROUNDING DATA & SEARCH RESULTS (Use this as primary supporting evidence for cut-offs, fee schedules, and registration deadlines):\n" + rawSearchContext.substring(0, 10000);
+        const knowledgeKey = ("cutoff_search_raw_" + university + "_" + course).toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
+        saveKnowledgeFragment(knowledgeKey, rawSearchContext.substring(0, 5000)).catch(err => {
+          console.error("Error saving raw search facts to knowledge fragments:", err);
+        });
+      } else {
+        officialCutoffData = "No specific online search grounding available. Rely on standard historical competitiveness and general institutional parameters.";
+      }
+    } catch (searchError) {
+      console.warn("Search for official cutoff failed:", searchError);
+      officialCutoffData = "Search failed due to rate limits or connectivity. Rely on standard competitive thresholds.";
     }
 
     let manualOverride = await getCutoffOverride(university, course);
@@ -1844,16 +1837,11 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    // ─── 2. DETERMINISTIC FOUNDATION EVALUATION (DETERMINISTIC FIRST) ─────────
-    let cutoffVal = 55.0;
+    // ─── 3. DETERMINISTIC FOUNDATION EVALUATION ────────────────────────────────
+    let cutoffVal = extractCutoffFallback(course, officialCutoffData || null);
     if (manualOverride && manualOverride.departmentalCutoff) {
       const match = manualOverride.departmentalCutoff.toString().match(/(\d+(\.\d+)?)/);
       if (match) cutoffVal = parseFloat(match[1]);
-    } else {
-      const dbMatch = getUniversityFromDB(university);
-      if (dbMatch?.courses?.includes(course)) {
-        cutoffVal = 52.0;
-      }
     }
 
     const deterministicEvaluation = enforceAdmissionTiers(
@@ -1890,15 +1878,14 @@ export const getCourseCutoffInfo = async (
       sourcesCited: ['jamb.gov.ng'],
       predictionConfidenceInterval: `${Math.max(5, deterministicEvaluation.probability - 5)}% to ${Math.min(98, deterministicEvaluation.probability + 5)}%`
     };
+
     let overridePrompt = "";
     if (manualOverride) {
-      overridePrompt = `
-⚠️ CRITICAL SYSTEM OVERRIDE (MANDATORY ADMISSION GROUND TRUTH):
+      overridePrompt = `⚠️ CRITICAL SYSTEM OVERRIDE (MANDATORY ADMISSION GROUND TRUTH):
 - The official, verified 2026 departmental competitive cut-off score for "${course}" at "${university}" is EXCLUSIVELY: "${manualOverride.departmentalCutoff}".
 - The institutional cut-off floor is: "${manualOverride.institutionalCutoff || '150'}".
 - Verified explanation / policy detail: "${manualOverride.explanation || 'No extra notes.'}".
-You MUST evaluate the candidate's aggregate score (${score}%) strictly against this verified departmental cut-off score ("${manualOverride.departmentalCutoff}") to compute the probability, recommendation, and verdict.
-`;
+You MUST evaluate the candidate's aggregate score (${score}%) strictly against this verified departmental cut-off score ("${manualOverride.departmentalCutoff}") to compute the probability, recommendation, and verdict.`;
     }
 
     const allKnowledge = await getAllKnowledgeFragments();
@@ -1906,7 +1893,6 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
       const keyStr = String(k.key || '').toLowerCase();
       const valStr = String(k.value || '').toLowerCase();
       const uniStr = university.toLowerCase();
-      // Keep if it mentions the university or is a general rule
       return keyStr.includes(uniStr) || valStr.includes(uniStr) || keyStr.includes('general');
     });
 
@@ -1914,42 +1900,13 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
     if (knowledge.length > 0) {
       let combined = knowledge.map(k => `- ${k.key}: ${k.value}`).join('\n');
       if (combined.length > 10000) {
-        combined = combined.substring(0, 10000) + "... [TRUNCATED TO FIT CONTEXT LIMIT]";
+        combined = combined.substring(0, 10000) + "... [TRUNCATED]";
       }
       learnedPrompt = "ADDITIONAL LEARNED KNOWLEDGE (USE THIS TO OVERRIDE STATIC DATA IF IT CONTRADICTS):\n" + combined + "\n\n";
     }
 
-    let officialCutoffData = "";
-    try {
-      const [search2026, searchHistoric, searchSchedule] = await Promise.all([
-        searchWeb(`official 2026/2027 Post-UTME estimated competitive benchmark marks for ${course} at ${university} Nigeria`).catch(() => ""),
-        searchWeb(`"${university}" "${course}" cutoff mark OR merit aggregate 2024 OR 2025 percentage score`).catch(() => ""),
-        searchWeb(`"${university}" Post-UTME 2026/2027 screening registration status form out dates OR exam schedule`).catch(() => "")
-      ]);
-
-      const parts = [];
-      if (search2026 && search2026.length > 50) parts.push(`[2026/2027 Current Release]:\n${search2026}`);
-      if (searchHistoric && searchHistoric.length > 50) parts.push(`[Historical Benchmarks]:\n${searchHistoric}`);
-      if (searchSchedule && searchSchedule.length > 50) parts.push(`[Registration Status & Exam Schedule]:\n${searchSchedule}`);
-
-      if (parts.length > 0) {
-        const rawSearchContext = parts.join("\n\n");
-        officialCutoffData = "OFFICIAL ONLINE GROUNDING DATA & SEARCH RESULTS (Use this as primary supporting evidence for cut-offs, fee schedules, and registration deadlines):\n" + rawSearchContext.substring(0, 10000);
-        const knowledgeKey = ("cutoff_search_raw_" + university + "_" + course).toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
-        saveKnowledgeFragment(knowledgeKey, rawSearchContext.substring(0, 5000)).catch(err => {
-          console.error("Error saving raw search facts to knowledge fragments:", err);
-        });
-      } else {
-        officialCutoffData = "No specific online search grounding available. Rely on standard historical competitiveness and general institutional parameters.";
-      }
-    } catch (searchError) {
-      console.warn("Search for official cutoff failed:", searchError);
-      officialCutoffData = "Search failed due to rate limits or connectivity. Rely on standard competitive thresholds.";
-    }
-
     const normUni = university.toLowerCase();
     const f = formulaExplanation ? formulaExplanation.toLowerCase() : '';
-
     let usesPostUtme = true;
     if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) {
       usesPostUtme = false;
@@ -1961,23 +1918,19 @@ You MUST evaluate the candidate's aggregate score (${score}%) strictly against t
       usesPostUtme = false;
     }
 
-    const hasAllResults = !isAwaitingResult && (!isPostUtmePending || !usesPostUtme);
-    const oLevelPending = isAwaitingResult;
-    const isPUtmePending = isPostUtmePending && usesPostUtme;
-    const isTestingHypothetical = isAwaitingResult && isPostUtmePending && usesPostUtme;
-
-    let calcDedicatedKey = null;
+    let calcDedicatedKey: string | null = null;
     if (typeof window !== 'undefined') {
       try {
         const pref = localStorage.getItem('campusai_calc_key_pref');
         calcDedicatedKey = resolvePrefKey(pref);
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error reading calc key pref:", e);
+      }
     }
 
     const response = await runAIWithFallback(async (ai) => {
-      const hasWrittenPostUtme = usesPostUtme;
       return await ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3.1-pro-preview",
         contents: `
 ${overridePrompt}
 
@@ -1985,371 +1938,122 @@ ${officialCutoffData}
 
 ${learnedPrompt}
 
-${getSystemPrompt()}
-
-Perform an exhaustive admission probability check under these STRICT architectural guidelines:
-1. NO CROSS-CONTAMINATION: You are evaluating the program for "${university}" ONLY. If the OFFICIAL ONLINE GROUNDING DATA or search results contain information about other universities (such as LASU, FUTA, UNILAG, UI, etc.), you MUST completely ignore them. Do NOT reference their scales, cutoffs, or policies in your analysis for ${university}.
-2. NO PLACEHOLDER GIBBERISH OR METAPHORICAL WORD SALAD:
-   - "fresherBudget" MUST be a realistic, structured, professional cost breakdown for a first-year student at "${university}" in Nigerian Naira (NGN). Check the university's current official figures for the Acceptance Fee. For others, provide a realistic estimate. Example format: "Estimated Tuition: ₦195,000 | Estimated Acceptance Fee: [Insert Real School Figure] | Estimated Hostel/Rent: ₦150,000. Estimated Total: ₦[Sum]". Every item must be labeled as 'Estimated'. Never output low unrealistic numbers under ₦100,000 total or poetic filler sentences.
-3. CITATION SANITY:
-   - "sourcesCited" MUST be an array of real, valid URLs or domains retrieved from the search results (e.g., ["delsu.edu.ng", "jamb.gov.ng"]). Never generate fake domains, corrupted non-ASCII text, or random characters.
-4. MATH CONGRUENCY:
-   - Ensure the aggregate calculation and mathematical verdict align precisely with the institution's real formula or the specified context formula.
-5. NO POST-UTME HALLUCINATION FOR NON-EXAM SCHOOLS:
-   - If "Has Written Post-UTME Exam" is "NO", you are STRICTLY FORBIDDEN from recommending or advising the candidate to prepare for, practice, or write any Post-UTME exam in "detailedStrategy", "recommendation", or "alternatives". Instead, advise them on securing their O'Level uploads, verifying JAMB CAPS result uploads, and tracking point-based screening portal deadlines.
-6. CONCRETE ACTIONABLE REAL ALTERNATIVES (STRICT COURSE/SCHOOL NAMES & FACULTY BOUNDARIES):
-   - "alternatives" MUST contain 2 to 4 actual, specific alternative undergraduate courses offered at ${university} (e.g., related less-competitive programmes) OR specific alternative institutions in Nigeria (e.g., specific state universities, private universities, or polytechnics, such as "Delta State University", "FUPRE", "Federal Polytechnic, Ado-Ekiti").
-   - DO NOT output generic titles like "JAMB Change of Course" or "JAMB Change of Institution" as the name. The "name" of each alternative MUST be the actual concrete course or institution name (e.g., "Agricultural and Environmental Engineering at ${university}" or "Soil Science at Delta State University").
-   - "typicalCutoff" MUST be the actual cut-off mark or aggregate score typically needed for that alternative (e.g., "50.0%" or "180 JAMB").
-   - "reasoning" MUST explain clearly why this specific course/school is a viable safe option for this candidate based on their current JAMB and aggregate scores.
-   - STRICT FACULTY BOUNDARY MANDATE: Every recommended alternative course MUST strictly belong to the same faculty family and match the candidate's written JAMB subjects (${cleanJambSubjects.join(', ')}).
-     - For Science / Agricultural Science candidates (written subjects: Agricultural Science, Biology, Chemistry, Physics, Mathematics): You MUST ONLY suggest alternative courses in Agricultural Sciences (e.g., Soil Science, Animal Science, Forestry, Agricultural Economics, Food Science), Biological/Chemical Sciences, or Engineering. You are STRICTLY FORBIDDEN from recommending Social Science, Arts, Management, or Law courses (such as Public Administration, Mass Communication, Political Science, Law, Accounting) to a Science/Agriculture candidate!
-     - When recommending an alternative institution (such as a state university like Delta State University or private university), the recommended program at that institution MUST ALSO strictly match the candidate's faculty and subject combination (e.g., recommend 'Agricultural Economics at Delta State University' instead of 'Public Administration at Delta State University').
-7. STRATEGIC ADVISEMENT BY STRICT TIER ASSIGNMENT:
-   Compare the candidate's aggregate score (${score}%) directly against the estimated competitive benchmark. You MUST evaluate and place them into one of these four exact tiers, applying their rules, probability, verdict, tone, and requirements:
-
-   TIER 1: THE BORDERLINE TIER (Score is EXACTLY EQUAL to the estimated competitive benchmark, e.g., 55% score vs 55% cutoff)
-   - Verdict Status: "Borderline"
-   - Admission Probability: 50% - 60% (set exactly to a value in this range, e.g. 55%)
-   - Rule & Tone: Sitting exactly on the cutoff mark is highly volatile due to merit list limits, state quotas, and tie-breakers. Tone must be cautious and urgent. DO NOT classify this as "Strong".
-   - UI Requirement: Must structure the detailedStrategy text to recommend monitoring the school portal daily, uploading O'Level results, and preparing a backup change of course/institution.
-
-   TIER 2: THE STRONG TIER (Score is 1% to 5.99% ABOVE the cutoff, e.g., 60% score vs 55% cutoff)
-   - Verdict Status: "Strong"
-   - Admission Probability: 65% - 79% (set to a value scaled in this range)
-   - Rule & Tone: Optimistic, encouraging, and reassuring. Remind them to complete screening registrations flawlessly and stay vigilant. Do NOT push them to change course or institution, but list optional backups.
-
-   TIER 3: THE VERY STRONG TIER (Score is >= 6% ABOVE the cutoff, e.g., 65%+ score vs 55% cutoff)
-   - Verdict Status: "Very Strong / Excellent"
-   - Admission Probability: 80% - 98% (set to a value scaled in this range)
-   - Rule & Tone: Highly congratulatory. They are in an exceptional winning position.
-   - UI Requirement: Do NOT include warning or change of course suggestions. Focus on accepting admission on JAMB CAPS (must accept within 4 weeks), monitoring portal fees, and completing school registration.
-
-   TIER 4: THE BELOW CUTOFF TIER (Score < cutoff)
-   - Verdict Status: "Low Probability"
-   - Admission Probability: Below 30% (set to a value in this range)
-   - Rule & Tone: Empathetic, honest, and immediately proactive. Pivot to utility: guide them to do a JAMB change of course to less competitive departments matching their subject combination, or change of institution.
-
-8. REAL-TIME SCHOOL SCREENING SCHEDULE & MODE OF EVALUATION (CRITICAL):
-   - Analyze the "School Registration Status & Exam Schedule/Format" section in the search grounding data.
-   - Specifically mention the current real-time state of "${university}"'s Post-UTME screening.
-   - DISTINGUISH BETWEEN EXAM VS ONLINE SCREENING SCHOOLS:
-     * For CBT Exam Schools (e.g., UNIBEN, UNILAG, UNIPORT, OAU, UI, DELSU): Explicitly state whether registrations are closed, CBT exams are ongoing, or candidates are awaiting screening CBT score releases.
-     * For Purely Online O'Level Screening Schools (e.g., FUTA, FUOYE, LASU, OOU, UNN, UNIUYO, FUTO, PAAU): Explicitly state that NO Post-UTME exam is written at this institution. Candidates are evaluated purely via online point-based O'Level & JAMB score ranking, and registration is currently closed while aggregate rankings and CAPS admission lists are being processed.
-   - DO NOT tell candidates to register if registration for "${university}" is already closed. DO NOT tell candidates to write or prepare for an exam if "${university}" conducts purely online screening without an exam. Advise them to verify their screening details on the portal, track O'Level uploads on JAMB CAPS, and monitor CAPS for admission updates or Change of Course options.
-   - Integrate these specific, live dates or status updates naturally into your narrative (under '### 2. The Reality Check' or '### 3. Actionable Next Steps') so the candidate knows exactly what the immediate timeline is for their school.
-
-9. CRITICAL RULES FOR ANALYSIS (MANDATORY):
-   - You are analyzing a pre-calculated aggregate score (${score}%), which has already been calculated by the application. You are NOT performing the aggregate score calculation yourself.
-   - Respect the user's result status variables provided below:
-     - If "User Has All Results (Final Score)" is YES: The candidate's results are 100% complete and final. The aggregate score is final. If the aggregate score (${score}%) is below the estimated competitive benchmark, you MUST advise them that their score is final and they cannot improve it at this institution/course. You MUST recommend they perform a JAMB Change of Course or Institution immediately to secure admission. Do NOT suggest they can improve their score by writing a Post-UTME or waiting for WAEC results.
-     - If "O'Level Result is Pending" is YES: The candidate is awaiting WAEC/NECO results. Advise them explicitly on target O'Level points/grades needed to boost their aggregate score.
-     - If "Post-UTME Exam is Pending" is YES: The candidate has a pending Post-UTME exam. Advise them on exam preparation strategies, target scores, and screening benchmarks.
-     - If "Testing Hypothetical / 'What-If' Scenarios" is YES: Give a deeper, more detailed analysis of what-if options.
-   - Respect the school's formula:
-     - If "Uses Post-UTME Exam" is NO (such as for FUOYE, FUTA, or LASU): The school does NOT require a Post-UTME exam. Under no circumstances should you recommend preparing for, practicing past questions for, or writing a Post-UTME exam. Do not suggest improving their score using Post-UTME. Instead, focus entirely on O'Level result uploads, JAMB CAPS verification, and point-based screening deadlines.
-   - STRICT ARITHMETIC COMPARISON MANDATE (NEVER CONTRADICT MATH):
-     - If Candidate Aggregate Score (${score}%) >= Estimated Competitive Benchmark, you are STRICTLY FORBIDDEN from stating or implying that the score 'is below', 'is slightly below', or 'fails to reach' the cutoff in "detailedStrategy" or "recommendation". Output that the candidate's aggregate score 'is slightly above the estimated competitive benchmark, but requires a higher merit buffer for non-catchment candidates'.
-     - If Candidate Aggregate Score (${score}%) < Estimated Competitive Benchmark, you are STRICTLY FORBIDDEN from stating that the candidate is in a 'strong' or 'winning' position.
-   - Only use data the user has explicitly provided. Be highly realistic, clear, and actionable.
-   - If providing an O'Level points breakdown, you MUST use exactly the "Pre-Calculated O'Level Points" value provided below. DO NOT make up your own grading points or drop subjects to force the math. Most schools use 5 subjects.
+CRITICAL RULES FOR ADMISSION ANALYSIS:
+1. DEPARTMENTAL CUT-OFF EXPLICIT GROUNDING:
+   - Extract or search for the exact published or verified estimated competitive benchmark mark / aggregate score for ${course} at ${university} from the grounding search data. Output as percentage or score e.g. "58.5%" or "72.0%".
+2. REALISTIC FRESHER BUDGET:
+   - "fresherBudget" MUST be a realistic, structured, professional cost breakdown for a first-year student at "${university}" in NGN.
+3. STRICT FACULTY BOUNDARY MANDATE:
+   - "alternatives" MUST contain 2 to 4 actual alternative courses offered at ${university} or alternative Nigerian universities matching candidate's written JAMB subjects (${cleanJambSubjects.join(', ')}).
+4. STRATEGIC ADVISEMENT BY STRICT TIER ASSIGNMENT:
+   Compare candidate aggregate (${score}%) directly against cutoff (${cutoffVal}%):
+   - Tier 1: BORDERLINE (Score == Cutoff) -> "Borderline", Probability 50-60%.
+   - Tier 2: STRONG (Score is 1-5.99% above) -> "Strong", Probability 65-79%.
+   - Tier 3: VERY STRONG (Score >= 6% above) -> "Very Strong / Excellent", Probability 80-98%.
+   - Tier 4: BELOW CUTOFF (Score < Cutoff) -> "Low Probability", Probability < 30%.
+5. DETAILED STRATEGY MARKDOWN:
+   Must contain three sections: '### 1. Verdict Summary', '### 2. The Reality Check', and '### 3. Actionable Next Steps'.
 
 - Institution: ${university}
 - Program: ${course}
-- Candidate Aggregate Score: ${score}% (out of 100)
+- Candidate Aggregate Score: ${score}%
 - Pre-Calculated O'Level Points: ${olevelPoints > 0 ? olevelPoints : 'N/A'}
 - Raw JAMB Score: ${jambScore > 0 ? `${jambScore} / 400` : 'Not explicitly provided'}
 - Raw Post-UTME / Screening Score: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : 'N/A or Pending'}
 - O-Level Profile: ${oLevels}
-- JAMB Subjects: ${jambSubjects.join(', ')}
+- JAMB Subjects: ${cleanJambSubjects.join(', ')}
 - Role: ${role || 'Standard'}
 - Uses Post-UTME Exam: ${usesPostUtme ? 'YES' : 'NO'}
-- User Has All Results (Final Score): ${hasAllResults ? 'YES' : 'NO'}
-- O'Level Result is Pending (Awaiting WAEC/NECO): ${oLevelPending ? 'YES' : 'NO'}
-- Post-UTME Exam is Pending: ${isPUtmePending ? 'YES' : 'NO'}
-- Testing Hypothetical / "What-If" Scenarios: ${isTestingHypothetical ? 'YES' : 'NO'}
+- User Has All Results: ${!isAwaitingResult && !isPostUtmePending ? 'YES' : 'NO'}
 - State of Origin: ${stateOfOrigin || 'Not Specified'}
 - Is ELDS State: ${isELDS ? 'YES' : 'NO'}
 - Is Catchment Area Candidate: ${isCatchment ? 'YES' : 'NO'}
-- Quota Discount Applied: ${quotaDiscount}%
-${formulaExplanation ? `- Scoring Formula Context: ${formulaExplanation}` : ''}
 
 Return JSON:
 {
-  "institutionalCutoff": "string (the baseline floor score, e.g. '160')",
-  "departmentalCutoff": "string (CRITICAL GROUNDING REQUIREMENT: Extract or search for the exact published or verified estimated competitive benchmark mark / aggregate score for ${course} at ${university} from the ONLINE GROUNDING DATA or Google Search. Output the exact score or percentage e.g. '58.5%' or '72.0%'. DO NOT default or estimate to 65.0% unless that exact score is explicitly verified for ${course} at ${university}!).",
-  "cutoff": "string (cutoff label/range, e.g. '60.0% - 68.0%')",
-  "mathBreakdown": "string (concise explanation of the calculation of the aggregate)",
+  "institutionalCutoff": "string",
+  "departmentalCutoff": "string",
+  "cutoff": "string",
+  "mathBreakdown": "string",
   "scoreBreakdown": [
-    { "factor": "string (e.g. 'Aggregate')", "impact": "string (e.g. '+18')" },
-    { "factor": "string (e.g. 'Subject Combination')", "impact": "string (e.g. '+12')" },
-    { "factor": "string (e.g. 'Catchment')", "impact": "string (e.g. '-8')" },
-    { "factor": "string (e.g. 'Course Competitiveness')", "impact": "string (e.g. '-6')" }
+    { "factor": "string", "impact": "string" }
   ],
-  "subjectCombinationValidation": { "valid": boolean, "reason": "string" },
-  "reliability": "string ('high' | 'medium' | 'low')",
-  "confidenceReasoning": "string (Explain WHY the confidence is high/medium/low, e.g. 'Official cutoff verified, current Post-UTME ongoing.')",
-  "evidencePanel": [
-    { "type": "string (e.g. 'official_policy' | 'historical_cutoff' | 'prediction')", "value": "string", "sourceUrl": "string (URL or Domain)", "publishedDate": "string", "retrievedDate": "string", "confidenceLevel": "string ('High' | 'Medium' | 'Low')" }
-  ],
-  "recommendation": "string (clear brief strategic advice, maximum 2 sentences, ideal for a quick summary card, tailored to their tier status)",
-  "detailedStrategy": "string (a highly detailed, structured, and scannable admission strategy analysis, containing exactly three markdown sections: '### 1. Verdict Summary', '### 2. The Reality Check', and '### 3. Actionable Next Steps'. Incorporate institution-specific fee details and deadline dates from the extracted online evidence directly into the Actionable Next Steps. E.g., 'UI normally publishes Post-UTME updates on its portal. Registration is currently active with a ₦5,000 fee...'. Match the tone and requirements of the candidate's score tier exactly as instructed: Borderline (Score == Cutoff), Strong (Score is 1-5.99% above), Very Strong / Excellent (Score is >=6% above), or Low Probability (Score < Cutoff).)",
-  "probability": number (estimated percentage chance from 0 to 100),
-  "verdict": "Very Strong / Excellent" | "Strong" | "Borderline" | "Low Probability",
+  "subjectCombinationValidation": { "valid": true, "reason": "string" },
+  "reliability": "high",
+  "confidenceReasoning": "string",
+  "evidencePanel": [],
+  "recommendation": "string",
+  "detailedStrategy": "string",
+  "probability": 75,
+  "verdict": "Strong",
   "alternatives": [{ "name": "string", "typicalCutoff": "string", "reasoning": "string" }],
-  "strengths": ["string (e.g. 'Aggregate above merit', 'Valid subject combination', etc)"],
-  "riskFactors": ["string (e.g. 'Highly competitive department', 'Outside catchment area', etc)"],
-  "isOffered": boolean,
-  "fresherBudget": "string (clean realistic Naira budget breakdown matching modern costs, e.g. 'Estimated Tuition: ₦195,000 | Estimated Acceptance Fee: ₦50,000 | Estimated Hostel/Rent: ₦150,000. Estimated Total: ₦395,000')",
-  "sourcesCited": ["string (valid domain/URL)"],
-  "predictionConfidenceInterval": "string (percentage range, e.g. '60.00% to 75.00%')"
+  "strengths": ["string"],
+  "riskFactors": ["string"],
+  "isOffered": true,
+  "fresherBudget": "string",
+  "sourcesCited": ["string"],
+  "predictionConfidenceInterval": "string"
 }`,
         config: { 
           responseMimeType: "application/json",
-          tools: [{ googleSearch: {} }]
+          thinkingConfig: { thinkingLevel: "HIGH" }
         }
       });
     }, calcDedicatedKey || undefined);
 
     const parsed = safeJsonParse(response.text, {});
-
     if (parsed) {
-      const normalizedUni = university.toLowerCase().trim();
-      const normalizedCourse = course.toLowerCase().trim();
-
-      const commonKeywords = [
-        'accounting', 'accountancy', 'banking', 'finance', 'computer',
-        'medical', 'medicine', 'nursing', 'law', 'legal', 'pharmacy',
-        'economics', 'mass comm', 'business admin', 'biochemistry',
-        'microbiology', 'political sci', 'sociology', 'history',
-        'engineering', 'agriculture', 'architecture'
-      ];
-
-      const isCommonCourse = commonKeywords.some(kw => normalizedCourse.includes(kw));
-      const looksLikeUniOrPoly = normalizedUni.includes('university') ||
-                                 normalizedUni.includes('unilag') ||
-                                 normalizedUni.includes('lasu') ||
-                                 normalizedUni.includes('polytechnic') ||
-                                 normalizedUni.includes('college') ||
-                                 normalizedUni.length < 10;
-
-      if (isCommonCourse && looksLikeUniOrPoly) parsed.isOffered = true;
-
-      try {
-        const availableOptions = await getUniversityCourses(university);
-        const matchesOption = availableOptions.some((c: string) => {
-          const cLower = c.toLowerCase().trim();
-          return cLower === normalizedCourse ||
-                 cLower.includes(normalizedCourse) ||
-                 normalizedCourse.includes(cLower) ||
-                 (cLower.replace(/[^a-z]/g, '') === normalizedCourse.replace(/[^a-z]/g, ''));
-        });
-        if (matchesOption) parsed.isOffered = true;
-      } catch (err) {
-        console.warn("Dynamic custom cross-reference check bypassed:", err);
-      }
-
-      if (manualOverride) {
-        parsed.departmentalCutoff = manualOverride.departmentalCutoff;
-        if (manualOverride.institutionalCutoff) parsed.institutionalCutoff = manualOverride.institutionalCutoff;
-        if (manualOverride.explanation) parsed.cutoff = `${manualOverride.departmentalCutoff} (${manualOverride.explanation})`;
-      }
-
-      // ─── 1. MANDATORY SUBJECT COMBINATION VALIDATION HARD FAILURE GATE ───────────
-      const subjectCheck = validateMandatorySubjects(course, cleanJambSubjects);
-      if (!subjectCheck.valid) {
-        parsed.subjectCombinationValidation = subjectCheck;
-        parsed.probability = 0;
-        parsed.verdict = "Disqualified / Invalid Subject Combination";
-        parsed.recommendation = `CRITICAL JAMB SUBJECT MISMATCH: Your written JAMB subjects (${cleanJambSubjects.join(', ')}) do not meet the compulsory requirements for ${course} at ${university}. ${subjectCheck.reason} You MUST perform an immediate JAMB Change of Course.`;
-        parsed.detailedStrategy = `### 1. Verdict Summary\n- **Verdict Status:** **Disqualified / Invalid Subject Combination**\n- **Admission Probability:** **0%**\n\n### 2. The Reality Check\nYour written JAMB subject combination of **${cleanJambSubjects.join(', ')}** does **NOT** meet the compulsory subject requirements for **${course}** at **${university}**. ${subjectCheck.reason}\n\nUnder official JAMB CAPS regulations, institutional screening algorithms will automatically reject your application due to subject mismatch, regardless of your aggregate score.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Log into your JAMB CAPS portal and change your course choice to a department that strictly accepts your written JAMB subjects (${cleanJambSubjects.join(', ')}).\n*   **Consult JAMB Brochure:** Verify subject requirements for alternative departments before submitting your change of course.\n*   **Verify O'Level Upload:** Confirm your WAEC/NECO grades are uploaded correctly on JAMB CAPS to ensure a smooth transition once you switch to a valid program.`;
-      } else {
-        // ─── DEFENSIVE BACKUPS & TONE ALIGNMENT FOR AI FIELDS ────────────────────────
-        const cutoffStr = parsed.departmentalCutoff || parsed.cutoff || "55";
-        const parsedCutoffMatch = cutoffStr.toString().match(/(\d+(\.\d+)?)/);
-        const parsedCutoffVal = parsedCutoffMatch ? parseFloat(parsedCutoffMatch[1]) : 55;
-
-        const enforced = enforceAdmissionTiers(
-          score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
-          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
+      if (Array.isArray(parsed.alternatives)) {
+        parsed.alternatives = sanitizeAlternativeCourses(
+          parsed.alternatives,
+          course,
+          cleanJambSubjects,
+          university,
+          stateOfOrigin
         );
-        
-        parsed.verdict = enforced.verdict;
-        parsed.probability = enforced.probability;
-
-        const strategyTextLower = String(parsed.detailedStrategy || '').toLowerCase();
-        const recTextLower = String(parsed.recommendation || '').toLowerCase();
-        
-        const isPositiveContradiction = (enforced.probability < 50 || enforced.verdict === "Low Probability" || score < parsedCutoffVal) && (
-          strategyTextLower.includes("strong position") ||
-          strategyTextLower.includes("strong candidate") ||
-          strategyTextLower.includes("excellent position") ||
-          strategyTextLower.includes("winning position") ||
-          strategyTextLower.includes("high probability") ||
-          strategyTextLower.includes("well positioned") ||
-          strategyTextLower.includes("favourable position") ||
-          strategyTextLower.includes("favorable position") ||
-          recTextLower.includes("strong position") ||
-          recTextLower.includes("strong candidate")
-        );
-
-        const isNegativeContradiction = (score >= parsedCutoffVal) && (
-          strategyTextLower.includes("is slightly below") ||
-          strategyTextLower.includes("is below") ||
-          strategyTextLower.includes("below the estimated") ||
-          strategyTextLower.includes("below the departmental") ||
-          strategyTextLower.includes("below the cutoff") ||
-          strategyTextLower.includes("lower than the") ||
-          strategyTextLower.includes("score is below") ||
-          strategyTextLower.includes("deficit of") ||
-          recTextLower.includes("below the") ||
-          recTextLower.includes("below estimated") ||
-          recTextLower.includes("is below")
-        );
-
-        const isContradictory = isPositiveContradiction || isNegativeContradiction;
-
-        if (!parsed.detailedStrategy || parsed.detailedStrategy.trim() === "" || parsed.detailedStrategy === "undefined" || isContradictory || enforced.probability < 40 || (score < parsedCutoffVal && enforced.probability < 50)) {
-          parsed.detailedStrategy = enforced.detailedStrategy;
-          parsed.recommendation = enforced.recommendation;
-        }
-        if (!parsed.recommendation || parsed.recommendation.trim() === "" || parsed.recommendation === "undefined") {
-          parsed.recommendation = enforced.recommendation;
-        }
-
-        if (score >= parsedCutoffVal && parsed.detailedStrategy) {
-          parsed.detailedStrategy = parsed.detailedStrategy
-            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated competitive benchmark of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
-            .replace(/score of \d+(\.\d+)?% is lower than the/gi, `score of ${score}% is higher than the`)
-            .replace(/score is below the/gi, `score clears the`);
-        }
-
-        if (score >= parsedCutoffVal && parsed.recommendation) {
-          parsed.recommendation = parsed.recommendation
-            .replace(/is (slightly |margin(ally)?)?below the (estimated |departmental )?cutoff( of \d+(\.\d+)?%)?/gi, `is slightly above the estimated competitive benchmark of ${parsedCutoffVal}%, but requires a higher merit buffer for non-catchment candidates`)
-            .replace(/score is below the/gi, `score clears the`);
-        }
       }
-
-      // ─── 2. PRIVATE UNIVERSITY QUOTA SANITIZATION ─────────────────────────────
-      const isPrivateUni = ['covenant', 'babcock', 'afe babalola', 'bowen', 'pan-atlantic', 'redeemer', 'lead city', 'nile', 'caleb', 'al-hikmah', 'jabu', 'landmark', 'bells'].some(p => normalizedUni.includes(p));
-      if (isPrivateUni && parsed.detailedStrategy) {
-        // Remove erroneous catchment/ELDS quota references for private universities
-        parsed.detailedStrategy = parsed.detailedStrategy.replace(/under the \*\*(ELDS|Catchment) quota\*\*/gi, 'under general merit evaluation');
-        parsed.detailedStrategy = parsed.detailedStrategy.replace(/Since you are not a catchment candidate/gi, 'As a private university applicant');
-        parsed.detailedStrategy = parsed.detailedStrategy.replace(/strict state quotas/gi, 'competitive merit standards');
-      }
-
-      // ─── 3. SANITIZE ALTERNATIVE COURSE RECOMMENDATIONS ──────────────────────
-      parsed.alternatives = sanitizeAlternativeCourses(
-        parsed.alternatives || [],
-        course,
-        cleanJambSubjects,
-        university,
-        stateOfOrigin
-      );
-
-      // ─── 4. ENRICH MATH BREAKDOWN WITH EXACT RAW SCORES AND PROJECTED LABELS ───
-      const isPendingState = isPostUtmePending || isAwaitingResult;
-      const scoreLabel = isPendingState ? 'Projected Aggregate Score' : 'Aggregate Score';
-      if (jambScore > 0 || postUtmeScore > 0 || score > 0) {
-        const jambPts = jambScore > 0 ? (jambScore / 8).toFixed(1) : 'N/A';
-        const postPts = postUtmeScore > 0 && usesPostUtme ? `${(postUtmeScore * 0.3).toFixed(1)} (from ${postUtmeScore}%)` : (isPostUtmePending ? 'Pending (Projected)' : 'N/A');
-        const olevelSummary = oLevels ? `O'Level: ${oLevels}` : '';
-        parsed.mathBreakdown = `${scoreLabel}: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400 (contributes ~${jambPts} points). Raw Post-UTME: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : (isPostUtmePending ? 'Pending (70/100 projected score)' : 'N/A')}. ${olevelSummary}`;
-      } else if (parsed.mathBreakdown) {
-        const mb = String(parsed.mathBreakdown);
-        if (mb.includes('ewsigen') || mb.includes('lippping') || mb.includes('Oandto') || mb.length > 300) {
-          parsed.mathBreakdown = `${scoreLabel} calculated based on the institution's official screening formula (${university} - ${course}).`;
-        }
-      }
+      saveCachedCourseCutoffInfo(university, cacheKey, parsed).catch(err => {
+        console.error("Failed to cache course cutoff info:", err);
+      });
+      return parsed;
     }
-
-    if (parsed) {
-      if (parsed.detailedStrategy) {
-        parsed.detailedStrategy = formatStrategyMarkdown(parsed.detailedStrategy);
-      }
-      await saveCachedCourseCutoffInfo(university, cacheKey, parsed);
-    }
-
-    return parsed;
+    return fallbackDeterministicResult;
   } catch (e: any) {
     console.error("Gemini API call skipped or failed, returning deterministic foundation:", e);
-    if (typeof fallbackDeterministicResult !== 'undefined') {
+    if (fallbackDeterministicResult) {
       return fallbackDeterministicResult;
     }
-
     const cleanSubjects = Array.isArray(jambSubjects) ? jambSubjects.filter(Boolean) : [];
     const manualOverride = await getCutoffOverride(university, course);
-    let cutoffVal = 55.0;
+    let cutoffVal = extractCutoffFallback(course, null);
     if (manualOverride && manualOverride.departmentalCutoff) {
       const match = manualOverride.departmentalCutoff.toString().match(/(\d+(\.\d+)?)/);
       if (match) cutoffVal = parseFloat(match[1]);
-    } else {
-      const dbMatch = getUniversityFromDB(university);
-      if (dbMatch?.courses?.includes(course)) {
-        cutoffVal = 52.0;
-      }
     }
-
-    const subjectCheck = validateMandatorySubjects(course, cleanSubjects);
-    if (!subjectCheck.valid) {
-      return {
-        departmentalCutoff: `${cutoffVal}%`,
-        institutionalCutoff: "160",
-        cutoff: `${cutoffVal}%`,
-        mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
-        scoreBreakdown: [
-          { factor: "Aggregate", impact: `${score}%` },
-          { factor: "Subject Match", impact: "Invalid" }
-        ],
-        subjectCombinationValidation: subjectCheck,
-        reliability: "medium",
-        confidenceReasoning: "Algorithmic audit completed using official university & JAMB subject requirements.",
-        evidencePanel: [],
-        recommendation: `CRITICAL JAMB SUBJECT MISMATCH: Your written JAMB subjects (${cleanSubjects.join(', ')}) do not meet the compulsory requirements for ${course} at ${university}. ${subjectCheck.reason}`,
-        detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Disqualified / Invalid Subject Combination**\n- **Admission Probability:** **0%**\n\n### 2. The Reality Check\nYour written JAMB subject combination of **${cleanSubjects.join(', ')}** does **NOT** meet the compulsory subject requirements for **${course}** at **${university}**. ${subjectCheck.reason}\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Log into your JAMB CAPS portal and change your course choice to a department that strictly accepts your written JAMB subjects (${cleanSubjects.join(', ')}).\n*   **Consult JAMB Brochure:** Verify subject requirements for alternative departments before submitting your change of course.`,
-        probability: 0,
-        verdict: "Disqualified / Invalid Subject Combination",
-        alternatives: sanitizeAlternativeCourses([], course, cleanSubjects, university, stateOfOrigin),
-        strengths: ["Calculated aggregate score recorded"],
-        riskFactors: ["Invalid JAMB subject combination for chosen department"],
-        isOffered: true,
-        fresherBudget: "Estimated Total: ₦350,000 (Consult official portal for exact fee schedule)",
-        sourcesCited: ['jamb.gov.ng'],
-        predictionConfidenceInterval: "0%"
-      };
-    }
-
     const enforced = enforceAdmissionTiers(
       score, cutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
       isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
     );
-
-    const isPendingState = isPostUtmePending || isAwaitingResult;
-    const scoreLabel = isPendingState ? 'Projected Aggregate Score' : 'Aggregate Score';
-    const mathBreakdown = `${scoreLabel}: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400. Raw Post-UTME: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : (isPostUtmePending ? 'Pending' : 'N/A')}.`;
-
     return {
       departmentalCutoff: `${cutoffVal}%`,
       institutionalCutoff: "160",
       cutoff: `${cutoffVal}%`,
-      mathBreakdown,
+      mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
       scoreBreakdown: [
-        { factor: "Aggregate Score", impact: `${score}%` },
-        { factor: "Cutoff Benchmark", impact: `${cutoffVal}%` }
+        { factor: "Aggregate", impact: `${score}%` },
+        { factor: "Cutoff", impact: `${cutoffVal}%` }
       ],
-      subjectCombinationValidation: subjectCheck,
+      subjectCombinationValidation: validateMandatorySubjects(course, cleanSubjects),
       reliability: "medium",
-      confidenceReasoning: "Calculated using official institutional formula & JAMB competitive benchmarks.",
+      confidenceReasoning: "Fallback algorithmic evaluation applied.",
       evidencePanel: [],
       recommendation: enforced.recommendation,
       detailedStrategy: enforced.detailedStrategy,
       probability: enforced.probability,
       verdict: enforced.verdict,
       alternatives: sanitizeAlternativeCourses([], course, cleanSubjects, university, stateOfOrigin),
-      strengths: score >= cutoffVal ? ["Aggregate score meets competitive benchmark", "Valid subject combination"] : ["Valid subject combination"],
-      riskFactors: score < cutoffVal ? ["Aggregate score below merit cutoff", "High competition"] : ["Quota limits"],
+      strengths: ["Calculated aggregate score recorded"],
+      riskFactors: score < cutoffVal ? ["Aggregate score below merit cutoff"] : [],
       isOffered: true,
       fresherBudget: "Estimated Total: ₦350,000 (Consult official portal for exact fee schedule)",
       sourcesCited: ['jamb.gov.ng'],
@@ -2358,7 +2062,79 @@ Return JSON:
   }
 };
 
-// ─── University Courses ────────────────────────────────────────────────────────
+// ─── Institutional Info & Portals ─────────────────────────────────────────────
+
+export interface UniBio {
+  bio: string;
+  founded: string;
+  motto: string;
+  bestKnownFor: string;
+  campusVibe: string;
+  facultyStudentRatio: string;
+  researchOutput: string;
+  facilities: string[];
+}
+
+export const getUniversityDetailedInfo = async (name: string): Promise<UniBio | null> => {
+  try {
+    const response = await runAIWithFallback(async (ai) => {
+      return await ai.models.generateContent({
+        model: "gemini-flash-latest",
+        contents: `Provide a detailed academic profile for "${name}" in Nigeria updated for the 2026/2027 academic session.
+Return ONLY a JSON object with keys:
+- "bio": concise, engaging institutional summary (2-3 sentences)
+- "founded": year founded (e.g., "1948")
+- "motto": official motto
+- "bestKnownFor": primary academic strength or legacy
+- "campusVibe": description of campus atmosphere and culture
+- "facultyStudentRatio": realistic faculty-to-student ratio (e.g. "1:18")
+- "researchOutput": research impact and innovation summary
+- "facilities": array of 4-6 key campus facilities/centers (strings)`,
+        config: { responseMimeType: "application/json" }
+      });
+    });
+    if (response?.text) {
+      return JSON.parse(response.text);
+    }
+  } catch (e) {
+    console.error("getUniversityDetailedInfo error:", e);
+  }
+  return {
+    bio: `${name} is one of Nigeria's prominent higher educational institutions, committed to academic excellence, research innovation, and societal development.`,
+    founded: "1962",
+    motto: "In Deed and in Truth",
+    bestKnownFor: "Academic Research & Professional Excellence",
+    campusVibe: "Vibrant, academic, and tech-forward campus environment",
+    facultyStudentRatio: "1:22",
+    researchOutput: "High research output with extensive index publications across Faculties.",
+    facilities: ["Main University Library", "ICT Research Hub", "Advanced Science Laboratories", "Sports Complex"]
+  };
+};
+
+export const getPostUtmeDates = async (university: string): Promise<PostUtmeInfo> => {
+  try {
+    const verified = await verifySingleSchoolPostUtme(university);
+    if (verified) {
+      return {
+        status: verified.isOut ? 'Released' : 'Estimated',
+        date: verified.isOut ? (verified.examDate || 'Form Currently Selling') : 'Expected August - September 2026',
+        previousYearDate: 'August 2025',
+        registrationLink: verified.portalLink || undefined,
+        requirements: verified.cutoffScore ? `Minimum JAMB Cut-Off Score: ${verified.cutoffScore}. ${verified.eligibilityText || verified.details || ''}` : (verified.eligibilityText || '5 O-Level Credits in relevant subjects including Mathematics and English.')
+      };
+    }
+  } catch (e) {
+    console.error("getPostUtmeDates error:", e);
+  }
+  return {
+    status: 'Estimated',
+    date: 'Expected August - September 2026',
+    previousYearDate: 'August 2025',
+    requirements: '5 O-Level Credits in relevant subjects including Mathematics and English, plus meeting official institution UTME cut-off mark.'
+  };
+};
+
+// ─── Cutoff Calculator ─────────────────────────────────────────────────────────
 
 export const getUniversityCourses = async (institution: string): Promise<string[]> => {
   try {

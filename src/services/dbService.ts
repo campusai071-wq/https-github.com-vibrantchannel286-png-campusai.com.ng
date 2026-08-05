@@ -1384,6 +1384,24 @@ export const getAllCutoffOverrides = async (): Promise<CutoffOverride[]> => {
   }
 };
 
+export const getPostUtmeReleasesFull = async (): Promise<{ releases: any[]; updatedAt: any } | null> => {
+  if (!db) return null;
+  try {
+    const snap = await getDoc(doc(db, "settings", "post_utme_releases"));
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        releases: data.releases || [],
+        updatedAt: data.updatedAt || null
+      };
+    }
+    return null;
+  } catch (e) {
+    console.warn("Error fetching full Post-UTME releases:", e);
+    return null;
+  }
+};
+
 export const getPostUtmeReleases = async (): Promise<any[] | null> => {
   if (!db) return null;
   try {

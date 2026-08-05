@@ -3117,6 +3117,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   </div>
                   {sittings === 2 && (
                     <div>
+                      <p className="text-[9px] text-amber-400 font-bold mb-2">Note: Enter your combined best 5 subjects across both sittings.</p>
                       <label className="text-[7px] font-black uppercase text-gray-500 tracking-widest mb-1 block">Sitting 2 Exam Board</label>
                       <select
                         value={examBoard2}

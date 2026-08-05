@@ -3,11 +3,23 @@ import { collection, getDocs, doc, getDoc, setDoc, query, where, Timestamp } fro
 import { MasterCourse, AdmissionInstitution, AdmissionRequirementOverride, AdmissionArticle } from '../types';
 import { slugify } from './utils';
 import { handleFirestoreError, OperationType } from './firestoreUtils';
+import { JAMB_KNOWLEDGE_BASE } from '../data/jambKnowledgeBase';
 
 const COURSES_COL = 'master_courses';
 const INSTITUTIONS_COL = 'admission_institutions';
 const OVERRIDES_COL = 'admission_requirement_overrides';
 const ARTICLES_COL = 'admission_articles';
+
+// Simple in-memory cache to prevent excessive API calls
+let cachedMasterCourses: MasterCourse[] | null = null;
+let cachedInstitutions: AdmissionInstitution[] | null = null;
+let cachedAdmissionArticles: AdmissionArticle[] | null = null;
+
+let lastMasterCoursesFetch = 0;
+let lastInstitutionsFetch = 0;
+let lastArticlesFetch = 0;
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache duration
+
 
 export const DEFAULT_MASTER_COURSES: MasterCourse[] = [
   {
@@ -183,7 +195,69 @@ export const DEFAULT_ADMISSION_ARTICLES: AdmissionArticle[] = [
     institution: 'JAMB CAPS',
     keywords: ['caps', 'transfer', 'acceptance', 'jamb portal'],
     updatedAt: null
-  }
+  },
+  {
+    id: 'jamb_result_slip',
+    slug: 'jamb-result-slip',
+    title: 'JAMB Official Original Result Slip Printing Guide',
+    category: 'Examination Results',
+    summary: 'The Official Original JAMB Result Slip features your passport photograph, detailed subject scores, and institution choices. It is a mandatory document required for Post-UTME screening, physical clearance, and university registration.',
+    content: '### Detailed Overview of JAMB Original Result Slip\n\nEvery candidate who sat for the Unified Tertiary Matriculation Examination (UTME) must print their original result slip from the JAMB e-Facility portal. Unlike the free notification of result, the Original Result Slip is a security-enabled document with a barcode, passport photograph, and watermarked security background.\n\n### Requirements for Printing\n1. A device with internet access.\n2. Your JAMB Registration Number.\n3. A valid payment card or internet banking options.\n4. A PDF reader and a standard printer (color printing is highly recommended).',
+    steps: [
+      'Log into your JAMB e-Facility account via (https://efacility.jamb.gov.ng) using your registered email and password.',
+      'On the e-Facility dashboard, locate and click on the "Print Result Slip" service card.',
+      'Select your examination year and input your JAMB Registration Number in the provided field.',
+      'Click on "Pay with Remita" or your preferred payment method. The official cost is ₦1,700 plus merchant processing fees.',
+      'Complete the payment transaction. Once approved, you will be redirected back to the JAMB portal.',
+      'Click on the "Print Result Slip" button to generate and download your official PDF result slip.',
+      'Open the PDF and print it in full color. It is highly recommended to print at least 3 extra copies for your screening files.'
+    ],
+    important_dates: [
+      { event: 'Result Release Date', date: 'Usually 4-7 days after UTME completion' },
+      { event: 'Printing Period', date: 'Available throughout the admission cycle' }
+    ],
+    fees: [
+      { purpose: 'Official JAMB Portal Fee', amount: '₦1,700' },
+      { purpose: 'Cyber Cafe / Printing Fee (Optional)', amount: '₦200 - ₦500' }
+    ],
+    faq: [
+      {
+        q: 'Can I print my JAMB result slip more than once?',
+        a: 'Yes. Once you pay the ₦1,700 fee on the e-Facility portal, you can log back in and download/print the PDF as many times as you want without paying again.'
+      },
+      {
+        q: 'Is a colored printout mandatory?',
+        a: 'Yes, most universities and polytechnics require a colored printout for physical clearance so that your passport photograph is clearly visible.'
+      },
+      {
+        q: 'What if I forgot my e-Facility login details?',
+        a: 'You can use the "Forgot Password" link on the login page or retrieve them using your JAMB registered SMS code or visiting any JAMB CBT center.'
+      }
+    ],
+    last_verified: 'August 2026',
+    next_review: 'November 2026',
+    version: 1,
+    official_sources: ['https://efacility.jamb.gov.ng', 'https://www.jamb.gov.ng'],
+    institution: 'Joint Admissions and Matriculation Board (JAMB)',
+    keywords: ['result slip', 'jamb slip', 'original result', 'printing', 'efacility', 'fees'],
+    updatedAt: null
+  },
+  ...JAMB_KNOWLEDGE_BASE.filter(doc => doc.id !== 'jamb_result_slip').map(doc => ({
+    id: doc.id,
+    slug: doc.id,
+    title: doc.title,
+    category: doc.category,
+    institution: doc.organization,
+    summary: doc.summary,
+    content: (doc.steps ? '### Steps\n' + doc.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') + '\n\n' : '') + 
+             (doc.requirements ? '### Requirements\n' + doc.requirements.map(r => `- ${r}`).join('\n') + '\n\n' : '') +
+             (doc.important_notes ? '### Important Notes\n' + doc.important_notes.map(n => `- ${n}`).join('\n') : ''),
+    steps: doc.steps,
+    requirements: doc.requirements,
+    official_sources: doc.official_source ? [doc.official_source] : undefined,
+    keywords: [doc.category.toLowerCase(), ...(doc.subcategory ? [doc.subcategory.toLowerCase()] : [])],
+    last_verified: doc.last_verified
+  }))
 ];
 
 export const admissionsService = {
@@ -192,10 +266,16 @@ export const admissionsService = {
    */
   getAllMasterCourses: async (): Promise<MasterCourse[]> => {
     if (!db) return DEFAULT_MASTER_COURSES;
+    if (cachedMasterCourses && (Date.now() - lastMasterCoursesFetch < CACHE_TTL)) {
+      return cachedMasterCourses;
+    }
     try {
       const snap = await getDocs(collection(db, COURSES_COL));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as MasterCourse));
-      return list.length > 0 ? list : DEFAULT_MASTER_COURSES;
+      const result = list.length > 0 ? list : DEFAULT_MASTER_COURSES;
+      cachedMasterCourses = result;
+      lastMasterCoursesFetch = Date.now();
+      return result;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, COURSES_COL);
       return DEFAULT_MASTER_COURSES;
@@ -225,10 +305,16 @@ export const admissionsService = {
    */
   getAllInstitutions: async (): Promise<AdmissionInstitution[]> => {
     if (!db) return DEFAULT_INSTITUTIONS;
+    if (cachedInstitutions && (Date.now() - lastInstitutionsFetch < CACHE_TTL)) {
+      return cachedInstitutions;
+    }
     try {
       const snap = await getDocs(collection(db, INSTITUTIONS_COL));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionInstitution));
-      return list.length > 0 ? list : DEFAULT_INSTITUTIONS;
+      const result = list.length > 0 ? list : DEFAULT_INSTITUTIONS;
+      cachedInstitutions = result;
+      lastInstitutionsFetch = Date.now();
+      return result;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, INSTITUTIONS_COL);
       return DEFAULT_INSTITUTIONS;
@@ -442,10 +528,24 @@ export const admissionsService = {
 
   getAllAdmissionArticles: async (): Promise<AdmissionArticle[]> => {
     if (!db) return DEFAULT_ADMISSION_ARTICLES;
+    if (cachedAdmissionArticles && (Date.now() - lastArticlesFetch < CACHE_TTL)) {
+      return cachedAdmissionArticles;
+    }
     try {
       const snap = await getDocs(collection(db, ARTICLES_COL));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as AdmissionArticle));
-      return list.length > 0 ? list : DEFAULT_ADMISSION_ARTICLES;
+      
+      const listIds = new Set(list.map(item => item.id));
+      const result = [...list];
+      for (const defaultArt of DEFAULT_ADMISSION_ARTICLES) {
+        if (!listIds.has(defaultArt.id)) {
+          result.push(defaultArt);
+        }
+      }
+      
+      cachedAdmissionArticles = result;
+      lastArticlesFetch = Date.now();
+      return result;
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, ARTICLES_COL);
       return DEFAULT_ADMISSION_ARTICLES;

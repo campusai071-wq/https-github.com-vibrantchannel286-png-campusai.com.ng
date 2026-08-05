@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap } from 'lucide-react';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
 import { searchWebRaw, SearchResultItem } from '../services/searchService';
@@ -18,9 +18,10 @@ interface NavbarProps {
   onInviteEarnRequest: () => void;
   theme?: 'light' | 'dark';
   onThemeToggle?: () => void;
+  onOpenSidebar?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, theme, onThemeToggle }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, theme, onThemeToggle, onOpenSidebar }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [asuuStatus, setAsuuStatus] = useState<string | null>(null);
@@ -55,8 +56,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   const navItems = [
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
     { name: 'Admissions', icon: <GraduationCap size={18} />, id: 'admissions' },
+    { name: 'Portals', icon: <Landmark size={18} />, id: 'universities' },
     { name: 'Syllabus', icon: <BookOpen size={18} />, id: 'syllabus' },
     { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },
+    { name: 'CGPA Studio', icon: <Calculator size={18} />, id: 'cgpa-calculator' },
     { name: 'Result Slip', icon: <ShieldCheck size={18} />, id: 'result-slip' },
     { name: 'Checklist', icon: <FileCheck size={18} />, id: 'checklist' },
     { name: 'Latest News', icon: <Newspaper size={18} />, id: 'jamb' },
@@ -86,25 +89,42 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
         : 'bg-gray-950 py-6 text-white'
     }`}>
       <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
-        <div className="flex flex-col items-start cursor-pointer group" onClick={() => { onNavigate('home'); setIsMobileMenuOpen(false); }}>
-          <span className={`text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
-            Campus
-            <span className="inline-flex items-center justify-center mx-0.5 text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-              <Brain size={22} className="fill-cyan-400/20 text-cyan-400 stroke-[2.5]" />
+        <div className="flex items-center gap-3.5">
+          {onOpenSidebar && (
+            <button
+              onClick={onOpenSidebar}
+              className={`p-2.5 rounded-xl transition-all ${
+                isScrolled 
+                  ? 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800' 
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+              title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={20} />
+            </button>
+          )}
+
+          <div className="flex flex-col items-start cursor-pointer group" onClick={() => { onNavigate('home'); setIsMobileMenuOpen(false); }}>
+            <span className={`text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
+              Campus
+              <span className="inline-flex items-center justify-center mx-0.5 text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                <Brain size={22} className="fill-cyan-400/20 text-cyan-400 stroke-[2.5]" />
+              </span>
+              AI<span className="text-cyan-400 font-extrabold">.ng</span>
             </span>
-            AI<span className="text-cyan-400 font-extrabold">.ng</span>
-          </span>
-          <div className="flex flex-wrap items-center mt-0.5 gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>
-                {asuuStatus || 'Active Session'}
+            <div className="flex flex-wrap items-center mt-0.5 gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>
+                  {asuuStatus || 'Active Session'}
+                </span>
+              </div>
+              <span className={`text-[7px] font-black uppercase tracking-widest opacity-40 ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>•</span>
+              <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-blue-600 dark:text-cyan-400' : 'text-cyan-300'}`}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
-            <span className={`text-[7px] font-black uppercase tracking-widest opacity-40 ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>•</span>
-            <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-blue-600 dark:text-cyan-400' : 'text-cyan-300'}`}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
           </div>
         </div>
 

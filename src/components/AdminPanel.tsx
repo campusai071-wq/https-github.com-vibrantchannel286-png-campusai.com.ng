@@ -801,12 +801,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleFixFutureDates = async () => {
     const todayStr      = getNigerianDateStr();
     const todayMidnight = getNigerianMidnight();
+    console.log("handleFixFutureDates", { todayStr, todayMidnight });
     const futureNews    = publishedNews.filter(n => {
+      if (!n.date) return false;
       const t = new Date(n.date).getTime();
-      return !isNaN(t) && t > todayMidnight;
+      console.log("News item", n.title, n.date, t);
+      // Detect if date is visually a future string compared to today
+      const isFutureString = n.date > todayStr && n.date.includes("2026-");
+      return (!isNaN(t) && t > todayMidnight + 86400000) || isFutureString;
     });
 
-    if (!futureNews.length) { alert("No future dates detected."); return; }
+    console.log("futureNews count", futureNews.length);
+    if (!futureNews.length) { alert("No future dates detected (beyond today)."); return; }
     if (!window.confirm(`Reset ${futureNews.length} future-dated articles to ${todayStr}?`)) return;
 
     setIsContentLoading(true);
@@ -814,6 +820,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       for (const item of futureNews) await updateNewsItem(item.id, { date: todayStr });
       await loadInitialData();
       alert(`Successfully reset ${futureNews.length} dates.`);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to fix future dates.");
     } finally { setIsContentLoading(false); }
   };
 
@@ -1643,10 +1652,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* ── CONTENT TAB ── */}
               {activeTab === 'content' && (
                 <div className="space-y-8">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Newspaper size={14} /> Feed Manager</h3>
-                    <div className="flex gap-4 items-center">
-                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center items-start">
+                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl shrink-0">
                         <button 
                           onClick={() => setNewsFilter('live')}
                           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${newsFilter === 'live' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}
@@ -1663,10 +1672,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           )}
                         </button>
                       </div>
-                      <div className="flex gap-2 flex-wrap border-l border-gray-200 dark:border-gray-800 pl-4">
-                        <button onClick={handlePurgeAllNews} disabled={isContentLoading} className="px-4 py-2 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 active:scale-95"><Trash2 size={12} /> Purge</button>
-                        <button onClick={handleSyncLiveNews} disabled={isContentLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2">
+
+                      <div className="flex gap-2 flex-wrap sm:border-l sm:border-gray-200 dark:sm:border-gray-800 sm:pl-4">
+                        <button onClick={handlePurgeAllNews} disabled={isContentLoading} className="px-3 py-2 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1 active:scale-95"><Trash2 size={12} /> Purge</button>
+                        <button onClick={handleFixFutureDates} disabled={isContentLoading} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1 active:scale-95"><Clock size={12} /> Fix Future</button>
+                        <button onClick={handleSyncLiveNews} disabled={isContentLoading} className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1">
                           {isContentLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} AI Sync
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAIBlogForm(!showAIBlogForm);
+                            setShowPostForm(false);
+                            setAiGeneratedPost(null);
+                          }}
+                          className="px-3 py-2 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1"
+                        >
+                          <Sparkles size={12} /> AI Blog
                         </button>
                         <button
                           onClick={() => {
@@ -1676,7 +1697,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             setShowPostForm(!showPostForm);
                             setShowAIBlogForm(false);
                           }}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase"
+                          className="px-3 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase"
                         >
                           {showPostForm ? 'Cancel' : 'Manual'}
                         </button>
@@ -1781,7 +1802,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             disabled={isAIGenerating}
                             onKeyDown={e => { if (e.key === 'Enter') handleGenerateAIBlog(); }}
                           />
-                          <button 
+                          {/* <button 
                             onClick={handleGenerateAIBlog} 
                             disabled={isAIGenerating || !aiBlogQuery.trim()}
                             className="px-6 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2"
@@ -1797,7 +1818,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 Generate
                               </>
                             )}
-                          </button>
+                          </button> */}
                         </div>
 
                         {aiGeneratedPost && (

@@ -4,7 +4,12 @@ import { Search, BookOpen, School, AlertCircle, Info, CheckCircle2, ChevronRight
 import { admissionsService } from '../services/admissionsService';
 import { MasterCourse, AdmissionInstitution, AdmissionRequirementOverride, AdmissionArticle } from '../types';
 
-const AdmissionsExplorer: React.FC = () => {
+interface AdmissionsExplorerProps {
+  initialArticleId?: string;
+  initialTab?: 'articles' | 'courses' | 'institutions';
+}
+
+const AdmissionsExplorer: React.FC<AdmissionsExplorerProps> = ({ initialArticleId, initialTab }) => {
   const [courses, setCourses] = useState<MasterCourse[]>([]);
   const [institutions, setInstitutions] = useState<AdmissionInstitution[]>([]);
   const [articles, setArticles] = useState<AdmissionArticle[]>([]);
@@ -15,6 +20,22 @@ const AdmissionsExplorer: React.FC = () => {
   const [overrides, setOverrides] = useState<AdmissionRequirementOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'articles' | 'courses' | 'institutions'>('articles');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (initialArticleId && articles.length > 0) {
+      const art = articles.find(a => a.id === initialArticleId || a.slug === initialArticleId);
+      if (art) {
+        setSelectedArticle(art);
+        setActiveTab('articles');
+      }
+    }
+  }, [initialArticleId, articles]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,9 +152,9 @@ const AdmissionsExplorer: React.FC = () => {
                   <div key={i} className="h-16 bg-gray-800/50 rounded-2xl animate-pulse" />
                 ))
               ) : activeTab === 'articles' ? (
-                filteredArticles.map(article => (
+                filteredArticles.map((article, index) => (
                   <button
-                    key={article.id}
+                    key={`${article.id}-${index}`}
                     onClick={() => { setSelectedArticle(article); setSelectedCourse(null); setSelectedInstitution(null); }}
                     className={`w-full text-left p-4 rounded-2xl transition-all group border ${selectedArticle?.id === article.id ? 'bg-indigo-600/10 border-indigo-500/50' : 'bg-gray-950/50 border-gray-800/50 hover:border-gray-700 hover:bg-gray-800/50'}`}
                   >
@@ -145,9 +166,9 @@ const AdmissionsExplorer: React.FC = () => {
                   </button>
                 ))
               ) : activeTab === 'courses' ? (
-                filteredCourses.map(course => (
+                filteredCourses.map((course, index) => (
                   <button
-                    key={course.id}
+                    key={`${course.id}-${index}`}
                     onClick={() => { setSelectedCourse(course); setSelectedArticle(null); }}
                     className={`w-full text-left p-4 rounded-2xl transition-all group border ${selectedCourse?.id === course.id ? 'bg-blue-600/10 border-blue-500/50' : 'bg-gray-950/50 border-gray-800/50 hover:border-gray-700 hover:bg-gray-800/50'}`}
                   >
@@ -156,9 +177,9 @@ const AdmissionsExplorer: React.FC = () => {
                   </button>
                 ))
               ) : (
-                filteredInstitutions.map(inst => (
+                filteredInstitutions.map((inst, index) => (
                   <button
-                    key={inst.id}
+                    key={`${inst.id}-${index}`}
                     onClick={() => { setSelectedInstitution(inst); setSelectedArticle(null); }}
                     className={`w-full text-left p-4 rounded-2xl transition-all group border ${selectedInstitution?.id === inst.id ? 'bg-emerald-600/10 border-emerald-500/50' : 'bg-gray-950/50 border-gray-800/50 hover:border-gray-700 hover:bg-gray-800/50'}`}
                   >

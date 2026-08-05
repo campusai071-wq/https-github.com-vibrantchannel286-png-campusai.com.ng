@@ -46,7 +46,7 @@ export const FormulasTab: React.FC = () => {
       <h3 className="text-xs font-black uppercase text-gray-400">Manage Institutional Formulas</h3>
       <label htmlFor="manage-uni-select" className="sr-only">Select University</label>
       <select id="manage-uni-select" value={selectedUni} onChange={e => setSelectedUni(e.target.value)} className="w-full p-2 bg-gray-100 rounded-lg">
-        {universities.map(u => <option key={u.slug} value={u.slug}>{u.name}</option>)}
+        {universities.map((u, index) => <option key={`${u.slug}-${index}`} value={u.slug}>{u.name}</option>)}
       </select>
       <input value={formula} onChange={e => setFormula(e.target.value)} placeholder="Formula (e.g., 50:10:40)" className="w-full p-2 bg-gray-100 rounded-lg" />
       <textarea value={explanation} onChange={e => setExplanation(e.target.value)} placeholder="Explanation" className="w-full p-2 bg-gray-100 rounded-lg" />

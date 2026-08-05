@@ -6,6 +6,7 @@ import NewsGrid from './NewsGrid';
 import PolicySection from './PolicySection';
 import RecentActivity from './RecentActivity';
 import FAQSection from './FAQSection';
+import PostUtmeTrackerSection from './PostUtmeTrackerSection';
 import { FileCheck, ArrowRight } from 'lucide-react';
 
 import { motion } from 'framer-motion';
@@ -72,9 +73,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
         )}
       </div>
 
-      <div className="container mx-auto px-4 md:px-8 mb-16 mt-16 max-w-5xl space-y-8">
+      <div className="container mx-auto px-4 md:px-8 mb-16 mt-16 max-w-6xl space-y-12">
         {user && <RecentActivity userId={user?.uid || null} />}
         
+        {/* Live Post-UTME Release Tracker Section directly on Dashboard */}
+        <PostUtmeTrackerSection 
+          compact={true}
+          onNavigateToFullHub={() => {
+            navigate('/admissions');
+            window.scrollTo(0, 0);
+          }}
+          onSelectSchool={(schoolName) => {
+            navigate('/universities', { state: { search: schoolName } });
+            window.scrollTo(0, 0);
+          }}
+        />
+
         {/* Admission Clearance Banner Teaser */}
         <div className="bg-gradient-to-r from-blue-900/40 via-indigo-950/40 to-gray-900/40 border border-blue-500/20 rounded-[28px] p-6 md:p-8 text-left relative overflow-hidden shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">

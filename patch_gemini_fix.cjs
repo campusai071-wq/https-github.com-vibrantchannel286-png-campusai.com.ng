@@ -17,11 +17,9 @@ function estimateCompetitiveCutoff(course: string): number {
 }
 `;
 
-// Insert the function at the top
-code = code.replace("import { GoogleGenAI } from '@google/genai';", "import { GoogleGenAI } from '@google/genai';\n" + getEstimatedCutoff);
-
-// Replace let cutoffVal = 55.0; with let cutoffVal = estimateCompetitiveCutoff(course);
-code = code.replace(/let cutoffVal = 55\.0;/g, "let cutoffVal = estimateCompetitiveCutoff(course);");
+if (!code.includes('estimateCompetitiveCutoff')) {
+    code = code.replace("import { generateContent } from \"./aiService\";", "import { generateContent } from \"./aiService\";\n" + getEstimatedCutoff);
+}
 
 fs.writeFileSync('src/services/geminiService.ts', code);
-console.log("Patched geminiService.ts");
+console.log("Patched geminiService.ts properly");
