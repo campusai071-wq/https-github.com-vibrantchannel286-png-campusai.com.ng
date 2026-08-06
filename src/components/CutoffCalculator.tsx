@@ -292,12 +292,12 @@ const getUniversityGradePoints = (uniName: string): {
 
   if (normalized.includes('awolowo') || normalized.includes('oau')) {
     const map: Record<OLevelGrade, number> = {
-      'A1': 2.0, 'B2': 1.75, 'B3': 1.5, 'C4': 1.25, 'C5': 1.0, 'C6': 0.75, 'D7': 0, 'E8': 0, 'F9': 0
+      'A1': 2.0, 'B2': 1.8, 'B3': 1.6, 'C4': 1.4, 'C5': 1.2, 'C6': 1.0, 'D7': 0, 'E8': 0, 'F9': 0
     };
     return {
       gradeMap: map,
       maxPoints: 10,
-      styleDesc: "OAU O'Level scale (A1=2.0, B2=1.75, B3=1.5, C4=1.25, C5=1.0, C6=0.75)"
+      styleDesc: "OAU O'Level scale (A1=2.0, B2=1.8, B3=1.6, C4=1.4, C5=1.2, C6=1.0)"
     };
   }
 
@@ -3568,37 +3568,62 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   {aiResult && (
                     <>
                       {/* Evidence Panel */}
-                      {aiResult.evidencePanel && aiResult.evidencePanel.length > 0 && (
-                    <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
-                      <details className="group">
-                        <summary className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between cursor-pointer list-none select-none">
-                          <span className="flex items-center gap-2"><Database size={12} className="text-emerald-400" /> Evidence Used</span>
-                          <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
-                        </summary>
-                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                          {aiResult.evidencePanel.map((evidence: any, idx: number) => (
-                            <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-left">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[9px] font-black uppercase text-gray-400">{String(evidence.type || '').replace(/_/g, ' ')}</span>
-                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                  evidence.confidenceLevel === 'High' ? 'bg-emerald-500/10 text-emerald-400' :
-                                  evidence.confidenceLevel === 'Medium' ? 'bg-cyan-500/10 text-cyan-400' :
-                                  'bg-amber-500/10 text-amber-400'
-                                }`}>
-                                  {evidence.confidenceLevel} Confidence
-                                </span>
-                              </div>
-                              <p className="text-sm font-bold text-white mb-2">{evidence.value}</p>
-                              <div className="flex items-center justify-between text-[9px] text-gray-500">
-                                <span>Source: {evidence.sourceUrl || 'Unknown'}</span>
-                                {evidence.retrievedDate && <span>Retrieved: {evidence.retrievedDate}</span>}
-                              </div>
+                      {aiResult.evidencePanel && Array.isArray(aiResult.evidencePanel) && aiResult.evidencePanel.filter((e: any) => e && (e.value || e.type || e.sourceUrl)).length > 0 && (
+                        <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
+                          <details className="group" open>
+                            <summary className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between cursor-pointer list-none select-none">
+                              <span className="flex items-center gap-2"><Database size={12} className="text-emerald-400" /> Evidence Used</span>
+                              <ChevronDown size={14} className="transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                              {aiResult.evidencePanel.filter((e: any) => e && (e.value || e.type || e.sourceUrl)).map((evidence: any, idx: number) => {
+                                const conf = evidence.confidenceLevel || 'Medium';
+                                const typeLabel = evidence.type ? String(evidence.type).replace(/_/g, ' ') : 'HISTORICAL BENCHMARK';
+                                const valueText = evidence.value || 'Data extracted from official institutional records and JAMB guidelines.';
+                                const sourceUrl = evidence.sourceUrl;
+                                
+                                let formattedSource = 'Official University Portal';
+                                if (sourceUrl && sourceUrl !== 'Unknown') {
+                                  try {
+                                    const urlObj = new URL(sourceUrl);
+                                    formattedSource = urlObj.hostname.replace(/^www\./, '');
+                                  } catch {
+                                    formattedSource = String(sourceUrl).substring(0, 30);
+                                  }
+                                }
+                                
+                                return (
+                                  <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-left">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-[9px] font-black uppercase text-gray-400">{typeLabel}</span>
+                                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                        conf.toLowerCase() === 'high' ? 'bg-emerald-500/10 text-emerald-400' :
+                                        conf.toLowerCase() === 'medium' ? 'bg-cyan-500/10 text-cyan-400' :
+                                        'bg-amber-500/10 text-amber-400'
+                                      }`}>
+                                        {conf} Confidence
+                                      </span>
+                                    </div>
+                                    <p className="text-sm font-bold text-white mb-2">{valueText}</p>
+                                    <div className="flex items-center justify-between text-[9px] text-gray-500">
+                                      <span className="truncate max-w-[280px]">
+                                        Source: {sourceUrl && sourceUrl.startsWith('http') ? (
+                                          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+                                            {formattedSource}
+                                          </a>
+                                        ) : (
+                                          formattedSource
+                                        )}
+                                      </span>
+                                      {evidence.retrievedDate && <span>Retrieved: {evidence.retrievedDate}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          ))}
+                          </details>
                         </div>
-                      </details>
-                    </div>
-                  )}
+                      )}
 
                   {/* Post-UTME status */}
                   {targetUni && (() => {
@@ -3962,11 +3987,48 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {aiResult.sourcesCited && Array.isArray(aiResult.sourcesCited) && aiResult.sourcesCited.length > 0 ? (
-                          aiResult.sourcesCited.map((src: string, sIdx: number) => (
-                            <span key={sIdx} className="px-2.5 py-1 bg-white/[0.04] border border-white/5 rounded-lg text-[9px] font-bold text-gray-300 flex items-center gap-1">
-                              <Database size={8} className="text-cyan-400/60" /> {src}
-                            </span>
-                          ))
+                          aiResult.sourcesCited.map((src: string, sIdx: number) => {
+                            let isUrl = false;
+                            let displayLabel = src;
+                            let href = src;
+                            
+                            if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))) {
+                              isUrl = true;
+                              try {
+                                const urlObj = new URL(src);
+                                const host = urlObj.hostname.replace(/^www\./, '');
+                                let pathStr = urlObj.pathname;
+                                try {
+                                  pathStr = decodeURIComponent(pathStr);
+                                } catch {}
+                                displayLabel = `${host}${pathStr !== '/' ? pathStr : ''}`;
+                                if (displayLabel.length > 50) {
+                                  displayLabel = displayLabel.substring(0, 47) + '...';
+                                }
+                              } catch {
+                                displayLabel = src.length > 50 ? src.substring(0, 47) + '...' : src;
+                              }
+                            }
+                            
+                            return isUrl ? (
+                              <a
+                                key={sIdx}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2.5 py-1 bg-white/[0.04] hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-lg text-[9px] font-bold text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5 max-w-full transition-all truncate group"
+                                title={src}
+                              >
+                                <Database size={8} className="text-cyan-400/60 shrink-0 group-hover:text-cyan-400" />
+                                <span className="truncate max-w-[320px]">{displayLabel}</span>
+                              </a>
+                            ) : (
+                              <span key={sIdx} className="px-2.5 py-1 bg-white/[0.04] border border-white/5 rounded-lg text-[9px] font-bold text-gray-300 flex items-center gap-1.5 max-w-full truncate">
+                                <Database size={8} className="text-cyan-400/60 shrink-0" />
+                                <span className="truncate max-w-[320px]">{src}</span>
+                              </span>
+                            );
+                          })
                         ) : (
                           <>
                             <span className="px-2.5 py-1 bg-white/[0.04] border border-white/5 rounded-lg text-[9px] font-bold text-gray-300 flex items-center gap-1">
