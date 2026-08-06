@@ -1701,448 +1701,379 @@ app.post("/api/gemini", async (req: any, res: any) => {
     params.generationConfig = genCfg;
   }
 
-  // Create an intelligent pool of candidate API keys to try
-  const rawPool = getGeminiKeys();
-  
-  // Append the client-supplied apiKey if it's not already in the pool
-  if (apiKey && apiKey.trim()) {
-    const trimmed = apiKey.trim();
-    if ((trimmed.startsWith('AIzaSy') || trimmed.startsWith('AQ.')) && !rawPool.includes(trimmed)) {
-      rawPool.push(trimmed);
-    }
-  }
-
-  // Filter out blacklisted keys
-  const now = Date.now();
-  const keysPoolFiltered = rawPool.filter(k => {
-    const blacklistInfo = blacklistedKeys.get(k);
-    if (!blacklistInfo) return true;
-    if (blacklistInfo.until < now) {
-      blacklistedKeys.delete(k); // expired, remove from blacklist
-      return true;
-    }
-    return false;
-  });
-
-  // If ALL keys are blacklisted, fall back to trying all keys anyway
-  const keysPool = keysPoolFiltered.length > 0 ? keysPoolFiltered : rawPool;
-  
-  const requestedModel = (params?.model || "unknown").replace(/^models\//, "");
-  console.log(`[API Gemini] Request received. Keys in pool: ${keysPool.length}. Model: ${requestedModel}`);
-  
-  // Map deprecated/unsupported models to modern ones
-  let modelToTry = requestedModel;
-  if (modelToTry.includes("flash")) {
-    modelToTry = "gemini-flash-latest"; 
-  } else if (modelToTry.includes("pro")) {
-    modelToTry = "gemini-3.1-pro-preview";
-  } else {
-    modelToTry = "gemini-flash-latest"; // Default to latest flash
-  }
-
-  // Create a priority list of models to try
-  const modelPool = [modelToTry];
-  if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
-
-  let lastErr: any = null;
   let successResult: any = null;
 
-  // ─── 1. TRY PRIMARY GEMINI PROVIDERS FIRST ───
+  // ─── 1. TRY PRIMARY NON-GEMINI PROVIDERS FIRST (GROQ, OPENROUTER, NVIDIA, MISTRAL, COHERE) ───
+  let messages: any[] = [];
+  if (params?.systemInstruction) {
+    messages.push({ role: 'system', content: params.systemInstruction });
+  }
+
+  if (params && params.contents) {
+    if (typeof params.contents === "string") {
+      messages.push({ role: 'user', content: params.contents });
+    } else if (Array.isArray(params.contents)) {
+      params.contents.forEach((turn: any) => {
+        const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
+        let contentText = "";
+        if (Array.isArray(turn.parts)) {
+          contentText = turn.parts.map((p: any) => p.text || "").join(" ");
+        } else if (typeof turn.parts === "string") {
+          contentText = turn.parts;
+        } else if (turn.text) {
+          contentText = turn.text;
+        }
+        if (contentText) {
+          messages.push({ role, content: contentText });
+        }
+      });
+    }
+  }
+
+  const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" || 
+                          params?.responseMimeType === "application/json" ||
+                          (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
+
+  // Truncate messages if too long
+  let totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
+  if (totalLength > 30000) {
+    console.warn(`[API Gemini Proxy] Messages too long (${totalLength} chars). Truncating for primary providers...`);
+    messages.forEach(m => {
+      if (m.content && m.content.length > 10000) {
+        m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
+      }
+    });
+    totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
+    if (totalLength > 30000) {
+      messages = [messages[messages.length - 1]];
+      if (messages[0].content && messages[0].content.length > 25000) {
+        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED]";
+      }
+    }
+  }
+
+  // 1a. Try Groq
+  if (!successResult && process.env.GROQ_API_KEY) {
+    try {
+      console.log("[API Gemini Proxy] Trying primary provider (Groq)...");
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const completion = await groq.chat.completions.create({
+        messages: messages as any,
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 3000,
+        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API Gemini Proxy] Groq primary provider succeeded.");
+        successResult = {
+          text,
+          candidates: [{ content: { parts: [{ text }] } }]
+        };
+      }
+    } catch (e: any) {
+      console.warn("[API Gemini Proxy] Groq primary provider skipped/failed:", e.message || e);
+    }
+  }
+
+  // 1b. Try OpenRouter
+  if (!successResult && process.env.OPENROUTER_API_KEY) {
+    try {
+      console.log("[API Gemini Proxy] Trying primary provider (OpenRouter)...");
+      const openrouter = new OpenAI({
+        apiKey: process.env.OPENROUTER_API_KEY,
+        baseURL: "https://openrouter.ai/api/v1"
+      });
+      const completion = await openrouter.chat.completions.create({
+        messages: messages as any,
+        model: 'meta-llama/llama-3.3-70b-instruct',
+        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API Gemini Proxy] OpenRouter primary provider succeeded.");
+        successResult = {
+          text,
+          candidates: [{ content: { parts: [{ text }] } }]
+        };
+      }
+    } catch (e: any) {
+      console.warn("[API Gemini Proxy] OpenRouter primary provider skipped/failed:", e.message || e);
+    }
+  }
+
+  // 1c. Try Nvidia API Catalog
+  if (!successResult && process.env.NVIDIA_API_KEY) {
+    try {
+      console.log("[API Gemini Proxy] Trying primary provider (Nvidia)...");
+      const nvidia = new OpenAI({
+        apiKey: process.env.NVIDIA_API_KEY,
+        baseURL: "https://integrate.api.nvidia.com/v1"
+      });
+      const completion = await nvidia.chat.completions.create({
+        messages: messages as any,
+        model: 'meta/llama-3.3-70b-instruct',
+        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API Gemini Proxy] Nvidia primary provider succeeded.");
+        successResult = {
+          text,
+          candidates: [{ content: { parts: [{ text }] } }]
+        };
+      }
+    } catch (e: any) {
+      console.warn("[API Gemini Proxy] Nvidia primary provider skipped/failed:", e.message || e);
+    }
+  }
+
+  // 1d. Try Mistral
+  if (!successResult && process.env.MISTRAL_API_KEY) {
+    try {
+      console.log("[API Gemini Proxy] Trying primary provider (Mistral)...");
+      const mistral = new OpenAI({
+        apiKey: process.env.MISTRAL_API_KEY,
+        baseURL: "https://api.mistral.ai/v1"
+      });
+      const completion = await mistral.chat.completions.create({
+        messages: messages as any,
+        model: 'mistral-small-latest',
+        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log("[API Gemini Proxy] Mistral primary provider succeeded.");
+        successResult = {
+          text,
+          candidates: [{ content: { parts: [{ text }] } }]
+        };
+      }
+    } catch (e: any) {
+      console.warn("[API Gemini Proxy] Mistral primary provider skipped/failed:", e.message || e);
+    }
+  }
+
+  // 1e. Try Cohere
+  if (!successResult && process.env.COHERE_API_KEY) {
+    try {
+      console.log("[API Gemini Proxy] Trying primary provider (Cohere)...");
+      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+      const coherePrompt = `${params?.systemInstruction ? `System: ${params.systemInstruction}\n\n` : ''}${messages.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
+      const response = await cohere.generate({
+        prompt: coherePrompt,
+        model: 'command-r-plus',
+      });
+      const text = response.generations[0]?.text || "";
+      if (text) {
+        console.log("[API Gemini Proxy] Cohere primary provider succeeded.");
+        successResult = {
+          text,
+          candidates: [{ content: { parts: [{ text }] } }]
+        };
+      }
+    } catch (e: any) {
+      console.warn("[API Gemini Proxy] Cohere primary provider skipped/failed:", e.message || e);
+    }
+  }
+
+  // ─── 2. TRY GEMINI API AS FALLBACK ONLY IF PRIMARY PROVIDERS FAILED ───
+  let lastErr: any = null;
   if (!successResult) {
+    console.log("[API Gemini Proxy] Primary providers failed or unconfigured, trying Gemini API as fallback...");
+
+    // Create an intelligent pool of candidate API keys to try
+    const rawPool = getGeminiKeys();
+    
+    // Append the client-supplied apiKey if it's not already in the pool
+    if (apiKey && apiKey.trim()) {
+      const trimmed = apiKey.trim();
+      if ((trimmed.startsWith('AIzaSy') || trimmed.startsWith('AQ.')) && !rawPool.includes(trimmed)) {
+        rawPool.push(trimmed);
+      }
+    }
+
+    // Filter out blacklisted keys
+    const now = Date.now();
+    const keysPoolFiltered = rawPool.filter(k => {
+      const blacklistInfo = blacklistedKeys.get(k);
+      if (!blacklistInfo) return true;
+      if (blacklistInfo.until < now) {
+        blacklistedKeys.delete(k); // expired, remove from blacklist
+        return true;
+      }
+      return false;
+    });
+
+    const keysPool = keysPoolFiltered.length > 0 ? keysPoolFiltered : rawPool;
+    const requestedModel = (params?.model || "unknown").replace(/^models\//, "");
+    
+    let modelToTry = requestedModel;
+    if (modelToTry.includes("flash")) {
+      modelToTry = "gemini-flash-latest"; 
+    } else if (modelToTry.includes("pro")) {
+      modelToTry = "gemini-3.1-pro-preview";
+    } else {
+      modelToTry = "gemini-flash-latest";
+    }
+
+    const modelPool = [modelToTry];
+    if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
+
     if (Date.now() < geminiBlockedUntil) {
-      console.warn(`[API Gemini] Skipping Gemini providers due to ${consecutiveGeminiFailures} consecutive failures. Blocked until ${new Date(geminiBlockedUntil).toISOString()}`);
+      console.warn(`[API Gemini] Skipping Gemini fallback due to ${consecutiveGeminiFailures} consecutive failures.`);
     } else {
       for (const activeKey of keysPool) {
         if (successResult) break;
         const keyType = activeKey.startsWith('AQ.') ? "AQ.* (Auth)" : activeKey.startsWith('AIza') ? "AIzaSy* (Standard)" : "Unknown";
         const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
         
-        console.log(`[API Gemini] Trying key of type: ${keyType} (${maskedKey})`);
+        console.log(`[API Gemini Fallback] Trying key of type: ${keyType} (${maskedKey})`);
         
         for (const modelName of modelPool) {
           if (successResult) break;
-        try {
-          console.log(`[API Gemini] Executing model run with: ${modelName}`);
-        
-        // --- NORMALIZE PARAMS ---
-        let contents = params.contents;
-        if (typeof contents === 'string') {
-          contents = [{ role: 'user', parts: [{ text: contents }] }];
-        } else if (!Array.isArray(contents)) {
-          contents = [{ role: 'user', parts: [{ text: String(contents || '') }] }];
-        }
-
-        const config: any = { ...params.generationConfig };
-        if (params.generationConfig?.max_output_tokens) config.maxOutputTokens = params.generationConfig.max_output_tokens;
-        if (params.generationConfig?.top_p) config.topP = params.generationConfig.top_p;
-        if (params.generationConfig?.top_k) config.topK = params.generationConfig.top_k;
-        if (params.generationConfig?.stop_sequences) config.stopSequences = params.generationConfig.stop_sequences;
-        if (params.generationConfig?.response_mime_type) config.responseMimeType = params.generationConfig.response_mime_type;
-        if (params.generationConfig?.response_schema) config.responseSchema = params.generationConfig.response_schema;
-
-        const updatedParams: any = { 
-          model: modelName, 
-          contents,
-          config 
-        };
-
-        if (params.systemInstruction) updatedParams.systemInstruction = params.systemInstruction;
-        if (params.tools) updatedParams.tools = params.tools;
-        if (params.toolConfig) updatedParams.toolConfig = params.toolConfig;
-        if (params.safetySettings) updatedParams.safetySettings = params.safetySettings;
-        if (params.responseMimeType) updatedParams.config.responseMimeType = params.responseMimeType;
-        if (params.responseSchema) updatedParams.config.responseSchema = params.responseSchema;
-
-        const gemini = createGeminiClient(activeKey);
-        let result: any;
-        
-        let effectiveModelName = modelName;
-        if (gemini.type === 'AIP') {
-          if (modelName === 'gemini-1.5-pro' || modelName === 'gemini-1.5-pro-latest') effectiveModelName = 'gemini-3.1-pro-preview';
-          if (modelName === 'gemini-1.5-flash' || modelName === 'gemini-1.5-flash-latest') effectiveModelName = 'gemini-flash-latest';
-        }
-
-        if (gemini.type === 'AIP') {
-          const finalConfig: any = {
-            ...updatedParams.config
-          };
-          if (params.systemInstruction) finalConfig.systemInstruction = params.systemInstruction;
-          if (params.tools) finalConfig.tools = params.tools;
-          if (params.toolConfig) finalConfig.toolConfig = params.toolConfig;
-          if (params.safetySettings) finalConfig.safetySettings = params.safetySettings;
-
-          const aipParams = {
-            model: effectiveModelName,
-            contents: updatedParams.contents,
-            config: finalConfig
-          };
-          result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
-        } else {
-          const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
-            model: effectiveModelName,
-            systemInstruction: updatedParams.systemInstruction 
-          });
-          const genConfig: any = {
-            maxOutputTokens: updatedParams.config.maxOutputTokens,
-            temperature: updatedParams.config.temperature,
-            topP: updatedParams.config.topP,
-            topK: updatedParams.config.topK,
-            stopSequences: updatedParams.config.stopSequences,
-            responseMimeType: updatedParams.config.responseMimeType,
-            responseSchema: updatedParams.config.responseSchema,
-          };
-          
-          const genResult = await fetchWithTimeout(model.generateContent({
-            contents: updatedParams.contents,
-            generationConfig: genConfig,
-            safetySettings: updatedParams.safetySettings,
-            tools: updatedParams.tools,
-            toolConfig: updatedParams.toolConfig,
-          }), 30000, "Gemini SDK timeout");
-          
-          const response = await genResult.response;
-          result = {
-            text: response.text(),
-            candidates: [{ content: { parts: [{ text: response.text() }] } }]
-          };
-        }
-        
-        consecutiveGeminiFailures = 0; // reset
-        console.log(`[API Gemini] Success with model: ${modelName}!`);
-        
-        // Explicitly extract text
-        let text = "";
-        try {
-          text = result.text || "";
-        } catch (e) {
-          if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-            text = result.candidates[0].content.parts[0].text;
-          }
-        }
-
-        // --- DEGRADED GENERATION (GIBBERISH) DETECTION & MITIGATION LAYER ---
-        if (isGibberishResponse(text)) {
-          console.warn(`[API Gemini] GIBBERISH DETECTED from model ${modelName}! Text starts with: "${text.substring(0, 80)}...". Retrying with temperature = 0.1, topP = 0.1, topK = 1 to stabilize decoding...`);
-          
           try {
+            console.log(`[API Gemini Fallback] Executing model run with: ${modelName}`);
+          
+            let contents = params.contents;
+            if (typeof contents === 'string') {
+              contents = [{ role: 'user', parts: [{ text: contents }] }];
+            } else if (!Array.isArray(contents)) {
+              contents = [{ role: 'user', parts: [{ text: String(contents || '') }] }];
+            }
+
+            const config: any = { ...params.generationConfig };
+            if (params.generationConfig?.max_output_tokens) config.maxOutputTokens = params.generationConfig.max_output_tokens;
+            if (params.generationConfig?.top_p) config.topP = params.generationConfig.top_p;
+            if (params.generationConfig?.top_k) config.topK = params.generationConfig.top_k;
+            if (params.generationConfig?.stop_sequences) config.stopSequences = params.generationConfig.stop_sequences;
+            if (params.generationConfig?.response_mime_type) config.responseMimeType = params.generationConfig.response_mime_type;
+            if (params.generationConfig?.response_schema) config.responseSchema = params.generationConfig.response_schema;
+
+            const updatedParams: any = { 
+              model: modelName, 
+              contents,
+              config 
+            };
+
+            if (params.systemInstruction) updatedParams.systemInstruction = params.systemInstruction;
+            if (params.tools) updatedParams.tools = params.tools;
+            if (params.toolConfig) updatedParams.toolConfig = params.toolConfig;
+            if (params.safetySettings) updatedParams.safetySettings = params.safetySettings;
+            if (params.responseMimeType) updatedParams.config.responseMimeType = params.responseMimeType;
+            if (params.responseSchema) updatedParams.config.responseSchema = params.responseSchema;
+
+            const gemini = createGeminiClient(activeKey);
+            let result: any;
+            
+            let effectiveModelName = modelName;
             if (gemini.type === 'AIP') {
-              const retryFinalConfig: any = {
-                ...updatedParams.config,
-                temperature: 0.1,
-                topP: 0.1,
-                topK: 1
-              };
-              if (params.systemInstruction) retryFinalConfig.systemInstruction = params.systemInstruction;
-              if (params.tools) retryFinalConfig.tools = params.tools;
-              if (params.toolConfig) retryFinalConfig.toolConfig = params.toolConfig;
-              if (params.safetySettings) retryFinalConfig.safetySettings = params.safetySettings;
+              if (modelName === 'gemini-1.5-pro' || modelName === 'gemini-1.5-pro-latest') effectiveModelName = 'gemini-3.1-pro-preview';
+              if (modelName === 'gemini-1.5-flash' || modelName === 'gemini-1.5-flash-latest') effectiveModelName = 'gemini-flash-latest';
+            }
+
+            if (gemini.type === 'AIP') {
+              const finalConfig: any = { ...updatedParams.config };
+              if (params.systemInstruction) finalConfig.systemInstruction = params.systemInstruction;
+              if (params.tools) finalConfig.tools = params.tools;
+              if (params.toolConfig) finalConfig.toolConfig = params.toolConfig;
+              if (params.safetySettings) finalConfig.safetySettings = params.safetySettings;
 
               const aipParams = {
-                model: modelName,
+                model: effectiveModelName,
                 contents: updatedParams.contents,
-                config: retryFinalConfig
+                config: finalConfig
               };
-              const retryResult = await (gemini.client as GoogleGenAI).models.generateContent(aipParams);
-              text = retryResult.text || retryResult.candidates?.[0]?.content?.parts?.[0]?.text || "";
-              if (!isGibberishResponse(text)) {
-                console.log(`[API Gemini] Stabilized decoding retry SUCCEEDED on AIP!`);
-                successResult = { ...retryResult, text };
-                break;
-              }
+              result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
             } else {
-              const legacyModel = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
-                model: modelName,
+              const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
+                model: effectiveModelName,
                 systemInstruction: updatedParams.systemInstruction 
               });
-              const stabilizedConfig = {
+              const genConfig: any = {
                 maxOutputTokens: updatedParams.config.maxOutputTokens,
+                temperature: updatedParams.config.temperature,
+                topP: updatedParams.config.topP,
+                topK: updatedParams.config.topK,
                 stopSequences: updatedParams.config.stopSequences,
                 responseMimeType: updatedParams.config.responseMimeType,
                 responseSchema: updatedParams.config.responseSchema,
-                temperature: 0.1,
-                topP: 0.1,
-                topK: 1
               };
-              const genResult = await legacyModel.generateContent({
+              
+              const genResult = await fetchWithTimeout(model.generateContent({
                 contents: updatedParams.contents,
-                generationConfig: stabilizedConfig,
+                generationConfig: genConfig,
                 safetySettings: updatedParams.safetySettings,
-              });
-              const retryResponse = await genResult.response;
-              text = retryResponse.text() || "";
-              if (!isGibberishResponse(text)) {
-                console.log(`[API Gemini] Stabilized decoding retry SUCCEEDED on Legacy!`);
-                successResult = {
-                  text,
-                  candidates: [{ content: { parts: [{ text }] } }]
-                };
-                break;
+                tools: updatedParams.tools,
+                toolConfig: updatedParams.toolConfig,
+              }), 30000, "Gemini SDK timeout");
+              
+              const response = await genResult.response;
+              result = {
+                text: response.text(),
+                candidates: [{ content: { parts: [{ text: response.text() }] } }]
+              };
+            }
+            
+            consecutiveGeminiFailures = 0;
+            console.log(`[API Gemini Fallback] Success with model: ${modelName}!`);
+            
+            let text = "";
+            try { text = result.text || ""; } catch (e) {
+              if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                text = result.candidates[0].content.parts[0].text;
               }
             }
-          } catch (retryErr: any) {
-            console.error(`[API Gemini] Stabilized decoding retry failed:`, retryErr.message || retryErr);
+
+            if (isGibberishResponse(text)) {
+              console.warn(`[API Gemini Fallback] GIBBERISH DETECTED from model ${modelName}! Retrying with temperature = 0.1...`);
+              try {
+                if (gemini.type === 'AIP') {
+                  const retryFinalConfig: any = {
+                    ...updatedParams.config,
+                    temperature: 0.1,
+                    topP: 0.1,
+                    topK: 1
+                  };
+                  if (params.systemInstruction) retryFinalConfig.systemInstruction = params.systemInstruction;
+                  const aipParams = {
+                    model: modelName,
+                    contents: updatedParams.contents,
+                    config: retryFinalConfig
+                  };
+                  const retryResult = await (gemini.client as GoogleGenAI).models.generateContent(aipParams);
+                  text = retryResult.text || retryResult.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                  if (!isGibberishResponse(text)) {
+                    successResult = { ...retryResult, text };
+                    break;
+                  }
+                }
+              } catch (retryErr: any) {
+                console.error(`[API Gemini Fallback] Retry failed:`, retryErr.message || retryErr);
+              }
+              continue;
+            }
+
+            successResult = { ...result, text };
+            break; 
+          } catch (error: any) {
+            lastErr = error;
+            const errorMsg = error.message || (error.response?.data?.error?.message) || String(error);
+            const isQuota = errorMsg.toLowerCase().includes("quota") || errorMsg.includes("429") || errorMsg.includes("exhausted");
+            console.log(`[API Gemini Fallback] Key failed (${modelName}): ${errorMsg}`);
+            if (isQuota) {
+              blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
+              break;
+            }
           }
-          
-          console.warn(`[API Gemini] Retry also returned gibberish or errored. Continuing to next key/model...`);
-          continue; // Fail this key/model, rotate!
-        }
-
-        successResult = { ...result, text };
-        break; 
-      } catch (error: any) {
-        lastErr = error;
-        const errorMsg = error.message || (error.response?.data?.error?.message) || String(error);
-        const status = error.status || error.response?.status;
-        
-        const msgLower = errorMsg.toLowerCase();
-        const isQuota = msgLower.includes("quota") || msgLower.includes("429") || msgLower.includes("exhausted");
-        const isNotFound = msgLower.includes("not found") || msgLower.includes("404") || msgLower.includes("not supported");
-        const isTimeout = msgLower.includes("timeout") || msgLower.includes("etimedout") || msgLower.includes("econnreset");
-        
-        console.log(`[API Gemini] Key failed (${modelName}). status=${status} detail=${errorMsg}`);
-        
-        if (isQuota) {
-          blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 }); // 1 minute blacklist for quota
-          break; // Skip to next key since this key's quota is exhausted
-        } else if (isNotFound) {
-          continue; // Try next model with same key
-        } else if (isTimeout) {
-          console.warn(`[API Gemini] Timeout with model ${modelName}, trying next model/key without long blacklist.`);
-          continue; // Try next model or next key
-        } else {
-          blacklistedKeys.set(activeKey, { reason: "blocked_or_invalid", until: Date.now() + 120000 }); // 2 minutes temporary blacklist
-          break; // Skip to next key
         }
       }
-    }
-    if (successResult) break;
-    }
-    if (!successResult) {
-      consecutiveGeminiFailures++;
-      console.warn(`[API Gemini] Gemini failed ${consecutiveGeminiFailures} times consecutively.`);
-      if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
-        geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
-        console.warn(`[API Gemini] Gemini blocked for ${FAIL_BLOCK_DURATION_MS}ms due to repeated failures.`);
-      }
-    }
-  }
-}
 
-  // ─── 2. TRY SECONDARY PROVIDERS ONLY IF GEMINI FAILS ───
-  if (!successResult) {
-    console.log("[API Gemini Proxy] Gemini models failed or unconfigured, trying fallback providers...");
-    let messages: any[] = [];
-    if (params?.systemInstruction) {
-      messages.push({ role: 'system', content: params.systemInstruction });
-    }
-
-    if (params && params.contents) {
-      if (typeof params.contents === "string") {
-        messages.push({ role: 'user', content: params.contents });
-      } else if (Array.isArray(params.contents)) {
-        params.contents.forEach((turn: any) => {
-          const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
-          let contentText = "";
-          if (Array.isArray(turn.parts)) {
-            contentText = turn.parts.map((p: any) => p.text || "").join(" ");
-          } else if (typeof turn.parts === "string") {
-            contentText = turn.parts;
-          } else if (turn.text) {
-            contentText = turn.text;
-          }
-          if (contentText) {
-            messages.push({ role, content: contentText });
-          }
-        });
-      }
-    }
-
-    const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" || 
-                            params?.responseMimeType === "application/json" ||
-                            (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
-
-    // Truncate messages if too long (Groq limit is 12k tokens, roughly 45k chars)
-    let totalLength = messages.reduce((acc, m) => acc + m.content.length, 0);
-    if (totalLength > 30000) {
-      console.warn(`[API Gemini Proxy] Messages too long (${totalLength} chars). Truncating to fit fallback limits...`);
-      // Start removing from the beginning, except the first system/user prompt if possible, or just truncate the longest message
-      messages.forEach(m => {
-        if (m.content.length > 10000) {
-          m.content = m.content.substring(0, 10000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+      if (!successResult) {
+        consecutiveGeminiFailures++;
+        if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
+          geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
         }
-      });
-      // Recalculate
-      totalLength = messages.reduce((acc, m) => acc + m.content.length, 0);
-      if (totalLength > 30000) {
-        messages = [messages[messages.length - 1]]; // Keep only the last message
-        if (messages[0].content.length > 25000) {
-           messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
-        }
-      }
-    }
-
-    // 1. Try Groq
-    if (!successResult && process.env.GROQ_API_KEY) {
-      try {
-        console.log("[API Gemini Proxy] Trying Groq fallback...");
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const completion = await groq.chat.completions.create({
-          messages: messages as any,
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 3000,
-          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API Gemini Proxy] Groq generation succeeded.");
-          successResult = {
-            text,
-            candidates: [{ content: { parts: [{ text }] } }]
-          };
-        }
-      } catch (e: any) {
-        console.warn("[API Gemini Proxy] Groq fallback skipped:", e.message || e);
-      }
-    }
-
-    // 2. Try OpenRouter
-    if (!successResult && process.env.OPENROUTER_API_KEY) {
-      try {
-        console.log("[API Gemini Proxy] Trying OpenRouter fallback...");
-        const openrouter = new OpenAI({
-          apiKey: process.env.OPENROUTER_API_KEY,
-          baseURL: "https://openrouter.ai/api/v1"
-        });
-        const completion = await openrouter.chat.completions.create({
-          messages: messages as any,
-          model: 'meta-llama/llama-3.3-70b-instruct',
-          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API Gemini Proxy] OpenRouter generation succeeded.");
-          successResult = {
-            text,
-            candidates: [{ content: { parts: [{ text }] } }]
-          };
-        }
-      } catch (e: any) {
-        console.warn("[API Gemini Proxy] OpenRouter fallback skipped:", e.message || e);
-      }
-    }
-
-    // 2.5 Try Nvidia API Catalog
-    if (!successResult && process.env.NVIDIA_API_KEY) {
-      try {
-        console.log("[API Gemini Proxy] Trying Nvidia API Catalog fallback...");
-        const nvidia = new OpenAI({
-          apiKey: process.env.NVIDIA_API_KEY,
-          baseURL: "https://integrate.api.nvidia.com/v1"
-        });
-        const completion = await nvidia.chat.completions.create({
-          messages: messages as any,
-          model: 'meta/llama-3.3-70b-instruct',
-          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API Gemini Proxy] Nvidia generation succeeded.");
-          successResult = {
-            text,
-            candidates: [{ content: { parts: [{ text }] } }]
-          };
-        }
-      } catch (e: any) {
-        console.warn("[API Gemini Proxy] Nvidia fallback skipped:", e.message || e);
-      }
-    }
-
-    // 3. Try Mistral
-    if (!successResult && process.env.MISTRAL_API_KEY) {
-      try {
-        console.log("[API Gemini Proxy] Trying Mistral fallback...");
-        const mistral = new OpenAI({
-          apiKey: process.env.MISTRAL_API_KEY,
-          baseURL: "https://api.mistral.ai/v1"
-        });
-        const completion = await mistral.chat.completions.create({
-          messages: messages as any,
-          model: 'mistral-small-latest',
-          ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        if (text) {
-          console.log("[API Gemini Proxy] Mistral generation succeeded.");
-          successResult = {
-            text,
-            candidates: [{ content: { parts: [{ text }] } }]
-          };
-        }
-      } catch (e: any) {
-        console.warn("[API Gemini Proxy] Mistral fallback skipped:", e.message || e);
-      }
-    }
-
-    // 4. Try Cohere
-    if (!successResult && process.env.COHERE_API_KEY) {
-      try {
-        console.log("[API Gemini Proxy] Trying Cohere fallback...");
-        const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-        const coherePrompt = `${params?.systemInstruction ? `System: ${params.systemInstruction}\n\n` : ''}${messages.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
-        const response = await cohere.generate({
-          prompt: coherePrompt,
-          model: 'command-r-plus',
-        });
-        const text = response.generations[0]?.text || "";
-        if (text) {
-          console.log("[API Gemini Proxy] Cohere generation succeeded.");
-          successResult = {
-            text,
-            candidates: [{ content: { parts: [{ text }] } }]
-          };
-        }
-      } catch (e: any) {
-        console.warn("[API Gemini Proxy] Cohere fallback skipped:", e.message || e);
       }
     }
   }
@@ -2151,7 +2082,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
     return res.json(successResult);
   }
 
-  // --- SOVEREIGN HEURISTIC FALLBACK (PREVENTS DOWNTIME AND CRASHES) ---
+  // ─── 3. SOVEREIGN HEURISTIC FALLBACK ───
   try {
     let promptText = "";
     if (params && params.contents) {
@@ -2166,14 +2097,6 @@ app.post("/api/gemini", async (req: any, res: any) => {
             promptText = firstTurn.parts;
           }
         }
-      } else if (typeof params.contents === "object") {
-        if (params.contents.parts) {
-          if (Array.isArray(params.contents.parts)) {
-            promptText = params.contents.parts.map((p: any) => p.text || "").join(" ");
-          } else if (typeof params.contents.parts === "string") {
-            promptText = params.contents.parts;
-          }
-        }
       }
     }
     
@@ -2184,8 +2107,7 @@ app.post("/api/gemini", async (req: any, res: any) => {
     console.log(`[API Gemini] Sovereign Fallback generation failed:`, fallbackErr.message);
   }
 
-  const finalErrorMsg = lastErr?.message || (lastErr?.response?.data?.error?.message) || "No valid API key succeeded";
-  console.log(`[API Gemini] All keys and models in pool failed. Last issue:`, finalErrorMsg);
+  const finalErrorMsg = lastErr?.message || (lastErr?.response?.data?.error?.message) || "No valid API provider succeeded";
   res.status(500).json({ error: finalErrorMsg });
 });
 
@@ -2196,63 +2118,6 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
     return res.status(403).json({ error: "Origin not allowed" });
   }
 
-  // 1. Try Primary Provider (Gemini) First
-  console.log("[API AI] Trying Gemini primary provider...");
-  const rawPool = getGeminiKeys();
-  const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
-  
-  if (keysPool.length > 0) {
-    if (Date.now() < geminiBlockedUntil) {
-      console.warn(`[API AI] Skipping Gemini providers due to ${consecutiveGeminiFailures} consecutive failures.`);
-    } else {
-      let successResult = false;
-      for (const activeKey of keysPool) {
-        try {
-          const gemini = createGeminiClient(activeKey);
-          const contents = [
-            ...history.map((m: any) => ({
-              role: m.role === 'model' ? 'model' : 'user',
-              parts: [{ text: m.text }]
-            })),
-            { role: 'user', parts: [{ text: prompt }] }
-          ];
-
-          const config: any = {};
-          const aipParams: any = {
-            model: "gemini-flash-latest",
-            contents,
-            config
-          };
-          if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
-
-          const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
-          let text = result.text || "";
-          if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-            text = result.candidates[0].content.parts[0].text;
-          }
-
-          if (text) {
-            console.log("[API AI] Gemini generation succeeded.");
-            consecutiveGeminiFailures = 0;
-            successResult = true;
-            const groundingChunks = (result as any).candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-            return res.json({ text, groundingChunks });
-          }
-        } catch (error: any) {
-          console.warn("[API AI] Gemini key failed:", error.message || error);
-        }
-      }
-      
-      if (!successResult) {
-        consecutiveGeminiFailures++;
-        if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
-          geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
-        }
-      }
-    }
-  }
-
-  // 2. Secondary Provider Fallbacks (Groq, OpenRouter, Nvidia, Mistral, Cohere)
   let messages = [
     ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
     ...history.map((m: any) => ({
@@ -2264,25 +2129,24 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
 
   let totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
   if (totalLength > 30000) {
-    console.warn(`[API AI Proxy] Messages too long (${totalLength} chars). Truncating...`);
     messages.forEach(m => {
       if (m.content && m.content.length > 10000) {
-        m.content = m.content.substring(0, 10000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+        m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
       }
     });
     totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
     if (totalLength > 30000) {
       messages = [messages[messages.length - 1]];
       if (messages[0].content.length > 25000) {
-        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
+        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED]";
       }
     }
   }
 
-  // 2a. Try Groq
+  // 1. Try Primary Non-Gemini Providers First (Groq, OpenRouter, Nvidia, Mistral, Cohere)
   if (process.env.GROQ_API_KEY) {
     try {
-      console.log("[API AI] Trying Groq fallback...");
+      console.log("[API AI] Trying primary provider (Groq)...");
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       const completion = await groq.chat.completions.create({
         messages: messages as any,
@@ -2291,18 +2155,17 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text) {
-        console.log("[API AI] Groq fallback generation succeeded.");
+        console.log("[API AI] Groq primary provider succeeded.");
         return res.json({ text });
       }
     } catch (e: any) {
-      console.warn("[API AI] Groq fallback skipped:", e.message || e);
+      console.warn("[API AI] Groq primary provider failed:", e.message || e);
     }
   }
 
-  // 2b. Try OpenRouter
   if (process.env.OPENROUTER_API_KEY) {
     try {
-      console.log("[API AI] Trying OpenRouter fallback...");
+      console.log("[API AI] Trying primary provider (OpenRouter)...");
       const openrouter = new OpenAI({
         apiKey: process.env.OPENROUTER_API_KEY,
         baseURL: "https://openrouter.ai/api/v1"
@@ -2313,18 +2176,17 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text) {
-        console.log("[API AI] OpenRouter fallback generation succeeded.");
+        console.log("[API AI] OpenRouter primary provider succeeded.");
         return res.json({ text });
       }
     } catch (e: any) {
-      console.warn("[API AI] OpenRouter fallback skipped:", e.message || e);
+      console.warn("[API AI] OpenRouter primary provider failed:", e.message || e);
     }
   }
 
-  // 2c. Try Nvidia API Catalog
   if (process.env.NVIDIA_API_KEY) {
     try {
-      console.log("[API AI] Trying Nvidia API Catalog fallback...");
+      console.log("[API AI] Trying primary provider (Nvidia)...");
       const nvidia = new OpenAI({
         apiKey: process.env.NVIDIA_API_KEY,
         baseURL: "https://integrate.api.nvidia.com/v1"
@@ -2335,18 +2197,17 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text) {
-        console.log("[API AI] Nvidia fallback generation succeeded.");
+        console.log("[API AI] Nvidia primary provider succeeded.");
         return res.json({ text });
       }
     } catch (e: any) {
-      console.warn("[API AI] Nvidia fallback skipped:", e.message || e);
+      console.warn("[API AI] Nvidia primary provider failed:", e.message || e);
     }
   }
 
-  // 2d. Try Mistral
   if (process.env.MISTRAL_API_KEY) {
     try {
-      console.log("[API AI] Trying Mistral fallback...");
+      console.log("[API AI] Trying primary provider (Mistral)...");
       const mistral = new OpenAI({
         apiKey: process.env.MISTRAL_API_KEY,
         baseURL: "https://api.mistral.ai/v1"
@@ -2357,18 +2218,17 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text) {
-        console.log("[API AI] Mistral fallback generation succeeded.");
+        console.log("[API AI] Mistral primary provider succeeded.");
         return res.json({ text });
       }
     } catch (e: any) {
-      console.warn("[API AI] Mistral fallback skipped:", e.message || e);
+      console.warn("[API AI] Mistral primary provider failed:", e.message || e);
     }
   }
 
-  // 2e. Try Cohere
   if (process.env.COHERE_API_KEY) {
     try {
-      console.log("[API AI] Trying Cohere fallback...");
+      console.log("[API AI] Trying primary provider (Cohere)...");
       const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
       const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${history.map((m: any) => `${m.role === 'model' ? 'Assistant' : 'User'}: ${m.text}`).join('\n')}\nUser: ${prompt}`;
       const response = await cohere.generate({
@@ -2377,11 +2237,63 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
       });
       const text = response.generations[0]?.text || "";
       if (text) {
-        console.log("[API AI] Cohere fallback generation succeeded.");
+        console.log("[API AI] Cohere primary provider succeeded.");
         return res.json({ text });
       }
     } catch (e: any) {
-      console.warn("[API AI] Cohere fallback skipped:", e.message || e);
+      console.warn("[API AI] Cohere primary provider failed:", e.message || e);
+    }
+  }
+
+  // 2. Fallback to Gemini API if primary providers failed
+  console.log("[API AI] Primary providers failed or unconfigured. Trying Gemini API fallback...");
+  const rawPool = getGeminiKeys();
+  const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
+  
+  if (keysPool.length > 0 && Date.now() >= geminiBlockedUntil) {
+    let successResult = false;
+    for (const activeKey of keysPool) {
+      try {
+        const gemini = createGeminiClient(activeKey);
+        const contents = [
+          ...history.map((m: any) => ({
+            role: m.role === 'model' ? 'model' : 'user',
+            parts: [{ text: m.text }]
+          })),
+          { role: 'user', parts: [{ text: prompt }] }
+        ];
+
+        const config: any = {};
+        const aipParams: any = {
+          model: "gemini-flash-latest",
+          contents,
+          config
+        };
+        if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
+
+        const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
+        let text = result.text || "";
+        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+          text = result.candidates[0].content.parts[0].text;
+        }
+
+        if (text) {
+          console.log("[API AI] Gemini fallback generation succeeded.");
+          consecutiveGeminiFailures = 0;
+          successResult = true;
+          const groundingChunks = (result as any).candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+          return res.json({ text, groundingChunks });
+        }
+      } catch (error: any) {
+        console.warn("[API AI] Gemini fallback key failed:", error.message || error);
+      }
+    }
+    
+    if (!successResult) {
+      consecutiveGeminiFailures++;
+      if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
+        geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
+      }
     }
   }
 
@@ -3057,7 +2969,7 @@ app.post("/api/search", async (req: any, res: any) => {
         if (isQuotaOrBusy) {
           console.log(`[API Search] Gemini key ${i + 1} (${searchModel}): quota or temporary load limit reached, switching model/key...`);
         } else if (isPermanentError) {
-          console.log(`[API Search] Gemini Search Grounding not supported/enabled on standard keys: ${errMsg.substring(0, 100)}. Aborting search grounding to fall back fast.`);
+          console.log(`[API Search] Gemini Search Grounding is unavailable on standard keys. Falling back directly to search engine providers...`);
           abortGrounding = true;
           break;
         } else {
@@ -3809,28 +3721,65 @@ ${searchResults[4]}
               let text = "";
               
               if (gemini.type === 'AIP') {
-                const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
-                  model: modelName,
-                  contents: prompt,
-                  config: {
-                    responseMimeType: "application/json",
-                    tools: [{ googleSearch: {} }],
-                    temperature: 0.7
+                try {
+                  const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
+                    model: modelName,
+                    contents: prompt,
+                    config: {
+                      responseMimeType: "application/json",
+                      tools: [{ googleSearch: {} }],
+                      temperature: 0.7
+                    }
+                  });
+                  text = genResult.text || "";
+                } catch (sgErr: any) {
+                  const sgMsg = (sgErr.message || "").toLowerCase();
+                  if (sgMsg.includes("403") || sgMsg.includes("permission") || sgMsg.includes("not supported") || sgMsg.includes("not enabled")) {
+                    console.log(`[API News Sync] Search grounding not enabled on key, retrying without tools...`);
+                    const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
+                      model: modelName,
+                      contents: prompt,
+                      config: {
+                        responseMimeType: "application/json",
+                        temperature: 0.7
+                      }
+                    });
+                    text = genResult.text || "";
+                  } else {
+                    throw sgErr;
                   }
-                });
-                text = genResult.text || "";
+                }
               } else {
-                const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ model: modelName });
-                const genResult = await model.generateContent({
-                  contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                  generationConfig: { 
-                    responseMimeType: "application/json",
-                    temperature: 0.7
-                  },
-                  tools: [{ googleSearch: {} }] as any
-                });
-                const response = await genResult.response;
-                text = response.text();
+                try {
+                  const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ model: modelName });
+                  const genResult = await model.generateContent({
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    generationConfig: { 
+                      responseMimeType: "application/json",
+                      temperature: 0.7
+                    },
+                    tools: [{ googleSearch: {} }] as any
+                  });
+                  const response = await genResult.response;
+                  text = response.text();
+                } catch (sgErr: any) {
+                  const sgMsg = (sgErr.message || "").toLowerCase();
+                  if (sgMsg.includes("403") || sgMsg.includes("permission") || sgMsg.includes("not supported") || sgMsg.includes("not enabled")) {
+                    console.log(`[API News Sync] Search grounding not enabled on key, retrying without tools...`);
+                    const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ model: modelName });
+                    const genResult = await model.generateContent({
+                      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                      generationConfig: { 
+                        responseMimeType: "application/json",
+                        temperature: 0.7
+                      }
+                    });
+                    const response = await genResult.response;
+                    text = response.text();
+                  } else {
+                    throw sgErr;
+                  }
+                }
               }
 
               const data = safeJsonParse(text);

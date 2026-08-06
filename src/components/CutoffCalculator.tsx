@@ -1252,7 +1252,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       .map((p, idx) => ({
         index: idx + 1,
         id: p.id || `${p.timestamp || idx}-${idx}`,
-        name: p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA"),
+        name: (p.uniName || '').replace("University of ", "U of ").replace("Federal University of Technology", "FUTA"),
         course: p.courseName,
         score: p.aggregateScore,
         date: new Date(p.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -1579,7 +1579,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const run = async () => {
       setIsSyncing(true);
       setAvailableCourses([]);
-      const slug = targetUni.slug || targetUni.name.toLowerCase().replace(/\s+/g, '-');
+      const slug = targetUni.slug || (targetUni.name || '').toLowerCase().replace(/\s+/g, '-');
 
       const instantMatch =
         TOP_INSTITUTION_MAP[slug] ||
@@ -2002,7 +2002,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       }
     }
 
-    const currentSlug = activeUni?.slug || activeUni?.name.toLowerCase().replace(/\s+/g, '-');
+    const currentSlug = activeUni?.slug || (activeUni?.name || '').toLowerCase().replace(/\s+/g, '-');
     const instantMatch = activeUni ? (
       TOP_INSTITUTION_MAP[currentSlug] ||
       Object.entries(TOP_INSTITUTION_MAP).find(([k]) => activeUni.name.toLowerCase().includes(k))?.[1]
@@ -2496,7 +2496,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     >
                       <div className="flex flex-col text-left">
                         <span className="text-[8.5px] font-black text-white group-hover:text-cyan-400 transition-colors">
-                          {p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
+                          {(p.uniName || '').replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
                         </span>
                         <span className="text-[7px] text-gray-400 font-bold leading-none mt-0.5">
                           {p.courseName} • <strong className="text-cyan-300">{p.aggregateScore}%</strong>
@@ -2568,7 +2568,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           >
                             <div className="flex flex-col text-left overflow-hidden pr-2">
                               <span className="text-[9.5px] font-black text-white group-hover:text-cyan-400 transition-colors truncate">
-                                {p.uniName.replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
+                                {(p.uniName || '').replace("University of ", "U of ").replace("Federal University of Technology", "FUTA")}
                               </span>
                               <span className="text-[8px] text-gray-400 font-bold truncate">
                                 {p.courseName} • UTME: {p.jambScore || 'N/A'} {p.postUtmeScore ? `| Post: ${p.postUtmeScore}` : ''}
@@ -3311,7 +3311,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         }}
                         className="p-2.5 bg-black/40 border border-white/5 hover:border-cyan-500/40 rounded-xl font-bold text-[9px] uppercase tracking-wider text-gray-300 hover:text-white transition-all text-left truncate flex items-center justify-between"
                       >
-                        <span>{u.name.replace("University of ", "U of ").replace("Federal University of ", "FUTO ")}</span>
+                        <span>{(u.name || '').replace("University of ", "U of ").replace("Federal University of ", "FUTO ")}</span>
                         <ArrowRight size={10} className="text-cyan-500 shrink-0" />
                       </button>
                     ))}
@@ -3579,7 +3579,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           {aiResult.evidencePanel.map((evidence: any, idx: number) => (
                             <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-left">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[9px] font-black uppercase text-gray-400">{evidence.type.replace(/_/g, ' ')}</span>
+                                <span className="text-[9px] font-black uppercase text-gray-400">{String(evidence.type || '').replace(/_/g, ' ')}</span>
                                 <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
                                   evidence.confidenceLevel === 'High' ? 'bg-emerald-500/10 text-emerald-400' :
                                   evidence.confidenceLevel === 'Medium' ? 'bg-cyan-500/10 text-cyan-400' :
@@ -3743,7 +3743,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <p className="text-[10px] text-amber-200 leading-relaxed font-semibold">
-                          {parseFloat(aggregateScore.toString()) >= parseFloat((aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
+                          {parseFloat(aggregateScore.toString()) >= parseFloat(String(aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
                             <>✅ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> meets or exceeds the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
                           ) : (
                             <>⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
@@ -4300,7 +4300,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 const pts = gradeMap[os.grade] || 0;
                                 return (
                                   <div key={i} className="p-2 bg-black/30 border border-white/5 rounded-lg flex flex-col justify-between">
-                                    <span className="text-[7px] font-bold text-gray-400 truncate leading-none">{os.name.replace('Subject', 'Sub')}</span>
+                                    <span className="text-[7px] font-bold text-gray-400 truncate leading-none">{String(os.name || '').replace('Subject', 'Sub')}</span>
                                     <span className="font-mono text-xs font-black text-white mt-1">{os.grade}</span>
                                     <span className="text-[8px] text-cyan-400 font-extrabold mt-0.5">+{pts}p</span>
                                   </div>

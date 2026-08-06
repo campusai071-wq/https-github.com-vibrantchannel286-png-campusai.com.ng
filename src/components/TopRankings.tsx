@@ -290,10 +290,10 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
 
                   <div className="text-center relative z-10 w-full">
                     <h4 className="text-base sm:text-lg font-black text-gray-900 dark:text-white mb-1 leading-tight line-clamp-1">
-                      {uni.name.replace("University of ", "UN").replace("Obafemi Awolowo University", "OAU")}
+                      {(uni.name || '').replace("University of ", "UN").replace("Obafemi Awolowo University", "OAU")}
                     </h4>
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 sm:mb-5 italic line-clamp-1">
-                      "{uni.motto.split(' ').slice(0, 3).join(' ')}..."
+                      "{uni.motto ? uni.motto.split(' ').slice(0, 3).join(' ') + '...' : 'Excellence in Education'}"
                     </p>
                     
                     <div className="flex flex-col gap-2 w-full">
