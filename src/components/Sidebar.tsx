@@ -70,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       id: 'universities',
       name: 'Institutional Portals',
       icon: <Landmark size={18} />,
-      badge: '100+ Schools',
+      badge: '283+ Schools',
       badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-cyan-400 border border-blue-500/20'
     },
     {

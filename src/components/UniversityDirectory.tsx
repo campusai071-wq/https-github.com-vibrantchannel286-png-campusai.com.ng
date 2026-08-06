@@ -204,7 +204,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
               Institutional <span className="text-blue-600 dark:text-cyan-400">Gateways</span>
             </h2>
             <p className="text-gray-500 dark:text-gray-400 font-medium text-base md:text-lg max-w-2xl mx-auto">
-              Secure, direct access to verified admission portals for over 150 institutions.
+              Secure, direct access to verified admission portals for over 283 institutions.
             </p>
           </div>
 
@@ -217,7 +217,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                 <Search className="absolute left-5 md:left-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                 <input 
                   type="text" 
-                  placeholder="Search 150+ portals (e.g., UNILAG...)"
+                  placeholder="Search 283+ portals (e.g., UNILAG...)"
                   className="w-full pl-12 md:pl-16 pr-12 py-5 md:py-7 bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-[24px] md:rounded-[32px] text-base md:text-xl font-bold outline-none focus:border-blue-500 dark:focus:border-cyan-500 focus:bg-white dark:focus:bg-gray-900 text-gray-900 dark:text-white transition-all shadow-inner"
                   value={searchTerm}
                   onChange={(e) => {

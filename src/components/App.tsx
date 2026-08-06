@@ -5,18 +5,24 @@ import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
 import SEO from './SEO';
 
-// Code-split heavy secondary views & modals for faster initial load (LCP & TTFB)
-const NewsGrid = lazy(() => import('./NewsGrid'));
+import NewsGrid from './NewsGrid';
+import Dashboard from './Dashboard';
+import CutoffCalculator from './CutoffCalculator';
+import PostUtmeReleaseHub from './PostUtmeReleaseHub';
+import UniversityDirectory from './UniversityDirectory';
+import TopRankings from './TopRankings';
+import Sidebar from './Sidebar';
+import NewsDetailView from './NewsDetailView';
+
+// Code-split heavy secondary views & modals for faster initial load
 const PolicySection = lazy(() => import('./PolicySection'));
 const FAQSection = lazy(() => import('./FAQSection'));
 const Testimonials = lazy(() => import('./Testimonials'));
 const InviteEarn = lazy(() => import('./InviteEarn'));
 const RecentActivity = lazy(() => import('./RecentActivity'));
 const AboutSection = lazy(() => import('./AboutSection'));
-const Dashboard = lazy(() => import('./Dashboard'));
 const AdminPanel = lazy(() => import('./AdminPanel'));
 const UserSettingsModal = lazy(() => import('./UserSettingsModal'));
-const NewsDetailView = lazy(() => import('./NewsDetailView'));
 const AuthModal = lazy(() => import('./AuthModal'));
 const ShareModal = lazy(() => import('./ShareModal'));
 const InviteEarnModal = lazy(() => import('./InviteEarnModal'));
@@ -25,8 +31,6 @@ const SupportModal = lazy(() => import('./SupportModal'));
 const LegalModal = lazy(() => import('./LegalModal'));
 const CookieConsent = lazy(() => import('./CookieConsent'));
 const LegalSection = lazy(() => import('./LegalSection'));
-const CutoffCalculator = lazy(() => import('./CutoffCalculator'));
-const PostUtmeReleaseHub = lazy(() => import('./PostUtmeReleaseHub'));
 const AIChatDrawer = lazy(() => import('./AIChatDrawer'));
 const Tour = lazy(() => import('./Tour'));
 const InstallPrompt = lazy(() => import('./InstallPrompt'));
@@ -38,9 +42,6 @@ const AdmissionChecklistPage = lazy(() => import('./AdmissionChecklistPage'));
 const SyllabusExplorer = lazy(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazy(() => import('./AdmissionsExplorer'));
 const CGPACalculator = lazy(() => import('./CGPACalculator'));
-const TopRankings = lazy(() => import('./TopRankings'));
-const UniversityDirectory = lazy(() => import('./UniversityDirectory'));
-const Sidebar = lazy(() => import('./Sidebar'));
 import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';

@@ -11,7 +11,7 @@ import { CohereClient } from "cohere-ai";
 import axios from "axios";
 import { TavilyClient } from "tavily";
 import { initializeApp as initClientApp, getApps as getClientApps } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
 import { initializeApp as initAdminApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "firebase-admin/firestore";
 import { injectSEO as seoInject } from "./seo.js";
@@ -58,9 +58,7 @@ try {
   const { firestoreDatabaseId, ...standardConfig } = firebaseAppletConfig;
   const clientApps = getClientApps();
   const appInstance = clientApps.length === 0 ? initClientApp(standardConfig) : clientApps[0];
-  dbInstance = initializeFirestore(appInstance, {
-    experimentalForceLongPolling: true,
-  }, firestoreDatabaseId);
+  dbInstance = initializeFirestore(appInstance, {}, firestoreDatabaseId);
 
   class CollectionReferenceCompat {
     constructor(private db: any, private collectionName: string) {}
@@ -349,8 +347,8 @@ app.post(["/api/proxy-firestore", "/api/fstore-query"], async (req: any, res: an
       if (typeof startAfterValue === 'object') {
         const seconds = startAfterValue.seconds !== undefined ? startAfterValue.seconds : startAfterValue._seconds;
         const nanoseconds = startAfterValue.nanoseconds !== undefined ? startAfterValue.nanoseconds : startAfterValue._nanoseconds;
-        if (seconds !== undefined && nanoseconds !== undefined) {
-          parsedStartAfter = new AdminTimestamp(seconds, nanoseconds);
+        if (seconds !== undefined) {
+          parsedStartAfter = Timestamp.fromMillis(seconds * 1000 + Math.floor((nanoseconds || 0) / 1000000));
         }
       }
       queryRef = queryRef.startAfter(parsedStartAfter);

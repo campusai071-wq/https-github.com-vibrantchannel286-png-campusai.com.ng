@@ -323,7 +323,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
             onClick={onNavigateToFullHub}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 inline-flex items-center gap-3 active:scale-95"
           >
-            Explore All 100+ Post-UTME School Forms <ArrowRight size={16} />
+            Explore All 283+ Post-UTME School Forms <ArrowRight size={16} />
           </button>
         </div>
       )}

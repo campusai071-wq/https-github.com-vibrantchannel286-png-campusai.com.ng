@@ -191,10 +191,11 @@ export const NewsCard: React.FC<{
               alt=""
               aria-hidden="true"
               referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
               className="w-full h-full object-cover" 
             />
           ) : (
-            <UniversityAvatar category={news.category} />
+            <UniversityAvatar category={news.category} title={news.title} />
           )}
         </div>
 
@@ -263,6 +264,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
   const [isLocalLoading, setIsLocalLoading] = useState(true);
   const [lastCreatedAt, setLastCreatedAt] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [bookmarks, setBookmarks]           = useState<string[]>(readBookmarks);
   const [visibleCount, setVisibleCount]     = useState(INITIAL_VISIBLE_COUNT);
   const [readCount, setReadCount] = useState(0);
@@ -340,22 +342,24 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsLocalLoading(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const cloudNews = await getCloudNews(false, false, category, undefined, limitOverride);
+      const targetLimit = limitOverride || 1000;
+      const cloudNews = await getCloudNews(false, false, category, undefined, targetLimit);
       const sorted = [...cloudNews].sort(sortNewsBySyncAndDate);
       setNewsList(sorted);
+      setVisibleCount(INITIAL_VISIBLE_COUNT);
       
       if (sorted.length > 0) {
         setLastCreatedAt(sorted[sorted.length - 1].createdAt);
-        setHasMore(sorted.length >= (limitOverride || 20));
+        setHasMore(sorted.length >= targetLimit);
       } else {
         setHasMore(false);
       }
       
       try {
         const liveCount = await getCloudNewsCount();
-        setTotalArchivedCount(1000 + liveCount);
+        setTotalArchivedCount(Math.max(sorted.length, liveCount));
       } catch (e) {
-        setTotalArchivedCount(1000 + sorted.length);
+        setTotalArchivedCount(sorted.length);
       }
       
       setBookmarks(readBookmarks());
@@ -397,18 +401,22 @@ const NewsGrid: React.FC<NewsGridProps> = ({
   }, [searchQuery, hasFetchedAllForSearch, filter, loadLocalNews]);
 
   const fetchMoreNews = useCallback(async (categoryFilter?: string) => {
-    if (!hasMore) return;
-    setIsLocalLoading(true);
+    if (!hasMore || isFetchingMore) return;
+    setIsFetchingMore(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
       const newNews = await getCloudNews(false, false, category, lastCreatedAt);
       
-      if (newNews.length === 0) {
+      if (!newNews || newNews.length === 0) {
         setHasMore(false);
       } else {
         setNewsList(prev => {
           const existingIds = new Set(prev.map(n => n.id || n.slug));
           const uniqueNew = newNews.filter(n => !existingIds.has(n.id || n.slug));
+          if (uniqueNew.length === 0) {
+            setHasMore(false);
+            return prev;
+          }
           return [...prev, ...uniqueNew];
         });
         setLastCreatedAt(newNews[newNews.length - 1].createdAt);
@@ -417,9 +425,9 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     } catch (e) {
       console.error("NewsGrid: fetchMoreNews error:", e);
     } finally {
-      setIsLocalLoading(false);
+      setIsFetchingMore(false);
     }
-  }, [lastCreatedAt, hasMore]);
+  }, [lastCreatedAt, hasMore, isFetchingMore]);
 
   // ── Sync live news from AI ──────────────────────────────────────────────────
   // FIX: Replaced permanent sessionStorage lock with a concurrent-only guard
@@ -636,20 +644,27 @@ const NewsGrid: React.FC<NewsGridProps> = ({
 
   // ── Initial load + 12-hour cycle ───────────────────────────────────────────
 
+  // Initial mount auto-sync check (runs only once per user session)
   useEffect(() => {
-    loadLocalNews(filter);
-
+    if (!user) return;
     const checkCycle = () => {
       const last = parseInt(localStorage.getItem('campusai_last_auto_sync_ts') || '0');
-      if (Date.now() - last > TWELVE_HOURS_MS && user) handleSyncLiveNews(true);
+      if (Date.now() - last > TWELVE_HOURS_MS) handleSyncLiveNews(true);
     };
 
     checkCycle();
-    const interval = setInterval(checkCycle, 60_000);
+    const interval = setInterval(checkCycle, 10 * 60_000); // Check cycle every 10 minutes
 
-    if (localStorage.getItem('campusai_sync_on_refresh') !== 'false' && user) {
+    if (localStorage.getItem('campusai_sync_on_refresh') !== 'false') {
       handleSyncLiveNews(true);
     }
+
+    return () => clearInterval(interval);
+  }, [user?.uid]);
+
+  // Fast category filter load & event listeners
+  useEffect(() => {
+    loadLocalNews(filter);
 
     const handleBookmarksUpdate = () => {
       setBookmarks(readBookmarks());
@@ -665,9 +680,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     return () => {
       window.removeEventListener('campusai_news_updated', handleNewsUpdate);
       window.removeEventListener('campusai_bookmarks_updated', handleBookmarksUpdate);
-      clearInterval(interval);
     };
-  }, [user?.uid, filter, loadLocalNews]);
+  }, [filter, loadLocalNews]);
 
   // ── Filtered / sorted news list ─────────────────────────────────────────────
 
@@ -990,16 +1004,39 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       </AnimatePresence>
 
       {/* Load more */}
-      {filteredNews.length > visibleCount && (
-        <div className="mt-12 text-center">
-          <button onClick={() => {
-            if (visibleCount + REVEAL_STEP > newsList.length && hasMore) {
-              fetchMoreNews(filter);
-            }
-            setVisibleCount(v => v + REVEAL_STEP);
-          }} className="inline-flex items-center gap-2 px-10 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 rounded-3xl font-black text-[11px] uppercase tracking-widest hover:border-blue-600 transition-all">
-            Reveal More Articles <Plus size={16} />
-          </button>
+      {(!isLocalLoading && filteredNews.length > 0) && (
+        <div className="mt-12 text-center pb-12">
+          {filteredNews.length > visibleCount || hasMore ? (
+            <button 
+              onClick={() => {
+                const nextVisible = visibleCount + REVEAL_STEP;
+                setVisibleCount(nextVisible);
+                if (hasMore && !isFetchingMore) {
+                  fetchMoreNews(filter);
+                }
+              }} 
+              disabled={isFetchingMore}
+              className="inline-flex items-center gap-2 px-10 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-2 border-transparent rounded-3xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 dark:hover:bg-cyan-400 dark:hover:text-black transition-all cursor-pointer disabled:opacity-50 shadow-xl"
+            >
+              {isFetchingMore ? (
+                <>
+                  <RefreshCw size={16} className="animate-spin" /> Fetching More Reports...
+                </>
+              ) : filteredNews.length > visibleCount ? (
+                <>
+                  Reveal More Articles ({filteredNews.length - visibleCount} in feed) <Plus size={16} />
+                </>
+              ) : (
+                <>
+                  Load Next Page from Cloud Archive <Plus size={16} />
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-widest py-2">
+              ✓ All {filteredNews.length} reports loaded from Archive
+            </div>
+          )}
         </div>
       )}
 

@@ -26,8 +26,6 @@ export const firestoreDatabaseId = configNode.firestoreDatabaseId;
 const { firestoreDatabaseId: _, ...standardConfig } = configNode;
 const app = initializeApp(standardConfig);
 export const auth = getAuth(app);
-// Use initializeFirestore to enable better connection reliability
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, configNode.firestoreDatabaseId);
+// Standard Firestore initialization for ultra-fast connection without long polling lag
+export const db = getFirestore(app, configNode.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();

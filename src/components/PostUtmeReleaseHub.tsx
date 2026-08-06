@@ -2772,28 +2772,6 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                   {s.details}
                 </p>
 
-                {/* Countdown Schedulers (Deadlines & Exams) */}
-                {s.isOut && !isClosedForm(s) && (deadlineMs || examMs) && (
-                  <div className="mt-4 space-y-2">
-                    {deadlineMs && (
-                      <CountdownBadge 
-                        targetMs={deadlineMs} 
-                        label="Reg. Deadline" 
-                        type="deadline" 
-                        formattedDate={deadlineFormatted} 
-                      />
-                    )}
-                    {examMs && (
-                      <CountdownBadge 
-                        targetMs={examMs} 
-                        label="CBT Exam Prep" 
-                        type="exam" 
-                        formattedDate={examFormatted} 
-                      />
-                    )}
-                  </div>
-                )}
-
                 {/* Eligibility criteria extra block */}
                 {s.isOut && s.eligibilityText && (
                   <div className="mt-3 p-3 bg-black/40 border border-white/5 rounded-xl">

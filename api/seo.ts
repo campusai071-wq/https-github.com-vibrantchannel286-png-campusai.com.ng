@@ -71,7 +71,54 @@ function renderMarkdownToHtml(markdown: string): string {
   return htmlBlocks.filter(Boolean).join('\n');
 }
 
+// High-performance SEO injection cache to prevent blocking initial HTML server responses
+const seoCache = new Map<string, { html: string; timestamp: number }>();
+const SEO_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+
+// Fast helper to run promises with a strict maximum timeout
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+}
+
 export async function injectSEO(html: string, reqPath: string, adminDb: any, dbInstance?: any): Promise<string> {
+  const rawPath = reqPath ? reqPath.split('?')[0] : '/';
+  const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
+  const cacheKey = cleanPath || '/';
+
+  const cached = seoCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < SEO_CACHE_TTL_MS)) {
+    return cached.html;
+  }
+
+  const resultPromise = (async () => {
+    return await generateInjectedSEO(html, reqPath, adminDb, dbInstance);
+  })();
+
+  // Race DB queries against a strict 500ms timeout so the user never waits for slow database calls on page load
+  const result = await withTimeout(resultPromise, 500, generateFastSEOFallback(html, reqPath));
+  seoCache.set(cacheKey, { html: result, timestamp: Date.now() });
+  return result;
+}
+
+function generateFastSEOFallback(html: string, reqPath: string): string {
+  const siteDomain = "https://campusai.com.ng";
+  const rawPath = reqPath ? reqPath.split('?')[0] : '/';
+  const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
+  const canonical = `${siteDomain}${cleanPath || '/'}`;
+
+  const defaultTitle = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
+  const defaultDesc = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
+
+  return html
+    .replace(/<title>.*?<\/title>/gi, `<title>${defaultTitle}</title>`)
+    .replace(/<meta name="description" content=".*?"\s*\/?>/gi, `<meta name="description" content="${defaultDesc}">`)
+    .replace(/<link rel="canonical" href=".*?"\s*\/?>/gi, `<link rel="canonical" href="${canonical}">`);
+}
+
+async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, dbInstance?: any): Promise<string> {
   const siteDomain = "https://campusai.com.ng";
   const rawPath = reqPath ? reqPath.split('?')[0] : '/';
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');

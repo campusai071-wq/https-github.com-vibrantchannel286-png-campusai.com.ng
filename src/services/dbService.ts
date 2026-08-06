@@ -325,11 +325,13 @@ export const getStableNewsKey = (title: string = "", category: string = ""): str
 
 export const getCloudNews = async (includeFuture: boolean = false, includeJunk: boolean = false, category?: string, lastCreatedAt?: any, limitOverride?: number): Promise<NewsItem[]> => {
   const now = Date.now();
+  const effectiveLimit = limitOverride || 1000;
   const isCacheValid = cachedRawNews && (now - lastRawFetchTime < RAW_CACHE_TTL_MS);
   const cachedLiveCount = cachedRawNews ? cachedRawNews.filter(n => n.isLive).length : 0;
-  const needsMoreThanCached = limitOverride && limitOverride > 20 && (!cachedRawNews || cachedLiveCount < limitOverride);
+  const needsMoreThanCached = cachedRawNews && cachedLiveCount < Math.min(effectiveLimit, 50);
 
-  if (cachedRawNews && isCacheValid && !needsMoreThanCached) {
+  // Bypass cache if paginating (lastCreatedAt is present) or if we need more articles than cached
+  if (cachedRawNews && isCacheValid && !needsMoreThanCached && !lastCreatedAt) {
     console.log("getCloudNews: Returning cached news list (preventing redundant fetch).");
     return filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
   }
@@ -339,18 +341,14 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
   // Try proxy first (only if we are NOT using a custom user-provisioned Firebase database)
   if (!hasLocalFirebase) {
     try {
-      console.log(`getCloudNews: Attempting proxy fetch (limit: ${limitOverride || 20})...`);
+      console.log(`getCloudNews: Attempting proxy fetch (limit: ${effectiveLimit})...`);
+      const fetchLimit = effectiveLimit;
       const payload: any = { 
           collectionName: 'news',
           orderByField: 'createdAt',
           orderDirection: 'desc',
-          limitCount: limitOverride || 20
+          limitCount: fetchLimit
       };
-      if (category) {
-        payload.whereField = 'category';
-        payload.whereOperator = '==';
-        payload.whereValue = category;
-      }
       if (lastCreatedAt) {
         payload.startAfterValue = lastCreatedAt;
       }
@@ -363,9 +361,17 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
           category: normalizeCategory(item.category || 'National', item.title || '')
         }));
         const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
-        cachedRawNews = mergedNews;
-        lastRawFetchTime = now;
-        return filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
+        
+        if (!lastCreatedAt) {
+          cachedRawNews = mergedNews;
+          lastRawFetchTime = now;
+        }
+
+        const processed = filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
+        if (category) {
+          return processed.filter(n => n.category === category);
+        }
+        return processed;
       }
     } catch (e) {
       console.error("Proxy fetch failed, falling back to client-side:", e);
@@ -377,19 +383,18 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
   // Fallback to existing logic
   if (!db) {
     console.error("getCloudNews: Firestore DB is NOT initialized. Returning MOCK_NEWS.");
-    return MOCK_NEWS;
+    const mockProcessed = filterAndSortNews(MOCK_NEWS, includeFuture, now, includeJunk);
+    return category ? mockProcessed.filter(n => n.category === category) : mockProcessed;
   }
 
   try {
-    console.log(`getCloudNews: Attempting cloud fetch (limit: ${limitOverride || 20})...`);
+    const fetchLimit = effectiveLimit;
+    console.log(`getCloudNews: Attempting cloud fetch (limit: ${fetchLimit})...`);
     const newsRef = collection(db, "news");
-    let q;
-    const constraints: any[] = [orderBy('createdAt', 'desc'), limit(limitOverride || 20)];
-    if (category) constraints.unshift(where('category', '==', category));
+    const constraints: any[] = [orderBy('createdAt', 'desc'), limit(fetchLimit)];
     if (lastCreatedAt) constraints.push(startAfter(lastCreatedAt));
     
-    q = query(newsRef, ...constraints);
-
+    const q = query(newsRef, ...constraints);
 
     let querySnapshot;
     try {
@@ -423,37 +428,55 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
 
     const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
 
-    cachedRawNews = mergedNews;
-    lastRawFetchTime = now;
+    if (!lastCreatedAt) {
+      cachedRawNews = mergedNews;
+      lastRawFetchTime = now;
+    }
 
-    return filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
+    const processed = filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
+    return category ? processed.filter(n => n.category === category) : processed;
   } catch (e: any) {
     console.error("getCloudNews: CRITICAL FAILURE", e);
     return MOCK_NEWS;
   }
 };
 
-export const getCloudNewsCount = async (): Promise<number> => {
-  const hasLocalFirebase = typeof window !== 'undefined' && !!localStorage.getItem('campusai_firebase');
+let cachedNewsCount: number | null = null;
+let lastCountFetchTime = 0;
+const COUNT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
-  if (!hasLocalFirebase) {
-    try {
-      const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
-      if (res.data.success) {
-        return res.data.count;
-      }
-    } catch (e) {
-      console.error("Proxy count fetch failed:", e);
-    }
+export const getCloudNewsCount = async (): Promise<number> => {
+  const now = Date.now();
+  if (cachedNewsCount !== null && (now - lastCountFetchTime < COUNT_CACHE_TTL_MS)) {
+    return cachedNewsCount;
   }
 
-  if (!db) return MOCK_NEWS.length;
   try {
+    const hasLocalFirebase = typeof window !== 'undefined' && !!localStorage.getItem('campusai_firebase');
+
+    if (!hasLocalFirebase) {
+      try {
+        const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
+        if (res.data.success) {
+          cachedNewsCount = res.data.count;
+          lastCountFetchTime = now;
+          return res.data.count;
+        }
+      } catch (e) {
+        console.warn("Proxy count fetch failed, using fallback:", e);
+      }
+    }
+
+    if (!db) return MOCK_NEWS.length;
+    
     const { getCountFromServer, collection } = await import("firebase/firestore");
     const snap = await getCountFromServer(collection(db, "news"));
-    return snap.data().count;
+    const count = snap.data().count;
+    cachedNewsCount = count;
+    lastCountFetchTime = now;
+    return count;
   } catch (e) {
-    console.error("Client count fetch failed:", e);
+    console.warn("Client count fetch failed, using fallback:", e);
     return MOCK_NEWS.length;
   }
 };
@@ -990,11 +1013,24 @@ export const saveGlobalScoringSystem = async (slug: string, data: any) => {
 /**
  * Global Configuration Persistence
  */
+let cachedGlobalConfig: any = null;
+let lastConfigFetchTime = 0;
+const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
+
 export const getGlobalConfig = async (): Promise<any> => {
+  const now = Date.now();
+  if (cachedGlobalConfig && (now - lastConfigFetchTime < CONFIG_CACHE_TTL_MS)) {
+    return cachedGlobalConfig;
+  }
   if (!db) return null;
   try {
     const snap = await getDoc(doc(db, "settings", "global"));
-    return snap.exists() ? snap.data() : null;
+    const data = snap.exists() ? snap.data() : null;
+    if (data) {
+      cachedGlobalConfig = data;
+      lastConfigFetchTime = now;
+    }
+    return data;
   } catch (e) {
     console.warn("Global config fetch failed (possibly offline/warmup):", e);
     return null;
@@ -1402,11 +1438,24 @@ export const getPostUtmeReleasesFull = async (): Promise<{ releases: any[]; upda
   }
 };
 
+let cachedPostUtmeReleases: any[] | null = null;
+let lastPostUtmeFetchTime = 0;
+const POSTUTME_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
+
 export const getPostUtmeReleases = async (): Promise<any[] | null> => {
+  const now = Date.now();
+  if (cachedPostUtmeReleases && (now - lastPostUtmeFetchTime < POSTUTME_CACHE_TTL_MS)) {
+    return cachedPostUtmeReleases;
+  }
   if (!db) return null;
   try {
     const snap = await getDoc(doc(db, "settings", "post_utme_releases"));
-    return snap.exists() ? snap.data().releases : null;
+    const data = snap.exists() ? snap.data().releases : null;
+    if (data) {
+      cachedPostUtmeReleases = data;
+      lastPostUtmeFetchTime = now;
+    }
+    return data;
   } catch (e) {
     console.warn("Error fetching Post-UTME releases:", e);
     return null;
