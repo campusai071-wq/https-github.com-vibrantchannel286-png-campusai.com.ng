@@ -766,7 +766,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
     setIsNewsSyncing(true);
     setNewsSyncResult(null);
     try {
-      const newsItems = await getCloudNews();
+      const newsItems = await getCloudNews(false, false, undefined, undefined, 50);
       if (!newsItems || newsItems.length === 0) {
         setIsNewsSyncing(false);
         return;

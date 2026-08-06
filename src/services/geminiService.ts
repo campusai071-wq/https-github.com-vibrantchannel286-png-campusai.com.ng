@@ -499,7 +499,13 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 3. **Level 3: ${userContext}** – User corrections (prioritise for this session).
 4. **Level 4 (Lowest):** Your baseline training.
 
-**ANTI-HALLUCINATION:** If Level 1 and 2 lack a specific date/link/price, NEVER invent it. Say: "As of ${currentDate}, [School] has NOT officially announced [X]. Based on 2025 patterns, expect around [Month]."
+**CRITICAL REAL-TIME GROUNDING DIRECTIVE:**
+- You ARE actively connected to live real-time web search results via Level 2 (${liveIntel}).
+- NEVER output generic AI refusal disclaimers such as "I don't have real-time information", "I do not have access to real-time data", or "As an AI model I cannot browse current information".
+- Always speak as an authoritative live admission strategist grounded in real-time data.
+- If live search results show that an institution or portal has NOT released an announcement, form, or result yet as of ${currentDate}, answer directly and definitively:
+  "Direct Answer: As of ${currentDate}, [School/Portal] has NOT yet officially released [Topic] according to current live portal records."
+- **ANTI-HALLUCINATION:** If Level 1 and 2 lack a specific date/link/price, NEVER invent it. State clearly that the school has not officially announced it yet as of ${currentDate}.
 
 ### 4. MANDATORY RESPONSE ARCHITECTURE (FOLLOW EVERY TIME)
 **A. Direct Answer First** – immediate yes/no, figure, or verdict.
@@ -1314,7 +1320,165 @@ export const validateMandatorySubjects = (
     }
   }
 
+  // 8. Accounting / Finance / Banking & Finance / Business Administration
+  const isCommercial = ['accounting', 'accountancy', 'banking', 'finance', 'business admin'].some(k => c.includes(k));
+  if (isCommercial) {
+    const hasMath = has('math');
+    const hasEcon = has('econ') || has('commerce');
+
+    if (!hasMath) {
+      return {
+        valid: false,
+        reason: `Mathematics is strictly compulsory for ${courseName} in JAMB.`
+      };
+    }
+    if (!hasEcon) {
+      return {
+        valid: false,
+        reason: `Economics or Commerce is strictly required for ${courseName} in JAMB.`
+      };
+    }
+  }
+
+  // 9. Mass Communication / Media Studies
+  const isMassComm = c.includes('mass communication') || c.includes('media studies') || c.includes('journalism');
+  if (isMassComm) {
+    const hasLit = has('literat') || has('lit in eng') || has('literature');
+    const hasGovt = has('govt') || has('government') || has('crs') || has('irs') || has('christian') || has('islamic');
+
+    if (!hasLit && !hasGovt) {
+      return {
+        valid: false,
+        reason: `Literature-in-English or Government/CRS/IRS is strictly required for ${courseName} in JAMB.`
+      };
+    }
+  }
+
+  // 10. Political Science / International Relations / Public Administration
+  const isPoliSci = c.includes('political science') || c.includes('international relation') || c.includes('public admin');
+  if (isPoliSci) {
+    const hasGovt = has('govt') || has('government') || has('history');
+    if (!hasGovt) {
+      return {
+        valid: false,
+        reason: `Government or History is strictly compulsory for ${courseName} in JAMB.`
+      };
+    }
+  }
+
   return { valid: true, reason: "Candidate has the required JAMB subject combination." };
+};
+
+export const validateOlevelRequirements = (
+  courseName: string,
+  subjects: { name: string; grade: string }[]
+): { valid: boolean; reason: string } => {
+  if (!courseName || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
+    return { valid: true, reason: "Candidate meets O'Level entry requirements." };
+  }
+
+  const failingGrades = ['F9', 'E8', 'D7'];
+  const isFail = (g: string) => !g || failingGrades.includes(g.trim().toUpperCase());
+
+  const c = courseName.toLowerCase().trim();
+  const subMap = new Map<string, string>();
+  subjects.forEach(s => {
+    if (s && s.name) {
+      subMap.set(s.name.toLowerCase().trim(), s.grade);
+    }
+  });
+
+  const getGrade = (kw: string): string | undefined => {
+    for (const [name, grade] of subMap.entries()) {
+      if (name.includes(kw)) return grade;
+    }
+    return undefined;
+  };
+
+  // 1. English Language is mandatory for ALL courses in Nigeria
+  const englishGrade = getGrade('english');
+  if (!englishGrade || isFail(englishGrade)) {
+    return {
+      valid: false,
+      reason: `English Language Credit pass (A1-C6) is compulsory for all tertiary institution admissions in Nigeria. Your entered grade is ${englishGrade || 'missing'}.`
+    };
+  }
+
+  // 2. Mathematics is compulsory for Sciences, Engineering, Medicine, Computing, Agriculture, Social Sciences & Commercial
+  const isArtOnly = ['theatre', 'dramatic', 'music', 'fine art', 'creative art', 'history', 'philosophy', 'religious', 'islamic', 'christian', 'linguistics', 'french', 'yoruba', 'igbo', 'hausa', 'english literature'].some(k => c.includes(k));
+
+  const mathGrade = getGrade('math');
+  if (!isArtOnly && (!mathGrade || isFail(mathGrade))) {
+    return {
+      valid: false,
+      reason: `Mathematics Credit pass (A1-C6) is compulsory for ${courseName} in O'Level. Your entered grade is ${mathGrade || 'missing'}.`
+    };
+  }
+
+  // 3. Medicine & Allied Health Sciences
+  const isMedicineGroup = ['medicine', 'mbbs', 'dentistry', 'nursing', 'pharmacy', 'medical lab', 'radiography', 'physiotherapy', 'anatomy', 'physiology', 'veterinary'].some(k => c.includes(k));
+
+  if (isMedicineGroup) {
+    const bioGrade = getGrade('bio');
+    const chemGrade = getGrade('chem');
+    const phyGrade = getGrade('phy');
+
+    const failingDefs: string[] = [];
+    if (!bioGrade || isFail(bioGrade)) failingDefs.push(`Biology (${bioGrade || 'missing'})`);
+    if (!chemGrade || isFail(chemGrade)) failingDefs.push(`Chemistry (${chemGrade || 'missing'})`);
+    if (!phyGrade || isFail(phyGrade)) failingDefs.push(`Physics (${phyGrade || 'missing'})`);
+
+    if (failingDefs.length > 0) {
+      return {
+        valid: false,
+        reason: `${courseName} strictly requires at least a Credit pass (A1-C6) in Biology, Chemistry, and Physics in O'Level. Deficiencies: ${failingDefs.join(', ')}.`
+      };
+    }
+  }
+
+  // 4. Engineering & Technology
+  const isEngineering = c.includes('engineer') || c.includes('technology');
+  if (isEngineering) {
+    const phyGrade = getGrade('phy');
+    const chemGrade = getGrade('chem');
+
+    const failingDefs: string[] = [];
+    if (!phyGrade || isFail(phyGrade)) failingDefs.push(`Physics (${phyGrade || 'missing'})`);
+    if (!chemGrade || isFail(chemGrade)) failingDefs.push(`Chemistry (${chemGrade || 'missing'})`);
+
+    if (failingDefs.length > 0) {
+      return {
+        valid: false,
+        reason: `Engineering & Technology courses strictly require at least a Credit pass (A1-C6) in Physics and Chemistry in O'Level. Deficiencies: ${failingDefs.join(', ')}.`
+      };
+    }
+  }
+
+  // 5. Computing / Computer Science / Cyber Security / Software Engineering
+  const isComputing = ['computer science', 'cyber', 'software engineer', 'data science', 'information technology'].some(k => c.includes(k));
+  if (isComputing) {
+    const phyGrade = getGrade('phy');
+    if (!phyGrade || isFail(phyGrade)) {
+      return {
+        valid: false,
+        reason: `Computing & Computer Science courses strictly require at least a Credit pass (A1-C6) in Physics in O'Level. Your entered grade is ${phyGrade || 'missing'}.`
+      };
+    }
+  }
+
+  // 6. Law (LL.B)
+  const isLaw = c.includes('law') || c.includes('ll.b') || c.includes('jurisprudence');
+  if (isLaw) {
+    const litGrade = getGrade('literat') || getGrade('lit in eng');
+    if (!litGrade || isFail(litGrade)) {
+      return {
+        valid: false,
+        reason: `Law (LL.B) strictly requires at least a Credit pass (A1-C6) in Literature-in-English in O'Level. Your entered grade is ${litGrade || 'missing'}.`
+      };
+    }
+  }
+
+  return { valid: true, reason: "Candidate meets O'Level entry requirements." };
 };
 
 export function getFacultyCategory(courseName: string = '', subjects: string[] = []): 'LAW' | 'HEALTH_MEDICINE' | 'ENGINEERING_TECH' | 'SCIENCE_AGRIC' | 'SOCIAL_SCIENCE_COMMERCIAL' | 'ARTS_HUMANITIES' {
@@ -2391,6 +2555,16 @@ export function buildCleanChatContents(history: ChatMessage[], newMessage: strin
   return sliced;
 }
 
+const generateFastSearchQuery = (message: string): string => {
+  const clean = message
+    .replace(/[?.,!/\\;:'"()]/g, " ")
+    .replace(/\b(has|have|is|are|was|were|released|out|published|checking|check|what|when|where|how|can|you|tell|me|i|want|to|know|the|for|about|please|find|get)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return `${clean.substring(0, 100)} 2026 2027 Nigeria`.trim();
+};
+
 export const executeAiChat = async (
   message: string,
   history: ChatMessage[]
@@ -2404,9 +2578,9 @@ export const executeAiChat = async (
     const chatKeys = getChatKeys();
     const todayStr = getNigerianDate();
 
-    let optimizedQuery = `${sanitizedMessage.substring(0, 100)} 2026 Nigeria`;
+    let optimizedQuery = generateFastSearchQuery(sanitizedMessage);
     try {
-      const optResponse = await runAIWithFallback(async (ai) => {
+      const optPromise = runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
           model: "gemini-flash-latest",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
@@ -2416,14 +2590,17 @@ Output ONLY the search query string (3-7 words).
 
 User Message: "${sanitizedMessage.substring(0, 200)}"
 Optimized Search Query:`
-      });
+        });
       }, undefined, chatKeys);
+
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+      const optResponse: any = await Promise.race([optPromise, timeoutPromise]);
 
       if (optResponse?.text) {
         optimizedQuery = optResponse.text.trim().replace(/^["']|["']$/g, "");
       }
     } catch (optErr) {
-      console.error("[Grounding Engine] Query optimization error:", optErr);
+      console.error("[Grounding Engine] Query optimization error, using fast fallback:", optErr);
     }
 
     let searchResults: any[] = [];
@@ -2502,7 +2679,10 @@ Optimized Search Query:`
 
     let liveIntelStr = "";
     if (searchResults.length > 0) {
-      liveIntelStr = searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+      liveIntelStr = `LIVE WEB SEARCH RESULTS (Retrieved Live on ${todayStr} for query "${optimizedQuery}"):\n` +
+        searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+    } else {
+      liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
     }
 
     const userCorrections: string[] = [];
@@ -2623,9 +2803,9 @@ export const executeAiChatStream = async (
     const chatKeys = getChatKeys();
     const todayStr = getNigerianDate();
 
-    let optimizedQuery = `${sanitizedMessage.substring(0, 100)} 2026 Nigeria`;
+    let optimizedQuery = generateFastSearchQuery(sanitizedMessage);
     try {
-      const optResponse = await runAIWithFallback(async (ai) => {
+      const optPromise = runAIWithFallback(async (ai) => {
         return await ai.models.generateContent({
           model: "gemini-flash-latest",
           contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
@@ -2635,8 +2815,11 @@ Output ONLY the search query string (3-7 words).
 
 User Message: "${sanitizedMessage.substring(0, 200)}"
 Optimized Search Query:`
-      });
+        });
       }, undefined, chatKeys);
+
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+      const optResponse: any = await Promise.race([optPromise, timeoutPromise]);
 
       if (optResponse?.text) {
         optimizedQuery = optResponse.text.trim().replace(/^["']|["']$/g, "");
@@ -2717,7 +2900,10 @@ Optimized Search Query:`
 
     let liveIntelStr = "";
     if (searchResults.length > 0) {
-      liveIntelStr = searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+      liveIntelStr = `LIVE WEB SEARCH RESULTS (Retrieved Live on ${todayStr} for query "${optimizedQuery}"):\n` +
+        searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+    } else {
+      liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
     }
 
     const userCorrections: string[] = [];

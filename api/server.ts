@@ -2895,154 +2895,46 @@ app.post("/api/search", async (req: any, res: any) => {
     console.log("[API Search] Local Firestore search failed or timed out:", e.message);
   }
 
-  // 2. Try Gemini for Search Grounding (Primary)
+  // 2. Try search engine APIs first (Serper / Tavily) if available
   const isPostUtme = query.toLowerCase().includes("post-utme") || query.toLowerCase().includes("screening");
   let searchSuccess = false;
 
-  console.log(`[API Search] Trying Gemini native search grounding for: "${query}"`);
-  const rawPool = getGeminiKeys();
-  const searchModels = ['gemini-flash-latest'];
-
-  let abortGrounding = false;
-
-  for (let i = 0; i < rawPool.length; i++) {
-    const apiKey = rawPool[i];
-    let keySucceeded = false;
-
-    for (const searchModel of searchModels) {
-      try {
-        // Do NOT set timeout in httpOptions, as googleSearch tool demands a longer backend deadline.
-        // Instead, wrap the request promise using our local withTimeout function.
-        const ai = new GoogleGenAI({ 
-          apiKey,
-          httpOptions: {
-            headers: { 'User-Agent': 'aistudio-build' }
-          }
-        });
-        
-        const result = await withTimeout(
-          ai.models.generateContent({
-            model: searchModel,
-            contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
-            config: {
-              tools: [{ googleSearch: {} }]
-            }
-          }),
-          10000,
-          `Gemini search grounding ${searchModel}`
-        );
-        
-        let text = result.text || "";
-        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-          text = result.candidates[0].content.parts[0].text;
-        }
-        
-        const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-        if (chunks.length > 0 || text) {
-          console.log(`[API Search] Gemini Search succeeded with key ${i + 1} (${searchModel})`);
-          const searchResults = chunks.filter((c: any) => c.web?.uri).map((c: any) => ({
-            title: c.web?.title || "Web Result",
-            url: c.web?.uri,
-            content: text.substring(0, 400),
-            source: 'Google Search'
-          }));
-          
-          if (searchResults.length > 0) {
-            allResults = [...searchResults, ...allResults];
-          } else if (text) {
-             allResults.push({
-               title: "Gemini Search Summary",
-               url: "",
-               content: text,
-               source: "Google Search Summary"
-             });
-          }
-          searchSuccess = true;
-          keySucceeded = true;
-          break;
-        }
-      } catch (e: any) {
-        const errMsg = e.message || String(e);
-        const isQuotaOrBusy = errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota") || errMsg.includes("503") || errMsg.includes("UNAVAILABLE");
-        const isPermanentError = errMsg.includes("not supported") || errMsg.includes("not enabled") || errMsg.includes("permission") || errMsg.includes("403") || (/\b400\b/.test(errMsg) && !errMsg.includes("timed out") && !errMsg.includes("timeout")) || errMsg.includes("invalid") || errMsg.includes("unauthorized") || errMsg.includes("not authorized");
-        
-        if (isQuotaOrBusy) {
-          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}): quota or temporary load limit reached, switching model/key...`);
-        } else if (isPermanentError) {
-          console.log(`[API Search] Gemini Search Grounding is unavailable on standard keys. Falling back directly to search engine providers...`);
-          abortGrounding = true;
-          break;
-        } else {
-          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) notice:`, errMsg.substring(0, 100));
-        }
-      }
-    }
-
-    if (abortGrounding || keySucceeded || searchSuccess) break;
-  }
-
-  // 3. Fallback to Tavily/Serper if Gemini fails
-  if (!searchSuccess) {
+  if (serperKeys.length > 0 || tavilyKeys.length > 0) {
     if (isPostUtme) {
-      // Try Serper for Post-UTME
+      // Try Serper for Post-UTME queries
       for (let i = 0; i < serperKeys.length; i++) {
-          const key = serperKeys[i];
-          try {
-              const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-                  headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-                  timeout: 8000
-              });
-              if (response.data && response.data.organic && response.data.organic.length > 0) {
-                  console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
-                  const searchResults = response.data.organic.map((r: any) => ({
-                      title: r.title,
-                      url: r.link,
-                      content: r.snippet,
-                      source: 'Serper'
-                  }));
-                  allResults = [...searchResults, ...allResults];
-                  searchSuccess = true;
-                  break;
-              }
-          } catch (e: any) {
-              console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
+        const key = serperKeys[i];
+        try {
+          const response = await axios.post('https://google.serper.dev/search', { q: query }, {
+            headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+            timeout: 8000
+          });
+          if (response.data && response.data.organic && response.data.organic.length > 0) {
+            console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
+            const searchResults = response.data.organic.map((r: any) => ({
+              title: r.title,
+              url: r.link,
+              content: r.snippet,
+              source: 'Serper'
+            }));
+            allResults = [...searchResults, ...allResults];
+            searchSuccess = true;
+            break;
           }
-      }
-  
-      // Fallback to Tavily for Post-UTME if Serper fails
-      if (!searchSuccess) {
-        console.log(`[API Search] Serper failed or returned no results for Post-UTME. Trying Tavily as fallback...`);
-        for (let i = 0; i < tavilyKeys.length; i++) {
-            const key = tavilyKeys[i];
-            try {
-              const client = new TavilyClient({ apiKey: key });
-              const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
-              if (response && response.results && response.results.length > 0) {
-                console.log(`[API Search] Tavily search fallback succeeded with key ${i + 1}`);
-                const searchResults = response.results.map((r: any) => ({
-                  title: r.title,
-                  url: r.url,
-                  content: r.content,
-                  source: 'Tavily'
-                }));
-                allResults = [...searchResults, ...allResults];
-                searchSuccess = true;
-                break;
-              }
-            } catch (e: any) {
-              console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
-            }
+        } catch (e: any) {
+          console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
         }
       }
-    } else {
-      // Try Tavily for others (News/Calculations)
-      for (let i = 0; i < tavilyKeys.length; i++) {
+
+      // Fallback to Tavily if Serper fails
+      if (!searchSuccess) {
+        for (let i = 0; i < tavilyKeys.length; i++) {
           const key = tavilyKeys[i];
           try {
             const client = new TavilyClient({ apiKey: key });
             const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
             if (response && response.results && response.results.length > 0) {
-              console.log(`[API Search] Tavily search succeeded with key ${i + 1}`);
+              console.log(`[API Search] Tavily search fallback succeeded with key ${i + 1}`);
               const searchResults = response.results.map((r: any) => ({
                 title: r.title,
                 url: r.url,
@@ -3056,19 +2948,39 @@ app.post("/api/search", async (req: any, res: any) => {
           } catch (e: any) {
             console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
           }
+        }
       }
-  
-      // Fallback to Serper for others if Tavily fails
+    } else {
+      // Try Tavily first for General/News queries
+      for (let i = 0; i < tavilyKeys.length; i++) {
+        const key = tavilyKeys[i];
+        try {
+          const client = new TavilyClient({ apiKey: key });
+          const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
+          if (response && response.results && response.results.length > 0) {
+            console.log(`[API Search] Tavily search succeeded with key ${i + 1}`);
+            const searchResults = response.results.map((r: any) => ({
+              title: r.title,
+              url: r.url,
+              content: r.content,
+              source: 'Tavily'
+            }));
+            allResults = [...searchResults, ...allResults];
+            searchSuccess = true;
+            break;
+          }
+        } catch (e: any) {
+          console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
+        }
+      }
+
+      // Fallback to Serper if Tavily fails
       if (!searchSuccess) {
-        console.log(`[API Search] Tavily failed or returned no results. Trying Serper as fallback...`);
         for (let i = 0; i < serperKeys.length; i++) {
           const key = serperKeys[i];
           try {
             const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-              headers: {
-                'X-API-KEY': key,
-                'Content-Type': 'application/json'
-              },
+              headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
               timeout: 8000
             });
             if (response.data && response.data.organic && response.data.organic.length > 0) {
@@ -3088,6 +3000,73 @@ app.post("/api/search", async (req: any, res: any) => {
           }
         }
       }
+    }
+  }
+
+  // 3. Fallback to Gemini for Native Search Grounding only if search engine APIs failed or were empty
+  if (!searchSuccess) {
+    console.log(`[API Search] Trying Gemini native search grounding fallback for: "${query}"`);
+    const rawPool = getGeminiKeys();
+    const searchModels = ['gemini-flash-latest'];
+
+    for (let i = 0; i < rawPool.length; i++) {
+      const apiKey = rawPool[i];
+      let keySucceeded = false;
+
+      for (const searchModel of searchModels) {
+        try {
+          const ai = new GoogleGenAI({ 
+            apiKey,
+            httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+          });
+          
+          const result = await withTimeout(
+            ai.models.generateContent({
+              model: searchModel,
+              contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
+              config: { tools: [{ googleSearch: {} }] }
+            }),
+            10000,
+            `Gemini search grounding ${searchModel}`
+          );
+          
+          let text = result.text || "";
+          if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
+            text = result.candidates[0].content.parts[0].text;
+          }
+          
+          const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+          if (chunks.length > 0 || text) {
+            console.log(`[API Search] Gemini Search succeeded with key ${i + 1} (${searchModel})`);
+            const searchResults = chunks.filter((c: any) => c.web?.uri).map((c: any) => ({
+              title: c.web?.title || "Web Result",
+              url: c.web?.uri,
+              content: text.substring(0, 400),
+              source: 'Google Search'
+            }));
+            
+            if (searchResults.length > 0) {
+              allResults = [...searchResults, ...allResults];
+            } else if (text) {
+               allResults.push({
+                 title: "Gemini Search Summary",
+                 url: "",
+                 content: text,
+                 source: "Google Search Summary"
+               });
+            }
+            searchSuccess = true;
+            keySucceeded = true;
+            break;
+          }
+        } catch (e: any) {
+          const errMsg = e.message || String(e);
+          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) grounding notice:`, errMsg.substring(0, 100));
+          break; // Don't loop endlessly if grounding tool isn't supported on this key
+        }
+      }
+
+      if (keySucceeded || searchSuccess) break;
     }
   }
 

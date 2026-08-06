@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
 import universityData from '../data/universities';
-import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown } from '../services/geminiService';
+import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown, validateMandatorySubjects, validateOlevelRequirements } from '../services/geminiService';
 import {
   getLocalProfile, checkAndIncrementCalculations as checkAndIncrementRequests,
   DAILY_LIMIT, getUserProfile, saveUserProfile, incrementMeritUsage,
@@ -1207,6 +1207,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isCutoffAlertOpen, setIsCutoffAlertOpen] = useState(false);
   const [isAccreditationAlertOpen, setIsAccreditationAlertOpen] = useState(false);
   const [isC6AlertOpen, setIsC6AlertOpen] = useState(false);
+  const [subjectDisqualificationAlert, setSubjectDisqualificationAlert] = useState<{
+    isOpen: boolean;
+    title: string;
+    reason: string;
+    type: 'jamb' | 'olevel';
+  }>({ isOpen: false, title: '', reason: '', type: 'jamb' });
+  const [bypassSubjectDisqualificationAlert, setBypassSubjectDisqualificationAlert] = useState(false);
   const [validationAlert, setValidationAlert] = useState<{ isOpen: boolean; errors: string[] }>({ isOpen: false, errors: [] });
   const [isAccreditationWarningDisabled, setIsAccreditationWarningDisabled] = useState<boolean>(() => {
     try {
@@ -1570,8 +1577,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     });
   }, [jambSubject1, jambSubject2, jambSubject3, hasManuallyEditedOLevels]);
 
-  // Reset bypass when score/uni changes
-  useEffect(() => { setBypassCutoffAlert(false); }, [jambScore, targetUni]);
+  // Reset bypass when score/uni/course/subjects change
+  useEffect(() => {
+    setBypassCutoffAlert(false);
+    setBypassSubjectDisqualificationAlert(false);
+  }, [jambScore, targetUni, targetCourse, courseSearch, jambSubject1, jambSubject2, jambSubject3, subjects]);
 
   // Fetch scoring system & courses when uni changes
   useEffect(() => {
@@ -2031,6 +2041,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (errors.length > 0) {
       setValidationAlert({ isOpen: true, errors });
       return;
+    }
+
+    if (!forceBypass && !bypassSubjectDisqualificationAlert) {
+      const jambList = ['English Language', jambSubject1, jambSubject2, jambSubject3].filter(Boolean);
+      const jambVal = validateMandatorySubjects(activeCourse, jambList);
+      if (!jambVal.valid) {
+        setSubjectDisqualificationAlert({
+          isOpen: true,
+          title: 'JAMB Subject Combination Disqualification',
+          reason: jambVal.reason,
+          type: 'jamb'
+        });
+        return;
+      }
+
+      const olevelVal = validateOlevelRequirements(activeCourse, subjects);
+      if (!olevelVal.valid) {
+        setSubjectDisqualificationAlert({
+          isOpen: true,
+          title: "O'Level Subject Requirement Disqualification",
+          reason: olevelVal.reason,
+          type: 'olevel'
+        });
+        return;
+      }
     }
 
     const isAllC6 = subjects.every(s => s.grade === 'C6');
@@ -3085,7 +3120,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
             {/* O-Level grades */}
             {(!computedScoringSystem || computedScoringSystem.hasOLevel) && (
-              <div className="space-y-2.5 pt-2.5 border-t border-white/5">
+              <div id="olevel-subject-list" className="space-y-2.5 pt-2.5 border-t border-white/5">
                 <div className="flex justify-between items-center px-0.5">
                   <label className="text-[8px] font-black uppercase text-gray-500 tracking-widest">O-Level (Best 5)</label>
                   <div className="flex items-center gap-1.5">
@@ -5098,6 +5133,111 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 >
                   Complete Entries Now
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {subjectDisqualificationAlert.isOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-black/85 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-gray-950 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-rose-500/30"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-rose-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
+              <button
+                onClick={() => setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }))}
+                className="absolute top-6 right-6 p-2 bg-gray-800 rounded-full hover:scale-110 transition-transform z-10 text-gray-400 hover:text-rose-500 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+              <div className="p-8 text-center relative z-10">
+                <div className="w-16 h-16 bg-rose-950/40 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-rose-500/20 animate-pulse">
+                  <TriangleAlert size={32} />
+                </div>
+                
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full mb-3 text-[9px] font-black uppercase text-rose-400 tracking-wider">
+                  <ShieldCheck size={12} className="text-rose-400" />
+                  Calculation Saved • Subject Violation
+                </div>
+
+                <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight leading-tight">
+                  Admission <span className="text-rose-500">Disqualification Alert</span>
+                </h3>
+                <p className="text-gray-400 font-bold mb-5 text-[10px] tracking-widest uppercase">
+                  {subjectDisqualificationAlert.title}
+                </p>
+
+                <div className="p-4 bg-rose-950/20 rounded-2xl border border-rose-500/20 mb-6 text-left space-y-2">
+                  <p className="text-[10px] font-black uppercase text-rose-400 tracking-wider flex items-center gap-1.5">
+                    <AlertCircle size={12} /> Statutory Subject Hazard:
+                  </p>
+                  <p className="text-xs font-semibold leading-relaxed text-gray-200 uppercase tracking-tight">
+                    {subjectDisqualificationAlert.reason}
+                  </p>
+                  <p className="text-[9.5px] font-bold text-gray-400 leading-normal mt-2 border-t border-rose-500/10 pt-2">
+                    JAMB CAPS policy restricts candidates with invalid subject combinations or core O-Level credit deficiencies. Calculations are halted immediately to protect your calculation limits.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {subjectDisqualificationAlert.type === 'jamb' ? (
+                    <button
+                      onClick={() => {
+                        setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }));
+                        const el = document.getElementById('jamb-subject-1');
+                        if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                      }}
+                      className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                    >
+                      Fix JAMB UTME Elective Subjects
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }));
+                        const el = document.getElementById('olevel-subject-list');
+                        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                      }}
+                      className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                    >
+                      Update O-Level Grades to Credit Passes
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }));
+                      const el = document.getElementById('course-search');
+                      if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    }}
+                    className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-gray-200 rounded-2xl font-black text-[11px] uppercase tracking-wider border border-white/5 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Change Target Course Choice
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSubjectDisqualificationAlert(prev => ({ ...prev, isOpen: false }));
+                      setBypassSubjectDisqualificationAlert(true);
+                      handleLaunchAuditInternal(true, false);
+                    }}
+                    className="w-full py-2.5 bg-transparent hover:bg-white/[0.03] text-gray-500 hover:text-gray-400 rounded-xl font-bold text-[9.5px] uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Proceed with calculation anyway (Force Bypass)
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

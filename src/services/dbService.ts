@@ -325,7 +325,7 @@ export const getStableNewsKey = (title: string = "", category: string = ""): str
 
 export const getCloudNews = async (includeFuture: boolean = false, includeJunk: boolean = false, category?: string, lastCreatedAt?: any, limitOverride?: number): Promise<NewsItem[]> => {
   const now = Date.now();
-  const effectiveLimit = limitOverride || 1000;
+  const effectiveLimit = limitOverride || 30;
   const isCacheValid = cachedRawNews && (now - lastRawFetchTime < RAW_CACHE_TTL_MS);
   const cachedLiveCount = cachedRawNews ? cachedRawNews.filter(n => n.isLive).length : 0;
   const needsMoreThanCached = cachedRawNews && cachedLiveCount < Math.min(effectiveLimit, 50);

@@ -118,7 +118,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
       if (!news) return;
       try {
         const { getCloudNews } = await import('../services/dbService');
-        const allNews = await getCloudNews(true);
+        const allNews = await getCloudNews(true, false, news.category, undefined, 10);
         // Ensure we strictly exclude the CURRENT news item by ID and title
         const filtered = allNews
           .filter(n => n.id !== news.id && n.title !== news.title && n.category === news.category)

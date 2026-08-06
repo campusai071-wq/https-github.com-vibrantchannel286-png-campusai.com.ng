@@ -342,7 +342,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsLocalLoading(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const targetLimit = limitOverride || 1000;
+      const targetLimit = limitOverride || 30;
       const cloudNews = await getCloudNews(false, false, category, undefined, targetLimit);
       const sorted = [...cloudNews].sort(sortNewsBySyncAndDate);
       setNewsList(sorted);
@@ -385,12 +385,12 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     }
   }, []);
 
-  // Trigger larger cloud fetch when user starts searching to search across all records in Firebase
+  // Trigger larger cloud fetch when user starts searching to search across records in Firebase
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
       if (!hasFetchedAllForSearch) {
         setHasFetchedAllForSearch(true);
-        loadLocalNews(filter, 1000);
+        loadLocalNews(filter, 100);
       }
     } else {
       if (hasFetchedAllForSearch) {
@@ -405,7 +405,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsFetchingMore(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const newNews = await getCloudNews(false, false, category, lastCreatedAt);
+      const newNews = await getCloudNews(false, false, category, lastCreatedAt, 30);
       
       if (!newNews || newNews.length === 0) {
         setHasMore(false);
@@ -420,7 +420,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
           return [...prev, ...uniqueNew];
         });
         setLastCreatedAt(newNews[newNews.length - 1].createdAt);
-        setHasMore(newNews.length >= 20);
+        setHasMore(newNews.length >= 25);
       }
     } catch (e) {
       console.error("NewsGrid: fetchMoreNews error:", e);

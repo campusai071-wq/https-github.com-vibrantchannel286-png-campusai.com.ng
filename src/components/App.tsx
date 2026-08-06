@@ -246,7 +246,7 @@ const AppContent: React.FC = () => {
         // 2. Fetch the newly added articles and trigger browser push notifications on desktop/mobile
         try {
           const { getCloudNews } = await import('../services/dbService');
-          const newsItems = await getCloudNews(true);
+          const newsItems = await getCloudNews(true, false, undefined, undefined, 30);
           
           const newlyAdded = newsItems.filter(item => {
             const itemTime = toMs(item.archivedAt) || toMs(item.createdAt) || toMs(item.updatedAt) || (item.date ? toMs(item.date) : 0);
@@ -406,7 +406,7 @@ const AppContent: React.FC = () => {
     const reloadNews = async () => {
       try {
         const { getCloudNews, sortNewsBySyncAndDate } = await import('../services/dbService');
-        const newsItems = await getCloudNews(true);
+        const newsItems = await getCloudNews(true, false, undefined, undefined, 30);
         const sortedNews = [...newsItems].sort((a, b) => sortNewsBySyncAndDate(a, b));
         setNews(sortedNews);
       } catch (err) {
