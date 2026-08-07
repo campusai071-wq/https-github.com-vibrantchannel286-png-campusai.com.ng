@@ -341,6 +341,735 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     registrationFee: 2000,
     citationUrl: "https://myschoolgist.com/news/atbu-post-utme-screening/",
     eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+  },
+  "Sokoto State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "SSU 2026/2027 Post-UTME/DE screening registration portal is live. Minimum cut-off mark: 150.",
+    portalLink: "https://ssu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who scored 150+ in 2026 UTME and selected SSU."
+  },
+  "Northwest University, Kano": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "NWUK (YUMSUK) 2026/2027 Post-UTME online application exercise is active.",
+    portalLink: "https://nwu.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Minimum UTME score 160+."
+  },
+  "Abdulkadir Kure University, Minna": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Abdulkadir Kure University Minna 2026/2027 Post-UTME/DE screening portal is active.",
+    portalLink: "https://akub.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "First choice candidates with 150+ JAMB score."
+  },
+  "Federal University of Health Sciences & Tech. Tsafe": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUHST Tsafe 2026/2027 Post-UTME application portal is accepting candidates for healthcare programs.",
+    portalLink: "https://fuhsttsafe.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score in 2026 UTME."
+  },
+  "Bamidele Olumilua University of Edu, Sci & Tech.": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "BOUESTI Ikere-Ekiti 2026/2027 Post-UTME screening forms are out on the admissions portal.",
+    portalLink: "https://bouesti.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected BOUESTI and scored 160+."
+  },
+  "Aliko Dangote University of Science and Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ADUSTECH Wudil 2026/2027 Post-UTME/DE screening application portal is active.",
+    portalLink: "https://adustech.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "UTME score of 160 and above."
+  },
+  "Sule Lamido University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "SLU Kafin Hausa 2026/2027 Post-UTME online registration procedures released.",
+    portalLink: "https://slu.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "First choice candidates with 160+ score."
+  },
+  "Kogi State University, Kabba": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "KSU Kabba 2026/2027 Post-UTME/DE online screening portal is live.",
+    portalLink: "https://ksukabba.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score in 2026 UTME."
+  },
+  "Kashim Ibrahim University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "KIU 2026/2027 Post-UTME screening application portal is officially open.",
+    portalLink: "https://kiu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Minimum 150 JAMB UTME score."
+  },
+  "Abdullahi Fodio University of Science and Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "AFUSTA 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://afusta.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who scored 150+ in 2026 UTME."
+  },
+  "Federal University of Science & Tech. Kabo": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUST Kabo 2026/2027 Post-UTME application exercise is active.",
+    portalLink: "https://fustkabo.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Al-Qalam University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "AUK Katsina 2026/2027 Post-UTME/DE registration guidelines are published.",
+    portalLink: "https://auk.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "First choice candidates with required minimum score."
+  },
+  "Federal University of Medical Health Sci. Kwale": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUMHS Kwale 2026/2027 Post-UTME registration is open for medical & allied sciences.",
+    portalLink: "https://fumhskwale.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ UTME score."
+  },
+  "Benue State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "BSU Makurdi 2026/2027 Post-UTME online screening portal is live.",
+    portalLink: "https://bsum.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "UTME score of 150 and above."
+  },
+  "Yobe State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "YSU Damaturu 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://ysu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates meeting minimum cut-off."
+  },
+  "Jewel University Gombe": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Jewel University Gombe 2026/2027 Post-UTME admission forms are open.",
+    portalLink: "https://jeweluniversity.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ JAMB score."
+  },
+  "Summit University, Offa": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Summit University Offa 2026/2027 undergraduate registration portal is active.",
+    portalLink: "https://summituniversity.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "UTME candidates with 150+ score."
+  },
+  "Federal University Dutse": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUD 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://fud.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected FUD and scored 150+."
+  },
+  "Enugu State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ESUT Enugu 2026/2027 Post-UTME online screening application portal is active.",
+    portalLink: "https://esut.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "UTME score of 160 and above."
+  },
+  "Federal University of Education, Zaria": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FCE Zaria (Federal Univ of Education) 2026/2027 screening forms are on sale.",
+    portalLink: "https://fcezaria.edu.ng",
+    cutoffScore: "140",
+    registrationFee: 2000,
+    eligibilityText: "Minimum UTME score 140+."
+  },
+  "Lagos State University of Science and Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "LASUSTECH Ikorodu 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://lasustech.edu.ng",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 180+ score in 2026 UTME."
+  },
+  "Bayelsa Medical University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "BMU Yenagoa 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://bmu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "First choice candidates with minimum required score."
+  },
+  "Gombe State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "GOMSU 2026/2027 Post-UTME/DE online screening portal is live.",
+    portalLink: "https://gsu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected GSU with 150+ score."
+  },
+  "Federal University of Health Sciences Ira-Orangun": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUHSI Ira-Orangun 2026/2027 Post-UTME application portal is open.",
+    portalLink: "https://fuhsi.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Healthcare candidates with 160+ UTME score."
+  },
+  "Kaduna State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "KASU 2026/2027 Post-UTME/DE online screening portal is active.",
+    portalLink: "https://kasu.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ score in 2026 UTME."
+  },
+  "Emmanuel Alayande University of Education": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "EAUE Oyo 2026/2027 Post-UTME/DE screening form is out on portal.",
+    portalLink: "https://eaued.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Minimum 150 JAMB score."
+  },
+  "Joseph Sarwuan Tarka University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "JOSTUM (FUAM) Makurdi 2026/2027 Post-UTME application exercise is live.",
+    portalLink: "https://jostum.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in 2026 UTME."
+  },
+  "Bingham University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Bingham University Karu 2026/2027 Post-UTME screening forms are out.",
+    portalLink: "https://binghamuni.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Minimum JAMB score 150."
+  },
+  "Lead City University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Lead City University Ibadan 2026/2027 undergraduate admission portal is active.",
+    portalLink: "https://lcu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "UTME candidates with 150+ score."
+  },
+  "Federal University, Lafia": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FULAFIA 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://fulafia.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Tai Solarin University of Education": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "TASUED Ijagun 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://tasued.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Minimum 150 JAMB score."
+  },
+  "State University of Medical and Applied Sciences": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "SUMAS Igbo-Eno 2026/2027 Post-UTME online registration is active.",
+    portalLink: "https://sumas.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Healthcare and science candidates with 160+ score."
+  },
+  "Michael Okpara University of Agriculture, Umudike": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "MOUAU Umudike 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://mouau.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected MOUAU and scored 150+."
+  },
+  "Federal University of Technology, Ikot-Abasi": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUTIA 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://futia.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ UTME score."
+  },
+  "Edo State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "EDSU Uzairue 2026/2027 Post-UTME screening portal is open.",
+    portalLink: "https://edouniversity.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ in UTME."
+  },
+  "Federal University of Health Sciences, Azare": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUHSA Azare 2026/2027 Post-UTME application portal is live.",
+    portalLink: "https://fuhsa.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Healthcare candidates with 160+ score."
+  },
+  "Federal University of Agriculture, Bassambiri": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUAB Bassambiri 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://fuab.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Adamawa State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ADSU Mubi 2026/2027 Post-UTME/DE screening portal is active.",
+    portalLink: "https://adsu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in 2026 UTME."
+  },
+  "Federal University of Transportation, Daura": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUTD Daura 2026/2027 Post-UTME screening forms are out.",
+    portalLink: "https://futd.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Alvan Ikoku Federal University of Education": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Alvan Ikoku Federal University of Education Owerri 2026/2027 screening forms are active.",
+    portalLink: "https://alvanikoku.edu.ng",
+    cutoffScore: "140",
+    registrationFee: 2000,
+    eligibilityText: "Minimum UTME score 140+."
+  },
+  "Chukwuemeka Odumegwu Ojukwu University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "COOU Igbariam 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://coou.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score in 2026 UTME."
+  },
+  "Olusegun Agagu University of Science and Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "OAUSTECH Okitipupa 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://oaustech.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Abia State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ABSU Uturu 2026/2027 Post-UTME online registration procedures released.",
+    portalLink: "https://absu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected ABSU with 150+ score."
+  },
+  "Federal University of Agriculture and Technology, Okeho": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUNATO Okeho 2026/2027 Post-UTME application exercise is live.",
+    portalLink: "https://funato.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "University of Maiduguri": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIMAID 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://unimaid.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who scored 150+ in 2026 UTME."
+  },
+  "Federal University of Allied Health Sciences": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUAHSE Enugu 2026/2027 Post-UTME application procedures released.",
+    portalLink: "https://fuahse.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Healthcare candidates with 150+ score."
+  },
+  "Nigeria Police Academy": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "POLAC Wudil 13th Regular Course admission application exercise is live.",
+    portalLink: "https://polac.edu.ng",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 180+ score in 2026 UTME."
+  },
+  "Federal University Dutsin-ma": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUDMA Dutsin-Ma 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://fudutsinma.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "UTME score of 150 and above."
+  },
+  "Federal University Kashere": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUKASHERE Gombe 2026/2027 Post-UTME application portal is live.",
+    portalLink: "https://fukashere.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Sa'adu Zungur University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "SA'ZU (BASUG) Gadau 2026/2027 Post-UTME screening application is active.",
+    portalLink: "https://basug.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in UTME."
+  },
+  "Prince Audu Abubakar University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "PAAU (KSU) Anyigba 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://paau.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "First choice candidates with 150+ score."
+  },
+  "Nigerian Maritime University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "NMU Okerenkoko 2026/2027 Post-UTME screening portal is open.",
+    portalLink: "https://nmu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Maritime and technology candidates with 150+ score."
+  },
+  "Lagos State University of Education": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "LASUED Otto-Ijanikin 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://lasued.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ score."
+  },
+  "Ambrose Alli University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "AAU Ekpoma 2026/2027 Post-UTME/DE application procedures released.",
+    portalLink: "https://aauekpoma.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected AAU Ekpoma with 150+."
+  },
+  "Federal University of Petroleum Resources, Effurun": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUPRE Effurun 2026/2027 Post-UTME/DE application portal is active.",
+    portalLink: "https://fupre.edu.ng",
+    cutoffScore: "170",
+    registrationFee: 2000,
+    eligibilityText: "Petroleum and engineering candidates with 170+ score."
+  },
+  "Adekunle Ajasin University, Akungba": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "AAUA Akungba-Akoko 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://aaua.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ score in 2026 UTME."
+  },
+  "Imo State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "IMSU Owerri 2026/2027 Post-UTME screening portal is live.",
+    portalLink: "https://imsu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "Ebonyi State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "EBSU Abakaliki 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://ebsu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "UTME score of 150 and above."
+  },
+  "Dennis Osadebay University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "DOU Anwai Asaba 2026/2027 Post-UTME screening portal is open.",
+    portalLink: "https://dou.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "University of Delta, Agbor": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIDEL Agbor 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://unidel.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "University of Agriculture and Environmental Sciences": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UAES Umuagwo 2026/2027 Post-UTME screening forms are out.",
+    portalLink: "https://uaes.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ score."
+  },
+  "University of Cross River": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNICROSS Calabar 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://unicross.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in UTME."
+  },
+  "Federal University, Otuoke": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUOTUOKE Bayelsa 2026/2027 Post-UTME screening portal is active.",
+    portalLink: "https://fuotuoke.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who selected FUOTUOKE and scored 150+."
+  },
+  "Niger Delta University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "NDU Wilberforce Island 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://ndu.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in 2026 UTME."
+  },
+  "Rivers State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "RSU Port Harcourt 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://rsu.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ in UTME."
+  },
+  "University of Medical Sciences Ondo": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIMED Ondo 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://unimed.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Healthcare candidates with 160+ score."
+  },
+  "Afe Babalola University, Ado Ekiti": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "ABUAD Ado-Ekiti 2026/2027 undergraduate admission portal is active.",
+    portalLink: "https://abuad.edu.ng",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 180+ in 2026 UTME."
+  },
+  "Redeemer's University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "RUN Ede 2026/2027 Post-UTME application portal is open.",
+    portalLink: "https://run.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 160+ score."
+  },
+  "Babcock University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Babcock University Ilishan-Remo 2026/2027 admissions portal is active.",
+    portalLink: "https://babcock.edu.ng",
+    cutoffScore: "170",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 170+ score."
+  },
+  "Ignatius Ajuru University of Education": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "IAUE Rumuolumeni 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://iaue.edu.ng",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 150+ in UTME."
+  },
+  "Covenant University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Covenant University Ota 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://covenantuniversity.edu.ng",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 180+ score."
+  },
+  "Nigerian Defence Academy": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "NDA Kaduna 78th Regular Course admission portal is active.",
+    portalLink: "https://nda.edu.ng",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 180+ in 2026 UTME."
+  },
+  "Yaba College of Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "YABATECH Yaba 2026/2027 Post-UTME screening portal is open.",
+    portalLink: "https://yabatech.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Polytechnic candidates with 120+ score."
+  },
+  "Federal Polytechnic, Idah": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "Federal Poly Idah 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://fepoda.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "UTME candidates with 120+ score."
+  },
+  "Federal Polytechnic, Offa": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "OFFAPOLY 2026/2027 Post-UTME screening procedures released.",
+    portalLink: "https://fedpoffaonline.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ score."
+  },
+  "Plateau State Polytechnic": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "PLAPOLY Barkin Ladi 2026/2027 ND admission forms are live.",
+    portalLink: "https://plapoly.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ score."
+  },
+  "Federal Polytechnic, Ede": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "EDEPOLY 2026/2027 Post-UTME online application portal is active.",
+    portalLink: "https://federalpolyede.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ in UTME."
+  },
+  "Federal Polytechnic, Oko": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "OKOPOLY 2026/2027 Post-UTME application portal is open.",
+    portalLink: "https://federalpolyoko.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ score."
+  },
+  "Delta State Poly, Ogwashi-Uku": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "DSPG Ogwashi-Uku 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://dspg.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ score."
+  },
+  "Kogi State Poly": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "KSP Lokoja 2026/2027 Post-UTME application procedures released.",
+    portalLink: "https://kogistatepolytechnic.edu.ng",
+    cutoffScore: "120",
+    registrationFee: 2000,
+    eligibilityText: "Candidates with 120+ score."
+  },
+  "Air Force Institute of Technology": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "AFIT Kaduna 2026/2027 Post-UTME application portal is active.",
+    portalLink: "https://afit.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Aviation and engineering candidates with 160+ score."
   }
 };
 
@@ -1725,6 +2454,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         }
       ];
 
+      const uniNamesSet = new Set((universityData || []).map((u: any) => u.name.toLowerCase()));
+
       const formatted: SchoolReleaseStatus[] = (universityData || []).map((u: any) => {
         const baseline = BASELINE_RELEASES[u.name];
         if (baseline) {
@@ -1756,6 +2487,25 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         }
       });
 
+      // Also include all BASELINE_RELEASES entries that may not be in universityData array
+      for (const [sName, base] of Object.entries(BASELINE_RELEASES)) {
+        if (!uniNamesSet.has(sName.toLowerCase())) {
+          formatted.push({
+            schoolName: sName,
+            category: sName.toLowerCase().includes('poly') ? 'Polytechnic' : sName.toLowerCase().includes('college') ? 'COE' : 'State',
+            isOut: base.isOut ?? true,
+            statusText: base.statusText ?? "Registration Active",
+            details: base.details ?? `${sName} 2026/2027 Post-UTME/DE application portal is active.`,
+            portalLink: base.portalLink || "https://www.google.com/search?q=" + encodeURIComponent(sName),
+            publishDate: base.publishDate || "Verified Today",
+            cutoffScore: base.cutoffScore || "150",
+            eligibilityText: base.eligibilityText,
+            registrationFee: base.registrationFee || 2000,
+            citationUrl: base.citationUrl
+          });
+        }
+      }
+
       // Deduplicate formatted items by schoolName to guarantee uniqueness, prioritizing targetUserSchools
       const uniqueFormatted: SchoolReleaseStatus[] = [];
       const seenNames = new Set<string>();
@@ -1780,11 +2530,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
 
       for (const item of [...enrichedTargetUserSchools, ...formatted]) {
         const normalized = item.schoolName.trim().toLowerCase();
-        // Extract base name without parentheses or suffixes if we want to match more deeply
-        const baseMath = normalized.split('(')[0].trim();
-        if (!seenNames.has(normalized) && !seenNames.has(baseMath)) {
+        if (!seenNames.has(normalized)) {
           seenNames.add(normalized);
-          seenNames.add(baseMath);
           uniqueFormatted.push(item);
         }
       }

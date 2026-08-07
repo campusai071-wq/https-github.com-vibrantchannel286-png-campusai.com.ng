@@ -273,6 +273,55 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  // ── Manual Webhook / Monitor Scraper ─────────────────────────────
+  const [manualMonitorUrl, setManualMonitorUrl] = useState('');
+  const [isProcessingMonitor, setIsProcessingMonitor] = useState(false);
+  const [manualMonitorStatus, setManualMonitorStatus] = useState<string | null>(null);
+
+  const handleRunManualMonitor = async () => {
+    if (!manualMonitorUrl.trim()) return;
+    setIsProcessingMonitor(true);
+    setManualMonitorStatus(null);
+    try {
+      const scrapeRes = await axios.post(getApiUrl('/api/firecrawl/scrape'), {
+        url: manualMonitorUrl.trim(),
+        formats: ['markdown']
+      }, {
+        headers: { 'x-admin-token': SECRET_TOKEN }
+      });
+
+      if (!scrapeRes.data?.success || !scrapeRes.data?.data) {
+        throw new Error(scrapeRes.data?.error || "Failed to scrape URL with Firecrawl");
+      }
+
+      const markdown = scrapeRes.data.data.markdown || scrapeRes.data.data.content || '';
+      if (!markdown) {
+        throw new Error("No text content extracted from URL");
+      }
+
+      const webhookRes = await axios.post(getApiUrl('/api/webhooks/firecrawl'), {
+        data: {
+          markdown,
+          url: manualMonitorUrl.trim()
+        }
+      });
+
+      if (webhookRes.data?.success) {
+        setManualMonitorStatus(`✅ Success: ${webhookRes.data.message || 'Article processed & published!'}`);
+        setManualMonitorUrl('');
+        await loadAnalyticsData();
+        await loadAdminNews();
+      } else {
+        throw new Error(webhookRes.data?.error || "Webhook pipeline failed");
+      }
+    } catch (err: any) {
+      console.error("Manual monitor trigger error:", err);
+      setManualMonitorStatus(`❌ Error: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setIsProcessingMonitor(false);
+    }
+  };
+
   // ── Content ─────────────────────────────────────────────────────────────────
   const [publishedNews, setPublishedNews] = useState<NewsItem[]>([]);
   const [adminNewsLimit, setAdminNewsLimit] = useState(20);
@@ -2246,6 +2295,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       >
                         {analyticsLoading && <Loader2 size={10} className="animate-spin" />} Refresh
                       </button>
+                    </div>
+
+                    {/* Manual Ingest Bar */}
+                    <div className="p-4 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase text-gray-400 flex items-center gap-1">
+                          <Zap size={12} className="text-amber-500" /> Manual Firecrawl Monitor URL Ingest
+                        </label>
+                        {manualMonitorStatus && (
+                          <span className="text-[10px] font-medium text-gray-500">{manualMonitorStatus}</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={manualMonitorUrl}
+                          onChange={(e) => setManualMonitorUrl(e.target.value)}
+                          placeholder="e.g. https://myschool.ng/news/post-utme-2026-list-of-schools-that-have-released-forms"
+                          className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs outline-none focus:border-blue-500 dark:text-white"
+                        />
+                        <button
+                          onClick={handleRunManualMonitor}
+                          disabled={isProcessingMonitor || !manualMonitorUrl.trim()}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 disabled:opacity-50 transition-colors"
+                        >
+                          {isProcessingMonitor ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                          Scrape & Process
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
