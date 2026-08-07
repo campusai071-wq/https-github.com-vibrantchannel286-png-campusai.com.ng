@@ -18,6 +18,7 @@ import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "
 import { injectSEO as seoInject } from "./seo.js";
 import { handleOgImageRequest } from "./ogImage.js";
 import { handleArticleImageRequest } from "./articleImage.js";
+import universityData from "../src/data/universities.js";
 
 const getFirebaseAppletConfig = (): any => {
   try {
@@ -2190,37 +2191,75 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
       ["/syllabus", "0.95", "daily"],
       ["/admission-checklist", "0.95", "daily"],
       ["/postutme", "0.95", "daily"],
+      ["/post-utme", "0.95", "daily"],
+      ["/result-slip", "0.95", "daily"],
+      ["/result-slip-guide", "0.95", "daily"],
       ["/dashboard", "0.9", "daily"],
       ["/calculator", "0.9", "weekly"],
+      ["/cgpa-calculator", "0.9", "weekly"],
+      ["/cgpa", "0.9", "weekly"],
+      ["/universities", "0.95", "daily"],
+      ["/directory", "0.9", "weekly"],
       ["/news", "0.9", "daily"],
+      ["/chat", "0.8", "weekly"],
+      ["/login", "0.7", "monthly"],
+      ["/signup", "0.7", "monthly"],
+      ["/auth", "0.7", "monthly"],
       ["/about", "0.7", "weekly"],
       ["/premium", "0.7", "weekly"],
-      ["/directory", "0.7", "weekly"],
       ["/terms", "0.3", "monthly"],
+      ["/terms-of-service", "0.3", "monthly"],
       ["/privacy", "0.3", "monthly"],
+      ["/privacy-policy", "0.3", "monthly"],
+      ["/calculator-privacy", "0.3", "monthly"],
       ["/cookies", "0.3", "monthly"],
+      ["/cookie-policy", "0.3", "monthly"],
       ["/status", "0.4", "weekly"],
     ];
 
-    const schoolSlugs = [
+    // Collect all institution slugs from universityData
+    const knownSlugs = new Set<string>([
       "unilag", "oau", "ui", "lasu", "uniben", "unilorin", "unn", "futa", "abu",
       "fuoye", "delsu", "kwasu", "aaua", "yabatech", "oou"
-    ];
+    ]);
+
+    if (Array.isArray(universityData)) {
+      universityData.forEach((u: any) => {
+        if (u.slug) knownSlugs.add(u.slug.toLowerCase().trim());
+      });
+    }
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+    const addedUrls = new Set<string>();
 
+    const addUrl = (locPath: string, lastmod: string, changefreq: string, priority: string) => {
+      const fullUrl = `https://campusai.com.ng${locPath}`;
+      if (!addedUrls.has(fullUrl)) {
+        addedUrls.add(fullUrl);
+        xml += `\n  <url>\n    <loc>${fullUrl}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+      }
+    };
+
+    // 1. Static Pages & Aliases
     staticPages.forEach(([p, priority, freq]) => {
-      xml += `\n  <url>\n    <loc>https://campusai.com.ng${p}</loc>\n    <lastmod>${todayStr}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+      addUrl(p, todayStr, freq, priority);
     });
 
-    schoolSlugs.forEach(slug => {
-      xml += `\n  <url>\n    <loc>https://campusai.com.ng/${slug}-aggregate-calculator</loc>\n    <lastmod>${todayStr}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.85</priority>\n  </url>`;
+    // 2. Institutional Directory Pages (/universities/:slug)
+    knownSlugs.forEach(slug => {
+      addUrl(`/universities/${slug}`, todayStr, "weekly", "0.85");
     });
 
+    // 3. Institutional Aggregate Calculator Pages (/:schoolSlug-aggregate-calculator)
+    knownSlugs.forEach(slug => {
+      addUrl(`/${slug}-aggregate-calculator`, todayStr, "weekly", "0.85");
+    });
+
+    // 4. Dynamic News Articles (/news/:slug)
     newsDocs.forEach((data: any) => {
       const slug = data.slug || data.id;
       const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
-      xml += `\n  <url>\n    <loc>https://campusai.com.ng/news/${slug}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`;
+      addUrl(`/news/${slug}`, lastMod, "weekly", "0.8");
     });
 
     xml += `\n</urlset>`;
