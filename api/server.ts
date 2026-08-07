@@ -2024,7 +2024,7 @@ app.post("/api/search", async (req: any, res: any) => {
     let localMatches: any[] = [];
 
     if (words.length > 0) {
-      const snap: any = await withTimeout(newsRef.orderBy("date", "desc").limit(300).get(), 3000, "Local news query");
+      const snap: any = await withTimeout(newsRef.orderBy("date", "desc").limit(50).get(), 1200, "Local news query");
 
       snap.forEach((doc: any) => {
         const data = doc.data();
@@ -2070,7 +2070,7 @@ app.post("/api/search", async (req: any, res: any) => {
         try {
           const response = await axios.post('https://google.serper.dev/search', { q: query }, {
             headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-            timeout: 8000
+            timeout: 2500
           });
           if (response.data && response.data.organic && response.data.organic.length > 0) {
             const results = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet, source: 'Serper' }));
@@ -2089,7 +2089,11 @@ app.post("/api/search", async (req: any, res: any) => {
         const key = tavilyKeys[i];
         try {
           const client = new TavilyClient({ apiKey: key });
-          const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
+          const response: any = await withTimeout(
+            client.search({ query, search_depth: "basic", max_results: 5 }),
+            2500,
+            "Tavily search"
+          );
           if (response && response.results && response.results.length > 0) {
             const results = response.results.map((r: any) => ({ title: r.title, url: r.url, content: r.content, source: 'Tavily' }));
             allResults = [...results, ...allResults];
@@ -2115,7 +2119,7 @@ app.post("/api/search", async (req: any, res: any) => {
     console.log(`[API Search] Trying Gemini native search grounding fallback for: "${query}"`);
     const rawPool = getGeminiKeys();
 
-    for (let i = 0; i < rawPool.length; i++) {
+    for (let i = 0; i < Math.min(rawPool.length, 2); i++) {
       const apiKey = rawPool[i];
       try {
         const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
@@ -2125,7 +2129,7 @@ app.post("/api/search", async (req: any, res: any) => {
             contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
             config: { tools: [{ googleSearch: {} }] }
           }),
-          10000,
+          3000,
           `Gemini search grounding`
         );
 

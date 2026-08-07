@@ -468,13 +468,19 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
     setIsLoading(true);
 
     let lastStreamTime = 0;
+    let finalChunkText = '';
+    let finalChunkGrounding: GroundingChunk[] | undefined = undefined;
+
     try {
       await executeAiChatStream(
         currentInput,
         latestMessages,
         (streamedText, groundingChunks) => {
+          finalChunkText = streamedText;
+          if (groundingChunks) finalChunkGrounding = groundingChunks;
+
           const now = Date.now();
-          if (now - lastStreamTime > 40) {
+          if (now - lastStreamTime > 25 || !streamedText) {
             lastStreamTime = now;
             setMessages(prev => {
               const newArr = [...prev];
@@ -491,12 +497,16 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
           }
         }
       );
-      // Ensure final full text is synced
+      // Always guarantee final full text is accurately synced
       setMessages(prev => {
         const newArr = [...prev];
         const lastIdx = newArr.length - 1;
-        if (lastIdx >= 0 && newArr[lastIdx].role === 'model' && !newArr[lastIdx].text) {
-          return prev;
+        if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
+          newArr[lastIdx] = {
+            ...newArr[lastIdx],
+            text: finalChunkText || newArr[lastIdx].text,
+            groundingChunks: finalChunkGrounding || newArr[lastIdx].groundingChunks
+          };
         }
         return newArr;
       });
@@ -565,13 +575,19 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
     });
 
     let lastRegenStreamTime = 0;
+    let finalRegenText = '';
+    let finalRegenGrounding: GroundingChunk[] | undefined = undefined;
+
     try {
       await executeAiChatStream(
         userQuery,
         historyForRegen,
         (streamedText, groundingChunks) => {
+          finalRegenText = streamedText;
+          if (groundingChunks) finalRegenGrounding = groundingChunks;
+
           const now = Date.now();
-          if (now - lastRegenStreamTime > 40) {
+          if (now - lastRegenStreamTime > 25 || !streamedText) {
             lastRegenStreamTime = now;
             setMessages(prev => {
               const next = [...prev];
@@ -587,6 +603,17 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
           }
         }
       );
+      setMessages(prev => {
+        const next = [...prev];
+        if (next[msgIndex]) {
+          next[msgIndex] = {
+            ...next[msgIndex],
+            text: finalRegenText || next[msgIndex].text,
+            groundingChunks: finalRegenGrounding || next[msgIndex].groundingChunks
+          };
+        }
+        return next;
+      });
     } catch {
       setMessages(prev => {
         const next = [...prev];

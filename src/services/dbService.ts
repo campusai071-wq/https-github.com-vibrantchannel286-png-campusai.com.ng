@@ -986,14 +986,23 @@ export const saveKnowledgeFragment = async (key: string, value: string) => {
   }
 };
 
+let cachedKnowledgeFragments: any[] | null = null;
+let lastKnowledgeFetchTime = 0;
+const KNOWLEDGE_CACHE_TTL_MS = 3 * 60 * 1000;
+
 export const getAllKnowledgeFragments = async () => {
-  if (!db) return [];
+  if (cachedKnowledgeFragments && Date.now() - lastKnowledgeFetchTime < KNOWLEDGE_CACHE_TTL_MS) {
+    return cachedKnowledgeFragments;
+  }
+  if (!db) return cachedKnowledgeFragments || [];
   try {
     const snapshot = await getDocs(collection(db, "knowledge_fragments"));
-    return snapshot.docs.map(d => d.data());
+    cachedKnowledgeFragments = snapshot.docs.map(d => d.data());
+    lastKnowledgeFetchTime = Date.now();
+    return cachedKnowledgeFragments;
   } catch (e) {
     console.error("Error fetching knowledge fragments:", e);
-    return [];
+    return cachedKnowledgeFragments || [];
   }
 };
 

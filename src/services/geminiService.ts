@@ -2565,6 +2565,89 @@ const generateFastSearchQuery = (message: string): string => {
   return `${clean.substring(0, 100)} 2026 2027 Nigeria`.trim();
 };
 
+const prepareChatContext = async (sanitizedMessage: string, todayStr: string) => {
+  const optimizedQuery = generateFastSearchQuery(sanitizedMessage);
+
+  const searchTimeout = new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1800));
+
+  const [searchResults, newsItems, allKnowledge] = await Promise.all([
+    Promise.race([searchWebRaw(optimizedQuery), searchTimeout]).catch(() => []),
+    getCloudNews(false, false, undefined, undefined, 8).catch(() => []),
+    getAllKnowledgeFragments().catch(() => [])
+  ]);
+
+  let newsContext = "";
+  if (Array.isArray(newsItems) && newsItems.length > 0) {
+    const activeNews = [...newsItems]
+      .sort((a: any, b: any) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
+      .slice(0, 8);
+    if (activeNews.length > 0) {
+      newsContext += "VERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
+      activeNews.forEach((news: any, idx: number) => {
+        newsContext += `[News ${idx + 1}] Date: ${news.date} | Category: ${news.category}\nTitle: ${news.title}\nExcerpt: ${news.excerpt}\n\n`;
+      });
+    }
+  }
+
+  let learnedKnowledge = "";
+  if (Array.isArray(allKnowledge) && allKnowledge.length > 0) {
+    const msgLower = String(sanitizedMessage).toLowerCase();
+    const knowledge = allKnowledge.filter((k: any) => {
+      const keyLower = String(k.key || '').toLowerCase();
+      return keyLower.includes('general') || msgLower.includes(keyLower);
+    });
+    if (knowledge.length > 0) {
+      let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+      if (combined.length > 10000) {
+        combined = combined.substring(0, 10000) + "... [TRUNCATED]";
+      }
+      learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
+    }
+  }
+
+  let jambKbContext = "";
+  try {
+    const matchedDocs = searchJAMBKnowledgeBase(sanitizedMessage).slice(0, 3);
+    if (matchedDocs.length > 0) {
+      jambKbContext = "VERIFIED OFFICIAL JAMB KNOWLEDGE BASE DOCUMENTS:\n" +
+        matchedDocs.map(d => `[Document: ${d.title}] (${d.category} - ${d.subcategory || ''})\nSummary: ${d.summary}\n${d.steps ? 'Steps:\n' + d.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n${d.important_notes ? 'Important Notes:\n' + d.important_notes.map(n => `- ${n}`).join('\n') : ''}\nOfficial Source: ${d.official_source} (Verified: ${d.last_verified})`).join('\n---\n');
+    }
+
+    const matchedSyllabuses = searchSyllabuses(sanitizedMessage).slice(0, 2);
+    if (matchedSyllabuses.length > 0) {
+      const sylContext = matchedSyllabuses.map(ms => {
+        const s = ms.syllabus;
+        const topList = s.topics ? s.topics.slice(0, 3).map(t => `- Topic ${t.topicNumber}: ${t.title}`).join('\n') : '';
+        return `[UTME Syllabus: ${s.subject}] (${s.category})\nObjectives: ${s.generalObjectives.slice(0, 2).join('; ')}\nTop Topics:\n${topList}\nRecommended Texts: ${s.recommendedTexts.slice(0, 2).map(r => `${r.title} by ${r.author}`).join('; ')}`;
+      }).join('\n---\n');
+      
+      if (jambKbContext) {
+        jambKbContext += "\n\nOFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+      } else {
+        jambKbContext = "OFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not retrieve JAMB knowledge base or syllabus:", e);
+  }
+
+  const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+
+  let liveIntelStr = "";
+  if (Array.isArray(searchResults) && searchResults.length > 0) {
+    liveIntelStr = `LIVE WEB SEARCH RESULTS (Retrieved Live on ${todayStr} for query "${optimizedQuery}"):\n` +
+      searchResults.map((r: any, idx: number) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
+  } else {
+    liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
+  }
+
+  return {
+    searchResults: searchResults || [],
+    verifiedNewsStr,
+    liveIntelStr
+  };
+};
+
 export const executeAiChat = async (
   message: string,
   history: ChatMessage[]
@@ -2578,112 +2661,11 @@ export const executeAiChat = async (
     const chatKeys = getChatKeys();
     const todayStr = getNigerianDate();
 
-    let optimizedQuery = generateFastSearchQuery(sanitizedMessage);
-    try {
-      const optPromise = runAIWithFallback(async (ai) => {
-        return await ai.models.generateContent({
-          model: "gemini-flash-latest",
-          contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
-Rewrite the user's message into a concise, highly effective Google Search query.
-Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
-Output ONLY the search query string (3-7 words).
-
-User Message: "${sanitizedMessage.substring(0, 200)}"
-Optimized Search Query:`
-        });
-      }, undefined, chatKeys);
-
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-      const optResponse: any = await Promise.race([optPromise, timeoutPromise]);
-
-      if (optResponse?.text) {
-        optimizedQuery = optResponse.text.trim().replace(/^["']|["']$/g, "");
-      }
-    } catch (optErr) {
-      console.error("[Grounding Engine] Query optimization error, using fast fallback:", optErr);
-    }
-
-    let searchResults: any[] = [];
-    try {
-      searchResults = await searchWebRaw(optimizedQuery);
-    } catch (searchErr) {
-      console.error("[Grounding Engine] Search failed, continuing without:", searchErr);
-    }
+    const { searchResults, verifiedNewsStr, liveIntelStr } = await prepareChatContext(sanitizedMessage, todayStr);
 
     const groundingChunks: GroundingChunk[] = searchResults.map((r: any) => ({
       web: { uri: r.url, title: r.title }
     }));
-
-    let newsContext = "";
-    try {
-      const newsItems = await getCloudNews();
-      const activeNews = [...newsItems]
-        .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
-        .slice(0, 8);
-      if (activeNews.length > 0) {
-        newsContext += "VERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
-        activeNews.forEach((news, idx) => {
-          newsContext += `[News ${idx + 1}] Date: ${news.date} | Category: ${news.category}\nTitle: ${news.title}\nExcerpt: ${news.excerpt}\n\n`;
-        });
-      }
-    } catch (e) {
-      console.warn("[Grounding Engine] Could not load cloud news:", e);
-    }
-
-    let learnedKnowledge = "";
-    try {
-      const allKnowledge = await getAllKnowledgeFragments();
-      const msgLower = String(sanitizedMessage).toLowerCase();
-      const knowledge = allKnowledge.filter((k: any) => {
-        const keyLower = String(k.key || '').toLowerCase();
-        return keyLower.includes('general') || msgLower.includes(keyLower);
-      });
-      if (knowledge.length > 0) {
-        let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
-        if (combined.length > 10000) {
-          combined = combined.substring(0, 10000) + "... [TRUNCATED]";
-        }
-        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
-      }
-    } catch (e) {
-      console.warn("Could not load knowledge fragments:", e);
-    }
-
-    let jambKbContext = "";
-    try {
-      const matchedDocs = searchJAMBKnowledgeBase(sanitizedMessage).slice(0, 3);
-      if (matchedDocs.length > 0) {
-        jambKbContext = "VERIFIED OFFICIAL JAMB KNOWLEDGE BASE DOCUMENTS:\n" +
-          matchedDocs.map(d => `[Document: ${d.title}] (${d.category} - ${d.subcategory || ''})\nSummary: ${d.summary}\n${d.steps ? 'Steps:\n' + d.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n${d.important_notes ? 'Important Notes:\n' + d.important_notes.map(n => `- ${n}`).join('\n') : ''}\nOfficial Source: ${d.official_source} (Verified: ${d.last_verified})`).join('\n---\n');
-      }
-
-      const matchedSyllabuses = searchSyllabuses(sanitizedMessage).slice(0, 2);
-      if (matchedSyllabuses.length > 0) {
-        const sylContext = matchedSyllabuses.map(ms => {
-          const s = ms.syllabus;
-          const topList = s.topics ? s.topics.slice(0, 3).map(t => `- Topic ${t.topicNumber}: ${t.title}`).join('\n') : '';
-          return `[UTME Syllabus: ${s.subject}] (${s.category})\nObjectives: ${s.generalObjectives.slice(0, 2).join('; ')}\nTop Topics:\n${topList}\nRecommended Texts: ${s.recommendedTexts.slice(0, 2).map(r => `${r.title} by ${r.author}`).join('; ')}`;
-        }).join('\n---\n');
-        
-        if (jambKbContext) {
-          jambKbContext += "\n\nOFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
-        } else {
-          jambKbContext = "OFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
-        }
-      }
-    } catch (e) {
-      console.warn("Could not retrieve JAMB knowledge base or syllabus in chat:", e);
-    }
-
-    const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
-
-    let liveIntelStr = "";
-    if (searchResults.length > 0) {
-      liveIntelStr = `LIVE WEB SEARCH RESULTS (Retrieved Live on ${todayStr} for query "${optimizedQuery}"):\n` +
-        searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
-    } else {
-      liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
-    }
 
     const userCorrections: string[] = [];
     for (let i = 0; i < history.length - 1; i++) {
@@ -2803,108 +2785,7 @@ export const executeAiChatStream = async (
     const chatKeys = getChatKeys();
     const todayStr = getNigerianDate();
 
-    let optimizedQuery = generateFastSearchQuery(sanitizedMessage);
-    try {
-      const optPromise = runAIWithFallback(async (ai) => {
-        return await ai.models.generateContent({
-          model: "gemini-flash-latest",
-          contents: `You are a search query optimizer for a Nigerian higher education portal (CampusAI).
-Rewrite the user's message into a concise, highly effective Google Search query.
-Current date: ${todayStr}. Focus on the 2026/2027 admission cycle.
-Output ONLY the search query string (3-7 words).
-
-User Message: "${sanitizedMessage.substring(0, 200)}"
-Optimized Search Query:`
-        });
-      }, undefined, chatKeys);
-
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-      const optResponse: any = await Promise.race([optPromise, timeoutPromise]);
-
-      if (optResponse?.text) {
-        optimizedQuery = optResponse.text.trim().replace(/^["']|["']$/g, "");
-      }
-    } catch (optErr) {
-      console.error("[Grounding Engine] Query optimization error:", optErr);
-    }
-
-    let searchResults: any[] = [];
-    try {
-      searchResults = await searchWebRaw(optimizedQuery);
-    } catch (err) {
-      console.warn("[Grounding Engine] Search error:", err);
-    }
-
-    let newsContext = "";
-    try {
-      const newsItems = await getCloudNews();
-      const activeNews = [...newsItems]
-        .sort((a: any, b: any) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())
-        .slice(0, 8);
-      if (activeNews.length > 0) {
-        newsContext += "VERIFIED LATEST COMMUNITY ADMISSION NEWS (PERSISTENT CLOUD DATA):\n";
-        activeNews.forEach((news: any, idx: number) => {
-          newsContext += `[News ${idx + 1}] Date: ${news.date} | Category: ${news.category}\nTitle: ${news.title}\nExcerpt: ${news.excerpt}\n\n`;
-        });
-      }
-    } catch (e) {
-      console.warn("[Grounding Engine] Could not load cloud news:", e);
-    }
-
-    let learnedKnowledge = "";
-    try {
-      const allKnowledge = await getAllKnowledgeFragments();
-      const msgLower = String(sanitizedMessage).toLowerCase();
-      const knowledge = allKnowledge.filter((k: any) => {
-        const keyLower = String(k.key || '').toLowerCase();
-        return keyLower.includes('general') || msgLower.includes(keyLower);
-      });
-      if (knowledge.length > 0) {
-        let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
-        if (combined.length > 10000) {
-          combined = combined.substring(0, 10000) + "... [TRUNCATED]";
-        }
-        learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
-      }
-    } catch (e) {
-      console.warn("Could not load knowledge fragments:", e);
-    }
-
-    let jambKbContext = "";
-    try {
-      const matchedDocs = searchJAMBKnowledgeBase(sanitizedMessage).slice(0, 3);
-      if (matchedDocs.length > 0) {
-        jambKbContext = "VERIFIED OFFICIAL JAMB KNOWLEDGE BASE DOCUMENTS:\n" +
-          matchedDocs.map(d => `[Document: ${d.title}] (${d.category} - ${d.subcategory || ''})\nSummary: ${d.summary}\n${d.steps ? 'Steps:\n' + d.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : ''}\n${d.important_notes ? 'Important Notes:\n' + d.important_notes.map(n => `- ${n}`).join('\n') : ''}\nOfficial Source: ${d.official_source} (Verified: ${d.last_verified})`).join('\n---\n');
-      }
-
-      const matchedSyllabuses = searchSyllabuses(sanitizedMessage).slice(0, 2);
-      if (matchedSyllabuses.length > 0) {
-        const sylContext = matchedSyllabuses.map(ms => {
-          const s = ms.syllabus;
-          const topList = s.topics ? s.topics.slice(0, 3).map(t => `- Topic ${t.topicNumber}: ${t.title}`).join('\n') : '';
-          return `[UTME Syllabus: ${s.subject}] (${s.category})\nObjectives: ${s.generalObjectives.slice(0, 2).join('; ')}\nTop Topics:\n${topList}\nRecommended Texts: ${s.recommendedTexts.slice(0, 2).map(r => `${r.title} by ${r.author}`).join('; ')}`;
-        }).join('\n---\n');
-        
-        if (jambKbContext) {
-          jambKbContext += "\n\nOFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
-        } else {
-          jambKbContext = "OFFICIAL UTME SYLLABUS DIRECTIVES:\n" + sylContext;
-        }
-      }
-    } catch (e) {
-      console.warn("Could not retrieve JAMB knowledge base or syllabus in stream:", e);
-    }
-
-    const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
-
-    let liveIntelStr = "";
-    if (searchResults.length > 0) {
-      liveIntelStr = `LIVE WEB SEARCH RESULTS (Retrieved Live on ${todayStr} for query "${optimizedQuery}"):\n` +
-        searchResults.map((r, idx) => `[Source ${idx + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet:\n${r.content}`).join('\n\n');
-    } else {
-      liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
-    }
+    const { searchResults, verifiedNewsStr, liveIntelStr } = await prepareChatContext(sanitizedMessage, todayStr);
 
     const userCorrections: string[] = [];
     for (let i = 0; i < history.length - 1; i++) {
