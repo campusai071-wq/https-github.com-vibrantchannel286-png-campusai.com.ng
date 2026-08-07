@@ -6,6 +6,7 @@ import { slugify, stringify, cleanObject, getApiUrl } from './utils';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, Timestamp, where, updateDoc, getDoc, limit, writeBatch, getDocsFromServer, increment, onSnapshot, startAfter } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from './firestoreUtils';
 import axios from 'axios';
+import { ADMIN_TOKEN } from '../lib/adminAuth';
 
 const NEWS_KEY = 'campusai_published_news';
 
@@ -663,7 +664,7 @@ export const getPublishedNews = (): NewsItem[] => {
 };
 
 export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   try {
     const response = await axios.post(getApiUrl('/api/admin/news/action'), {
       action: 'publish',
@@ -704,7 +705,7 @@ export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
 };
 
 export const deleteNewsUpdate = async (id: string) => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   try {
     const response = await axios.post(getApiUrl('/api/admin/news/action'), {
       action: 'delete',
@@ -730,7 +731,7 @@ export const deleteNewsUpdate = async (id: string) => {
 };
 
 export const purgeAllNews = async () => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   try {
     const response = await axios.post(getApiUrl('/api/admin/news/action'), {
       action: 'purge',
@@ -757,7 +758,7 @@ export const purgeAllNews = async () => {
 };
 
 export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   const syncLocal = () => {
     clearNewsCache();
 
@@ -826,7 +827,7 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
 };
 
 export const updateNewsArticleContent = async (id: string, fullContent: string) => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   const syncLocal = () => {
     clearNewsCache();
     const current = getPublishedNews();
@@ -886,7 +887,7 @@ export const updateNewsArticleContent = async (id: string, fullContent: string) 
 };
 
 export const enhanceNewsArticleContent = async (id: string): Promise<string> => {
-  const token = 'CAMPUS@2026';
+  const token = ADMIN_TOKEN;
   const response = await axios.post(getApiUrl('/api/admin/news/action'), {
     action: 'enhance',
     id,
@@ -1199,6 +1200,28 @@ export const getAllUserActivities = async (limitCount: number = 300): Promise<Us
     })) as UserActivity[];
   } catch (e) {
     console.error("Error fetching all activities:", e);
+    return [];
+  }
+};
+
+export interface AdminNotification {
+  id?: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  sourceUrl?: string;
+  newsId?: string;
+}
+
+export const getAdminNotifications = async (): Promise<AdminNotification[]> => {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, "admin_notifications"), orderBy("timestamp", "desc"), limit(50));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminNotification));
+  } catch (e) {
+    console.error("Error fetching admin notifications:", e);
     return [];
   }
 };

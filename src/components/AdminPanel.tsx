@@ -20,7 +20,7 @@ import {
   getTrafficStats, resetTrafficStats, purgeUserActivities,
   getAllCutoffOverrides, saveCutoffOverride, deleteCutoffOverride, CutoffOverride,
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
-  saveKnowledgeFragment, getPredictionAccuracyStats
+  saveKnowledgeFragment, getPredictionAccuracyStats, getAdminNotifications, AdminNotification
 } from '../services/dbService';
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
@@ -30,6 +30,7 @@ import { getApiUrl, compressImage } from '../services/utils';
 import { SystemHealthStatus } from './SystemHealthStatus';
 import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
 import NewsDetailView from './NewsDetailView';
+import { ADMIN_TOKEN } from '../lib/adminAuth';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ interface AdminPanelProps {
 const AdminPanel: React.FC<AdminPanelProps> = ({
   isOpen, onClose, admin, onAdminLogin, onAdminLogout,
 }) => {
-  const SECRET_TOKEN = 'CAMPUS@2026';
+  const SECRET_TOKEN = ADMIN_TOKEN;
 
   // ── Auth state ──────────────────────────────────────────────────────────────
   const [loginToken, setLoginToken] = useState('');
@@ -134,6 +135,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Analytics ───────────────────────────────────────────────────────────────
   const [keySummaries, setKeySummaries]   = useState<APIKeySummaryItem[]>([]);
   const [allActivities, setAllActivities] = useState<UserActivity[]>([]);
+  const [adminLogs, setAdminLogs] = useState<AdminNotification[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [trafficStats, setTrafficStats]   = useState({ pageViews: 0, uniqueVisitors: 0 });
   const [isResettingTraffic, setIsResettingTraffic] = useState(false);
@@ -401,12 +403,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadAnalyticsData = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
-      const [logs, stats] = await Promise.all([
+      const [logs, stats, adminLogsResult] = await Promise.all([
         getAllUserActivities(500),
         getTrafficStats(),
+        getAdminNotifications()
       ]);
       setAllActivities(logs);
       if (stats) setTrafficStats(stats);
+      if (adminLogsResult) setAdminLogs(adminLogsResult);
     } catch (e) {
       console.error("Analytics load error:", e);
     } finally {
@@ -2227,6 +2231,59 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-red-500/20 disabled:opacity-50">
                         Sync To Network
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Webhook Logs Section */}
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <Activity size={16} className="text-blue-500" /> Webhook & AI Monitor Logs
+                      </h4>
+                      <button
+                        onClick={() => loadAnalyticsData()}
+                        className="px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-full text-[9px] font-black uppercase flex items-center gap-1 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {analyticsLoading && <Loader2 size={10} className="animate-spin" />} Refresh
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {adminLogs.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-4">No recent webhook activity found.</p>
+                      ) : (
+                        adminLogs.map((log) => (
+                          <div key={log.id} className="p-4 bg-white dark:bg-gray-950 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-2 relative group">
+                            <div className="flex justify-between items-start gap-4">
+                              <h5 className="text-sm font-bold text-gray-900 dark:text-white">{log.title}</h5>
+                              <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 break-words">{log.message}</p>
+                            
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                log.type === 'webhook_success' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                                log.type === 'webhook_error' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                                'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                              }`}>
+                                {log.type}
+                              </span>
+                              {log.sourceUrl && (
+                                <a href={log.sourceUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">
+                                  View Source
+                                </a>
+                              )}
+                              {log.newsId && (
+                                <button onClick={() => { setActiveTab('content'); fetchNewsItems(); }} className="text-[10px] text-red-500 hover:underline">
+                                  View Article
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
@@ -31,6 +32,42 @@ const firebaseAppletConfig = getFirebaseAppletConfig();
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config();
+
+// =============================================================================
+// SECURITY CONFIG
+// -----------------------------------------------------------------------------
+// These MUST come from environment variables. Nothing security-sensitive is
+// hardcoded in source anymore. If you don't set these, the server refuses to
+// start in production so you can't accidentally ship with a known/default
+// secret again.
+// =============================================================================
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").toLowerCase();
+const FIRECRAWL_WEBHOOK_SECRET = process.env.FIRECRAWL_WEBHOOK_SECRET || "";
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "";
+const INDEXNOW_HOST = process.env.INDEXNOW_HOST || "campusai.com.ng";
+
+if (process.env.NODE_ENV === "production") {
+  const missing: string[] = [];
+  if (!ADMIN_TOKEN) missing.push("ADMIN_TOKEN");
+  if (!ADMIN_EMAIL) missing.push("ADMIN_EMAIL");
+  if (!FIRECRAWL_WEBHOOK_SECRET) missing.push("FIRECRAWL_WEBHOOK_SECRET");
+  if (!INDEXNOW_KEY) missing.push("INDEXNOW_KEY");
+  if (missing.length > 0) {
+    console.error(`[Server Startup] Missing required env vars in production: ${missing.join(", ")}`);
+    console.error(`[Server Startup] Refusing to start with insecure/default secrets. Set these in your environment.`);
+    process.exit(1);
+  }
+}
+
+// Constant-time string compare so a shared secret can't be leaked via timing.
+function safeEquals(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 // --- Global Logger (Log EVERYTHING) ---
 export const app = express();
@@ -176,28 +213,133 @@ try {
   console.warn("[Firebase Admin SDK] Initialization failed, falling back to Client SDK:", err.message);
 }
 
-// Diagnostic routes at the VERY TOP to bypass everything
+// Essential Middlewares (moved up, defined once)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// =============================================================================
+// ORIGIN / AUTH GUARDS
+// -----------------------------------------------------------------------------
+// isAllowedOrigin now does an exact scheme+host match against an allowlist,
+// instead of substring `.includes()` checks. The old version let
+// "https://campusai.com.ng.evil.com" or "https://evilcampusai.com.ng" through
+// because both *contain* "campusai.com.ng". That's fixed here.
+// =============================================================================
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ||
+  'https://campusai-ng.vercel.app,http://localhost:5173,http://localhost:3000,https://ais-dev-z3mfpydedevfn4p4fapdhd-267400732145.europe-west2.run.app,https://ais-pre-z3mfpydedevfn4p4fapdhd-267400732145.europe-west2.run.app,https://www.campusai.com.ng,https://campusai.com.ng')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGIN_SET = new Set(ALLOWED_ORIGINS.map(o => o.toLowerCase()));
+
+function isAllowedOrigin(req: any): boolean {
+  const originHeader = req.headers?.origin || req.headers?.referer || '';
+  if (!originHeader) {
+    // No Origin/Referer header at all: allow only outside production
+    // (server-to-server / curl during local dev), block in production.
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  let originUrl: URL;
+  try {
+    originUrl = new URL(originHeader);
+  } catch {
+    return false;
+  }
+
+  const normalizedOrigin = `${originUrl.protocol}//${originUrl.host}`.toLowerCase();
+  const host = originUrl.hostname.toLowerCase();
+
+  // Exact match against the allowlist (scheme + host, no substring games).
+  if (ALLOWED_ORIGIN_SET.has(normalizedOrigin)) return true;
+
+  // Explicit, tightly-scoped patterns instead of `.includes()`:
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+  const isRunApp = host.endsWith('.run.app');
+  const isVercelPreview = host.endsWith('.vercel.app');
+  const isCampusDomain = host === 'campusai.com.ng' || host.endsWith('.campusai.com.ng');
+
+  const allowed = isLocalhost || isRunApp || isVercelPreview || isCampusDomain;
+
+  if (!allowed) {
+    console.warn(`[API Guard] Rejected origin: "${originHeader}". Request path: ${req.url}`);
+  }
+  return allowed;
+}
+
+// Admin guard: requires BOTH an allowed origin AND a valid admin token,
+// checked with a timing-safe comparison. Token comes from env, never a
+// hardcoded literal.
+function requireAdminToken(req: any, res: any, next: any) {
+  const token = req.body?.token || req.headers['x-admin-token'];
+  if (!ADMIN_TOKEN || !safeEquals(String(token || ""), ADMIN_TOKEN)) {
+    return res.status(403).json({ success: false, error: "Unauthorized: invalid admin token" });
+  }
+  if (!isAllowedOrigin(req)) {
+    return res.status(403).json({ success: false, error: "Origin not allowed" });
+  }
+  next();
+}
+
+// Same idea for the email-header check used by /api/news/sync — timing-safe
+// and case-insensitive, still not a real session but at least consistent
+// and not comparable-by-length-leak.
+function requireAdminEmailHeader(req: any, res: any, next: any) {
+  const suppliedEmail = String(req.headers['x-admin-email'] || "").toLowerCase();
+  if (!ADMIN_EMAIL || !safeEquals(suppliedEmail, ADMIN_EMAIL)) {
+    console.warn("[API News Sync] Unauthorized access attempt blocked");
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+  if (!isAllowedOrigin(req)) {
+    console.warn("[API News Sync] Forbidden origin rejected");
+    return res.status(403).json({ error: "Origin not allowed" });
+  }
+  next();
+}
+
+// NOTE: a shared static secret (env var or not) is still not a real session.
+// It can be lifted from a network request while you're logged into the
+// admin panel and reused indefinitely because it never expires. The durable
+// fix is to verify a Firebase Auth ID token here instead
+// (admin.auth().verifyIdToken(idToken)) once your frontend sends one on
+// admin requests. Flagging this so it's a known follow-up, not silently
+// "fixed" by moving the string into .env.
+
+// Diagnostic routes — now require admin auth, since they leak key prefixes
+// and stack traces.
 app.get("/api/diag/health", (req, res) => {
   res.json({
-    status: "ok-v4",
+    status: "ok",
     time: new Date().toISOString(),
     env: process.env.NODE_ENV,
     db: firebaseAppletConfig.firestoreDatabaseId || "(default)"
   });
 });
 
-app.get("/api/diag/firestore", async (req, res) => {
+app.get("/api/diag/firestore", requireAdminToken as any, async (req, res) => {
   try {
-    const snapshot = await db.collection('news').limit(2).get();
-    const data: any[] = [];
-    snapshot.forEach((doc: any) => data.push({ id: doc.id, ...doc.data() }));
-    res.json({ success: true, count: data.length, databaseId: firebaseAppletConfig.firestoreDatabaseId, data });
+    const newsRef = db.collection("news");
+    const snapshot = await newsRef.orderBy("date", "desc").limit(5).get();
+    const items: any[] = [];
+    snapshot.forEach((doc: any) => items.push({ id: doc.id, ...doc.data() }));
+    res.json({
+      success: true,
+      databaseId: firebaseAppletConfig.firestoreDatabaseId,
+      newsCount: items.length,
+      sample: items
+    });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+    // Don't leak stack traces even to an authed caller in prod.
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+    });
   }
 });
 
-app.get("/api/diag/keys", (req, res) => {
+app.get("/api/diag/keys", requireAdminToken as any, (req, res) => {
   const gemini = getGeminiKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const tavily = getTavilyKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
   const serper = getSerperKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
@@ -205,121 +347,63 @@ app.get("/api/diag/keys", (req, res) => {
   res.json({ counts: { gemini: gemini.length, tavily: tavily.length, serper: serper.length, firecrawl: firecrawl.length }, masked: { gemini, tavily, serper, firecrawl } });
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok-v4", env: process.env.NODE_ENV, time: new Date().toISOString() });
+app.all("/api/health", (req, res) => {
+  console.log(`[API Health] ${req.method} request received`);
+  res.json({
+    status: "ok",
+    method: req.method,
+    vercel: !!(process.env.VERCEL || process.env.NOW_REGION),
+    env: process.env.NODE_ENV,
+    url: req.originalUrl
+  });
 });
-
-// Essential Middlewares
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // IndexNow Proxy Endpoint (bypasses browser CORS restrictions)
-app.get("/sitemap.xml", async (req: any, res: any) => {
+// Locked down: host/key are now fixed server-side values from env, not
+// attacker-suppliable body fields, so this can't be used as an open relay
+// to spam IndexNow for someone else's domain.
+app.post("/api/indexnow", requireAdminToken as any, async (req: any, res: any) => {
   try {
-    const baseUrl = "https://campusai.com.ng";
-    const staticPages = [
-      "",
-      "/calculator",
-      "/news",
-      "/postutme",
-      "/admissions",
-      "/syllabus",
-      "/result-slip",
-      "/admission-checklist",
-      "/status",
-      "/terms",
-      "/privacy",
-      "/cookies"
-    ];
+    const targetUrls: string[] = Array.isArray(req.body?.urlList) ? req.body.urlList : [];
 
-    const schoolSlugs = [
-      "unilag", "ui", "oau", "lasu", "uniben", "futa", "unn", "abu-zaria", "unilorin", "buk", "uniport", "uniuyo", "fuoye", "delsu", "kwasu"
-    ];
+    // Only allow submitting URLs that actually belong to this site.
+    const safeUrls = targetUrls.filter((u: string) => {
+      try {
+        const parsed = new URL(u);
+        return parsed.hostname === INDEXNOW_HOST || parsed.hostname === `www.${INDEXNOW_HOST}`;
+      } catch {
+        return false;
+      }
+    });
 
-    let newsSlugs: string[] = [];
-    try {
-      const snapshot = await db.collection('news').where('isLive', '==', true).get();
-      snapshot.forEach((doc: any) => {
-        const data = doc.data();
-        if (data.slug) {
-          newsSlugs.push(data.slug);
-        }
-      });
-    } catch (dbErr) {
-      console.warn("[Sitemap] Could not fetch news slugs:", dbErr);
+    if (safeUrls.length === 0) {
+      return res.status(400).json({ success: false, message: "No valid URLs for this host were provided." });
     }
-
-    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  ${staticPages.map(page => `
-  <url>
-    <loc>${baseUrl}${page}</loc>
-    <changefreq>${page === "" || page === "/news" ? "daily" : "monthly"}</changefreq>
-    <priority>${page === "" ? "1.0" : "0.8"}</priority>
-  </url>`).join('')}
-  ${schoolSlugs.map(slug => `
-  <url>
-    <loc>${baseUrl}/${slug}-aggregate-calculator</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>`).join('')}
-  ${newsSlugs.map(slug => `
-  <url>
-    <loc>${baseUrl}/news/${slug}</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>`).join('')}
-</urlset>`;
-
-    res.header('Content-Type', 'application/xml');
-    res.send(sitemap);
-  } catch (err: any) {
-    console.error("[Sitemap Error]:", err);
-    res.status(500).send("Error generating sitemap");
-  }
-});
-
-app.post("/api/indexnow", async (req: any, res: any) => {
-  try {
-    const { host, key, keyLocation, urlList } = req.body;
-    const targetHost = host || "campusai.com.ng";
-    const targetKey = key || "14fbbbae19ab4b788d8153edd1d2550e";
-    const targetKeyLocation = keyLocation || `https://${targetHost}/${targetKey}.txt`;
-    const targetUrls = Array.isArray(urlList) ? urlList : [];
-
-    if (targetUrls.length === 0) {
-      return res.status(400).json({ success: false, message: "No URLs provided for submission." });
-    }
-
-    console.log(`[IndexNow Server Proxy] Submitting ${targetUrls.length} URLs for host ${targetHost}`);
 
     const payload = {
-      host: targetHost,
-      key: targetKey,
-      keyLocation: targetKeyLocation,
-      urlList: targetUrls
+      host: INDEXNOW_HOST,
+      key: INDEXNOW_KEY,
+      keyLocation: `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`,
+      urlList: safeUrls
     };
 
-    // Server-to-server request to IndexNow API endpoint
     const response = await axios.post("https://api.indexnow.org/IndexNow", payload, {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
+      headers: { "Content-Type": "application/json; charset=utf-8" },
       timeout: 12000
     });
 
     return res.json({
       success: true,
       status: response.status,
-      message: `Successfully submitted ${targetUrls.length} URL(s) to IndexNow (Microsoft Bing, Yandex, Seznam, Naver)!`
+      message: `Successfully submitted ${safeUrls.length} URL(s) to IndexNow.`
     });
   } catch (err: any) {
     console.error("[IndexNow Proxy Error]:", err.response?.data || err.message);
     const statusCode = err.response?.status || 500;
-    const errorMessage = err.response?.data 
-      ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data)) 
+    const errorMessage = err.response?.data
+      ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data))
       : (err.message || 'Error submitting to IndexNow');
-    
+
     return res.status(statusCode).json({
       success: false,
       message: `IndexNow submission failed: ${errorMessage}`
@@ -327,13 +411,28 @@ app.post("/api/indexnow", async (req: any, res: any) => {
   }
 });
 
+// Generic Firestore read proxy — now origin-checked AND restricted to a
+// small allowlist of collections. Previously `collectionName` came straight
+// from the request body with no auth, so anyone could dump any collection
+// your service account could see, not just `news`.
+const READABLE_COLLECTIONS = new Set(["news"]);
+
 app.post(["/api/proxy-firestore", "/api/fstore-query"], async (req: any, res: any) => {
   try {
+    if (!isAllowedOrigin(req)) {
+      return res.status(403).json({ success: false, error: "Origin not allowed" });
+    }
+
     const { collectionName, orderByField, orderDirection, limitCount, whereField, whereOperator, whereValue, startAfterValue } = req.body;
+
+    if (!READABLE_COLLECTIONS.has(collectionName)) {
+      return res.status(400).json({ success: false, error: "Collection not allowed via public proxy" });
+    }
+
     console.log(`[Proxy] Fetching collection: ${collectionName}, Order: ${orderByField}, Limit: ${limitCount}, Filter: ${whereField} ${whereOperator} ${whereValue}, StartAfter: ${startAfterValue}`);
-    
+
     let queryRef = db.collection(collectionName);
-    
+
     if (whereField && whereOperator && whereValue !== undefined) {
       queryRef = queryRef.where(whereField, whereOperator, whereValue);
     }
@@ -341,7 +440,7 @@ app.post(["/api/proxy-firestore", "/api/fstore-query"], async (req: any, res: an
     if (orderByField) {
       queryRef = queryRef.orderBy(orderByField, orderDirection || 'asc');
     }
-    
+
     if (startAfterValue && orderByField) {
       let parsedStartAfter = startAfterValue;
       if (typeof startAfterValue === 'object') {
@@ -354,20 +453,62 @@ app.post(["/api/proxy-firestore", "/api/fstore-query"], async (req: any, res: an
       queryRef = queryRef.startAfter(parsedStartAfter);
     }
 
-    if (limitCount) {
-      queryRef = queryRef.limit(limitCount);
-    }
-    
+    const safeLimit = Math.min(Number(limitCount) || 50, 300);
+    queryRef = queryRef.limit(safeLimit);
+
     const snapshot = await queryRef.get();
-    
+
     const data: any[] = [];
     snapshot.forEach((doc: any) => {
       data.push({ id: doc.id, ...doc.data() });
     });
-    
+
     res.json({ success: true, data });
   } catch (err: any) {
     console.error(`[Proxy] Error: ${err.message}`);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post(["/api/proxy-firestore-count", "/api/fstore-count"], async (req: any, res: any) => {
+  try {
+    if (!isAllowedOrigin(req)) {
+      return res.status(403).json({ success: false, error: "Origin not allowed" });
+    }
+
+    const { collectionName } = req.body;
+    if (!READABLE_COLLECTIONS.has(collectionName)) {
+      return res.status(400).json({ success: false, error: "Collection not allowed via public proxy" });
+    }
+
+    console.log(`[Proxy Count] Retrieving count for collection: ${collectionName}`);
+    let count = 0;
+
+    try {
+      const countSnapshot = await db.collection(collectionName).count().get();
+      count = countSnapshot.data().count;
+    } catch (clientErr: any) {
+      console.log(`[Proxy Count] Client wrapper count fallback: ${clientErr.message}`);
+      try {
+        const snapshot = await db.collection(collectionName).get();
+        if (typeof snapshot?.size === 'number') {
+          count = snapshot.size;
+        } else if (Array.isArray(snapshot)) {
+          count = snapshot.length;
+        } else if (snapshot && typeof snapshot.forEach === 'function') {
+          let size = 0;
+          snapshot.forEach(() => { size++; });
+          count = size;
+        } else {
+          count = 0;
+        }
+      } catch {
+        count = 0;
+      }
+    }
+
+    res.json({ success: true, count });
+  } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -440,46 +581,10 @@ app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => 
   }
 });
 
-app.post(["/api/proxy-firestore-count", "/api/fstore-count"], async (req: any, res: any) => {
-  try {
-    const { collectionName } = req.body;
-    console.log(`[Proxy Count] Retrieving count for collection: ${collectionName}`);
-    let count = 0;
-    
-    try {
-      const countSnapshot = await db.collection(collectionName).count().get();
-      count = countSnapshot.data().count;
-    } catch (clientErr: any) {
-      // Catch silently or log softly to avoid triggering false alarms in error checkers
-      console.log(`[Proxy Count] Client wrapper count fallback: ${clientErr.message}`);
-      try {
-        const snapshot = await db.collection(collectionName).get();
-        if (typeof snapshot?.size === 'number') {
-          count = snapshot.size;
-        } else if (Array.isArray(snapshot)) {
-          count = snapshot.length;
-        } else if (snapshot && typeof snapshot.forEach === 'function') {
-          let size = 0;
-          snapshot.forEach(() => { size++; });
-          count = size;
-        } else {
-          count = 0;
-        }
-      } catch (fallbackErr: any) {
-        count = 0;
-      }
-    }
-    
-    res.json({ success: true, count });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
 function toMs(val: any): number {
   if (!val) return 0;
   if (typeof val?.toMillis === 'function') return val.toMillis();
-  if (typeof val?.toDate  === 'function') return val.toDate().getTime();
+  if (typeof val?.toDate === 'function') return val.toDate().getTime();
   if (typeof val === 'object') {
     if ('seconds' in val) return val.seconds * 1000;
     if ('_seconds' in val) return val._seconds * 1000;
@@ -513,7 +618,7 @@ async function clientNewsGet(id: string) {
 async function clientNewsWrite(action: string, id?: string, data?: any) {
   if (!dbInstance) throw new Error("Client Firestore is not initialized");
   const newsCollectionRef = collection(dbInstance, "news");
-  
+
   if (action === "delete") {
     if (!id) throw new Error("ID is required for deletion");
     const docRef = doc(dbInstance, "news", id);
@@ -521,7 +626,7 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
     console.log(`[Client Fallback] Successfully deleted news doc: ${id}`);
     return { success: true };
   }
-  
+
   if (action === "purge") {
     const q = query(newsCollectionRef, limit(500));
     const snap = await getDocs(q);
@@ -533,7 +638,7 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
     console.log(`[Client Fallback] Successfully purged ${count} news docs`);
     return { success: true, count };
   }
-  
+
   if (action === "publish") {
     if (!data || !data.title) {
       throw new Error("News content with title is required");
@@ -546,7 +651,7 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
       finalDate = todayStr;
     }
     const slug = data.slug || slugify(data.title);
-    
+
     const newsData = {
       ...data,
       id: finalId,
@@ -560,7 +665,7 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
     console.log(`[Client Fallback] Successfully published news doc: ${finalId}`);
     return { success: true, id: finalId };
   }
-  
+
   if (action === "update") {
     if (!id || !data) {
       throw new Error("ID and updates are required");
@@ -591,17 +696,13 @@ async function clientNewsWrite(action: string, id?: string, data?: any) {
   throw new Error(`Unknown action: ${action}`);
 }
 
-app.post("/api/admin/news/action", async (req: any, res: any) => {
+// =============================================================================
+// ADMIN NEWS ACTIONS — now behind requireAdminToken (checks token + origin
+// together, timing-safe, token from env).
+// =============================================================================
+app.post("/api/admin/news/action", requireAdminToken as any, async (req: any, res: any) => {
   try {
-    const { action, id, news, updates, token } = req.body;
-    
-    if (token !== "CAMPUS@2026") {
-      return res.status(403).json({ success: false, error: "Unauthorized: Invalid admin token" });
-    }
-
-    if (!isAllowedOrigin(req)) {
-      return res.status(403).json({ success: false, error: "Origin not allowed" });
-    }
+    const { action, id, news, updates } = req.body;
 
     if (!adminDb) {
       console.log("[Admin API] adminDb not initialized, using client SDK fallback directly.");
@@ -633,8 +734,8 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
           throw clientErr;
         }
       }
-    } 
-    
+    }
+
     if (action === "purge") {
       try {
         if (!newsCollection) throw new Error("No adminDb");
@@ -671,7 +772,7 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
 
       try {
         if (!newsCollection) throw new Error("No adminDb");
-        const docRef = newsCollection.doc(); // Auto-generated ID
+        const docRef = newsCollection.doc();
         const newsData = {
           ...news,
           id: docRef.id,
@@ -731,11 +832,11 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
 
     if (action === "enhance") {
       if (!id) return res.status(400).json({ success: false, error: "ID is required for enhancement" });
-      
+
       let newsItem: any = null;
       let docRef: any = null;
       let usingClientSdk = false;
-      
+
       try {
         if (!newsCollection) throw new Error("No adminDb");
         docRef = newsCollection.doc(id);
@@ -758,132 +859,84 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
           throw clientErr;
         }
       }
-      
-      const rawPool = getGeminiKeys();
-      const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
-      if (keysPool.length === 0) {
-        return res.status(500).json({ success: false, error: "No Gemini API keys found on the server" });
-      }
-      
-      const apiKey = keysPool[0];
-      const gemini = createGeminiClient(apiKey);
-      
+
       const systemInstruction = "You are a premier Senior Investigative Education Journalist in Nigeria.";
       const prompt = `RESEARCH and EXPAND this news article into an elite, gold-standard, comprehensive report of 800-1200 words.
-      
+
       Original Title: ${newsItem.title}
       Original Excerpt: ${newsItem.excerpt || "Nigerian educational update"}
       Original Category: ${newsItem.category || "National"}
-      
+
       ARTICLE GUIDELINES (CAMPUSAI GOLD STANDARD INVESTIGATIVE BLUEPRINT):
       - Use clean, professional Markdown.
       - TONE: Investigative, authoritative, neutral, and actionable. Absolutely no "AI-Speak".
       - VERIFICATION: You MUST cross-reference all dates and fees with official institutional portals.
       - FORMATTING: Use descriptive headings (##), bold key text, and Markdown tables.
-      
+
       MANDATORY STRUCTURE:
-      
+
       # [HEADLINE] — [CLEAR, ACTIONABLE TITLE]
-      
-      > **✅ VERIFIED REPORT:** This update has been cross-referenced with official institutional portals as of ${newsItem.date || "July 19, 2026"}.
-      
-      **Published:** ${newsItem.date || "July 19, 2026"} | **Source:** CampusAI News
-      
+
+      > **✅ VERIFIED REPORT:** This update has been cross-referenced with official institutional portals as of ${newsItem.date || "today"}.
+
+      **Published:** ${newsItem.date || "today"} | **Source:** CampusAI News
+
       ## 📌 Overview
       [2-3 sentences summarizing the official announcement clearly]
-      
+
       ## 📅 Official Timetable / Key Details
       [You MUST include a Markdown table here with specific dates, fees, or requirements]
       | Event | Date / Detail |
       |-------|---------------|
       | ...   | ...           |
-      
+
       ## 📝 Step-by-Step Registration Guide
       [Provide clear, sequential instructions on how to register/apply]
-      
+
       ## 🛠️ Useful Tools for Candidates
       - [JAMB Syllabus Finder](https://www.jamb.gov.ng/ibass)
       - [Post-UTME Portal Link]([Insert Official Portal Link])
       - [CampusAI Admission Probability Checker](https://campusai.com.ng/calculator)
-      
+
       ## ⚠️ Critical Policies & Warnings
       [Mention specific JAMB CAPS rules, O'Level upload deadlines, or payment warnings]
-      
+
       ## ❓ Frequently Asked Questions (FAQ)
       [Include at least 3 high-value FAQs with highly precise answers]
-      
+
       ---
-      
+
       ### 🔗 Follow CampusAI for More Updates
       *   **WhatsApp:** [Join our WhatsApp Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
       *   **X (Twitter):** [@CampusAI_NG](https://x.com/CampusAI_NG)
-      
+
       📌 **Editor's Note:** Always verify dates, fees, and guidelines on the official portal before initiating payments.`;
 
-      let enhancedText = "";
-      const modelToUse = gemini.type === 'AIP' ? 'gemini-3.1-pro-preview' : 'gemini-3.1-pro-preview';
-      
-      try {
-        console.log(`[Admin API] Attempting enhancement with primary model: ${modelToUse}`);
-        if (gemini.type === 'AIP') {
-          const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
-            model: modelToUse,
-            contents: [prompt],
-            config: {
-              systemInstruction
-            }
-          });
-          enhancedText = genResult.text || "";
-        } else {
-          const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
-            model: modelToUse,
-            systemInstruction
-          });
-          const genResult = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-          });
-          const response = await genResult.response;
-          enhancedText = response.text() || "";
-        }
-      } catch (primaryErr: any) {
-        console.warn(`[Admin API] Primary model ${modelToUse} failed, trying fallback model...`, primaryErr.message || primaryErr);
-        const fallbackModel = gemini.type === 'AIP' ? 'gemini-flash-latest' : 'gemini-flash-latest';
-        try {
-          if (gemini.type === 'AIP') {
-            const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
-              model: fallbackModel,
-              contents: [prompt],
-              config: {
-                systemInstruction
-              }
-            });
-            enhancedText = genResult.text || "";
-          } else {
-            const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
-              model: fallbackModel,
-              systemInstruction
-            });
-            const genResult = await model.generateContent({
-              contents: [{ role: 'user', parts: [{ text: prompt }] }]
-            });
-            const response = await genResult.response;
-            enhancedText = response.text() || "";
-          }
-        } catch (fallbackErr: any) {
-          console.error("[Admin API] Fallback model also failed:", fallbackErr.message || fallbackErr);
-          throw fallbackErr;
-        }
+      // This used to call Gemini ONLY, with no fallback, and swallowed the
+      // real error into a generic 500. It now uses the same
+      // Groq -> OpenRouter -> Nvidia -> Mistral -> Cohere -> Gemini chain
+      // as every other AI route, and surfaces which provider actually
+      // failed and why.
+      const aiResult = await callAIWithFallback({
+        systemInstruction,
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 4000,
+        label: `enhance:${id}`
+      });
+
+      if (!aiResult) {
+        console.error(`[Admin API][enhance:${id}] All providers failed.`);
+        return res.status(502).json({ success: false, error: "All AI providers failed to enhance this article. Check server logs for the per-provider errors." });
       }
-      
-      if (!enhancedText) {
-        return res.status(500).json({ success: false, error: "Gemini did not return any enhanced content" });
-      }
-      
+
+      const enhancedText = aiResult.text;
+      console.log(`[Admin API][enhance:${id}] Succeeded via provider: ${aiResult.provider}`);
+
       if (usingClientSdk) {
         try {
           await clientNewsWrite("update", id, { fullContent: enhancedText });
           console.log(`[Admin API] Successfully enhanced news doc via Fallback Client SDK: ${id}`);
-          return res.json({ success: true, fullContent: enhancedText });
+          return res.json({ success: true, fullContent: enhancedText, provider: aiResult.provider });
         } catch (clientErr: any) {
           console.error(`[Admin API] Fallback Client SDK update also failed for enhance:`, clientErr.message);
           throw clientErr;
@@ -895,13 +948,13 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
             updatedAt: AdminTimestamp.now()
           });
           console.log(`[Admin API] Successfully enhanced news doc via Admin SDK: ${id}`);
-          return res.json({ success: true, fullContent: enhancedText });
+          return res.json({ success: true, fullContent: enhancedText, provider: aiResult.provider });
         } catch (adminErr: any) {
           console.warn(`[Admin API] Admin SDK update failed for enhance, trying Fallback Client SDK...`, adminErr.message);
           try {
             await clientNewsWrite("update", id, { fullContent: enhancedText });
             console.log(`[Admin API] Successfully enhanced news doc via Fallback Client SDK: ${id}`);
-            return res.json({ success: true, fullContent: enhancedText });
+            return res.json({ success: true, fullContent: enhancedText, provider: aiResult.provider });
           } catch (clientErr: any) {
             console.error(`[Admin API] Fallback Client SDK update also failed for enhance:`, clientErr.message);
             throw clientErr;
@@ -922,26 +975,15 @@ app.post("/api/admin/news/action", async (req: any, res: any) => {
 process.on('unhandledRejection', (reason) => console.error('[Server Unhandled Rejection]', reason));
 process.on('uncaughtException', (error) => console.error('[Server Uncaught Exception]', error));
 
-
-
 // --- Pure Search Keys Management ---
-/**
- * Handles cases where multiple environment variables are accidentally merged into one string
- * (e.g. "KEY1=VAL1VITE_KEY2=VAL2") by searching for common key patterns.
- * Also scans all environment variables to find keys that might be hidden.
- */
 const robustKeyExtract = (prefix?: string): string[] => {
   const keys: string[] = [];
   const envEntries = Object.entries(process.env);
-  
+
   envEntries.forEach(([envKey, envValue]) => {
     if (!envValue || typeof envValue !== 'string') return;
-
-    // 1. Check the value directly
     const raw = envValue;
-    
-    // Pattern based extraction for merged strings or JSON-like values
-    // Look for Gemini (AIzaSy or AQ.), Tavily (tvly-), Firecrawl (fc-), or hex keys (Serper/OpenAI)
+
     const geminiRegex = /(AIzaSy[A-Za-z0-9_-]{33}|AQ\.[A-Za-z0-9_-]+)/g;
     const tavilyRegex = /(tvly-[A-Za-z0-9]{32})/g;
     const firecrawlRegex = /(fc-[A-Za-z0-9_-]{32,})/g;
@@ -953,13 +995,11 @@ const robustKeyExtract = (prefix?: string): string[] => {
     while ((match = firecrawlRegex.exec(raw)) !== null) keys.push(match[1]);
     while ((match = hexRegex.exec(raw)) !== null) {
       const k = match[1];
-      // Filter out things that are definitely not Serper keys (like common hex strings)
       if (k.length >= 30 && !k.startsWith('AIzaSy') && !k.startsWith('AQ.')) {
         keys.push(k);
       }
     }
 
-    // 2. Also check if the value *is* a key itself but didn't match the regexes (safety fallback)
     const trimmed = raw.trim();
     if (trimmed.length >= 10) {
       if (prefix === 'AIzaSy' && (trimmed.startsWith('AIzaSy') || trimmed.startsWith('AQ.'))) {
@@ -975,28 +1015,22 @@ const robustKeyExtract = (prefix?: string): string[] => {
   });
 
   const deduplicated = [...new Set(keys)];
-  
-  // Final filter and validation
+
   return deduplicated.filter(k => {
     if (prefix === 'AIzaSy') return k.startsWith('AIzaSy') || k.startsWith('AQ.');
     if (prefix === 'tvly-') return k.startsWith('tvly-');
     if (prefix === 'fc-') return k.startsWith('fc-');
     if (prefix) return k.startsWith(prefix);
-    
-    // Default validation for generic extraction (Serper)
+
     if (k.length < 30) return false;
     if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-') || k.startsWith('fc-')) return false;
     return /^[a-f0-9]+$/i.test(k);
   });
 };
 
-// --- Pure Search & Scrape Keys Management ---
-const getTavilyKeys = (): string[] => {
-  return robustKeyExtract('tvly-');
-};
+const getTavilyKeys = (): string[] => robustKeyExtract('tvly-');
 
 const getSerperKeys = (): string[] => {
-  // First, check if there are explicit Serper keys in env
   const explicitKeys: string[] = [];
   Object.entries(process.env).forEach(([envKey, envValue]) => {
     if (envValue && typeof envValue === 'string') {
@@ -1013,11 +1047,8 @@ const getSerperKeys = (): string[] => {
     }
   });
 
-  if (explicitKeys.length > 0) {
-    return [...new Set(explicitKeys)];
-  }
+  if (explicitKeys.length > 0) return [...new Set(explicitKeys)];
 
-  // Fallback to robustKeyExtract but make sure we do NOT include hex parts of Firecrawl/Gemini/Firebase keys
   const allPossible = robustKeyExtract();
   const firecrawlKeys = getFirecrawlKeys();
   const geminiKeys = getGeminiKeys();
@@ -1025,54 +1056,14 @@ const getSerperKeys = (): string[] => {
   return allPossible.filter(k => {
     if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-') || k.startsWith('fc-')) return false;
     if (k.length < 30 || !/^[a-f0-9]+$/i.test(k)) return false;
-    
-    // Ensure this key is not a substring of any Firecrawl key
-    for (const fc of firecrawlKeys) {
-      if (fc.includes(k)) return false;
-    }
-    // Ensure this key is not a substring of any Gemini key
-    for (const gem of geminiKeys) {
-      if (gem.includes(k)) return false;
-    }
-    
+    for (const fc of firecrawlKeys) { if (fc.includes(k)) return false; }
+    for (const gem of geminiKeys) { if (gem.includes(k)) return false; }
     return true;
   });
 };
 
-const getFirecrawlKeys = (): string[] => {
-  return robustKeyExtract('fc-');
-};
-
-// --- Gemini Key & Client Management ---
-const getGeminiKeys = (): string[] => {
-  return robustKeyExtract('AIzaSy');
-};
-
-
-// --- Origin Validation for Search/News API Protection ---
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 
-  'https://campusai-ng.vercel.app,http://localhost:5173,http://localhost:3000,https://ais-dev-z3mfpydedevfn4p4fapdhd-267400732145.europe-west2.run.app,https://ais-pre-z3mfpydedevfn4p4fapdhd-267400732145.europe-west2.run.app,https://www.campusai.com.ng,https://campusai.com.ng')
-  .split(',')
-  .map(o => o.trim());
-
-function isAllowedOrigin(req: any): boolean {
-  const origin = req.headers?.origin || req.headers?.referer || '';
-  
-  if (process.env.NODE_ENV !== 'production' && !origin) return true;
-  
-  const isInternal = origin.includes('localhost') || origin.includes('0.0.0.0') || origin.includes('127.0.0.1');
-  const isRunApp = origin.includes('.run.app');
-  const isVercel = origin.includes('.vercel.app');
-  const isCampusDomain = origin.includes('campusai.com.ng');
-
-  const allowed = ALLOWED_ORIGINS.some(a => origin.startsWith(a)) || 
-    isInternal || isRunApp || isVercel || isCampusDomain;
-    
-  if (!allowed && origin) {
-    console.warn(`[API Guard] Rejected origin: "${origin}". Request path: ${req.url}`);
-  }
-  return allowed;
-}
+const getFirecrawlKeys = (): string[] => robustKeyExtract('fc-');
+const getGeminiKeys = (): string[] => robustKeyExtract('AIzaSy');
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -1084,53 +1075,297 @@ app.use((req, res, next) => {
 });
 
 // --- Gemini Key & Client Management ---
-
 const blacklistedKeys = new Map<string, { reason: string; until: number }>();
 
 let consecutiveGeminiFailures = 0;
 const MAX_CONSECUTIVE_FAILURES = 3;
-const FAIL_BLOCK_DURATION_MS = 60000; // 1 minute
+const FAIL_BLOCK_DURATION_MS = 60000;
 let geminiBlockedUntil = 0;
 
 const fetchWithTimeout = <T>(promise: Promise<T>, ms: number, errorMessage = 'Operation timed out'): Promise<T> => {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error(errorMessage)), ms);
     promise
-      .then((res) => {
-        clearTimeout(timeout);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
+      .then((res) => { clearTimeout(timeout); resolve(res); })
+      .catch((err) => { clearTimeout(timeout); reject(err); });
   });
 };
 
 const createGeminiClient = (apiKey: string): any => {
-  // Use AIP type for AQ. keys (usually have search tool access)
   if (apiKey.startsWith('AQ')) {
     return {
       type: 'AIP',
       client: new GoogleGenAI({
         apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build'
-          }
-        }
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
       })
     };
   }
-  
-  // Use LEGACY for standard AIza keys
-  return {
-    type: 'LEGACY',
-    client: new GoogleGenerativeAI(apiKey)
-  };
+  return { type: 'LEGACY', client: new GoogleGenerativeAI(apiKey) };
 };
 
+function isGibberishResponse(text: string): boolean {
+  if (!text || text.length < 50) return false;
+  const words = text.split(/\s+/).map(w => w.trim()).filter(Boolean);
+  if (words.length < 15) return false;
+
+  const nonEnglishCjkCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+  if (nonEnglishCjkCount > 5) return true;
+
+  let capitalizedCount = 0;
+  words.forEach(word => {
+    if (word[0] && word[0] === word[0].toUpperCase() && /[a-zA-Z]/.test(word[0])) {
+      capitalizedCount++;
+    }
+  });
+  const capRatio = capitalizedCount / words.length;
+  if (capRatio > 0.45 && words.length > 30 && !text.toUpperCase().includes("JSON") && !text.includes("```")) {
+    return true;
+  }
+
+  const connectives = new Set(['the', 'and', 'of', 'to', 'a', 'in', 'is', 'that', 'it', 'for', 'on', 'with', 'as', 'this', 'you', 'i', 'your', 'we']);
+  let connectiveCount = 0;
+  words.forEach(w => {
+    if (connectives.has(w.toLowerCase().replace(/[^a-z]/g, ''))) connectiveCount++;
+  });
+  const connectiveRatio = connectiveCount / words.length;
+  if (connectiveRatio < 0.08 && words.length > 25 && !text.includes("{") && !text.includes("```")) {
+    return true;
+  }
+
+  return false;
+}
+
+// =============================================================================
+// SHARED AI FALLBACK HELPER
+// -----------------------------------------------------------------------------
+// Every AI route in this file used to hand-roll its own copy of the same
+// 5-provider fallback chain, and three of the five routes never got the
+// Gemini-last treatment (enhance skipped straight to Gemini with nothing
+// else; blog-post and news/sync tried Gemini FIRST). This single helper is
+// now used by every route, always in this order:
+//   Groq -> OpenRouter -> Nvidia -> Mistral -> Cohere -> Gemini (last resort)
+// It also logs which provider actually served the response and why each
+// one that failed did, so failures are debuggable instead of a black box.
+// =============================================================================
+interface AIFallbackOptions {
+  systemInstruction?: string;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  jsonMode?: boolean;
+  maxTokens?: number;
+  geminiModel?: string;
+  /** short tag included in logs, e.g. route name / doc id, for traceability */
+  label?: string;
+}
+
+interface AIFallbackResult {
+  text: string;
+  provider: string;
+}
+
+async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackResult | null> {
+  const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-flash-latest', label = '' } = opts;
+  const tag = label ? `[AI Fallback:${label}]` : '[AI Fallback]';
+
+  const chatMessages = [
+    ...(systemInstruction ? [{ role: 'system' as const, content: systemInstruction }] : []),
+    ...messages
+  ];
+
+  // 1. Groq
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const completion = await groq.chat.completions.create({
+        messages: chatMessages as any,
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: maxTokens,
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log(`${tag} Succeeded via Groq.`);
+        return { text, provider: 'groq' };
+      }
+    } catch (e: any) {
+      console.warn(`${tag} Groq failed:`, e.message || e);
+    }
+  }
+
+  // 2. OpenRouter
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      const openrouter = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
+      const completion = await openrouter.chat.completions.create({
+        messages: chatMessages as any,
+        model: 'meta-llama/llama-3.3-70b-instruct',
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log(`${tag} Succeeded via OpenRouter.`);
+        return { text, provider: 'openrouter' };
+      }
+    } catch (e: any) {
+      console.warn(`${tag} OpenRouter failed:`, e.message || e);
+    }
+  }
+
+  // 3. Nvidia
+  if (process.env.NVIDIA_API_KEY) {
+    try {
+      const nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" });
+      const completion = await nvidia.chat.completions.create({
+        messages: chatMessages as any,
+        model: 'meta/llama-3.3-70b-instruct',
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log(`${tag} Succeeded via Nvidia.`);
+        return { text, provider: 'nvidia' };
+      }
+    } catch (e: any) {
+      console.warn(`${tag} Nvidia failed:`, e.message || e);
+    }
+  }
+
+  // 4. Mistral
+  if (process.env.MISTRAL_API_KEY) {
+    try {
+      const mistral = new OpenAI({ apiKey: process.env.MISTRAL_API_KEY, baseURL: "https://api.mistral.ai/v1" });
+      const completion = await mistral.chat.completions.create({
+        messages: chatMessages as any,
+        model: 'mistral-small-latest',
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text) {
+        console.log(`${tag} Succeeded via Mistral.`);
+        return { text, provider: 'mistral' };
+      }
+    } catch (e: any) {
+      console.warn(`${tag} Mistral failed:`, e.message || e);
+    }
+  }
+
+  // 5. Cohere
+  if (process.env.COHERE_API_KEY) {
+    try {
+      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+      const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${messages.map(m => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
+      const response = await cohere.generate({ prompt: coherePrompt, model: 'command-r-plus' });
+      const text = response.generations[0]?.text || "";
+      if (text) {
+        console.log(`${tag} Succeeded via Cohere.`);
+        return { text, provider: 'cohere' };
+      }
+    } catch (e: any) {
+      console.warn(`${tag} Cohere failed:`, e.message || e);
+    }
+  }
+
+  // 6. Gemini — LAST resort, as requested, until the key issue is diagnosed.
+  if (Date.now() < geminiBlockedUntil) {
+    console.warn(`${tag} Skipping Gemini: circuit breaker open after ${consecutiveGeminiFailures} consecutive failures.`);
+    return null;
+  }
+
+  const rawPool = getGeminiKeys();
+  const now = Date.now();
+  const keysPool = rawPool.filter(k => {
+    const bl = blacklistedKeys.get(k);
+    if (!bl) return true;
+    if (bl.until < now) { blacklistedKeys.delete(k); return true; }
+    return false;
+  });
+  const finalPool = keysPool.length > 0 ? keysPool : rawPool;
+
+  if (finalPool.length === 0) {
+    console.warn(`${tag} No Gemini keys available at all.`);
+  }
+
+  for (const activeKey of finalPool) {
+    const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
+    try {
+      const gemini = createGeminiClient(activeKey);
+      let text = "";
+
+      if (gemini.type === 'AIP') {
+        const config: any = {};
+        if (systemInstruction) config.systemInstruction = systemInstruction;
+        if (jsonMode) config.responseMimeType = "application/json";
+        const result = await fetchWithTimeout(
+          (gemini.client as GoogleGenAI).models.generateContent({
+            model: geminiModel,
+            contents: messages.map(m => m.content).join('\n\n'),
+            config
+          }),
+          30000,
+          "Gemini AIP timeout"
+        );
+        text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      } else {
+        const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({
+          model: geminiModel,
+          systemInstruction
+        });
+        const genResult = await fetchWithTimeout(
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: messages.map(m => m.content).join('\n\n') }] }],
+            generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
+          }),
+          30000,
+          "Gemini SDK timeout"
+        );
+        const response = await genResult.response;
+        text = response.text();
+      }
+
+      if (!text) {
+        console.warn(`${tag} Gemini key ${maskedKey} returned empty text.`);
+        continue;
+      }
+
+      if (isGibberishResponse(text)) {
+        console.warn(`${tag} Gemini key ${maskedKey} returned gibberish, skipping.`);
+        continue;
+      }
+
+      consecutiveGeminiFailures = 0;
+      console.log(`${tag} Succeeded via Gemini (${maskedKey}).`);
+      return { text, provider: 'gemini' };
+    } catch (error: any) {
+      // This is the part that used to be invisible: log the real reason
+      // this specific key/call failed.
+      const errorMsg = error.message || error.response?.data?.error?.message || String(error);
+      console.warn(`${tag} Gemini key ${maskedKey} failed: ${errorMsg}`);
+      const isQuota = /quota|429|exhausted|rate.?limit/i.test(errorMsg);
+      const isAuth = /401|403|permission|invalid.?api.?key|unauthorized/i.test(errorMsg);
+      if (isQuota) {
+        blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
+      } else if (isAuth) {
+        blacklistedKeys.set(activeKey, { reason: "auth_failed", until: Date.now() + 3600000 });
+      }
+    }
+  }
+
+  consecutiveGeminiFailures++;
+  if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
+    geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
+  }
+  console.error(`${tag} All Gemini keys failed too. No provider succeeded.`);
+  return null;
+}
+
 // ─── Sovereign Fallback Helpers ─────────────────────────────────────────────
+// NOTE: These generate plausible-looking but SYNTHETIC data (cutoffs, fees,
+// dates) when every real provider — including Gemini — has failed. They are
+// clearly useful as a last-resort so the site doesn't show a raw error to
+// a student, but every response from this path should be flagged to the
+// frontend as unverified/synthetic (see `isSovereignFallback` on the JSON
+// responses below) so it never gets rendered with a "✅ VERIFIED" badge to
+// end users the way the original prompt template implied.
 
 function detectUniversityAndCourse(text: string) {
   const universities = [
@@ -1190,21 +1425,18 @@ function detectUniversityAndCourse(text: string) {
 }
 
 function generateSovereignGeminiFallback(promptText: string, params: any): any {
-  console.log(`[API Gemini Sovereign Fallback] All Gemini keys exhausted. Generating fallback response...`);
+  console.log(`[API Gemini Sovereign Fallback] All AI providers exhausted. Generating synthetic fallback response...`);
   const textLower = (promptText || "").toLowerCase();
 
   let responseText = "";
+  let isSovereignFallback = true;
 
-  // A. ADMISSION PROBABILITY EVALUATION JSON FALLBACK
   if (textLower.includes("admission probability") || textLower.includes("exhaustive admission probability check")) {
     const { uniName, courseName, cutoff } = detectUniversityAndCourse(promptText);
-    
     let score = 70;
     const scoreMatch = textLower.match(/candidate score:\s*(\d+(\.\d+)?)/);
-    if (scoreMatch && scoreMatch[1]) {
-      score = parseFloat(scoreMatch[1]);
-    }
-    
+    if (scoreMatch && scoreMatch[1]) score = parseFloat(scoreMatch[1]);
+
     const verdict = score >= 75 ? "Strong" : score >= 65 ? "Borderline" : "Low";
     const probability = score >= 75 ? Math.min(98, Math.round(score + 10)) : score >= 65 ? Math.round(score - 5) : Math.max(15, Math.round(score - 20));
 
@@ -1212,343 +1444,119 @@ function generateSovereignGeminiFallback(promptText: string, params: any): any {
     const isEng = /eng|tech|arch|survey|build/i.test(courseName);
     const isHealth = /med|surg|nurs|pharm|dent|physio|anat|radiog/i.test(courseName);
     const altCourseTitle = isAgricScience ? `Agricultural Economics / Soil Science at ${uniName}`
-                         : isEng ? `Industrial Physics / Chemical Sciences at ${uniName}`
-                         : isHealth ? `Human Anatomy / Physiology at ${uniName}`
-                         : `Related Departmental Program at ${uniName}`;
+      : isEng ? `Industrial Physics / Chemical Sciences at ${uniName}`
+      : isHealth ? `Human Anatomy / Physiology at ${uniName}`
+      : `Related Departmental Program at ${uniName}`;
 
     const fallbackProbability = {
+      isSovereignFallback: true,
       institutionalCutoff: "200",
       departmentalCutoff: `${cutoff}`,
       cutoff: `${cutoff}`,
       mathBreakdown: "UTME Score (scaled to 50%) + O-Level (scaled to 30%) + Post-UTME Screening (scaled to 20%)",
-      subjectCombinationValidation: { 
-        valid: true, 
-        reason: `Your subject combination is verified and fully compliant with ${uniName} department guidelines for ${courseName}.` 
+      subjectCombinationValidation: {
+        valid: true,
+        reason: `Your subject combination is estimated to be compliant with ${uniName} department guidelines for ${courseName}. This estimate was generated without live data — please verify on the official portal.`
       },
-      reliability: "High (Generated from historical admission registers and 2026 quota guidelines)",
-      recommendation: `Your candidate score of ${score}% puts you in a ${verdict.toLowerCase()} tier for ${courseName} at ${uniName}. We highly recommend checking your JAMB CAPS profile to ensure WAEC/NECO uploads are completed, and preparing thoroughly for any institutional screening assessment.`,
+      reliability: "Low — generated fallback data, not sourced from a live AI provider or official portal",
+      recommendation: `Your candidate score of ${score}% puts you in an estimated ${verdict.toLowerCase()} tier for ${courseName} at ${uniName}. This is a rough, non-verified estimate; check your JAMB CAPS profile and the school's official portal before relying on it.`,
       probability,
       verdict,
       alternatives: [
-        { 
-          name: altCourseTitle, 
-          typicalCutoff: "50.0%", 
-          reasoning: "A highly related program within the same academic faculty family with a lower entry cutoff score matching your core subject background." 
-        }
+        { name: altCourseTitle, typicalCutoff: "50.0%", reasoning: "A related program in the same faculty family, offered here only as a fallback suggestion." }
       ],
       isOffered: true,
-      fresherBudget: "₦85,000 - ₦135,000 (Excluding optional hostel residence fees)",
-      sourcesCited: [
-        `${uniName} Office of Academic Registrar Circular 2026`,
-        "Joint Admissions and Matriculation Board (JAMB) National Minimum Benchmarks"
-      ],
+      fresherBudget: "₦85,000 - ₦135,000 (estimate, excluding optional hostel fees — verify with the institution)",
+      sourcesCited: [],
       predictionConfidenceInterval: `${Math.max(10, probability - 5)}% - ${Math.min(100, probability + 5)}%`
     };
     responseText = JSON.stringify(fallbackProbability);
 
-  // B. VERIFIED POST-UTME RELEASES LIST JSON FALLBACK
   } else if (textLower.includes("officially open for the 2026/2027") && textLower.includes("releases")) {
-    const fallbackReleases = {
-      releases: [
-        {
-          schoolName: "University of Lagos (UNILAG)",
-          isOut: true,
-          statusText: "Registration Active",
-          details: "The UNILAG 2026/2027 Post-UTME screening registration has officially commenced. All candidates should register online via the school portal.",
-          portalLink: "https://unilag.edu.ng",
-          publishDate: "August 1st, 2026",
-          cutoffScore: "200",
-          eligibilityText: "Candidates who chose UNILAG as first choice, scored 200+ in UTME, and have 5 O'Level credits."
-        },
-        {
-          schoolName: "University of Ibadan (UI)",
-          isOut: true,
-          statusText: "Registration Active",
-          details: "The UI 2026/2027 Post-UTME portal is active. Candidates can log in with their JAMB credentials.",
-          portalLink: "https://ui.edu.ng",
-          publishDate: "August 3rd, 2026",
-          cutoffScore: "200",
-          eligibilityText: "First choice candidates with 200+ UTME score."
-        },
-        {
-          schoolName: "Federal University of Technology, Akure (FUTA)",
-          isOut: true,
-          statusText: "Registration Active",
-          details: "FUTA registration portal is officially open. Screening will be computer-based.",
-          portalLink: "https://futa.edu.ng",
-          publishDate: "August 5th, 2026",
-          cutoffScore: "180",
-          eligibilityText: "UTME score of 180 and above."
-        }
-      ]
-    };
-    responseText = JSON.stringify(fallbackReleases);
+    responseText = JSON.stringify({ isSovereignFallback: true, releases: [] });
 
-  // C. SINGLE-SCHOOL VERIFY FORM JSON FALLBACK
   } else if (textLower.includes("verify whether the post-utme registration form for")) {
     const { uniName, uniKey } = detectUniversityAndCourse(promptText);
-    const fallbackSingleSchool = {
+    responseText = JSON.stringify({
+      isSovereignFallback: true,
       schoolName: uniName,
-      isOut: true,
-      statusText: "Registration Active",
-      details: `The official Post-UTME screening portal for ${uniName} is active for 2026/2027 academic session registration.`,
+      isOut: null,
+      statusText: "Unknown — live check unavailable",
+      details: `Could not verify live Post-UTME status for ${uniName}. All AI providers were unavailable. Please check the official portal directly.`,
       portalLink: `https://${uniKey.replace(/[^a-z0-9]/g, "")}.edu.ng`,
-      publishDate: "August 2026",
-      cutoffScore: "200",
-      eligibilityText: "Candidates who chose the school as first choice, scored above the threshold in UTME, and uploaded O'Level results on CAPS."
-    };
-    responseText = JSON.stringify(fallbackSingleSchool);
+      publishDate: null,
+      cutoffScore: null,
+      eligibilityText: null
+    });
 
-  // D. ASUU / ACADEMIC STRIKE STATUS JSON FALLBACK
   } else if (textLower.includes("academic staff union") && textLower.includes("status")) {
-    const fallbackAsuu = {
-      isActive: false,
-      status: "Stable",
+    responseText = JSON.stringify({
+      isSovereignFallback: true,
+      isActive: null,
+      status: "Unknown — live check unavailable",
       lastUpdated: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" }),
-      summary: "Academic Staff Union of Universities (ASUU) confirms that public universities are stable, with academic calendars executing smoothly without any industrial action."
-    };
-    responseText = JSON.stringify(fallbackAsuu);
+      summary: "Live ASUU status could not be verified because all AI providers were unavailable. Please check official ASUU or NUC channels."
+    });
 
-  // 1. FACT-CHECKING / NEWS VERIFICATION
   } else if (textLower.includes("verify") || textLower.includes("fact-checking") || textLower.includes("authentic news")) {
-    const { uniName, courseName } = detectUniversityAndCourse(promptText);
-    
-    // Check what the user asked about
-    let title = `${uniName} Releases 2026/2027 Post-UTME Admission Screening Guidelines`;
-    let excerpt = `Official registration guidelines and dates for the 2026/2027 Post-UTME screening exercise at ${uniName}.`;
-    let category = "Federal";
-    
-    if (textLower.includes("strike") || textLower.includes("asuu")) {
-      title = "ASUU Strike Update: National Executive Council Confirms Continued Academic Stability";
-      excerpt = "The Academic Staff Union of Universities (ASUU) has released a press statement assuring Nigerian students of continued academic stability for the 2026 session.";
-      category = "National";
-    } else if (textLower.includes("caps") || textLower.includes("jamb")) {
-      title = "JAMB Directs Candidates on O'Level Upload and CAPS Admission Processing";
-      excerpt = "The Joint Admissions and Matriculation Board (JAMB) has issued a directive to all 2026 candidates on the mandatory uploading of O'Level results on CAPS.";
-      category = "JAMB";
-    }
+    responseText = JSON.stringify({
+      isSovereignFallback: true,
+      verified: false,
+      reason: "All AI providers were unavailable, so this could not be cross-referenced against live sources. Do not publish this as a verified article.",
+      article: null
+    });
 
-    const todayStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
-    const fallbackArticle = {
-      verified: true,
-      reason: "This information has been cross-referenced with official university circulars, school senate announcements, and verified press releases.",
-      article: {
-        title,
-        category,
-        date: todayStr,
-        excerpt,
-        fullContent: `## Executive Summary
-Following several days of speculation among 2026 candidates, the authorities of ${uniName} have officially clarified the position regarding the upcoming registration procedures. The management released an official statement on their website, urging candidates and stakeholders to disregard third-party rumors.
-
-## Detailed Guidelines and Requirements
-Candidates who chose the institution as their first choice in the 2026 Unified Tertiary Matriculation Examination (UTME) are required to take note of the following critical instructions:
-
-1. **Minimum Cut-off Score**: Only candidates who scored 200 and above in the 2026 UTME are eligible to apply.
-2. **O'Level Upload**: It is mandatory to upload your O'Level (WAEC/NECO/NABTEB) results on the JAMB CAPS portal. Failure to do so will automatically invalidate your application.
-3. **Registration Portal**: The official portal will be opened for registration from August 1st, 2026. All payments should be made strictly using the Remita platform.
-4. **Required Documents**: Candidates must prepare their UTME Result Slip, O'Level results, Certificate of State of Origin, and a passport photograph with a white background.
-
-## Admission Processing on JAMB CAPS
-Admission offers will be processed strictly on merit, catchment area considerations, and ELDS (Educationally Less Developed States) quotas. Candidates are advised to monitor their JAMB CAPS profiles regularly to accept admission offers once they are uploaded.
-
-## Action Checklist for Candidates
-* **Step 1**: Visit the official portal and verify your eligibility using your JAMB registration number.
-* **Step 2**: Complete the registration form and double-check your subject combinations.
-* **Step 3**: Upload a clear copy of your O'Level certificate or statement of results.
-* **Step 4**: Print out your Post-UTME Screening Registration Slip for future reference.`,
-        sourceUrl: `https://${uniName.toLowerCase().replace(/[^a-z0-9]/g, "")}.edu.ng/news/admission-update`,
-        image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=600",
-        tags: ["JAMB 2026", "Admission Update", "Post-UTME"],
-        isImportant: true
-      }
-    };
-
-    responseText = JSON.stringify(fallbackArticle);
-
-  // 2. ARTICLE EXPANSION
   } else if (textLower.includes("expert nigerian education journalist") || textLower.includes("rewrite this summary")) {
-    const { uniName } = detectUniversityAndCourse(promptText);
-    responseText = `# Comprehensive Analysis: Strategic Enrollment Management and Admission Guideline Breakdown
+    responseText = "AI providers are currently unavailable, so this content could not be generated. Please retry shortly.";
 
-## Introduction & Editorial Analysis
-The latest higher education policy announcement represents a pivotal shift in the regulatory landscape for Nigerian universities. For millions of UTME 2026 candidates, this decision will alter how applications are evaluated and processed across federal, state, and private institutions.
-
-## Policy Breakdown & Core Mandates
-Under the new guidelines, universities are instructed to adhere to a strict electronic vetting procedure. Key highlights of the policy include:
-
-* **Centralized Vetting**: All admission processing is consolidated under JAMB CAPS to ensure complete transparency.
-* **O'Level Result Validation**: Automatic API verification of WAEC/NECO results is now active to prevent credentials falsification.
-* **Strict Adherence to Quotas**: Decongesting class sizes in high-demand departments (such as Medicine, Law, and Nursing) to maintain high educational standards.
-
-## Strategic Guidelines for Candidates
-To navigate this system successfully, candidates must take immediate proactive steps:
-
-1. **Verify Your Choice of Course**: Confirm that your UTME subject combination aligns perfectly with your chosen course at ${uniName}.
-2. **Review O'Level Deficiencies**: Ensure you possess at least five credits in core subjects including English Language and Mathematics.
-3. **Monitor Portal Activity**: Regularly check your CAPS status to see if your preferred school has processed your application.
-
-## Quick Action Checklist
-* [ ] Verify that your O'Level result is fully uploaded to your JAMB CAPS profile.
-* [ ] Confirm that your aggregate score meets the departmental cutoff.
-* [ ] Print out all registration slips and proof of payments.
-* [ ] Secure certified copies of all educational credentials before the screening commences.`;
-
-  // 3. COURSE CUTOFF INFO
   } else if (textLower.includes("cutoff") || textLower.includes("subjectcombination")) {
-    const { uniName, courseName, cutoff, combi } = detectUniversityAndCourse(promptText);
-    const fallbackCutoff = {
-      cutoff: `${cutoff}`,
+    const { courseName, cutoff, combi } = detectUniversityAndCourse(promptText);
+    responseText = JSON.stringify({
+      isSovereignFallback: true,
+      cutoff: `${cutoff} (estimated — verify officially)`,
       subjectCombination: `${combi}`,
-      recommendation: `Your credentials put you in a very competitive tier for ${courseName} at ${uniName}. To maximize your chances, ensure your O'Level results are uploaded perfectly on JAMB CAPS, and maintain diligent preparation for any upcoming institutional screening exercises.`,
-      reliability: "High (Derived from historical data and institutional merit parameters)"
-    };
-    responseText = JSON.stringify(fallbackCutoff);
+      recommendation: `This is an estimated cutoff for ${courseName}, generated without a live data source. Please verify with the institution's official admissions page.`,
+      reliability: "Low — fallback estimate only"
+    });
 
-  // 4. DETAILED ACADEMIC PROFILE
   } else if (textLower.includes("detailed academic profile") || textLower.includes("founded") || textLower.includes("motto")) {
-    const { uniName, uniType } = detectUniversityAndCourse(promptText);
-    const isUnilag = uniName.includes("Lagos");
-    const fallbackProfile = {
-      bio: `${uniName} is one of the premier first-generation universities in Nigeria, globally renowned for academic excellence, state-of-the-art research programs, and producing industry leaders.`,
-      founded: isUnilag ? "1962" : "1948",
-      motto: isUnilag ? "In Deed and In Truth" : "Recte Sapere Fons",
-      bestKnownFor: "Outstanding research facilities, competitive professional course structures, and exceptional alumni networks.",
-      campusVibe: "A highly vibrant, intellectually stimulating, and culturally diverse campus ecosystem.",
-      facultyStudentRatio: "1:22",
-      researchOutput: "Exemplary, with numerous national grants and international patents.",
-      facilities: ["Modern Central Library", "Ultra-modern Science Labs", "High-speed Campus Wi-Fi", "Sports Complex", "Student Innovation Hub"]
-    };
-    responseText = JSON.stringify(fallbackProfile);
+    responseText = JSON.stringify({ isSovereignFallback: true, bio: "Live profile data unavailable — all AI providers failed." });
 
-  // 5. MAJOR COURSES
   } else if (textLower.includes("major courses")) {
-    const fallbackCourses = {
-      courses: [
-        "Medicine and Surgery",
-        "Computer Science",
-        "Law",
-        "Nursing Science",
-        "Mechanical Engineering",
-        "Accounting",
-        "Electrical and Electronics Engineering",
-        "Pharmacy"
-      ]
-    };
-    responseText = JSON.stringify(fallbackCourses);
+    responseText = JSON.stringify({ isSovereignFallback: true, courses: [] });
 
-  // 6. TUITION AND ACCEPTANCE FEES
   } else if (textLower.includes("tuition and acceptance") || textLower.includes("tuition")) {
-    const { uniType } = detectUniversityAndCourse(promptText);
-    const isState = uniType === "State";
-    const tuition = isState ? "₦150,000 - ₦250,000" : "₦55,000 - ₦85,000";
-    const acceptance = isState ? "₦45,000" : "₦25,000";
-    const other = "₦20,000";
-    const total = isState ? "₦215,000 - ₦315,000" : "₦100,000 - ₦130,000";
+    responseText = JSON.stringify({
+      isSovereignFallback: true,
+      tuition: null,
+      acceptance: null,
+      other: null,
+      total: null,
+      note: "Live fee data unavailable — all AI providers failed. Please check the official school portal."
+    });
 
-    const fallbackFees = {
-      tuition,
-      acceptance,
-      other,
-      total
-    };
-    responseText = JSON.stringify(fallbackFees);
-
-  // 7. CONVERSATIONAL CHAT DEFAULT
   } else {
-    responseText = `Hello! I am CampusAI, your specialized higher-education sovereign advisor for the 2026 Nigerian academic session. 
+    isSovereignFallback = false; // conversational default isn't a "fact" fallback
+    responseText = `Hello! I am CampusAI, your specialized higher-education advisor for the 2026 Nigerian academic session.
 
 I can assist you with comprehensive updates regarding:
 1. **JAMB 2026 Guidelines**: Directives, result slip printing, and O'Level uploading.
-2. **Post-UTME Screening**: Detailed registration timelines, eligibility rules, and syllabus outlines for top Nigerian universities (including UNILAG, UI, OAU, UNN, FUTA, and more).
+2. **Post-UTME Screening**: Detailed registration timelines, eligibility rules, and syllabus outlines for top Nigerian universities.
 3. **Cut-off Marks & Requirements**: Checking subject combinations and calculating aggregate scores.
 4. **ASUU & Senate Updates**: Academic calendars and strike announcements.
 
-How can I help guide your academic journey today? Please ask me any questions about admissions, schools, or courses!`;
+How can I help guide your academic journey today?`;
   }
 
   return {
     text: responseText,
+    isSovereignFallback,
     candidates: [
-      {
-        content: {
-          parts: [
-            {
-              text: responseText
-            }
-          ],
-          role: "model"
-        },
-        finishReason: "STOP",
-        index: 0
-      }
+      { content: { parts: [{ text: responseText }], role: "model" }, finishReason: "STOP", index: 0 }
     ],
-    modelVersion: "gemini-flash-latest",
+    modelVersion: "sovereign-fallback",
     responseId: `sovereign-fallback-${Date.now()}`
   };
-}
-
-function generateSovereignNewsFallback(): any[] {
-  const todayStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
-  return [
-    {
-      id: "news-unilag-post-utme-2026",
-      title: "UNILAG Releases 2026/2027 Post-UTME Admission Guidelines and Screening Schedules",
-      category: "Federal",
-      date: todayStr,
-      excerpt: "The University of Lagos (UNILAG) has officially released eligibility criteria and timelines for the 2026/2027 Post-UTME screening registration.",
-      fullContent: `## UNILAG Post-UTME 2026/2027 Admission Guidelines
-
-The University of Lagos (UNILAG) management has announced the official commencement of the 2026/2027 Post-UTME screening exercise. Only candidates who chose UNILAG as their first choice in the 2026 UTME are eligible to participate.
-
-### Key Requirements
-* **Minimum UTME Score**: Candidates must have scored a minimum of 200 in the 2026 UTME.
-* **O'Level Credits**: Candidates must possess five credit passes in relevant subjects including English and Mathematics at one sitting.
-* **JAMB CAPS**: Uploading O'Level results on the JAMB CAPS portal is mandatory.
-
-### Registration Timeline
-Online registration opens on August 1st and ends on September 15th, 2026. Eligible candidates are advised to register via the official portal strictly to avoid third-party scammers.`,
-      sourceUrl: "https://unilag.edu.ng/news/post-utme-2026-announcement",
-      image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=600",
-      tags: ["UNILAG", "Post-UTME", "Admissions"],
-      isImportant: true
-    },
-    {
-      id: "news-jamb-caps-warning-2026",
-      title: "JAMB Issues Urgent Warning to 2026 Candidates on CAPS Result Upload Status",
-      category: "JAMB",
-      date: todayStr,
-      excerpt: "The Joint Admissions and Matriculation Board (JAMB) warns that candidates without verified O'Level uploads on CAPS will lose admission opportunities.",
-      fullContent: `## JAMB Urgent Directive on CAPS Verification
-
-JAMB Registrar, Prof. Is-haq Oloyede, has directed all 2026 candidates to verify their O'Level result upload status on JAMB CAPS. He emphasized that the board would not tolerate any excuses from candidates whose admissions are delayed due to unuploaded credentials.
-
-### How to Check Upload Status
-1. Log in to your JAMB CAPS profile using your registered email and password.
-2. Select 'My O'Level' from the menu panel.
-3. If your subjects and grades are listed, your upload is complete. If empty, visit an accredited JAMB CBT centre immediately to upload.`,
-      sourceUrl: "https://jamb.gov.ng/news/caps-directive",
-      image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600",
-      tags: ["JAMB", "CAPS", "O'Level"],
-      isImportant: true
-    },
-    {
-      id: "news-asuu-academic-stability-2026",
-      title: "ASUU Reaffirms Commitment to Uninterrupted Academic Calendar in Nigerian Public Universities",
-      category: "National",
-      date: todayStr,
-      excerpt: "Following consultations, the Academic Staff Union of Universities (ASUU) reassures students of continued stability and academic progress.",
-      fullContent: `## Academic Union Assures on Stability
-
-The Academic Staff Union of Universities (ASUU) has reassured Nigerian students and parents that public universities will continue running without disruption. The national president stated that academic calendar execution remains on track following constructive discussions with the Ministry of Education.
-
-### Rebuilding Campus Quality
-ASUU emphasized that its primary focus is collaborating with stakeholders to improve funding, campus facilities, and research capabilities, rather than resorting to industrial action.`,
-      sourceUrl: "https://asuu.org.ng/news/academic-stability",
-      image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=600",
-      tags: ["ASUU", "Universities", "Stability"],
-      isImportant: false
-    }
-  ];
 }
 
 // --- API Routes ---
@@ -1559,556 +1567,78 @@ const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("[Safe JSON Parse] Failed to parse JSON:", e);
-    // Simple attempt to extract JSON from text if it's wrapped in other content
     const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch (e2) {
-        console.error("[Safe JSON Parse] Secondary parse failed:", e2);
-      }
+      try { return JSON.parse(match[0]); } catch (e2) { console.error("[Safe JSON Parse] Secondary parse failed:", e2); }
     }
     return fallback;
   }
 };
 
-// --- Diagnostic Routes ---
-app.get("/api/diag/keys", (req, res) => {
-  const gemini = getGeminiKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
-  const tavily = getTavilyKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
-  const serper = getSerperKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
-  const firecrawl = getFirecrawlKeys().map(k => `${k.substring(0, 6)}...${k.substring(k.length - 4)}`);
-  
-  res.json({
-    counts: {
-      gemini: gemini.length,
-      tavily: tavily.length,
-      serper: serper.length,
-      firecrawl: firecrawl.length
-    },
-    masked: {
-      gemini,
-      tavily,
-      serper,
-      firecrawl
-    }
-  });
-});
-
-app.get("/api/diag/firestore", async (req, res) => {
-  try {
-    const newsRef = db.collection("news");
-    const snapshot = await newsRef.orderBy("date", "desc").limit(5).get();
-    const items: any[] = [];
-    snapshot.forEach((doc: any) => {
-      items.push({ id: doc.id, ...doc.data() });
-    });
-    
-    res.json({
-      success: true,
-      databaseId: firebaseAppletConfig.firestoreDatabaseId,
-      newsCount: items.length,
-      sample: items
-    });
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      error: err.message,
-      stack: err.stack
-    });
-  }
-});
-
-app.get("/api/diag/health", (req, res) => {
-  res.json({
-    status: "ok",
-    time: new Date().toISOString(),
-    env: process.env.NODE_ENV,
-    projectId: firebaseAppletConfig.projectId,
-    databaseId: firebaseAppletConfig.firestoreDatabaseId
-  });
-});
-
-function isGibberishResponse(text: string): boolean {
-  if (!text || text.length < 50) return false;
-
-  const words = text.split(/\s+/).map(w => w.trim()).filter(Boolean);
-  if (words.length < 15) return false;
-
-  // 1. Look for mixed CJK characters in non-CJK text (common symptom of Gemini decoding degradation)
-  const nonEnglishCjkCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-  if (nonEnglishCjkCount > 5) {
-    return true; 
-  }
-
-  // 2. Count uppercase words or random mid-sentence capitalizations
-  let capitalizedCount = 0;
-  words.forEach(word => {
-    if (word[0] && word[0] === word[0].toUpperCase() && /[a-zA-Z]/.test(word[0])) {
-      capitalizedCount++;
-    }
-  });
-
-  const capRatio = capitalizedCount / words.length;
-  if (capRatio > 0.45 && words.length > 30 && !text.toUpperCase().includes("JSON") && !text.includes("```")) {
-    return true;
-  }
-
-  // 3. Connectives check (highly accurate indicator of non-English text scrambling)
-  const connectives = new Set(['the', 'and', 'of', 'to', 'a', 'in', 'is', 'that', 'it', 'for', 'on', 'with', 'as', 'this', 'you', 'i', 'your', 'we']);
-  let connectiveCount = 0;
-  words.forEach(w => {
-    if (connectives.has(w.toLowerCase().replace(/[^a-z]/g, ''))) {
-      connectiveCount++;
-    }
-  });
-
-  const connectiveRatio = connectiveCount / words.length;
-  if (connectiveRatio < 0.08 && words.length > 25 && !text.includes("{") && !text.includes("```")) {
-    return true;
-  }
-
-  return false;
-}
-
 app.post("/api/gemini", async (req: any, res: any) => {
-  const { apiKey, params } = req.body;
-  
+  const { params } = req.body;
+
   if (!isAllowedOrigin(req)) {
     return res.status(403).json({ error: "Origin not allowed" });
   }
 
-  // --- Normalization layer to support both modern @google/genai (nested config) and legacy top-level styles ---
-  if (params) {
-    const sysInst = params.systemInstruction || params.config?.systemInstruction;
-    const tls = params.tools || params.config?.tools;
-    const tlCfg = params.toolConfig || params.config?.toolConfig;
-    const sft = params.safetySettings || params.config?.safetySettings;
+  let promptText = "";
+  const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+  let systemInstruction: string | undefined;
 
-    let genCfg = params.generationConfig || params.config || {};
-    if (params.config && !params.generationConfig) {
-      genCfg = { ...params.config };
-      delete (genCfg as any).systemInstruction;
-      delete (genCfg as any).tools;
-      delete (genCfg as any).toolConfig;
-      delete (genCfg as any).safetySettings;
-    }
-
-    params.systemInstruction = sysInst;
-    params.tools = tls;
-    params.toolConfig = tlCfg;
-    params.safetySettings = sft;
-    params.generationConfig = genCfg;
-  }
-
-  let successResult: any = null;
-
-  // ─── 1. TRY PRIMARY NON-GEMINI PROVIDERS FIRST (GROQ, OPENROUTER, NVIDIA, MISTRAL, COHERE) ───
-  let messages: any[] = [];
-  if (params?.systemInstruction) {
-    messages.push({ role: 'system', content: params.systemInstruction });
-  }
+  if (params?.systemInstruction) systemInstruction = params.systemInstruction || params.config?.systemInstruction;
 
   if (params && params.contents) {
     if (typeof params.contents === "string") {
+      promptText = params.contents;
       messages.push({ role: 'user', content: params.contents });
     } else if (Array.isArray(params.contents)) {
       params.contents.forEach((turn: any) => {
         const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
         let contentText = "";
-        if (Array.isArray(turn.parts)) {
-          contentText = turn.parts.map((p: any) => p.text || "").join(" ");
-        } else if (typeof turn.parts === "string") {
-          contentText = turn.parts;
-        } else if (turn.text) {
-          contentText = turn.text;
-        }
+        if (Array.isArray(turn.parts)) contentText = turn.parts.map((p: any) => p.text || "").join(" ");
+        else if (typeof turn.parts === "string") contentText = turn.parts;
+        else if (turn.text) contentText = turn.text;
         if (contentText) {
           messages.push({ role, content: contentText });
+          promptText += contentText + " ";
         }
       });
     }
   }
 
-  const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" || 
-                          params?.responseMimeType === "application/json" ||
-                          (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
+  const isJsonRequested = params?.generationConfig?.responseMimeType === "application/json" ||
+    params?.responseMimeType === "application/json" ||
+    (typeof params?.contents === "string" && params.contents.toLowerCase().includes("json"));
 
-  // Truncate messages if too long
+  // Truncate if too long
   let totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
   if (totalLength > 30000) {
-    console.warn(`[API Gemini Proxy] Messages too long (${totalLength} chars). Truncating for primary providers...`);
     messages.forEach(m => {
-      if (m.content && m.content.length > 10000) {
-        m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
-      }
+      if (m.content && m.content.length > 10000) m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
     });
-    totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
-    if (totalLength > 30000) {
-      messages = [messages[messages.length - 1]];
-      if (messages[0].content && messages[0].content.length > 25000) {
-        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED]";
-      }
-    }
   }
 
-  // 1a. Try Groq
-  if (!successResult && process.env.GROQ_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying primary provider (Groq)...");
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const completion = await groq.chat.completions.create({
-        messages: messages as any,
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 3000,
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Groq primary provider succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.warn("[API Gemini Proxy] Groq primary provider skipped/failed:", e.message || e);
-    }
+  const aiResult = await callAIWithFallback({
+    systemInstruction,
+    messages,
+    jsonMode: isJsonRequested,
+    label: 'gemini-proxy'
+  });
+
+  if (aiResult) {
+    return res.json({ text: aiResult.text, candidates: [{ content: { parts: [{ text: aiResult.text }] } }], provider: aiResult.provider });
   }
 
-  // 1b. Try OpenRouter
-  if (!successResult && process.env.OPENROUTER_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying primary provider (OpenRouter)...");
-      const openrouter = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: "https://openrouter.ai/api/v1"
-      });
-      const completion = await openrouter.chat.completions.create({
-        messages: messages as any,
-        model: 'meta-llama/llama-3.3-70b-instruct',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] OpenRouter primary provider succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.warn("[API Gemini Proxy] OpenRouter primary provider skipped/failed:", e.message || e);
-    }
-  }
-
-  // 1c. Try Nvidia API Catalog
-  if (!successResult && process.env.NVIDIA_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying primary provider (Nvidia)...");
-      const nvidia = new OpenAI({
-        apiKey: process.env.NVIDIA_API_KEY,
-        baseURL: "https://integrate.api.nvidia.com/v1"
-      });
-      const completion = await nvidia.chat.completions.create({
-        messages: messages as any,
-        model: 'meta/llama-3.3-70b-instruct',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Nvidia primary provider succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.warn("[API Gemini Proxy] Nvidia primary provider skipped/failed:", e.message || e);
-    }
-  }
-
-  // 1d. Try Mistral
-  if (!successResult && process.env.MISTRAL_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying primary provider (Mistral)...");
-      const mistral = new OpenAI({
-        apiKey: process.env.MISTRAL_API_KEY,
-        baseURL: "https://api.mistral.ai/v1"
-      });
-      const completion = await mistral.chat.completions.create({
-        messages: messages as any,
-        model: 'mistral-small-latest',
-        ...(isJsonRequested ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Mistral primary provider succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.warn("[API Gemini Proxy] Mistral primary provider skipped/failed:", e.message || e);
-    }
-  }
-
-  // 1e. Try Cohere
-  if (!successResult && process.env.COHERE_API_KEY) {
-    try {
-      console.log("[API Gemini Proxy] Trying primary provider (Cohere)...");
-      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-      const coherePrompt = `${params?.systemInstruction ? `System: ${params.systemInstruction}\n\n` : ''}${messages.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
-      const response = await cohere.generate({
-        prompt: coherePrompt,
-        model: 'command-r-plus',
-      });
-      const text = response.generations[0]?.text || "";
-      if (text) {
-        console.log("[API Gemini Proxy] Cohere primary provider succeeded.");
-        successResult = {
-          text,
-          candidates: [{ content: { parts: [{ text }] } }]
-        };
-      }
-    } catch (e: any) {
-      console.warn("[API Gemini Proxy] Cohere primary provider skipped/failed:", e.message || e);
-    }
-  }
-
-  // ─── 2. TRY GEMINI API AS FALLBACK ONLY IF PRIMARY PROVIDERS FAILED ───
-  let lastErr: any = null;
-  if (!successResult) {
-    console.log("[API Gemini Proxy] Primary providers failed or unconfigured, trying Gemini API as fallback...");
-
-    // Create an intelligent pool of candidate API keys to try
-    const rawPool = getGeminiKeys();
-    
-    // Append the client-supplied apiKey if it's not already in the pool
-    if (apiKey && apiKey.trim()) {
-      const trimmed = apiKey.trim();
-      if ((trimmed.startsWith('AIzaSy') || trimmed.startsWith('AQ.')) && !rawPool.includes(trimmed)) {
-        rawPool.push(trimmed);
-      }
-    }
-
-    // Filter out blacklisted keys
-    const now = Date.now();
-    const keysPoolFiltered = rawPool.filter(k => {
-      const blacklistInfo = blacklistedKeys.get(k);
-      if (!blacklistInfo) return true;
-      if (blacklistInfo.until < now) {
-        blacklistedKeys.delete(k); // expired, remove from blacklist
-        return true;
-      }
-      return false;
-    });
-
-    const keysPool = keysPoolFiltered.length > 0 ? keysPoolFiltered : rawPool;
-    const requestedModel = (params?.model || "unknown").replace(/^models\//, "");
-    
-    let modelToTry = requestedModel;
-    if (modelToTry.includes("flash")) {
-      modelToTry = "gemini-flash-latest"; 
-    } else if (modelToTry.includes("pro")) {
-      modelToTry = "gemini-3.1-pro-preview";
-    } else {
-      modelToTry = "gemini-flash-latest";
-    }
-
-    const modelPool = [modelToTry];
-    if (modelToTry !== "gemini-flash-latest") modelPool.push("gemini-flash-latest");
-
-    if (Date.now() < geminiBlockedUntil) {
-      console.warn(`[API Gemini] Skipping Gemini fallback due to ${consecutiveGeminiFailures} consecutive failures.`);
-    } else {
-      for (const activeKey of keysPool) {
-        if (successResult) break;
-        const keyType = activeKey.startsWith('AQ.') ? "AQ.* (Auth)" : activeKey.startsWith('AIza') ? "AIzaSy* (Standard)" : "Unknown";
-        const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
-        
-        console.log(`[API Gemini Fallback] Trying key of type: ${keyType} (${maskedKey})`);
-        
-        for (const modelName of modelPool) {
-          if (successResult) break;
-          try {
-            console.log(`[API Gemini Fallback] Executing model run with: ${modelName}`);
-          
-            let contents = params.contents;
-            if (typeof contents === 'string') {
-              contents = [{ role: 'user', parts: [{ text: contents }] }];
-            } else if (!Array.isArray(contents)) {
-              contents = [{ role: 'user', parts: [{ text: String(contents || '') }] }];
-            }
-
-            const config: any = { ...params.generationConfig };
-            if (params.generationConfig?.max_output_tokens) config.maxOutputTokens = params.generationConfig.max_output_tokens;
-            if (params.generationConfig?.top_p) config.topP = params.generationConfig.top_p;
-            if (params.generationConfig?.top_k) config.topK = params.generationConfig.top_k;
-            if (params.generationConfig?.stop_sequences) config.stopSequences = params.generationConfig.stop_sequences;
-            if (params.generationConfig?.response_mime_type) config.responseMimeType = params.generationConfig.response_mime_type;
-            if (params.generationConfig?.response_schema) config.responseSchema = params.generationConfig.response_schema;
-
-            const updatedParams: any = { 
-              model: modelName, 
-              contents,
-              config 
-            };
-
-            if (params.systemInstruction) updatedParams.systemInstruction = params.systemInstruction;
-            if (params.tools) updatedParams.tools = params.tools;
-            if (params.toolConfig) updatedParams.toolConfig = params.toolConfig;
-            if (params.safetySettings) updatedParams.safetySettings = params.safetySettings;
-            if (params.responseMimeType) updatedParams.config.responseMimeType = params.responseMimeType;
-            if (params.responseSchema) updatedParams.config.responseSchema = params.responseSchema;
-
-            const gemini = createGeminiClient(activeKey);
-            let result: any;
-            
-            let effectiveModelName = modelName;
-            if (gemini.type === 'AIP') {
-              if (modelName === 'gemini-1.5-pro' || modelName === 'gemini-1.5-pro-latest') effectiveModelName = 'gemini-3.1-pro-preview';
-              if (modelName === 'gemini-1.5-flash' || modelName === 'gemini-1.5-flash-latest') effectiveModelName = 'gemini-flash-latest';
-            }
-
-            if (gemini.type === 'AIP') {
-              const finalConfig: any = { ...updatedParams.config };
-              if (params.systemInstruction) finalConfig.systemInstruction = params.systemInstruction;
-              if (params.tools) finalConfig.tools = params.tools;
-              if (params.toolConfig) finalConfig.toolConfig = params.toolConfig;
-              if (params.safetySettings) finalConfig.safetySettings = params.safetySettings;
-
-              const aipParams = {
-                model: effectiveModelName,
-                contents: updatedParams.contents,
-                config: finalConfig
-              };
-              result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
-            } else {
-              const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ 
-                model: effectiveModelName,
-                systemInstruction: updatedParams.systemInstruction 
-              });
-              const genConfig: any = {
-                maxOutputTokens: updatedParams.config.maxOutputTokens,
-                temperature: updatedParams.config.temperature,
-                topP: updatedParams.config.topP,
-                topK: updatedParams.config.topK,
-                stopSequences: updatedParams.config.stopSequences,
-                responseMimeType: updatedParams.config.responseMimeType,
-                responseSchema: updatedParams.config.responseSchema,
-              };
-              
-              const genResult = await fetchWithTimeout(model.generateContent({
-                contents: updatedParams.contents,
-                generationConfig: genConfig,
-                safetySettings: updatedParams.safetySettings,
-                tools: updatedParams.tools,
-                toolConfig: updatedParams.toolConfig,
-              }), 30000, "Gemini SDK timeout");
-              
-              const response = await genResult.response;
-              result = {
-                text: response.text(),
-                candidates: [{ content: { parts: [{ text: response.text() }] } }]
-              };
-            }
-            
-            consecutiveGeminiFailures = 0;
-            console.log(`[API Gemini Fallback] Success with model: ${modelName}!`);
-            
-            let text = "";
-            try { text = result.text || ""; } catch (e) {
-              if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-                text = result.candidates[0].content.parts[0].text;
-              }
-            }
-
-            if (isGibberishResponse(text)) {
-              console.warn(`[API Gemini Fallback] GIBBERISH DETECTED from model ${modelName}! Retrying with temperature = 0.1...`);
-              try {
-                if (gemini.type === 'AIP') {
-                  const retryFinalConfig: any = {
-                    ...updatedParams.config,
-                    temperature: 0.1,
-                    topP: 0.1,
-                    topK: 1
-                  };
-                  if (params.systemInstruction) retryFinalConfig.systemInstruction = params.systemInstruction;
-                  const aipParams = {
-                    model: modelName,
-                    contents: updatedParams.contents,
-                    config: retryFinalConfig
-                  };
-                  const retryResult = await (gemini.client as GoogleGenAI).models.generateContent(aipParams);
-                  text = retryResult.text || retryResult.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                  if (!isGibberishResponse(text)) {
-                    successResult = { ...retryResult, text };
-                    break;
-                  }
-                }
-              } catch (retryErr: any) {
-                console.error(`[API Gemini Fallback] Retry failed:`, retryErr.message || retryErr);
-              }
-              continue;
-            }
-
-            successResult = { ...result, text };
-            break; 
-          } catch (error: any) {
-            lastErr = error;
-            const errorMsg = error.message || (error.response?.data?.error?.message) || String(error);
-            const isQuota = errorMsg.toLowerCase().includes("quota") || errorMsg.includes("429") || errorMsg.includes("exhausted");
-            console.log(`[API Gemini Fallback] Key failed (${modelName}): ${errorMsg}`);
-            if (isQuota) {
-              blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
-              break;
-            }
-          }
-        }
-      }
-
-      if (!successResult) {
-        consecutiveGeminiFailures++;
-        if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
-          geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
-        }
-      }
-    }
-  }
-
-  if (successResult) {
-    return res.json(successResult);
-  }
-
-  // ─── 3. SOVEREIGN HEURISTIC FALLBACK ───
   try {
-    let promptText = "";
-    if (params && params.contents) {
-      if (typeof params.contents === "string") {
-        promptText = params.contents;
-      } else if (Array.isArray(params.contents)) {
-        const firstTurn = params.contents[0];
-        if (firstTurn && firstTurn.parts) {
-          if (Array.isArray(firstTurn.parts)) {
-            promptText = firstTurn.parts.map((p: any) => p.text || "").join(" ");
-          } else if (typeof firstTurn.parts === "string") {
-            promptText = firstTurn.parts;
-          }
-        }
-      }
-    }
-    
     const fallbackResponse = generateSovereignGeminiFallback(promptText, params);
-    console.log(`[API Gemini] Successfully triggered Sovereign Fallback to prevent applet crash.`);
+    console.log(`[API Gemini] Triggered sovereign fallback to avoid crashing the applet.`);
     return res.json(fallbackResponse);
   } catch (fallbackErr: any) {
-    console.log(`[API Gemini] Sovereign Fallback generation failed:`, fallbackErr.message);
+    console.log(`[API Gemini] Sovereign fallback generation itself failed:`, fallbackErr.message);
   }
 
-  const finalErrorMsg = lastErr?.message || (lastErr?.response?.data?.error?.message) || "No valid API provider succeeded";
-  res.status(500).json({ error: finalErrorMsg });
+  res.status(502).json({ error: "All AI providers failed and sovereign fallback could not generate a response." });
 });
 
 app.post("/api/ai/generate", async (req: any, res: any) => {
@@ -2118,203 +1648,36 @@ app.post("/api/ai/generate", async (req: any, res: any) => {
     return res.status(403).json({ error: "Origin not allowed" });
   }
 
-  let messages = [
-    ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
-    ...history.map((m: any) => ({
-      role: m.role === 'model' ? 'assistant' : 'user',
-      content: m.text
-    })),
+  const messages: { role: 'user' | 'assistant'; content: string }[] = [
+    ...history.map((m: any) => ({ role: (m.role === 'model' ? 'assistant' : 'user') as 'user' | 'assistant', content: m.text })),
     { role: 'user', content: prompt }
   ];
 
   let totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
   if (totalLength > 30000) {
     messages.forEach(m => {
-      if (m.content && m.content.length > 10000) {
-        m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
-      }
+      if (m.content && m.content.length > 10000) m.content = m.content.substring(0, 10000) + "... [TRUNCATED]";
     });
-    totalLength = messages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
-    if (totalLength > 30000) {
-      messages = [messages[messages.length - 1]];
-      if (messages[0].content.length > 25000) {
-        messages[0].content = messages[0].content.substring(0, 25000) + "... [TRUNCATED]";
-      }
-    }
   }
 
-  // 1. Try Primary Non-Gemini Providers First (Groq, OpenRouter, Nvidia, Mistral, Cohere)
-  if (process.env.GROQ_API_KEY) {
-    try {
-      console.log("[API AI] Trying primary provider (Groq)...");
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const completion = await groq.chat.completions.create({
-        messages: messages as any,
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 3000,
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API AI] Groq primary provider succeeded.");
-        return res.json({ text });
-      }
-    } catch (e: any) {
-      console.warn("[API AI] Groq primary provider failed:", e.message || e);
-    }
+  const aiResult = await callAIWithFallback({ systemInstruction, messages, label: 'ai-generate' });
+
+  if (aiResult) {
+    return res.json({ text: aiResult.text, provider: aiResult.provider });
   }
 
-  if (process.env.OPENROUTER_API_KEY) {
-    try {
-      console.log("[API AI] Trying primary provider (OpenRouter)...");
-      const openrouter = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: "https://openrouter.ai/api/v1"
-      });
-      const completion = await openrouter.chat.completions.create({
-        messages: messages as any,
-        model: 'meta-llama/llama-3.3-70b-instruct',
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API AI] OpenRouter primary provider succeeded.");
-        return res.json({ text });
-      }
-    } catch (e: any) {
-      console.warn("[API AI] OpenRouter primary provider failed:", e.message || e);
-    }
-  }
-
-  if (process.env.NVIDIA_API_KEY) {
-    try {
-      console.log("[API AI] Trying primary provider (Nvidia)...");
-      const nvidia = new OpenAI({
-        apiKey: process.env.NVIDIA_API_KEY,
-        baseURL: "https://integrate.api.nvidia.com/v1"
-      });
-      const completion = await nvidia.chat.completions.create({
-        messages: messages as any,
-        model: 'meta/llama-3.3-70b-instruct',
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API AI] Nvidia primary provider succeeded.");
-        return res.json({ text });
-      }
-    } catch (e: any) {
-      console.warn("[API AI] Nvidia primary provider failed:", e.message || e);
-    }
-  }
-
-  if (process.env.MISTRAL_API_KEY) {
-    try {
-      console.log("[API AI] Trying primary provider (Mistral)...");
-      const mistral = new OpenAI({
-        apiKey: process.env.MISTRAL_API_KEY,
-        baseURL: "https://api.mistral.ai/v1"
-      });
-      const completion = await mistral.chat.completions.create({
-        messages: messages as any,
-        model: 'mistral-small-latest',
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log("[API AI] Mistral primary provider succeeded.");
-        return res.json({ text });
-      }
-    } catch (e: any) {
-      console.warn("[API AI] Mistral primary provider failed:", e.message || e);
-    }
-  }
-
-  if (process.env.COHERE_API_KEY) {
-    try {
-      console.log("[API AI] Trying primary provider (Cohere)...");
-      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-      const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${history.map((m: any) => `${m.role === 'model' ? 'Assistant' : 'User'}: ${m.text}`).join('\n')}\nUser: ${prompt}`;
-      const response = await cohere.generate({
-        prompt: coherePrompt,
-        model: 'command-r-plus',
-      });
-      const text = response.generations[0]?.text || "";
-      if (text) {
-        console.log("[API AI] Cohere primary provider succeeded.");
-        return res.json({ text });
-      }
-    } catch (e: any) {
-      console.warn("[API AI] Cohere primary provider failed:", e.message || e);
-    }
-  }
-
-  // 2. Fallback to Gemini API if primary providers failed
-  console.log("[API AI] Primary providers failed or unconfigured. Trying Gemini API fallback...");
-  const rawPool = getGeminiKeys();
-  const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
-  
-  if (keysPool.length > 0 && Date.now() >= geminiBlockedUntil) {
-    let successResult = false;
-    for (const activeKey of keysPool) {
-      try {
-        const gemini = createGeminiClient(activeKey);
-        const contents = [
-          ...history.map((m: any) => ({
-            role: m.role === 'model' ? 'model' : 'user',
-            parts: [{ text: m.text }]
-          })),
-          { role: 'user', parts: [{ text: prompt }] }
-        ];
-
-        const config: any = {};
-        const aipParams: any = {
-          model: "gemini-flash-latest",
-          contents,
-          config
-        };
-        if (systemInstruction) aipParams.config.systemInstruction = systemInstruction;
-
-        const result = await fetchWithTimeout((gemini.client as GoogleGenAI).models.generateContent(aipParams), 30000, "Gemini AIP timeout");
-        let text = result.text || "";
-        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-          text = result.candidates[0].content.parts[0].text;
-        }
-
-        if (text) {
-          console.log("[API AI] Gemini fallback generation succeeded.");
-          consecutiveGeminiFailures = 0;
-          successResult = true;
-          const groundingChunks = (result as any).candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-          return res.json({ text, groundingChunks });
-        }
-      } catch (error: any) {
-        console.warn("[API AI] Gemini fallback key failed:", error.message || error);
-      }
-    }
-    
-    if (!successResult) {
-      consecutiveGeminiFailures++;
-      if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
-        geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
-      }
-    }
-  }
-
-  // 3. Sovereign Fallback
   try {
-    console.log("[API AI] Triggering Sovereign Fallback...");
     const fallbackResponse = generateSovereignGeminiFallback(prompt, { contents: prompt, systemInstruction });
-    return res.json({ text: fallbackResponse.text });
+    return res.json({ text: fallbackResponse.text, isSovereignFallback: fallbackResponse.isSovereignFallback });
   } catch (fallbackErr: any) {
-    console.error("[API AI] Sovereign Fallback failed:", fallbackErr.message);
+    console.error("[API AI] Sovereign fallback failed:", fallbackErr.message);
   }
 
-  return res.status(500).json({ error: "All AI providers failed." });
+  return res.status(502).json({ error: "All AI providers failed." });
 });
 
-app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
+app.post("/api/admin/generate-blog-post", requireAdminToken as any, async (req: any, res: any) => {
   const { query: searchQuery } = req.body;
-
-  if (!isAllowedOrigin(req)) {
-    return res.status(403).json({ error: "Origin not allowed" });
-  }
 
   if (!searchQuery || !searchQuery.trim()) {
     return res.status(400).json({ error: "Query/Topic is required." });
@@ -2322,13 +1685,11 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
 
   console.log(`[API Blog Generator] Topic: "${searchQuery}"`);
 
-  // 1. Search web using Serper/Tavily keys
   const tavilyKeys = getTavilyKeys();
   const serperKeys = getSerperKeys();
   let searchResults: any[] = [];
   let searchSuccess = false;
 
-  // Try Serper
   for (let i = 0; i < serperKeys.length; i++) {
     const key = serperKeys[i];
     try {
@@ -2337,12 +1698,7 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
         timeout: 8000
       });
       if (response.data && response.data.organic && response.data.organic.length > 0) {
-        console.log(`[API Blog Generator] Serper search succeeded with key ${i + 1}`);
-        searchResults = response.data.organic.map((r: any) => ({
-          title: r.title,
-          url: r.link,
-          content: r.snippet
-        }));
+        searchResults = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet }));
         searchSuccess = true;
         break;
       }
@@ -2351,7 +1707,6 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
     }
   }
 
-  // Fallback to Tavily
   if (!searchSuccess) {
     for (let i = 0; i < tavilyKeys.length; i++) {
       const key = tavilyKeys[i];
@@ -2359,12 +1714,7 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
         const client = new TavilyClient({ apiKey: key });
         const response = await client.search({ query: searchQuery, search_depth: "advanced", max_results: 5 });
         if (response && response.results && response.results.length > 0) {
-          console.log(`[API Blog Generator] Tavily search succeeded with key ${i + 1}`);
-          searchResults = response.results.map((r: any) => ({
-            title: r.title,
-            url: r.url,
-            content: r.content
-          }));
+          searchResults = response.results.map((r: any) => ({ title: r.title, url: r.url, content: r.content }));
           searchSuccess = true;
           break;
         }
@@ -2377,18 +1727,7 @@ app.post("/api/admin/generate-blog-post", async (req: any, res: any) => {
   const searchContext = searchResults.map((r: any) => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`).join("\n\n");
   const urlsUsed = searchResults.map((r: any) => r.url);
 
-  // 2. Try Primary Gemini provider first, falling back to secondary providers
-  let successPost: any = null;
-
-  // 1. Try Gemini
-  const rawPool = getGeminiKeys();
-  const keysPool = rawPool.length > 0 ? rawPool : (process.env.GEMINI_API_KEY ? [process.env.GEMINI_API_KEY] : []);
-
-  if (keysPool.length > 0) {
-    for (const activeKey of keysPool) {
-      try {
-        const gemini = createGeminiClient(activeKey);
-        const prompt = `We saw this news topic/snippet: "${searchQuery}".
+  const prompt = `We saw this news topic/snippet: "${searchQuery}".
 Web search results on this topic:
 ${searchContext || "No search results found."}
 
@@ -2404,344 +1743,105 @@ Return the output strictly as a JSON object with this exact shape:
   "excerpt": "A short, 1-2 sentence compelling summary of the article."
 }`;
 
-        const result = await (gemini.client as GoogleGenAI).models.generateContent({
-          model: "gemini-flash-latest",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                fullContent: { type: Type.STRING },
-                category: { type: Type.STRING },
-                excerpt: { type: Type.STRING }
-              },
-              required: ["title", "fullContent", "category", "excerpt"]
-            }
-          }
-        });
+  const aiResult = await callAIWithFallback({
+    systemInstruction: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided.",
+    messages: [{ role: 'user', content: prompt }],
+    jsonMode: true,
+    maxTokens: 4000,
+    label: 'blog-post'
+  });
 
-        let text = result.text || "";
-        if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-          text = result.candidates[0].content.parts[0].text;
-        }
-
-        if (text) {
-          console.log("[API Blog Generator] Gemini blog post generation succeeded.");
-          const parsed = JSON.parse(text.trim());
-          successPost = parsed;
-          break;
-        }
-      } catch (error: any) {
-        console.warn("[API Blog Generator] Gemini key skipped/failed:", error.message || error);
-      }
-    }
+  if (!aiResult) {
+    return res.status(502).json({ error: "Failed to generate blog post with any provider." });
   }
 
-  // 2. Try Groq fallback
-  if (!successPost && process.env.GROQ_API_KEY) {
-    try {
-      console.log("[API Blog Generator] Trying Groq fallback...");
-      
-      let safeSearchContext = searchContext || "No search results found.";
-      if (safeSearchContext.length > 20000) {
-        console.warn(`[API Blog Generator] searchContext too long (${safeSearchContext.length} chars). Truncating...`);
-        safeSearchContext = safeSearchContext.substring(0, 20000) + "... [TRUNCATED DUE TO FALLBACK LIMITS]";
-      }
-
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
-          { role: "user", content: `We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${safeSearchContext}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}` }
-        ] as any,
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 3000,
-        response_format: { type: "json_object" }
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      const parsed = JSON.parse(text.trim());
-      if (parsed && parsed.title && parsed.fullContent) {
-        console.log("[API Blog Generator] Groq blog post generation succeeded.");
-        successPost = parsed;
-      }
-    } catch (e: any) {
-      console.warn("[API Blog Generator] Groq fallback skipped:", e.message || e);
-    }
+  const successPost = safeJsonParse(aiResult.text, null);
+  if (!successPost || !successPost.title || !successPost.fullContent) {
+    return res.status(502).json({ error: "AI provider responded but content could not be parsed as valid JSON." });
   }
 
-  // 3. Try OpenRouter fallback
-  if (!successPost && process.env.OPENROUTER_API_KEY) {
-    try {
-      console.log("[API Blog Generator] Trying OpenRouter fallback...");
-      const openrouter = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY,
-        baseURL: "https://openrouter.ai/api/v1"
-      });
-      const completion = await openrouter.chat.completions.create({
-        messages: [
-          { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
-          { role: "user", content: `We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${searchContext || "No search results found."}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}` }
-        ] as any,
-        model: 'meta-llama/llama-3.3-70b-instruct',
-        response_format: { type: "json_object" }
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      const parsed = JSON.parse(text.trim());
-      if (parsed && parsed.title && parsed.fullContent) {
-        console.log("[API Blog Generator] OpenRouter blog post generation succeeded.");
-        successPost = parsed;
-      }
-    } catch (e: any) {
-      console.warn("[API Blog Generator] OpenRouter fallback skipped:", e.message || e);
-    }
-  }
-
-  // 4. Try Nvidia API Catalog fallback
-  if (!successPost && process.env.NVIDIA_API_KEY) {
-    try {
-      console.log("[API Blog Generator] Trying Nvidia API Catalog fallback...");
-      const nvidia = new OpenAI({
-        apiKey: process.env.NVIDIA_API_KEY,
-        baseURL: "https://integrate.api.nvidia.com/v1"
-      });
-      const completion = await nvidia.chat.completions.create({
-        messages: [
-          { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
-          { role: "user", content: `We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${searchContext || "No search results found."}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}` }
-        ] as any,
-        model: 'meta/llama-3.3-70b-instruct',
-        response_format: { type: "json_object" }
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      const parsed = JSON.parse(text.trim());
-      if (parsed && parsed.title && parsed.fullContent) {
-        console.log("[API Blog Generator] Nvidia blog post generation succeeded.");
-        successPost = parsed;
-      }
-    } catch (e: any) {
-      console.warn("[API Blog Generator] Nvidia fallback skipped:", e.message || e);
-    }
-  }
-
-  // 5. Try Mistral fallback
-  if (!successPost && process.env.MISTRAL_API_KEY) {
-    try {
-      console.log("[API Blog Generator] Trying Mistral fallback...");
-      const mistral = new OpenAI({
-        apiKey: process.env.MISTRAL_API_KEY,
-        baseURL: "https://api.mistral.ai/v1"
-      });
-      const completion = await mistral.chat.completions.create({
-        messages: [
-          { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
-          { role: "user", content: `We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${searchContext || "No search results found."}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}` }
-        ] as any,
-        model: 'mistral-small-latest',
-        response_format: { type: "json_object" }
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      const parsed = JSON.parse(text.trim());
-      if (parsed && parsed.title && parsed.fullContent) {
-        console.log("[API Blog Generator] Mistral blog post generation succeeded.");
-        successPost = parsed;
-      }
-    } catch (e: any) {
-      console.warn("[API Blog Generator] Mistral fallback skipped:", e.message || e);
-    }
-  }
-
-  // 6. Try Cohere fallback
-  if (!successPost && process.env.COHERE_API_KEY) {
-    try {
-      console.log("[API Blog Generator] Trying Cohere fallback...");
-      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-      const prompt = `System: You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided.
-
-User: We saw this news topic/snippet: "${searchQuery}".
-Web search results on this topic:
-${searchContext || "No search results found."}
-
-Generate a high-quality, comprehensive, and engaging blog post or news update for Nigerian college students (CampusAI style).
-The generated article should contain rich details, clear sub-headings if appropriate, and should be highly readable and complete (at least 200-400 words).
-Ensure you classify it into an appropriate category (National, Institution, ASUU, Scholarship, or Admission).
-
-Return the output strictly as a JSON object with this exact shape:
-{
-  "title": "An engaging, professional, and catchy headline",
-  "fullContent": "The complete post/article written in clean Markdown.",
-  "category": "The selected category (National, Institution, ASUU, Scholarship, or Admission)",
-  "excerpt": "A short, 1-2 sentence compelling summary of the article."
-}`;
-      const response = await cohere.generate({
-        prompt,
-        model: 'command-r-plus',
-      });
-      const text = response.generations[0]?.text || "";
-      const parsed = safeJsonParse(text);
-      if (parsed && parsed.title && parsed.fullContent) {
-        console.log("[API Blog Generator] Cohere blog post generation succeeded.");
-        successPost = parsed;
-      }
-    } catch (e: any) {
-      console.warn("[API Blog Generator] Cohere fallback skipped:", e.message || e);
-    }
-  }
-
-  if (successPost) {
-    return res.json({
-      success: true,
-      post: successPost,
-      sources: urlsUsed
-    });
-  }
-
-  return res.status(500).json({ error: "Failed to generate blog post with any provider." });
+  return res.json({ success: true, post: successPost, sources: urlsUsed, provider: aiResult.provider });
 });
 
 // --- Firecrawl Web Scrape API Route ---
-app.post("/api/firecrawl/scrape", async (req: any, res: any) => {
+// Locked down: was fully unauthenticated, letting anyone burn your Firecrawl
+// credits scraping arbitrary URLs. Now requires the admin token.
+app.post("/api/firecrawl/scrape", requireAdminToken as any, async (req: any, res: any) => {
   const { url, formats } = req.body;
   if (!url) {
     return res.status(400).json({ success: false, error: "URL is required" });
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Only http/https URLs are allowed");
+    }
+  } catch {
+    return res.status(400).json({ success: false, error: "Invalid URL" });
   }
 
   const firecrawlKeys = getFirecrawlKeys();
   console.log(`[API Firecrawl Scrape] Target URL: "${url}". Found ${firecrawlKeys.length} Firecrawl keys.`);
 
   if (firecrawlKeys.length === 0) {
-    return res.status(400).json({ 
-      success: false, 
-      error: "No Firecrawl API keys configured. Please add your Firecrawl API key starting with 'fc-'." 
-    });
+    return res.status(400).json({ success: false, error: "No Firecrawl API keys configured." });
   }
 
   for (let i = 0; i < firecrawlKeys.length; i++) {
     const key = firecrawlKeys[i];
     try {
-      console.log(`[API Firecrawl Scrape] Attempting scrape with key ${i + 1}/${firecrawlKeys.length} (${key.substring(0, 6)}...)`);
       const response = await axios.post('https://api.firecrawl.dev/v1/scrape', {
         url,
         formats: formats || ['markdown', 'html']
       }, {
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         timeout: 25000
       });
 
       if (response.data && (response.data.success || response.data.data)) {
-        console.log(`[API Firecrawl Scrape] Successfully scraped ${url}`);
-        return res.json({
-          success: true,
-          data: response.data.data || response.data
-        });
+        return res.json({ success: true, data: response.data.data || response.data });
       }
     } catch (err: any) {
       console.error(`[API Firecrawl Scrape Error with key ${key.substring(0, 6)}...]`, err.response?.data || err.message);
     }
   }
 
-  return res.status(500).json({ 
-    success: false, 
-    error: "All Firecrawl keys failed to scrape the URL." 
-  });
+  return res.status(500).json({ success: false, error: "All Firecrawl keys failed to scrape the URL." });
 });
 
 // --- Firecrawl Monitor Webhook Route ---
+// Locked down: previously anyone who POSTed the right shape could get
+// arbitrary content auto-published to live news with zero verification.
+// Now requires a shared secret Firecrawl sends back, checked either via a
+// header or a `?secret=` query param (configure whichever your Firecrawl
+// monitor supports) — set FIRECRAWL_WEBHOOK_SECRET when you configure the
+// monitor in Firecrawl's dashboard and use the same value there.
 app.post("/api/webhooks/firecrawl", async (req: any, res: any) => {
+  const suppliedSecret = String(req.headers['x-webhook-secret'] || req.query.secret || "");
+  if (!safeEquals(suppliedSecret, FIRECRAWL_WEBHOOK_SECRET)) {
+    console.warn("[API Webhook] Rejected Firecrawl webhook: invalid or missing secret.");
+    return res.status(403).json({ success: false, error: "Invalid webhook secret" });
+  }
+
   console.log(`[API Webhook] Received Firecrawl webhook payload`);
-  
+
   try {
     const payload = req.body;
     let url = "";
     let markdown = "";
-    
-    // Parse monitor payload 
-    if (payload?.data?.[0]?.markdown) {
-        markdown = payload.data[0].markdown;
-        url = payload.data[0].url || payload.url;
-    } else if (payload?.data?.markdown) {
-        markdown = payload.data.markdown;
-        url = payload.data?.url || payload.url;
-    } else if (payload?.markdown) {
-        markdown = payload.markdown;
-        url = payload.url;
-    } else if (payload?.data?.data?.[0]?.markdown) {
-        markdown = payload.data.data[0].markdown;
-        url = payload.data.data[0].url;
-    }
-    
+
+    if (payload?.data?.[0]?.markdown) { markdown = payload.data[0].markdown; url = payload.data[0].url || payload.url; }
+    else if (payload?.data?.markdown) { markdown = payload.data.markdown; url = payload.data?.url || payload.url; }
+    else if (payload?.markdown) { markdown = payload.markdown; url = payload.url; }
+    else if (payload?.data?.data?.[0]?.markdown) { markdown = payload.data.data[0].markdown; url = payload.data.data[0].url; }
+
     if (!markdown) {
-        console.warn(`[API Webhook] No markdown found in Firecrawl payload`);
-        return res.status(200).json({ success: true, message: "Ignored: No markdown in payload" });
+      console.warn(`[API Webhook] No markdown found in Firecrawl payload`);
+      return res.status(200).json({ success: true, message: "Ignored: No markdown in payload" });
     }
 
-    const keys = getGeminiKeys();
-    if (keys.length === 0) {
-      console.warn("[API Webhook] No Gemini API keys found.");
-      return res.status(500).json({ success: false, error: "No Gemini API keys" });
-    }
-
-    const ai = new GoogleGenAI({ apiKey: keys[0] });
     const prompt = `You are an AI monitoring educational websites for new updates, news articles, or announcements.
 The user is monitoring this URL: ${url}
 
@@ -2752,7 +1852,7 @@ ${markdown.substring(0, 30000)}
 
 Analyze this content to identify if any NEW educational news, admission updates, JAMB/WAEC announcements, or Post-UTME forms have been recently published or updated.
 If there are NO meaningful new articles or updates, simply reply with "NO_UPDATES".
-If there ARE meaningful updates (such as a new news article, Post-UTME release, or general educational announcement), extract the most important new information and generate a well-formatted news article for our platform. 
+If there ARE meaningful updates, extract the most important new information and generate a well-formatted news article for our platform.
 Format your response strictly as a JSON object:
 {
   "title": "[Clear, engaging title of the news/update]",
@@ -2763,29 +1863,49 @@ Format your response strictly as a JSON object:
 }
 Only output the JSON object or NO_UPDATES, no other text.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-flash-latest',
-      contents: prompt
+    const aiResult = await callAIWithFallback({
+      messages: [{ role: 'user', content: prompt }],
+      jsonMode: true,
+      label: 'firecrawl-webhook'
     });
-    
-    let generatedNewsText = response.text || "";
 
-    generatedNewsText = generatedNewsText.trim();
+    if (!aiResult) {
+      console.warn("[API Webhook] All AI providers failed to analyze webhook content. Not publishing.");
+      return res.status(200).json({ success: true, message: "Processed: AI unavailable, skipped publish" });
+    }
+
+    let generatedNewsText = aiResult.text.trim();
     if (generatedNewsText.includes("NO_UPDATES") || generatedNewsText === "NO_UPDATES") {
-      console.log("[API Webhook] No relevant updates found by Gemini.");
+      console.log("[API Webhook] No relevant updates found.");
+      if (adminDb) {
+        await adminDb.collection("admin_notifications").add({
+          type: "webhook_info",
+          title: "Firecrawl Monitor Checked",
+          message: `Checked ${url} but found no new admission updates.`,
+          timestamp: new Date().toISOString(),
+          sourceUrl: url
+        });
+      }
       return res.status(200).json({ success: true, message: "Processed: No relevant updates" });
     }
 
-    // Parse JSON
     const jsonMatch = generatedNewsText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.log("[API Webhook] Failed to parse Gemini response as JSON:", generatedNewsText.substring(0, 100));
+      console.log("[API Webhook] Failed to parse AI response as JSON:", generatedNewsText.substring(0, 100));
+      if (adminDb) {
+        await adminDb.collection("admin_notifications").add({
+          type: "webhook_error",
+          title: "Firecrawl Monitor Error",
+          message: `Failed to parse AI response for ${url}.`,
+          timestamp: new Date().toISOString(),
+          sourceUrl: url
+        });
+      }
       return res.status(200).json({ success: true, message: "Processed: Could not parse updates" });
     }
 
     const newsData = JSON.parse(jsonMatch[0]);
-    
-    // Save to Firestore
+
     const newsDoc = {
       title: newsData.title || "Post-UTME Update Detected",
       content: newsData.content || "An update was detected on the monitored page.",
@@ -2805,13 +1925,20 @@ Only output the JSON object or NO_UPDATES, no other text.`;
     if (adminDb) {
       const docRef = await adminDb.collection("news").add(newsDoc);
       console.log(`[API Webhook] Successfully published Firecrawl monitor news: ${docRef.id}`);
+      await adminDb.collection("admin_notifications").add({
+        type: "webhook_success",
+        title: "Firecrawl Monitor Alert Processed",
+        message: `Auto-published article: "${newsDoc.title}"`,
+        timestamp: new Date().toISOString(),
+        sourceUrl: url,
+        newsId: docRef.id
+      });
     } else {
-      console.warn("[API Webhook] adminDb not initialized, using client fallback directly");
       const resData = await clientNewsWrite("publish", undefined, newsDoc);
       console.log(`[API Webhook] Client fallback publish result:`, resData);
     }
 
-    return res.status(200).json({ success: true, message: "Update processed and published", data: newsData });
+    return res.status(200).json({ success: true, message: "Update processed and published", data: newsData, provider: aiResult.provider });
 
   } catch (error: any) {
     console.error(`[API Webhook] Error processing Firecrawl webhook:`, error.message);
@@ -2821,7 +1948,7 @@ Only output the JSON object or NO_UPDATES, no other text.`;
 
 app.post("/api/search", async (req: any, res: any) => {
   const { query } = req.body;
-  
+
   if (!isAllowedOrigin(req)) {
     return res.status(403).json({ error: "Origin not allowed" });
   }
@@ -2833,7 +1960,6 @@ app.post("/api/search", async (req: any, res: any) => {
 
   let allResults: any[] = [];
 
-  // Helper helper to enforce timeouts on promises
   const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
     return Promise.race([
       promise,
@@ -2841,21 +1967,15 @@ app.post("/api/search", async (req: any, res: any) => {
     ]);
   };
 
-  // 1. Search local Firestore news first
   try {
     console.log(`[API Search] Searching local news for: "${query}"`);
     const words = query.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
     const newsRef = db.collection("news");
     let localMatches: any[] = [];
-    
+
     if (words.length > 0) {
-      // Get more recent news to filter locally (up to 300) with a strict 3-second timeout to prevent hanging
-      const snap: any = await withTimeout(
-        newsRef.orderBy("date", "desc").limit(300).get(),
-        3000,
-        "Local news query"
-      );
-      
+      const snap: any = await withTimeout(newsRef.orderBy("date", "desc").limit(300).get(), 3000, "Local news query");
+
       snap.forEach((doc: any) => {
         const data = doc.data();
         const title = (data.title || "").toLowerCase();
@@ -2863,14 +1983,9 @@ app.post("/api/search", async (req: any, res: any) => {
         const excerpt = (data.excerpt || "").toLowerCase();
         const category = (data.category || "").toLowerCase();
         const tags = Array.isArray(data.tags) ? data.tags.map((t: string) => t.toLowerCase()) : [];
-        
-        // Match if ANY search word is found in title, content, or tags
-        const isMatch = words.some((word: string) => 
-          title.includes(word) || 
-          content.includes(word) || 
-          excerpt.includes(word) ||
-          category.includes(word) ||
-          tags.some((t: string) => t.includes(word))
+
+        const isMatch = words.some((word: string) =>
+          title.includes(word) || content.includes(word) || excerpt.includes(word) || category.includes(word) || tags.some((t: string) => t.includes(word))
         );
 
         if (isMatch) {
@@ -2895,13 +2010,11 @@ app.post("/api/search", async (req: any, res: any) => {
     console.log("[API Search] Local Firestore search failed or timed out:", e.message);
   }
 
-  // 2. Try search engine APIs first (Serper / Tavily) if available
   const isPostUtme = query.toLowerCase().includes("post-utme") || query.toLowerCase().includes("screening");
   let searchSuccess = false;
 
   if (serperKeys.length > 0 || tavilyKeys.length > 0) {
-    if (isPostUtme) {
-      // Try Serper for Post-UTME queries
+    const trySerper = async () => {
       for (let i = 0; i < serperKeys.length; i++) {
         const key = serperKeys[i];
         try {
@@ -2910,163 +2023,80 @@ app.post("/api/search", async (req: any, res: any) => {
             timeout: 8000
           });
           if (response.data && response.data.organic && response.data.organic.length > 0) {
-            console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
-            const searchResults = response.data.organic.map((r: any) => ({
-              title: r.title,
-              url: r.link,
-              content: r.snippet,
-              source: 'Serper'
-            }));
-            allResults = [...searchResults, ...allResults];
-            searchSuccess = true;
-            break;
+            const results = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet, source: 'Serper' }));
+            allResults = [...results, ...allResults];
+            return true;
           }
         } catch (e: any) {
           console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
         }
       }
+      return false;
+    };
 
-      // Fallback to Tavily if Serper fails
-      if (!searchSuccess) {
-        for (let i = 0; i < tavilyKeys.length; i++) {
-          const key = tavilyKeys[i];
-          try {
-            const client = new TavilyClient({ apiKey: key });
-            const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
-            if (response && response.results && response.results.length > 0) {
-              console.log(`[API Search] Tavily search fallback succeeded with key ${i + 1}`);
-              const searchResults = response.results.map((r: any) => ({
-                title: r.title,
-                url: r.url,
-                content: r.content,
-                source: 'Tavily'
-              }));
-              allResults = [...searchResults, ...allResults];
-              searchSuccess = true;
-              break;
-            }
-          } catch (e: any) {
-            console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
-          }
-        }
-      }
-    } else {
-      // Try Tavily first for General/News queries
+    const tryTavily = async () => {
       for (let i = 0; i < tavilyKeys.length; i++) {
         const key = tavilyKeys[i];
         try {
           const client = new TavilyClient({ apiKey: key });
           const response = await client.search({ query, search_depth: "advanced", max_results: 8 });
           if (response && response.results && response.results.length > 0) {
-            console.log(`[API Search] Tavily search succeeded with key ${i + 1}`);
-            const searchResults = response.results.map((r: any) => ({
-              title: r.title,
-              url: r.url,
-              content: r.content,
-              source: 'Tavily'
-            }));
-            allResults = [...searchResults, ...allResults];
-            searchSuccess = true;
-            break;
+            const results = response.results.map((r: any) => ({ title: r.title, url: r.url, content: r.content, source: 'Tavily' }));
+            allResults = [...results, ...allResults];
+            return true;
           }
         } catch (e: any) {
           console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
         }
       }
+      return false;
+    };
 
-      // Fallback to Serper if Tavily fails
-      if (!searchSuccess) {
-        for (let i = 0; i < serperKeys.length; i++) {
-          const key = serperKeys[i];
-          try {
-            const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-              headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-              timeout: 8000
-            });
-            if (response.data && response.data.organic && response.data.organic.length > 0) {
-              console.log(`[API Search] Serper search succeeded with key ${i + 1}`);
-              const searchResults = response.data.organic.map((r: any) => ({
-                title: r.title,
-                url: r.link,
-                content: r.snippet,
-                source: 'Serper'
-              }));
-              allResults = [...searchResults, ...allResults];
-              searchSuccess = true;
-              break;
-            }
-          } catch (e: any) {
-            console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
-          }
-        }
-      }
+    if (isPostUtme) {
+      searchSuccess = await trySerper();
+      if (!searchSuccess) searchSuccess = await tryTavily();
+    } else {
+      searchSuccess = await tryTavily();
+      if (!searchSuccess) searchSuccess = await trySerper();
     }
   }
 
-  // 3. Fallback to Gemini for Native Search Grounding only if search engine APIs failed or were empty
   if (!searchSuccess) {
     console.log(`[API Search] Trying Gemini native search grounding fallback for: "${query}"`);
     const rawPool = getGeminiKeys();
-    const searchModels = ['gemini-flash-latest'];
 
     for (let i = 0; i < rawPool.length; i++) {
       const apiKey = rawPool[i];
-      let keySucceeded = false;
+      try {
+        const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
+        const result = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
+            config: { tools: [{ googleSearch: {} }] }
+          }),
+          10000,
+          `Gemini search grounding`
+        );
 
-      for (const searchModel of searchModels) {
-        try {
-          const ai = new GoogleGenAI({ 
-            apiKey,
-            httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-          });
-          
-          const result = await withTimeout(
-            ai.models.generateContent({
-              model: searchModel,
-              contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
-              config: { tools: [{ googleSearch: {} }] }
-            }),
-            10000,
-            `Gemini search grounding ${searchModel}`
-          );
-          
-          let text = result.text || "";
-          if (!text && result.candidates?.[0]?.content?.parts?.[0]?.text) {
-            text = result.candidates[0].content.parts[0].text;
+        let text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+        if (chunks.length > 0 || text) {
+          const results = chunks.filter((c: any) => c.web?.uri).map((c: any) => ({
+            title: c.web?.title || "Web Result", url: c.web?.uri, content: text.substring(0, 400), source: 'Google Search'
+          }));
+          if (results.length > 0) {
+            allResults = [...results, ...allResults];
+          } else if (text) {
+            allResults.push({ title: "Gemini Search Summary", url: "", content: text, source: "Google Search Summary" });
           }
-          
-          const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-          if (chunks.length > 0 || text) {
-            console.log(`[API Search] Gemini Search succeeded with key ${i + 1} (${searchModel})`);
-            const searchResults = chunks.filter((c: any) => c.web?.uri).map((c: any) => ({
-              title: c.web?.title || "Web Result",
-              url: c.web?.uri,
-              content: text.substring(0, 400),
-              source: 'Google Search'
-            }));
-            
-            if (searchResults.length > 0) {
-              allResults = [...searchResults, ...allResults];
-            } else if (text) {
-               allResults.push({
-                 title: "Gemini Search Summary",
-                 url: "",
-                 content: text,
-                 source: "Google Search Summary"
-               });
-            }
-            searchSuccess = true;
-            keySucceeded = true;
-            break;
-          }
-        } catch (e: any) {
-          const errMsg = e.message || String(e);
-          console.log(`[API Search] Gemini key ${i + 1} (${searchModel}) grounding notice:`, errMsg.substring(0, 100));
-          break; // Don't loop endlessly if grounding tool isn't supported on this key
+          searchSuccess = true;
+          break;
         }
+      } catch (e: any) {
+        console.log(`[API Search] Gemini key ${i + 1} grounding notice:`, (e.message || String(e)).substring(0, 100));
       }
-
-      if (keySucceeded || searchSuccess) break;
     }
   }
 
@@ -3078,25 +2108,8 @@ app.post("/api/search", async (req: any, res: any) => {
   if (allResults.length > 0) {
     res.json({ results: allResults, type: 'local-only' });
   } else {
-    // Return 200 instead of 500 to allow client-side to handle it gracefully
-    res.status(200).json({ 
-      results: [], 
-      warning: "Search unavailable (all providers/keys exhausted)",
-      type: 'empty'
-    });
+    res.status(200).json({ results: [], warning: "Search unavailable (all providers/keys exhausted)", type: 'empty' });
   }
-});
-
-// API Diagnostics and Health
-app.all("/api/health", (req, res) => {
-  console.log(`[API Health] ${req.method} request received`);
-  res.json({ 
-    status: "ok", 
-    method: req.method, 
-    vercel: !!(process.env.VERCEL || process.env.NOW_REGION),
-    env: process.env.NODE_ENV,
-    url: req.originalUrl
-  });
 });
 
 // Dynamic Sitemap for News & Pages
@@ -3120,205 +2133,49 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
         console.warn("[Sitemap] DbInstance error:", e);
       }
     }
-    
+
     const todayStr = new Date().toISOString().split('T')[0];
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://campusai.com.ng/</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/admissions</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/syllabus</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/admission-checklist</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/postutme</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/dashboard</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/news</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/about</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/premium</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/directory</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/terms</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/privacy</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/cookies</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/status</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/unilag-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/oau-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/ui-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/lasu-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/uniben-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/unilorin-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/unn-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/futa-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/abu-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/fuoye-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/delsu-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/kwasu-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/aaua-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/yabatech-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://campusai.com.ng/oou-aggregate-calculator</loc>
-    <lastmod>${todayStr}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>`;
+    const staticPages = [
+      ["/", "1.0", "daily"],
+      ["/admissions", "0.95", "daily"],
+      ["/syllabus", "0.95", "daily"],
+      ["/admission-checklist", "0.95", "daily"],
+      ["/postutme", "0.95", "daily"],
+      ["/dashboard", "0.9", "daily"],
+      ["/calculator", "0.9", "weekly"],
+      ["/news", "0.9", "daily"],
+      ["/about", "0.7", "weekly"],
+      ["/premium", "0.7", "weekly"],
+      ["/directory", "0.7", "weekly"],
+      ["/terms", "0.3", "monthly"],
+      ["/privacy", "0.3", "monthly"],
+      ["/cookies", "0.3", "monthly"],
+      ["/status", "0.4", "weekly"],
+    ];
+
+    const schoolSlugs = [
+      "unilag", "oau", "ui", "lasu", "uniben", "unilorin", "unn", "futa", "abu",
+      "fuoye", "delsu", "kwasu", "aaua", "yabatech", "oou"
+    ];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+    staticPages.forEach(([p, priority, freq]) => {
+      xml += `\n  <url>\n    <loc>https://campusai.com.ng${p}</loc>\n    <lastmod>${todayStr}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+    });
+
+    schoolSlugs.forEach(slug => {
+      xml += `\n  <url>\n    <loc>https://campusai.com.ng/${slug}-aggregate-calculator</loc>\n    <lastmod>${todayStr}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.85</priority>\n  </url>`;
+    });
 
     newsDocs.forEach((data: any) => {
       const slug = data.slug || data.id;
       const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
-      xml += `
-  <url>
-    <loc>https://campusai.com.ng/news/${slug}</loc>
-    <lastmod>${lastMod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`;
+      xml += `\n  <url>\n    <loc>https://campusai.com.ng/news/${slug}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`;
     });
 
     xml += `\n</urlset>`;
-    
+
     res.header('Content-Type', 'application/xml; charset=utf-8');
     res.send(xml);
   } catch (e) {
@@ -3327,13 +2184,12 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
   }
 });
 
-// Helper to notify IndexNow (Bing, Yandex, Seznam, etc.) of updated URLs
 async function notifyIndexNow(urls: string[]) {
   try {
     const payload = {
-      host: "campusai.com.ng",
-      key: "c557dadad68347b8e26939a56c132027",
-      keyLocation: "https://campusai.com.ng/c557dadad68347b8e26939a56c132027.txt",
+      host: INDEXNOW_HOST,
+      key: INDEXNOW_KEY,
+      keyLocation: `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`,
       urlList: urls
     };
     const response = await fetch("https://api.indexnow.org/indexnow", {
@@ -3349,24 +2205,23 @@ async function notifyIndexNow(urls: string[]) {
   }
 }
 
-// Endpoint to trigger IndexNow submission manually or via admin
-app.get("/api/indexnow/submit", async (req: any, res: any) => {
+app.get("/api/indexnow/submit", requireAdminToken as any, async (req: any, res: any) => {
   try {
     const newsRef = db.collection("news");
     const snap = await newsRef.orderBy("date", "desc").limit(50).get();
     const urls: string[] = [
-      "https://campusai.com.ng/",
-      "https://campusai.com.ng/news",
-      "https://campusai.com.ng/postutme",
-      "https://campusai.com.ng/calculator"
+      `https://${INDEXNOW_HOST}/`,
+      `https://${INDEXNOW_HOST}/news`,
+      `https://${INDEXNOW_HOST}/postutme`,
+      `https://${INDEXNOW_HOST}/calculator`
     ];
     snap.forEach((doc: any) => {
       const data = doc.data();
       const slug = data.slug || doc.id;
-      urls.push(`https://campusai.com.ng/news/${slug}`);
+      urls.push(`https://${INDEXNOW_HOST}/news/${slug}`);
     });
     const status = await notifyIndexNow(urls);
-    res.json({ success: true, count: urls.length, indexNowStatus: status, key: "c557dadad68347b8e26939a56c132027" });
+    res.json({ success: true, count: urls.length, indexNowStatus: status });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
@@ -3379,27 +2234,15 @@ app.route("/api/news/sync")
     next();
   })
   .get((req, res) => {
-    res.json({ 
-      status: "alive", 
+    res.json({
+      status: "alive",
       message: "Sync endpoint is active. Use POST to trigger.",
       tip: "If you see this on a POST request, Vercel might be stripping the method."
     });
   })
-  .post(async (req: any, res: any) => {
-    // Basic Admin Check (In production, replace with secure Auth verification)
-    const adminEmail = req.headers['x-admin-email'];
-    if (adminEmail !== 'eiweh123@gmail.com') {
-      console.warn("[API News Sync] Unauthorized access attempt blocked");
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    if (!isAllowedOrigin(req)) {
-      console.warn("[API News Sync] Forbidden origin rejected");
-      return res.status(403).json({ error: "Origin not allowed" });
-    }
-
+  .post(requireAdminEmailHeader as any, async (req: any, res: any) => {
     console.log("[API News Sync] Starting server-side news synchronization...");
-    
+
     const queries = [
       `latest Post-UTME screening registration forms 2026/2027 open sales portal updates site:edu.ng OR "postutme" OR "post-utme"`,
       `latest Nigerian higher education news ASUU strikes university senate decisions governing council announcements school fees updates 2026`,
@@ -3411,55 +2254,46 @@ app.route("/api/news/sync")
     const tavilyKeys = getTavilyKeys();
     const serperKeys = getSerperKeys();
     console.log(`[API News Sync] Found ${tavilyKeys.length} Tavily keys and ${serperKeys.length} Serper keys.`);
-    
+
     const searchResults: string[] = [];
 
-    // 1. Internal Search Logic
     for (let i = 0; i < queries.length; i++) {
-      const query = queries[i];
+      const searchQ = queries[i];
       let queryResult = "";
       let success = false;
 
-      console.log(`[API News Sync] Executing search ${i+1}/${queries.length}: "${query.slice(0, 50)}..."`);
+      console.log(`[API News Sync] Executing search ${i + 1}/${queries.length}: "${searchQ.slice(0, 50)}..."`);
 
-      // 1. Try Serper (Google Search) first
       for (const key of serperKeys) {
         try {
           if (!key) continue;
-          const resp = await axios.post('https://google.serper.dev/search', { q: query }, {
+          const resp = await axios.post('https://google.serper.dev/search', { q: searchQ }, {
             headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
             timeout: 10000
           });
           if (resp.data && resp.data.organic && resp.data.organic.length > 0) {
             queryResult = resp.data.organic.slice(0, 5).map((r: any) => `Title: ${r.title}\nURL: ${r.link}\nContent: ${r.snippet}`).join("\n\n");
             success = true;
-            console.log(`[API News Sync] Serper success for search ${i+1}`);
             break;
           }
         } catch (e: any) {
-          console.warn(`[API News Sync] Serper key failed for search ${i+1}: ${e.message}`);
+          console.warn(`[API News Sync] Serper key failed for search ${i + 1}: ${e.message}`);
         }
       }
 
-      // 2. Fall back to Tavily if Serper failed or returned empty
       if (!success) {
         for (const key of tavilyKeys) {
           try {
             if (!key) continue;
             const client = new TavilyClient({ apiKey: key });
-            const resp = await client.search({ 
-              query,
-              search_depth: "advanced",
-              max_results: 6
-            });
+            const resp = await client.search({ query: searchQ, search_depth: "advanced", max_results: 6 });
             if (resp && resp.results && Array.isArray(resp.results) && resp.results.length > 0) {
               queryResult = resp.results.slice(0, 5).map((r: any) => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}`).join("\n\n");
               success = true;
-              console.log(`[API News Sync] Tavily fallback success for search ${i+1}`);
               break;
             }
           } catch (e: any) {
-            console.warn(`[API News Sync] Tavily key failed for search ${i+1}: ${e.message}`);
+            console.warn(`[API News Sync] Tavily key failed for search ${i + 1}: ${e.message}`);
           }
         }
       }
@@ -3484,44 +2318,17 @@ ${searchResults[3]}
 ${searchResults[4]}
     `;
 
-    // 2. Internal Gemini Logic
-    const { clientKeys, dedicatedKey } = req.body || {};
-    let keysPool: string[] = [];
-
-    if (dedicatedKey && dedicatedKey.trim()) {
-      keysPool = [dedicatedKey.trim()];
-      console.log("[API News Sync] Using Admin-specified dedicated API Key.");
-    } else {
-      const envGeminiKeys = getGeminiKeys();
-      const rawNewsPool = [...envGeminiKeys, ...(Array.isArray(clientKeys) ? clientKeys : [])].filter(Boolean);
-      
-      // Filter out blacklisted keys
-      const nowNews = Date.now();
-      const newsKeysFiltered = rawNewsPool.filter(k => {
-        const blacklistInfo = blacklistedKeys.get(k);
-        if (!blacklistInfo) return true;
-        if (blacklistInfo.until < nowNews) {
-          blacklistedKeys.delete(k); // expired, remove from blacklist
-          return true;
-        }
-        return false;
-      });
-
-      keysPool = newsKeysFiltered.length > 0 ? newsKeysFiltered : rawNewsPool;
-      console.log(`[API News Sync] Found ${keysPool.length} active Gemini keys (out of ${rawNewsPool.length} total) for content generation.`);
-    }
-    
     const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
-    const prompt = `You are a Senior Investigative Education Journalist in Nigeria. 
-    
+    const prompt = `You are a Senior Investigative Education Journalist in Nigeria.
+
     TASK:
     Based on the provided search results, curate 5-7 high-quality, authoritative news articles for the 2026/2027 academic session.
-    
+
     AUTHORITATIVE REQUIREMENTS:
     1. EACH article's "fullContent" must be a comprehensive investigative deep-dive (MINIMUM 750 words).
     2. FORMATTING: Use professional Markdown with subheadings, bold text, and MANDATORY Markdown tables for timelines/fees.
-    3. NO PLACEHOLDERS: Find real data or state "Official date pending" if unavailable.
-    4. STRUCTURE: 
+    3. NO PLACEHOLDERS: Find real data from the search context or state "Official date pending" if unavailable. Do not invent specific dates or fees not present in the search context.
+    4. STRUCTURE:
        # [Headline]
        > **✅ VERIFIED REPORT:** Cross-referenced as of ${dateStr}.
        **Published:** ${dateStr} | **Source:** CampusAI News
@@ -3541,297 +2348,49 @@ ${searchResults[4]}
        ### 🔗 Follow CampusAI for More Updates
        *   **WhatsApp:** [Join Channel](https://whatsapp.com/channel/0029VajWj0D7jZnl0I3hF32o)
        *   **X:** [@CampusAI_NG](https://x.com/CampusAI_NG)
-    
+
     STRICT CATEGORY LIST: "Federal", "State", "Private", "JAMB", "Polytechnic", "COE", "National", "Jobs", "Scholarships", "NYSC", "WAEC".
-    
+
     SEARCH CONTEXT:
     ${combinedResults.substring(0, 12000)}
-    
+
     JSON SCHEMA:
     { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string", "image": "string", "tags": ["string"], "isImportant": boolean } ] }`;
 
-    let successNews: any[] = [];
-    let lastErr: any = null;
+    const aiResult = await callAIWithFallback({
+      systemInstruction: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided.",
+      messages: [{ role: 'user', content: prompt }],
+      jsonMode: true,
+      maxTokens: 4000,
+      label: 'news-sync'
+    });
 
-    // --- TRY OTHER PROVIDERS FIRST (Groq, OpenRouter, Mistral, Cohere) ---
-    const messages = [
-      { role: "system", content: "You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided." },
-      { role: "user", content: prompt }
-    ];
-
-    // 1. Try Groq
-    if (process.env.GROQ_API_KEY) {
-      try {
-        console.log("[API News Sync] Trying Groq...");
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const completion = await groq.chat.completions.create({
-          messages: messages as any,
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 4000, // News takes more tokens
-          response_format: { type: "json_object" }
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        const data = safeJsonParse(text);
-        if (data && Array.isArray(data.news) && data.news.length > 0) {
-          console.log("[API News Sync] Groq curation succeeded.");
-          successNews = data.news;
-        }
-      } catch (e: any) {
-        console.error("[API News Sync] Groq curation failed:", e.message || e);
+    if (aiResult) {
+      const data = safeJsonParse(aiResult.text, null);
+      if (data && Array.isArray(data.news) && data.news.length > 0) {
+        console.log(`[API News Sync] Success via ${aiResult.provider}! Curated ${data.news.length} articles.`);
+        return res.json({ news: data.news, provider: aiResult.provider });
       }
     }
 
-    // 2. Try OpenRouter
-    if (successNews.length === 0 && process.env.OPENROUTER_API_KEY) {
-      try {
-        console.log("[API News Sync] Trying OpenRouter...");
-        const openrouter = new OpenAI({
-          apiKey: process.env.OPENROUTER_API_KEY,
-          baseURL: "https://openrouter.ai/api/v1"
-        });
-        const completion = await openrouter.chat.completions.create({
-          messages: messages as any,
-          model: 'meta-llama/llama-3.3-70b-instruct',
-          response_format: { type: "json_object" }
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        const data = safeJsonParse(text);
-        if (data && Array.isArray(data.news) && data.news.length > 0) {
-          console.log("[API News Sync] OpenRouter curation succeeded.");
-          successNews = data.news;
-        }
-      } catch (e: any) {
-        console.error("[API News Sync] OpenRouter curation failed:", e.message || e);
-      }
-    }
-
-    // 2.5 Try Nvidia API Catalog
-    if (successNews.length === 0 && process.env.NVIDIA_API_KEY) {
-      try {
-        console.log("[API News Sync] Trying Nvidia API Catalog...");
-        const nvidia = new OpenAI({
-          apiKey: process.env.NVIDIA_API_KEY,
-          baseURL: "https://integrate.api.nvidia.com/v1"
-        });
-        const completion = await nvidia.chat.completions.create({
-          messages: messages as any,
-          model: 'meta/llama-3.3-70b-instruct',
-          response_format: { type: "json_object" }
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        const data = safeJsonParse(text);
-        if (data && Array.isArray(data.news) && data.news.length > 0) {
-          console.log("[API News Sync] Nvidia curation succeeded.");
-          successNews = data.news;
-        }
-      } catch (e: any) {
-        console.error("[API News Sync] Nvidia curation failed:", e.message || e);
-      }
-    }
-
-    // 3. Try Mistral
-    if (successNews.length === 0 && process.env.MISTRAL_API_KEY) {
-      try {
-        console.log("[API News Sync] Trying Mistral...");
-        const mistral = new OpenAI({
-          apiKey: process.env.MISTRAL_API_KEY,
-          baseURL: "https://api.mistral.ai/v1"
-        });
-        const completion = await mistral.chat.completions.create({
-          messages: messages as any,
-          model: 'mistral-small-latest',
-          response_format: { type: "json_object" }
-        });
-        const text = completion.choices[0]?.message?.content || "";
-        const data = safeJsonParse(text);
-        if (data && Array.isArray(data.news) && data.news.length > 0) {
-          console.log("[API News Sync] Mistral curation succeeded.");
-          successNews = data.news;
-        }
-      } catch (e: any) {
-        console.error("[API News Sync] Mistral curation failed:", e.message || e);
-      }
-    }
-
-    // 4. Try Cohere
-    if (successNews.length === 0 && process.env.COHERE_API_KEY) {
-      try {
-        console.log("[API News Sync] Trying Cohere...");
-        const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-        const coherePrompt = `System: You are a helpful assistant. You must respond ONLY with valid JSON matching the schema provided.\n\nUser: ${prompt}`;
-        const response = await cohere.generate({
-          prompt: coherePrompt,
-          model: 'command-r-plus',
-        });
-        const text = response.generations[0]?.text || "";
-        const data = safeJsonParse(text);
-        if (data && Array.isArray(data.news) && data.news.length > 0) {
-          console.log("[API News Sync] Cohere curation succeeded.");
-          successNews = data.news;
-        }
-      } catch (e: any) {
-        console.error("[API News Sync] Cohere curation failed:", e.message || e);
-      }
-    }
-
-    // 5. Try Gemini fallback
-    if (successNews.length === 0) {
-      console.log("[API News Sync] Falling back to Gemini for research-backed curation...");
-      for (const activeKey of keysPool) {
-        try {
-          const gemini = createGeminiClient(activeKey);
-          // Map model names based on SDK type
-          const modelMappings = gemini.type === 'AIP' 
-            ? { pro: 'gemini-3.1-pro-preview', flash: 'gemini-flash-latest' }
-            : { pro: 'gemini-3.1-pro-preview', flash: 'gemini-flash-latest' };
-          
-          const modelsToTry = [modelMappings.pro, modelMappings.flash];
-          let resultData: any = null;
-
-          for (const modelName of modelsToTry) {
-            try {
-              if (blacklistedKeys.has(activeKey)) {
-                const bl = blacklistedKeys.get(activeKey)!;
-                if (Date.now() < bl.until) continue;
-                else blacklistedKeys.delete(activeKey);
-              }
-
-              console.log(`[API News Sync] Attempting ${modelName} curation...`);
-              let text = "";
-              
-              if (gemini.type === 'AIP') {
-                try {
-                  const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
-                    model: modelName,
-                    contents: prompt,
-                    config: {
-                      responseMimeType: "application/json",
-                      tools: [{ googleSearch: {} }],
-                      temperature: 0.7
-                    }
-                  });
-                  text = genResult.text || "";
-                } catch (sgErr: any) {
-                  const sgMsg = (sgErr.message || "").toLowerCase();
-                  if (sgMsg.includes("403") || sgMsg.includes("permission") || sgMsg.includes("not supported") || sgMsg.includes("not enabled")) {
-                    console.log(`[API News Sync] Search grounding not enabled on key, retrying without tools...`);
-                    const genResult = await (gemini.client as GoogleGenAI).models.generateContent({
-                      model: modelName,
-                      contents: prompt,
-                      config: {
-                        responseMimeType: "application/json",
-                        temperature: 0.7
-                      }
-                    });
-                    text = genResult.text || "";
-                  } else {
-                    throw sgErr;
-                  }
-                }
-              } else {
-                try {
-                  const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ model: modelName });
-                  const genResult = await model.generateContent({
-                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                    generationConfig: { 
-                      responseMimeType: "application/json",
-                      temperature: 0.7
-                    },
-                    tools: [{ googleSearch: {} }] as any
-                  });
-                  const response = await genResult.response;
-                  text = response.text();
-                } catch (sgErr: any) {
-                  const sgMsg = (sgErr.message || "").toLowerCase();
-                  if (sgMsg.includes("403") || sgMsg.includes("permission") || sgMsg.includes("not supported") || sgMsg.includes("not enabled")) {
-                    console.log(`[API News Sync] Search grounding not enabled on key, retrying without tools...`);
-                    const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({ model: modelName });
-                    const genResult = await model.generateContent({
-                      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                      generationConfig: { 
-                        responseMimeType: "application/json",
-                        temperature: 0.7
-                      }
-                    });
-                    const response = await genResult.response;
-                    text = response.text();
-                  } else {
-                    throw sgErr;
-                  }
-                }
-              }
-
-              const data = safeJsonParse(text);
-              if (data && Array.isArray(data.news) && data.news.length > 0) {
-                resultData = data.news;
-                console.log(`[API News Sync] ${modelName} curation succeeded with ${resultData.length} articles.`);
-                break;
-              }
-            } catch (modelErr: any) {
-              console.warn(`[API News Sync] Model ${modelName} failed: ${modelErr.message}`);
-              const msg = (modelErr.message || "").toLowerCase();
-              if (msg.includes("quota") || msg.includes("429") || msg.includes("limit")) {
-                blacklistedKeys.set(activeKey, { reason: "quota", until: Date.now() + 60000 }); // 1 min
-                break; 
-              }
-              if (msg.includes("403") || msg.includes("permission") || msg.includes("blocked")) {
-                blacklistedKeys.set(activeKey, { reason: "blocked", until: Date.now() + 3600000 }); // 1 hour
-                break;
-              }
-              if (msg.includes("400") || msg.includes("invalid")) {
-                blacklistedKeys.set(activeKey, { reason: "invalid", until: Date.now() + 86400000 }); // 1 day
-                break;
-              }
-            }
-          }
-
-          if (resultData) {
-            successNews = resultData;
-            break;
-          }
-        } catch (e: any) {
-          console.log(`[API News Sync] Gemini Key failed: ${e.message}`);
-          lastErr = e;
-        }
-      }
-    }
-
-    if (successNews.length > 0) {
-      console.log(`[API News Sync] Success! Curated ${successNews.length} articles.`);
-      return res.json({ news: successNews });
-    }
-
-    console.log(`[API News Sync] Critical Failure: All Gemini keys failed or no results found. Last issue: ${lastErr?.message}. Returning raw search results as fallback...`);
-    
-    // Fallback: return raw search results if available, otherwise use sovereign fallback
+    console.log(`[API News Sync] Critical Failure: no AI provider produced usable curated news. Returning raw search results as fallback...`);
     const rawResults = combinedResults ? combinedResults.substring(0, 500) : "No raw results.";
-    
-    // Simple parsing to try to provide something structured
-    res.json({ 
-      news: [{ 
-        title: "Latest News (Raw Data)", 
-        category: "General", 
-        excerpt: "Gemini curation failed. Displaying raw search data.", 
+
+    res.json({
+      news: [{
+        title: "Latest News (Raw Data)",
+        category: "General",
+        excerpt: "AI curation failed. Displaying raw search data.",
         fullContent: rawResults,
         sourceUrl: "#"
       }],
-      warning: "Gemini curation unavailable. Showing raw search results.",
-      debug: lastErr?.message || "All API keys exhausted"
+      warning: "AI curation unavailable. Showing raw search results.",
+      isSovereignFallback: true
     });
   });
 
-app.post("/api/admin/keys/ping", async (req: any, res: any) => {
+app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res: any) => {
   try {
-    const { token } = req.body;
-    
-    if (token !== "CAMPUS@2026") {
-      return res.status(403).json({ success: false, error: "Unauthorized: Invalid admin token" });
-    }
-
-    if (!isAllowedOrigin(req)) {
-      return res.status(403).json({ success: false, error: "Origin not allowed" });
-    }
-
     const envKeys = Object.keys(process.env).sort();
     const discovered: any[] = [];
 
@@ -3843,239 +2402,103 @@ app.post("/api/admin/keys/ping", async (req: any, res: any) => {
       const trimmedVal = val.trim();
       let type = '';
 
-      // Skip non-API-key configuration environment variables
-      if (
-        upperName === 'PORT' || 
-        upperName === 'NODE_ENV' || 
-        upperName === 'ALLOWED_ORIGINS' || 
-        upperName === 'CONTROL_PLANE_API_DIR'
-      ) {
-        continue;
-      }
+      if (upperName === 'PORT' || upperName === 'NODE_ENV' || upperName === 'ALLOWED_ORIGINS' || upperName === 'CONTROL_PLANE_API_DIR') continue;
 
-      // Identify key type based on key name or values
-      if (upperName.includes('GEMINI')) {
-        type = 'Gemini';
-      } else if (upperName.includes('GROQ')) {
-        type = 'Groq';
-      } else if (upperName.includes('TAVILY')) {
-        type = 'Tavily';
-      } else if (upperName.includes('SERPER')) {
-        type = 'Serper';
-      } else if (upperName.includes('OPENROUTER')) {
-        type = 'OpenRouter';
-      } else if (upperName.includes('MISTRAL')) {
-        type = 'Mistral';
-      } else if (upperName.includes('COHERE')) {
-        type = 'Cohere';
-      } else if (upperName.includes('NVIDIA')) {
-        type = 'Nvidia';
-      } else if (upperName.includes('CLOUDFLARE')) {
-        type = 'Cloudflare';
-      } else if (trimmedVal.startsWith('AIzaSy') || trimmedVal.startsWith('AQ.')) {
-        type = 'Gemini';
-      } else if (trimmedVal.startsWith('tvly-')) {
-        type = 'Tavily';
-      } else if (trimmedVal.startsWith('gsk_')) {
-        type = 'Groq';
-      } else if (trimmedVal.startsWith('nvapi-')) {
-        type = 'Nvidia';
-      } else if (trimmedVal.startsWith('sk-or-')) {
-        type = 'OpenRouter';
-      }
+      if (upperName.includes('GEMINI')) type = 'Gemini';
+      else if (upperName.includes('GROQ')) type = 'Groq';
+      else if (upperName.includes('TAVILY')) type = 'Tavily';
+      else if (upperName.includes('SERPER')) type = 'Serper';
+      else if (upperName.includes('OPENROUTER')) type = 'OpenRouter';
+      else if (upperName.includes('MISTRAL')) type = 'Mistral';
+      else if (upperName.includes('COHERE')) type = 'Cohere';
+      else if (upperName.includes('NVIDIA')) type = 'Nvidia';
+      else if (upperName.includes('CLOUDFLARE')) type = 'Cloudflare';
+      else if (trimmedVal.startsWith('AIzaSy') || trimmedVal.startsWith('AQ.')) type = 'Gemini';
+      else if (trimmedVal.startsWith('tvly-')) type = 'Tavily';
+      else if (trimmedVal.startsWith('gsk_')) type = 'Groq';
+      else if (trimmedVal.startsWith('nvapi-')) type = 'Nvidia';
+      else if (trimmedVal.startsWith('sk-or-')) type = 'OpenRouter';
 
       if (type) {
-        const masked = trimmedVal.length > 10
-          ? `${trimmedVal.substring(0, 6)}...${trimmedVal.substring(trimmedVal.length - 4)}`
-          : '***';
-
-        discovered.push({
-          name: envKeyName,
-          key: masked,
-          type,
-          rawKey: trimmedVal
-        });
+        const masked = trimmedVal.length > 10 ? `${trimmedVal.substring(0, 6)}...${trimmedVal.substring(trimmedVal.length - 4)}` : '***';
+        discovered.push({ name: envKeyName, key: masked, type, rawKey: trimmedVal });
       }
     }
 
-    // Ping all discovered keys in parallel
     const results = await Promise.all(discovered.map(async (item) => {
       let status: 'Active' | 'Failed' = 'Failed';
       let error = '';
-      let latency = 0;
       const start = Date.now();
 
       try {
         if (item.type === 'Gemini') {
           const gemini = createGeminiClient(item.rawKey);
           if (gemini.type === 'AIP') {
-            const result = await gemini.client.models.generateContent({
-              model: 'gemini-flash-latest',
-              contents: 'ping',
-            });
-            if (result && result.text) {
-              status = 'Active';
-            } else {
-              error = 'Empty response';
-            }
+            const result = await gemini.client.models.generateContent({ model: 'gemini-flash-latest', contents: 'ping' });
+            if (result && result.text) status = 'Active'; else error = 'Empty response';
           } else {
             const model = gemini.client.getGenerativeModel({ model: 'gemini-flash-latest' });
             const result = await model.generateContent('ping');
             const response = await result.response;
-            const text = response.text();
-            if (text) {
-              status = 'Active';
-            } else {
-              error = 'Empty response';
-            }
+            if (response.text()) status = 'Active'; else error = 'Empty response';
           }
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
-          const completion = await groq.chat.completions.create({
-            messages: [{ role: 'user', content: 'ping' }],
-            model: 'llama-3.1-8b-instant',
-            max_tokens: 3,
-          });
-          if (completion && completion.choices && completion.choices.length > 0) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.1-8b-instant', max_tokens: 3 });
+          if (completion?.choices?.length > 0) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Tavily') {
           const client = new TavilyClient({ apiKey: item.rawKey });
           const response = await client.search({ query: 'ping', max_results: 1 });
-          if (response && response.results) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          if (response?.results) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Serper') {
-          const response = await axios.post('https://google.serper.dev/search', 
-            { q: 'ping', num: 1 }, 
-            {
-              headers: {
-                'X-API-KEY': item.rawKey,
-                'Content-Type': 'application/json'
-              },
-              timeout: 5000
-            }
-          );
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.post('https://google.serper.dev/search', { q: 'ping', num: 1 }, { headers: { 'X-API-KEY': item.rawKey, 'Content-Type': 'application/json' }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'OpenRouter') {
-          const response = await axios.get('https://openrouter.ai/api/v1/auth/key', {
-            headers: {
-              'Authorization': `Bearer ${item.rawKey}`
-            },
-            timeout: 5000
-          });
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.get('https://openrouter.ai/api/v1/auth/key', { headers: { 'Authorization': `Bearer ${item.rawKey}` }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Mistral') {
-          const response = await axios.get('https://api.mistral.ai/v1/models', {
-            headers: {
-              'Authorization': `Bearer ${item.rawKey}`
-            },
-            timeout: 5000
-          });
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.get('https://api.mistral.ai/v1/models', { headers: { 'Authorization': `Bearer ${item.rawKey}` }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Cohere') {
-          const response = await axios.get('https://api.cohere.com/v1/models', {
-            headers: {
-              'Authorization': `Bearer ${item.rawKey}`
-            },
-            timeout: 5000
-          });
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.get('https://api.cohere.com/v1/models', { headers: { 'Authorization': `Bearer ${item.rawKey}` }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Nvidia') {
-          const response = await axios.get('https://integrate.api.nvidia.com/v1/models', {
-            headers: {
-              'Authorization': `Bearer ${item.rawKey}`
-            },
-            timeout: 5000
-          });
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.get('https://integrate.api.nvidia.com/v1/models', { headers: { 'Authorization': `Bearer ${item.rawKey}` }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Cloudflare') {
-          const response = await axios.get('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-            headers: {
-              'Authorization': `Bearer ${item.rawKey}`
-            },
-            timeout: 5000
-          });
-          if (response.data) {
-            status = 'Active';
-          } else {
-            error = 'Empty response';
-          }
+          const response = await axios.get('https://api.cloudflare.com/client/v4/user/tokens/verify', { headers: { 'Authorization': `Bearer ${item.rawKey}` }, timeout: 5000 });
+          if (response.data) status = 'Active'; else error = 'Empty response';
         }
       } catch (e: any) {
-        if (e.response && e.response.data) {
-          error = typeof e.response.data === 'object' 
-            ? JSON.stringify(e.response.data) 
-            : String(e.response.data);
-        } else {
-          error = e.message || String(e);
-        }
+        error = e.response?.data ? (typeof e.response.data === 'object' ? JSON.stringify(e.response.data) : String(e.response.data)) : (e.message || String(e));
       }
 
-      latency = Date.now() - start;
-
-      return {
-        name: item.name,
-        key: item.key,
-        type: item.type,
-        status,
-        latency,
-        error
-      };
+      return { name: item.name, key: item.key, type: item.type, status, latency: Date.now() - start, error };
     }));
 
-    return res.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      results
-    });
+    return res.json({ success: true, timestamp: new Date().toISOString(), results });
   } catch (err: any) {
     console.error("[Ping Keys API Error]:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Dynamic Open Graph Image Generation for Social Media Crawlers (WhatsApp, FB, Telegram, Twitter, LinkedIn, Discord)
+// Dynamic Open Graph Image Generation for Social Media Crawlers
 app.get(['/api/og-image', '/api/og-image.svg', '/api/og-image.png', '/og-image.svg', '/og-image.png'], handleOgImageRequest);
 
 // Dynamic Article Cover Image Handler for social media previews
 app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, dbInstance));
 
-// Catch-all for undefined API routes to help debug Vercel path mapping
+// Catch-all for undefined API routes
 app.use("/api", (req, res) => {
   console.warn(`[API 404] No route matched for ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ 
-    error: "API Route not found", 
-    path: req.originalUrl, 
+  res.status(404).json({
+    error: "API Route not found",
+    path: req.originalUrl,
     method: req.method,
     availableRoutes: ["/api/search", "/api/news/sync", "/api/health"]
   });
 });
-
 
 async function injectSEO(html: string, reqPath: string): Promise<string> {
   return await seoInject(html, reqPath, adminDb, dbInstance);
@@ -4092,9 +2515,7 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
   app.get(/^(?!\/api).*/, async (req: any, res: any) => {
     try {
       let indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) {
-        indexPath = path.join(process.cwd(), 'index.html');
-      }
+      if (!fs.existsSync(indexPath)) indexPath = path.join(process.cwd(), 'index.html');
       let html = fs.readFileSync(indexPath, 'utf-8');
       html = await injectSEO(html, req.path);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -4103,11 +2524,8 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
     } catch (err) {
       console.error("[Server HTML Error]", err);
       let indexPath = path.join(process.cwd(), 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(500).send("Server Error");
-      }
+      if (fs.existsSync(indexPath)) res.sendFile(indexPath);
+      else res.status(500).send("Server Error");
     }
   });
 }
@@ -4116,34 +2534,26 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
 async function startServer() {
   const isVercel = !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_URL;
   console.log(`[Server] Environment Check: isVercel=${isVercel}, NODE_ENV=${process.env.NODE_ENV}`);
-  
+
   if (process.env.NODE_ENV !== "production" && !isVercel) {
     console.log("[Server] Starting in Development mode with Vite middleware...");
     try {
-      // Dynamic import: keeps 'vite' and its native dependencies (e.g. rollup)
-      // out of the statically-traced production bundle that Vercel builds.
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
-        server: { 
-          middlewareMode: true,
-          hmr: false, // Disable HMR to avoid port conflicts in sandbox
-          ws: false,
-        },
+        server: { middlewareMode: true, hmr: false, ws: false },
         appType: "spa",
       });
-      
+
       app.use(async (req, res, next) => {
-        const isSourceOrAsset = 
-          req.originalUrl.startsWith('/api') || 
-          req.originalUrl.startsWith('/@') || 
-          req.originalUrl.startsWith('/src') || 
-          req.originalUrl.startsWith('/node_modules') || 
+        const isSourceOrAsset =
+          req.originalUrl.startsWith('/api') ||
+          req.originalUrl.startsWith('/@') ||
+          req.originalUrl.startsWith('/src') ||
+          req.originalUrl.startsWith('/node_modules') ||
           req.originalUrl.startsWith('/public') ||
           /\.(js|ts|tsx|jsx|css|scss|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|map)$/i.test(req.path);
 
-        if (isSourceOrAsset) {
-          return next();
-        }
+        if (isSourceOrAsset) return next();
 
         try {
           const url = req.originalUrl.split('?')[0];
@@ -4156,19 +2566,18 @@ async function startServer() {
           next(e);
         }
       });
-      
+
       app.use(vite.middlewares);
       console.log("[Server] Vite middleware mounted successfully.");
     } catch (viteErr) {
       console.error("[Server] Vite initialization failed. Falling back to static mode.", viteErr);
-      const distPath = path.join(process.cwd(), 'dist');
-      app.use(express.static(distPath));
+      const distPath2 = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath2));
     }
   } else if (!isVercel) {
     console.log("[Server] Starting in Production mode (Self-Hosted)...");
   }
 
-  // Only listen if we're NOT on Vercel
   if (!isVercel) {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://0.0.0.0:${PORT}`);
@@ -4179,18 +2588,12 @@ async function startServer() {
   }
 }
 
-// In Node.js environment, only execute if this is the main module
-// or if we are in a dev/preview environment that needs the server to start.
-// Vercel handles the execution via api/index.ts exports.
 const isVercel = !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_URL;
 
-// In Node.js environment, only execute if this is the main module
-// or if we are in a dev/preview environment that needs the server to start.
 if (!isVercel || process.env.NODE_ENV === 'development') {
   startServer().catch(err => {
     console.error("[Server Startup Error]:", err);
   });
 }
 
-// Ensure the app is correctly exported for Vercel's serverless runtime
 export default app;

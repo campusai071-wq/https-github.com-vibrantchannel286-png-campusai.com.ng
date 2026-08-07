@@ -24,6 +24,7 @@ const AboutSection = lazy(() => import('./AboutSection'));
 const AdminPanel = lazy(() => import('./AdminPanel'));
 const UserSettingsModal = lazy(() => import('./UserSettingsModal'));
 const AuthModal = lazy(() => import('./AuthModal'));
+const LoginPage = lazy(() => import('./LoginPage'));
 const ShareModal = lazy(() => import('./ShareModal'));
 const InviteEarnModal = lazy(() => import('./InviteEarnModal'));
 const ScholarPackModal = lazy(() => import('./ScholarPackModal'));
@@ -101,7 +102,7 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
         user={user} 
         isAdmin={isAuthorizedAdmin}
         onClose={closeArticle} 
-        onLoginRequest={() => setIsAuthModalOpen(true)}
+        onLoginRequest={() => navigate('/login')}
         relatedNews={filteredRelated} 
         onSelectRelated={handleSelectRelated} 
       />
@@ -157,7 +158,7 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
       />
       <CutoffCalculator 
         user={user} 
-        onLoginRequest={() => setIsAuthModalOpen(true)} 
+        onLoginRequest={() => navigate('/login')} 
         onPremiumRequired={() => setIsScholarPackOpen(true)}
         onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
         initialSchoolName={computedSchoolName}
@@ -462,7 +463,7 @@ const AppContent: React.FC = () => {
       setIsScholarPackOpen(true);
     };
     const handleOpenLogin = () => {
-      setIsAuthModalOpen(true);
+      navigate('/login');
     };
     const handleOpenLegal = (e: any) => {
       setLegalModal({ isOpen: true, type: e.detail || 'terms' });
@@ -763,7 +764,7 @@ const AppContent: React.FC = () => {
         admin={adminState}
         theme={theme}
         onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-        onLoginRequest={() => setIsAuthModalOpen(true)}
+        onLoginRequest={() => navigate('/login')}
         onShareRequest={() => setIsShareOpen(true)}
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
         onOpenSidebar={() => setIsSidebarOpen(true)}
@@ -776,7 +777,7 @@ const AppContent: React.FC = () => {
           onNavigate={handleNavigate}
           currentPage={currentPage}
           user={user}
-          onLoginRequest={() => setIsAuthModalOpen(true)}
+          onLoginRequest={() => navigate('/login')}
           onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
           theme={theme}
           onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
@@ -791,6 +792,10 @@ const AppContent: React.FC = () => {
           </div>
         }>
           <Routes>
+          <Route path="/login" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
+          <Route path="/signup" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
+          <Route path="/auth" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
+
           <Route path="/dashboard" element={
             <>
               <SEO 
@@ -800,7 +805,7 @@ const AppContent: React.FC = () => {
               />
               <Dashboard 
                 user={user} 
-                onLoginRequest={() => setIsAuthModalOpen(true)} 
+                onLoginRequest={() => navigate('/login')} 
                 onScholarPackRequest={() => setIsScholarPackOpen(true)}
                 onReadArticle={openArticle} 
               />
@@ -816,7 +821,7 @@ const AppContent: React.FC = () => {
               />
               <CutoffCalculator 
                 user={user} 
-                onLoginRequest={() => setIsAuthModalOpen(true)} 
+                onLoginRequest={() => navigate('/login')} 
                 onPremiumRequired={() => setIsScholarPackOpen(true)}
                 onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
                 initialSchoolName={selectedSchoolForChances}
@@ -911,7 +916,7 @@ const AppContent: React.FC = () => {
                     window.scrollTo(0, 0);
                 }}
                 user={user}
-                onLoginRequest={() => setIsAuthModalOpen(true)}
+                onLoginRequest={() => navigate('/login')}
               />
             </div>
           } />
@@ -946,7 +951,7 @@ const AppContent: React.FC = () => {
                     window.scrollTo(0, 0);
                 }}
                 user={user}
-                onLoginRequest={() => setIsAuthModalOpen(true)}
+                onLoginRequest={() => navigate('/login')}
               />
             </div>
           } />
@@ -981,7 +986,7 @@ const AppContent: React.FC = () => {
                     window.scrollTo(0, 0);
                 }}
                 user={user}
-                onLoginRequest={() => setIsAuthModalOpen(true)}
+                onLoginRequest={() => navigate('/login')}
               />
             </div>
           } />
@@ -1105,7 +1110,7 @@ const AppContent: React.FC = () => {
                     <NewsGrid 
                       user={user} 
                       onReadArticle={openArticle} 
-                      onLoginRequest={() => setIsAuthModalOpen(true)} 
+                      onLoginRequest={() => navigate('/login')} 
                       isMiniPreview={true}
                     />
                   </section>
@@ -1147,7 +1152,7 @@ const AppContent: React.FC = () => {
           <NewsGrid 
             user={user} 
             onReadArticle={openArticle} 
-            onLoginRequest={() => setIsAuthModalOpen(true)} 
+            onLoginRequest={() => navigate('/login')} 
           />
         </div>
       } />
@@ -1171,7 +1176,7 @@ const AppContent: React.FC = () => {
               />
               <PostUtmeReleaseHub 
                 user={user} 
-                onLoginRequest={() => setIsAuthModalOpen(true)}
+                onLoginRequest={() => navigate('/login')}
                 onCalculateChances={(schoolName) => {
                   setSelectedSchoolForChances(schoolName);
                   setCurrentPage('home');
@@ -1247,7 +1252,7 @@ const AppContent: React.FC = () => {
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 
           theme={theme} onThemeChange={setTheme} onLogout={handleLogout}
-          onLoginRequest={() => setIsAuthModalOpen(true)}
+          onLoginRequest={() => navigate('/login')}
           onStartTour={() => setIsTourOpen(true)}
         />
         <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
