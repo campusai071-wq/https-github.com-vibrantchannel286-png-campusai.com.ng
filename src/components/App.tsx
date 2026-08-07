@@ -795,6 +795,14 @@ const AppContent: React.FC = () => {
           <Route path="/login" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
           <Route path="/signup" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
           <Route path="/auth" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
+          <Route path="/chat" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950 flex justify-center pb-24">
+              <SEO title="AI Chat | CampusAI" description="Chat with your Academic Strategist" canonical="/chat" />
+              <div className="w-full max-w-4xl px-4 md:px-8 flex flex-col h-[calc(100vh-6rem)] relative">
+                <AIChatDrawer isOpen={true} onClose={() => {}} inline={true} user={user} />
+              </div>
+            </div>
+          } />
 
           <Route path="/dashboard" element={
             <>

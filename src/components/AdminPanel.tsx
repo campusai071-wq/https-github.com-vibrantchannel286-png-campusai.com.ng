@@ -2276,7 +2276,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 </a>
                               )}
                               {log.newsId && (
-                                <button onClick={() => { setActiveTab('content'); fetchNewsItems(); }} className="text-[10px] text-red-500 hover:underline">
+                                <button onClick={() => { setActiveTab('content'); loadAdminNews(); }} className="text-[10px] text-red-500 hover:underline">
                                   View Article
                                 </button>
                               )}

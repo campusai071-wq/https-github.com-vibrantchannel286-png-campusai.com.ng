@@ -78,7 +78,10 @@ const SEO_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 // Fast helper to run promises with a strict maximum timeout
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   return Promise.race([
-    promise,
+    promise.catch((err) => {
+      console.error("[SEO Injection Error]", err);
+      return fallback;
+    }),
     new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
   ]);
 }

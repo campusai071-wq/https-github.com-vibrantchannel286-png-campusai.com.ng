@@ -145,7 +145,10 @@ const ChatMessageItem = React.memo(({
 });
 
 interface AIChatDrawerProps {
-  user: any;
+  user?: any;
+  inline?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const WELCOME_MESSAGE: ChatMessage = {
@@ -157,12 +160,21 @@ const getChatStorageKey = (uid?: string) => {
   return uid ? `campusai_chat_messages_${uid}` : 'campusai_chat_messages_guest';
 };
 
-const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpen: propIsOpen = false, onClose: propOnClose }) => {
+  const [isOpen, setIsOpen] = useState(propIsOpen);
+  
+  useEffect(() => {
+    if (propIsOpen !== undefined) setIsOpen(propIsOpen);
+  }, [propIsOpen]);
   const [input, setInput] = useState('');
   const [profile, setProfile] = useState(() => getLocalProfile());
   const [isLoading, setIsLoading] = useState(false);
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (propOnClose) propOnClose();
+  };
   const [loadingStep, setLoadingStep] = useState(0);
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
