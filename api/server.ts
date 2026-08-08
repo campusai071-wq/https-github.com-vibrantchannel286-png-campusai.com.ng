@@ -19,6 +19,7 @@ import { injectSEO as seoInject } from "./seo.js";
 import { handleOgImageRequest } from "./ogImage.js";
 import { handleArticleImageRequest } from "./articleImage.js";
 import universityData from "../src/data/universities.js";
+import { MOCK_NEWS } from "../src/constants.js";
 
 const getFirebaseAppletConfig = (): any => {
   try {
@@ -2172,7 +2173,7 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     let newsDocs: any[] = [];
     if (adminDb) {
       try {
-        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(1000).get();
+        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(3000).get();
         snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
       } catch (e) {
         console.warn("[Sitemap] AdminDb error:", e);
@@ -2180,12 +2181,22 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     }
     if (newsDocs.length === 0 && dbInstance) {
       try {
-        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(1000));
+        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(3000));
         const querySnap = await getDocs(q);
         querySnap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
       } catch (e) {
         console.warn("[Sitemap] DbInstance error:", e);
       }
+    }
+
+    // Merge static/fallback MOCK_NEWS so no seed news article is missing
+    if (Array.isArray(MOCK_NEWS)) {
+      MOCK_NEWS.forEach((m: any) => {
+        const mSlug = m.slug || m.id;
+        if (!newsDocs.some((n: any) => (n.slug || n.id) === mSlug)) {
+          newsDocs.push(m);
+        }
+      });
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
