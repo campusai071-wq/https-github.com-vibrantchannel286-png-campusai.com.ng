@@ -127,7 +127,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Resend Config state
   const [resendApiKey, setResendApiKey] = useState(() => localStorage.getItem('campusai_resend_api_key') || '');
-  const [resendFromEmail, setResendFromEmail] = useState(() => localStorage.getItem('campusai_resend_from_email') || 'CampusAI Admissions <noreply@campusai.com.ng>');
+  const [resendFromEmail, setResendFromEmail] = useState(() => {
+    const stored = localStorage.getItem('campusai_resend_from_email');
+    if (stored && stored.includes('onboarding@resend.dev')) return 'CampusAI Admissions <noreply@campusai.com.ng>';
+    return stored || 'CampusAI Admissions <noreply@campusai.com.ng>';
+  });
 
   useEffect(() => {
     localStorage.setItem('campusai_resend_api_key', resendApiKey);

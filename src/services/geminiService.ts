@@ -1964,8 +1964,8 @@ export const getCourseCutoffInfo = async (
     let rawSearchContext = "";
     try {
       const [search2026, searchHistoric, searchSchedule] = await Promise.all([
-        searchWeb(`official 2026/2027 Post-UTME estimated competitive benchmark marks for ${course} at ${university} Nigeria`).catch(() => ""),
-        searchWeb(`"${university}" "${course}" cutoff mark OR merit aggregate 2024 OR 2025 percentage score`).catch(() => ""),
+        searchWeb(`"${university}" "${course}" departmental aggregate cut-off mark percentage score 2024 2025 2026`).catch(() => ""),
+        searchWeb(`"${university}" "${course}" merit cutoff mark aggregate score admission`).catch(() => ""),
         searchWeb(`"${university}" Post-UTME 2026/2027 screening registration status form out dates OR exam schedule`).catch(() => "")
       ]);
 
@@ -2051,6 +2051,12 @@ export const getCourseCutoffInfo = async (
 - The institutional cut-off floor is: "${manualOverride.institutionalCutoff || '150'}".
 - Verified explanation / policy detail: "${manualOverride.explanation || 'No extra notes.'}".
 You MUST evaluate the candidate's aggregate score (${score}%) strictly against this verified departmental cut-off score ("${manualOverride.departmentalCutoff}") to compute the probability, recommendation, and verdict.`;
+    } else {
+      overridePrompt = `⚠️ IMPORTANT INSTRUCTION FOR COMPETITIVE COURSES & CUTOFFS:
+You must apply extremely strict and realistic historical cutoffs.
+- DO NOT confuse the general Institutional JAMB Cut-off Mark (e.g. 160, 180, 200) with the Final Departmental Aggregate Percentage (out of 100%).
+- For highly competitive courses like Computer Science, Medicine, Nursing, Law, Pharmacy, Software Engineering, etc., at top universities (e.g., FUTA, UNILAG, UI, OAU, UNN, UNILORIN, UNIBEN), the departmental aggregate cut-off is typically very high (e.g., 68% - 75%+).
+- DO NOT output unrealistic low cutoffs (like 50%-60%) for tier-1 courses at competitive universities. If search results only mention the "180 JAMB cutoff", you must estimate the strict percentage aggregate (out of 100%) required for actual admission. Base your predictions firmly on these Nigerian admission realities.`;
     }
 
     const allKnowledge = await getAllKnowledgeFragments();

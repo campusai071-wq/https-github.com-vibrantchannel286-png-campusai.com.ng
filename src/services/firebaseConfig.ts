@@ -21,6 +21,8 @@ export const MASTER_CONFIG = {
   FLUTTERWAVE_PUBLIC_KEY: process.env.VITE_FLUTTERWAVE_PUBLIC_KEY || "FLWPUBK-f26c5e3b665384b21c780ad1f752954e-X",
   FIREBASE: localFirebaseConfig || firebaseConfig
 };
+export const hasLocalFirebase = !!localFirebaseConfig;
+
 const configNode = MASTER_CONFIG.FIREBASE as any;
 export const firestoreDatabaseId = configNode.firestoreDatabaseId;
 const { firestoreDatabaseId: _, ...standardConfig } = configNode;

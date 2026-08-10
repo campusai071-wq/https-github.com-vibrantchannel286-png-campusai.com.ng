@@ -1,6 +1,6 @@
 import { NewsItem, BillboardAd, Comment, BroadcastEmail, ChatMessage, UserActivity, UniversityCategory, SchoolUgcPost } from '../types';
 import { MOCK_NEWS, TICKER_HEADLINES } from '../constants';
-import { db, firestoreDatabaseId } from './firebaseConfig';
+import { db, firestoreDatabaseId, hasLocalFirebase } from './firebaseConfig';
 export { db };
 import { slugify, stringify, cleanObject, getApiUrl } from './utils';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, Timestamp, where, updateDoc, getDoc, limit, writeBatch, getDocsFromServer, increment, onSnapshot, startAfter } from "firebase/firestore";
@@ -337,7 +337,6 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
     return filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
   }
 
-  const hasLocalFirebase = typeof window !== 'undefined' && !!localStorage.getItem('campusai_firebase');
 
   // Try proxy first (only if we are NOT using a custom user-provisioned Firebase database)
   if (!hasLocalFirebase) {
@@ -453,7 +452,6 @@ export const getCloudNewsCount = async (): Promise<number> => {
   }
 
   try {
-    const hasLocalFirebase = typeof window !== 'undefined' && !!localStorage.getItem('campusai_firebase');
 
     if (!hasLocalFirebase) {
       try {
@@ -486,7 +484,6 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
   let bookmarkedIds: string[] = [];
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      bookmarkedIds = JSON.parse(window.localStorage.getItem('campusai_bookmarks') || '[]');
     } catch (e) {}
   }
 
@@ -659,8 +656,12 @@ export const archiveNewsItems = async (items: NewsItem[], defaultLiveStatus: boo
 };
 
 export const getPublishedNews = (): NewsItem[] => {
-  const stored = localStorage.getItem(NEWS_KEY);
-  return stored ? JSON.parse(stored) : [];
+  try {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(NEWS_KEY) : null;
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    return [];
+  }
 };
 
 export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
@@ -1111,7 +1112,8 @@ export const savePremiumSubscription = async (data: { email: string; paymentTime
 export const logUserActivity = async (activity: Omit<UserActivity, 'id' | 'timestamp'>) => {
   if (typeof window !== 'undefined') {
     try {
-      const localList = JSON.parse(localStorage.getItem('campusai_local_activities') || '[]');
+      const stored = localStorage.getItem('campusai_local_activities');
+      const localList = stored ? JSON.parse(stored) : [];
       const localActivity = {
         id: 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         ...activity,
@@ -1146,7 +1148,8 @@ export const getUserActivities = async (userId: string | null, max: number = 20)
   if (!userId) {
     if (typeof window !== 'undefined') {
       try {
-        const localList = JSON.parse(localStorage.getItem('campusai_local_activities') || '[]');
+        const stored = localStorage.getItem('campusai_local_activities');
+        const localList = stored ? JSON.parse(stored) : [];
         return localList.slice(0, max);
       } catch (err) { return []; }
     }
@@ -1156,7 +1159,8 @@ export const getUserActivities = async (userId: string | null, max: number = 20)
   if (!db) {
     if (typeof window !== 'undefined') {
       try {
-        const localList = JSON.parse(localStorage.getItem('campusai_local_activities') || '[]');
+        const stored = localStorage.getItem('campusai_local_activities');
+        const localList = stored ? JSON.parse(stored) : [];
         return localList.filter((x: any) => x.userId === userId).slice(0, max);
       } catch (err) {}
     }
@@ -1182,7 +1186,8 @@ export const getUserActivities = async (userId: string | null, max: number = 20)
     console.error("Error fetching activities:", e);
     if (typeof window !== 'undefined') {
       try {
-        const localList = JSON.parse(localStorage.getItem('campusai_local_activities') || '[]');
+        const stored = localStorage.getItem('campusai_local_activities');
+        const localList = stored ? JSON.parse(stored) : [];
         return localList.filter((x: any) => x.userId === userId).slice(0, max);
       } catch (err) {}
     }
@@ -1194,7 +1199,6 @@ export const getAllUserActivities = async (limitCount: number = 300): Promise<Us
   if (!db) {
     if (typeof window !== 'undefined') {
       try {
-        return JSON.parse(localStorage.getItem('campusai_local_activities') || '[]');
       } catch (err) { return []; }
     }
     return [];
@@ -1335,23 +1339,12 @@ export const saveCachedUniversityCourses = async (institution: string, courses: 
 
 export const getCachedCourseCutoffInfo = async (institution: string, course: string): Promise<any | null> => {
   const key = slugify(`${institution}_${course}`);
-  try {
-    const local = localStorage.getItem(`campusai_cutoff_cache_${key}`);
-    if (local) {
-      const parsed = JSON.parse(local);
-      if (parsed && parsed.data) return parsed.data;
-    }
-  } catch (e) {}
-
   if (!db) return null;
   try {
     const snap = await getDoc(doc(db, "cached_course_cutoff_info", key));
     if (snap.exists()) {
       const d = snap.data();
       const resData = d.data || d;
-      try {
-        localStorage.setItem(`campusai_cutoff_cache_${key}`, JSON.stringify({ data: resData, timestamp: Date.now() }));
-      } catch (e) {}
       return resData;
     }
     return null;
@@ -1364,10 +1357,6 @@ export const getCachedCourseCutoffInfo = async (institution: string, course: str
 export const saveCachedCourseCutoffInfo = async (institution: string, course: string, data: any) => {
   if (!data) return;
   const key = slugify(`${institution}_${course}`);
-  try {
-    localStorage.setItem(`campusai_cutoff_cache_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch (e) {}
-
   if (!db) return;
   try {
     await setDoc(doc(db, "cached_course_cutoff_info", key), {
@@ -1693,7 +1682,7 @@ export const incrementAndGetArticleViews = async (newsId: string, initialViews?:
   const localKey = `campusai_article_views_${newsId}`;
   let localViews = 0;
   try {
-    const stored = localStorage.getItem(localKey);
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(localKey) : null;
     if (stored) {
       localViews = parseInt(stored, 10) || 0;
     }
@@ -1727,7 +1716,7 @@ export const getArticleViews = async (newsId: string, initialViews?: number): Pr
   const localKey = `campusai_article_views_${newsId}`;
   let localViews = 0;
   try {
-    const stored = localStorage.getItem(localKey);
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(localKey) : null;
     if (stored) localViews = parseInt(stored, 10) || 0;
   } catch (e) {}
 
