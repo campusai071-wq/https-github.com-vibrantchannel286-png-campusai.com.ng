@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
+import { Resend } from "resend";
 import { GoogleGenAI, Type } from "@google/genai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Groq } from "groq-sdk";
@@ -2591,6 +2592,47 @@ app.get(['/api/og-image', '/api/og-image.svg', '/api/og-image.png', '/og-image.s
 
 // Dynamic Article Cover Image Handler for social media previews
 app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, dbInstance));
+
+// Admin Send Email via Resend API
+app.post("/api/admin/send-email", requireAdminToken as any, async (req: any, res: any) => {
+  try {
+    const { recipients, subject, htmlContent, senderEmail, apiKey } = req.body;
+    const resendKey = apiKey || process.env.RESEND_API_KEY;
+    if (!resendKey) {
+      return res.status(400).json({ success: false, error: "Resend API key is missing. Please set RESEND_API_KEY in environment or provide it." });
+    }
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ success: false, error: "Recipients list is empty." });
+    }
+    if (!subject || !htmlContent) {
+      return res.status(400).json({ success: false, error: "Subject and HTML content are required." });
+    }
+
+    const resend = new Resend(resendKey);
+    const from = senderEmail || process.env.RESEND_FROM_EMAIL || 'CampusAI Admissions <noreply@campusai.com.ng>';
+
+    const results = [];
+    for (const email of recipients) {
+      try {
+        const data = await resend.emails.send({
+          from,
+          to: [email],
+          subject,
+          html: htmlContent,
+        });
+        results.push({ email, success: true, data });
+      } catch (err: any) {
+        results.push({ email, success: false, error: err.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    return res.json({ success: true, sentCount: successCount, total: recipients.length, results });
+  } catch (err: any) {
+    console.error("[Send Email Error]:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Catch-all for undefined API routes
 app.use("/api", (req, res) => {

@@ -396,15 +396,6 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     registrationFee: 2000,
     eligibilityText: "UTME score of 160 and above."
   },
-  "Sule Lamido University": {
-    isOut: true,
-    statusText: "Registration Active",
-    details: "SLU Kafin Hausa 2026/2027 Post-UTME online registration procedures released.",
-    portalLink: "https://slu.edu.ng",
-    cutoffScore: "160",
-    registrationFee: 2000,
-    eligibilityText: "First choice candidates with 160+ score."
-  },
   "Kogi State University, Kabba": {
     isOut: true,
     statusText: "Registration Active",

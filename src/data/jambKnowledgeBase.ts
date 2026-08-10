@@ -405,6 +405,159 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official Website",
     last_verified: "2026-07-28",
     version: "2026"
+  },
+  {
+    id: "futa_admission_guidelines_2026",
+    organization: "FUTA",
+    page_type: "procedural",
+    category: "Institution Admission",
+    subcategory: "FUTA Admissions",
+    title: "Federal University of Technology, Akure (FUTA) 2026/2027 Admission Guidelines",
+    summary: "Comprehensive official admission guidelines for FUTA for the 2026/2027 academic session, detailing the 75:25 point-based aggregate system, screening prerequisites, and eligibility criteria.",
+    steps: [
+      "Choose FUTA as your First Choice (Most Preferred) institution in your JAMB UTME application.",
+      "Score the minimum institutional cutoff mark (typically 180 and above depending on the course).",
+      "Ensure O'Level results (WAEC, NECO, GCE) with required credits in Mathematics, English, Physics, Chemistry, and Biology/Agricultural Science are uploaded on JAMB CAPS.",
+      "Register for the FUTA Post-UTME screening online via the official FUTA admission portal (https://www.futa.edu.ng).",
+      "Participate in the FUTA screening process and monitor your aggregate score calculation.",
+      "Accept admission offer promptly on JAMB CAPS once recommended."
+    ],
+    requirements: [
+      "Minimum JAMB UTME score of 180 (higher for professional courses like Engineering, Computer Science, Architecture, and Nursing/Health Sciences)",
+      "O'Level results in not more than two sittings",
+      "Uploaded O'Level results on JAMB CAPS",
+      "FUTA Post-UTME online registration slip"
+    ],
+    eligibility_rules: [
+      "Candidate must have chosen FUTA as First Choice institution.",
+      "O'Level core subjects must match course requirements exactly."
+    ],
+    key_facts: [
+      "FUTA uses a 75:25 Point-Based Aggregate System (75% UTME score + 25% O'Level grade points).",
+      "No physical written Post-UTME exam; screening is strictly point-based credential verification using UTME and O'Level grades."
+    ],
+    important_notes: [
+      "Ensure your email address and phone number are active throughout the admission season.",
+      "Beware of fraudsters demanding cash for admission placement; FUTA admissions are strictly merit and quota-based via JAMB CAPS."
+    ],
+    keywords: ["futa", "federal university of technology akure", "futa admission", "futa cutoff", "futa screening", "75:25 system"],
+    related_topics: ["FUTA Post-UTME Screening", "FUTA Clearances", "JAMB CAPS"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-10",
+    version: "2026/2027"
+  },
+  {
+    id: "futa_post_utme_screening",
+    organization: "FUTA",
+    page_type: "procedural",
+    category: "Institution Screening",
+    subcategory: "Point-Based Aggregate",
+    title: "FUTA Post-UTME Screening & 75:25 Aggregate Calculation Formula",
+    summary: "Detailed breakdown of FUTA's unique point-based screening system combining UTME performance (75%) and O'Level grades (25%).",
+    steps: [
+      "Step 1: Compute UTME Score Component (75% max): Divide your JAMB score by 400, then multiply by 75. Formula: (JAMB Score / 400) * 75.",
+      "Step 2: Compute O'Level Score Component (25% max): Sum the points of your best 5 relevant O'Level subjects (Mathematics, English Language, and 3 core subjects relevant to your course).",
+      "Step 3: O'Level Grade Point Scale: A1 = 6 points, B2 = 5 points, B3 = 4 points, C4 = 3 points, C5 = 2 points, C6 = 1 point (Maximum 30 raw points across 5 subjects, scaled to 25%).",
+      "Step 4: Total Aggregate Score: Add UTME Component + O'Level Component for a final score out of 100%."
+    ],
+    requirements: [
+      "JAMB UTME Score",
+      "O'Level Result (WAEC/NECO/GCE) showing grades in 5 relevant subjects"
+    ],
+    eligibility_rules: [
+      "O'Level results obtained in more than two sittings are not accepted for competitive professional courses.",
+      "Mathematics and English Language are compulsory core subjects in the 5 O'Level count."
+    ],
+    key_facts: [
+      "Maximum UTME weight = 75 marks.",
+      "Maximum O'Level weight = 25 marks.",
+      "Total Aggregate = Out of 100 marks."
+    ],
+    important_notes: [
+      "Entering incorrect O'Level grades during online registration will lead to automatic disqualification during physical clearance.",
+      "Ensure awaiting results are updated immediately they are released by WAEC/NECO."
+    ],
+    keywords: ["futa aggregate", "75:25 formula", "futa screening points", "olevel grading futa", "futa post utme"],
+    related_topics: ["FUTA Admission Guidelines", "CGPA Calculator"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-10",
+    version: "2026/2027"
+  },
+  {
+    id: "futa_clearance_and_registration",
+    organization: "FUTA",
+    page_type: "procedural",
+    category: "Registration",
+    subcategory: "Fresh Students Clearance",
+    title: "FUTA Fresh Students Physical & Online Clearance Procedures",
+    summary: "Step-by-step clearance and documentation guide for candidates offered provisional admission into FUTA for the 2026/2027 academic session.",
+    steps: [
+      "Log in to the FUTA undergraduate portal using your JAMB registration number to accept the admission and print the FUTA Admission Letter.",
+      "Pay the prescribed Acceptance Fee via the online payment platform (Remita / FUTA portal).",
+      "Complete the online biodata form and upload required credentials (Birth certificate, State of origin certificate, O'level results, JAMB result slip, and Admission letter).",
+      "Print out the completed clearance screening form and file copies of all credentials.",
+      "Proceed to the designated department/school clearance venue for physical document verification.",
+      "Obtain clearance sign-off from the Admissions Office and proceed to pay school fees to obtain matriculation number."
+    ],
+    requirements: [
+      "FUTA Admission Letter & JAMB Admission Letter",
+      "JAMB UTME Result Slip (Original)",
+      "O'Level Certificates or Statements of Result (WAEC/NECO)",
+      "Birth Certificate or Statutory Declaration of Age",
+      "Certificate of State/Local Government Origin",
+      "Passport photographs (recent, white background)",
+      "Acceptance fee and School fees payment receipts"
+    ],
+    eligibility_rules: [
+      "Physical clearance is mandatory; failure to appear within the stipulated deadline forfeits the admission offer.",
+      "Credentials presented must match details submitted on JAMB CAPS."
+    ],
+    key_facts: [
+      "Clearance usually takes place at the FUTA e-Learning Center or respective departmental boardrooms.",
+      "Matriculation numbers are generated immediately upon school fees confirmation."
+    ],
+    important_notes: [
+      "Keep multiple photocopies of all credentials in a sturdy file jacket.",
+      "Medical examination at the University Health Centre is a mandatory post-clearance requirement."
+    ],
+    keywords: ["futa clearance", "futa freshers", "acceptance fee futa", "futa registration", "futa physical clearance"],
+    related_topics: ["FUTA Admission Guidelines", "FUTA Post-UTME Screening"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-10",
+    version: "2026/2027"
+  },
+  {
+    id: "futa_schools_and_faculties",
+    organization: "FUTA",
+    page_type: "informational",
+    category: "Academics",
+    subcategory: "Faculties and Departments",
+    title: "FUTA Schools, Faculties and Academic Structure",
+    summary: "Overview of schools and major professional degree programs offered at the Federal University of Technology, Akure (FUTA).",
+    steps: [],
+    requirements: [],
+    eligibility_rules: [],
+    key_facts: [
+      "SEET (School of Engineering and Engineering Technology): Mechanical, Civil, Electrical/Electronics, Mechatronics, Computer, Agricultural & Environmental Engineering, Petroleum & Chemical Engineering.",
+      "SOC (School of Computing): Computer Science, Cyber Security, Software Engineering, Information Technology, Information Systems.",
+      "SAAT (School of Agriculture and Agricultural Technology): Crop Production, Animal Production, Agricultural Economics, Fisheries and Aquaculture.",
+      "SOS (School of Sciences): Microbiology, Biochemistry, Industrial Chemistry, Mathematics, Physics, Statistics, Biology.",
+      "SEMS (School of Earth and Mineral Sciences): Applied Geology, Applied Geophysics, Mining Engineering, Remote Sensing & GIS.",
+      "SET (School of Environmental Technology): Architecture, Quantity Surveying, Estate Management, Building, Urban & Regional Planning.",
+      "SHHT (School of Health and Health Technology): Nursing Science, Human Anatomy, Physiology, Public Health."
+    ],
+    important_notes: [
+      "All FUTA programs are accredited by NUC and relevant professional bodies (COREN, NCN, NIOB, NIA, etc.)."
+    ],
+    keywords: ["futa schools", "futa courses", "seet futa", "soc futa", "futa engineering", "futa computer science"],
+    related_topics: ["FUTA Admission Guidelines", "Master Courses"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-10",
+    version: "2026/2027"
   }
 ];
 

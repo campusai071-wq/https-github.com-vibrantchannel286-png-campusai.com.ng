@@ -13,6 +13,8 @@ import QuotaModal from './QuotaModal';
 import Markdown from 'react-markdown';
 import * as pdfjs from 'pdfjs-dist';
 
+type GroundingChunk = any;
+
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 // Memoized message item to avoid re-rendering entire chat history during streaming

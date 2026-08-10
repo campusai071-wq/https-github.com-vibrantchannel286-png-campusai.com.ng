@@ -1,0 +1,22 @@
+{
+  "institution": "University of Lagos (UNILAG)",
+  "session": "2025/2026",
+  "departments": [
+    { "name": "Creative Arts", "merit": 69.5, "catchment": { "ekiti": 59.375, "lagos": 61.675, "ogun": 66.225, "ondo": 57.725, "osun": 65.175, "oyo": 65.75 } },
+    { "name": "English", "merit": 68.175, "catchment": { "ekiti": 57.475, "lagos": 59.2, "ogun": 65.05, "ondo": 62.025, "osun": 55.675, "oyo": 63.3 } },
+    { "name": "French", "merit": 60.225, "catchment": { "ekiti": null, "lagos": 59.65, "ogun": null, "ondo": null, "osun": null, "oyo": null } },
+    { "name": "Russian", "merit": 58.775, "catchment": {} },
+    { "name": "German", "merit": 60.95, "catchment": { "ekiti": null, "lagos": null, "ogun": 53.625, "ondo": null, "osun": 51.675, "oyo": 52 } },
+    { "name": "History & Strategic Studies", "merit": 70.725, "catchment": { "ekiti": 58.75, "lagos": 60.175, "ogun": 67.675, "ondo": 65.725, "osun": 61.625, "oyo": 65.1 } },
+    { "name": "Linguistics/Igbo", "merit": null, "catchment": {} },
+    { "name": "Linguistics/Yoruba", "merit": 64.1, "catchment": {} },
+    { "name": "Linguistics", "merit": 72.55, "catchment": { "ekiti": 67.425, "lagos": 70.9, "ogun": 71.375, "ondo": 68.725, "osun": 66.75, "oyo": 68.325 } },
+    { "name": "Chinese", "merit": 68.95, "catchment": { "ekiti": 64.9, "lagos": null, "ogun": 68.775, "ondo": null, "osun": null, "oyo": 65.65 } },
+    { "name": "Philosophy", "merit": 66.075, "catchment": { "ekiti": 58.225, "lagos": 54.6, "ogun": 60.6, "ondo": 57.3, "osun": 57.725, "oyo": 55.5 } },
+    { "name": "Christian Religious Studies", "merit": 54.625, "catchment": {} },
+    { "name": "Islamic Religious Studies", "merit": 54.675, "catchment": {} },
+    { "name": "Anatomy", "merit": 72.4, "catchment": { "ekiti": 71.5, "lagos": 70.35, "ogun": 70.125, "ondo": 71.65, "osun": 66.475, "oyo": 64.75 } },
+    { "name": "Pharmacology", "merit": 73.125, "catchment": { "ekiti": 69.025, "lagos": 69.65, "ogun": 71.925, "ondo": 67.075, "osun": 66.3, "oyo": 71.6 } },
+    { "name": "Physiology", "merit": 72.875, "catchment": { "ekiti": 66.45, "lagos": 63.8, "ogun": 70.225, "ondo": 57.3, "osun": 70.925, "oyo": 67.95 } }
+  ]
+}

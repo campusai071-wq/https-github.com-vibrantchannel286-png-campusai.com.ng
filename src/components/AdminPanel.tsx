@@ -25,7 +25,8 @@ import {
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
-import { auth } from '../services/firebaseConfig';
+import { auth, db } from '../services/firebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
 import { getApiUrl, compressImage } from '../services/utils';
 import { SystemHealthStatus } from './SystemHealthStatus';
 import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
@@ -78,16 +79,219 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails'
   >('analytics');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
+
+  // ── Email Campaign state ──────────────────────────────────────────────────
+  const [emailSubject, setEmailSubject] = useState('CampusAI Admission & Post-UTME Update');
+  const [emailHtmlContent, setEmailHtmlContent] = useState(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CampusAI Update</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f7; color: #333333; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div style="background: #2563eb; color: #ffffff; padding: 32px; text-align: center;">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800;">CampusAI Admission Hub</h1>
+      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Verified 2026/2027 Admission & Post-UTME Updates</p>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="color: #1f2937; font-size: 20px; margin-top: 0;">Hello Esteemed Scholar,</h2>
+      <p style="line-height: 1.6; font-size: 15px; color: #4b5563;">
+        We have verified and synchronized new cut-off marks, Post-UTME screening schedules, and admission guidelines for your target university in the CampusAI Knowledge Base.
+      </p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="https://campusai.com.ng" style="background: #2563eb; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">Check Your Admission Odds Now</a>
+      </div>
+      <p style="line-height: 1.6; font-size: 14px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
+        You received this update because you registered on CampusAI. Stay sharp and prepared for your screening!
+      </p>
+    </div>
+  </div>
+</body>
+</html>`);
+  const [emailRecipientGroup, setEmailRecipientGroup] = useState<'users' | 'subscribers' | 'custom'>('users');
+  const [customEmailsText, setCustomEmailsText] = useState('');
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [emailSendResult, setEmailSendResult] = useState<{ success: boolean; sentCount?: number; total?: number; error?: string } | null>(null);
+  const [emailPreviewMode, setEmailPreviewMode] = useState(false);
+
+  // Resend Config state
+  const [resendApiKey, setResendApiKey] = useState(() => localStorage.getItem('campusai_resend_api_key') || '');
+  const [resendFromEmail, setResendFromEmail] = useState(() => localStorage.getItem('campusai_resend_from_email') || 'CampusAI Admissions <onboarding@resend.dev>');
+
+  useEffect(() => {
+    localStorage.setItem('campusai_resend_api_key', resendApiKey);
+  }, [resendApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('campusai_resend_from_email', resendFromEmail);
+  }, [resendFromEmail]);
+
+  // Saved templates state
+  const [savedTemplates, setSavedTemplates] = useState<Array<{ id: string; name: string; subject: string; htmlContent: string }>>(() => {
+    try {
+      const stored = localStorage.getItem('campusai_saved_email_templates');
+      return stored ? JSON.parse(stored) : [
+        { id: '1', name: 'Post-UTME Alert', subject: '🔥 2026/2027 Post-UTME Screening & Cut-Off Notice', htmlContent: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f7;padding:20px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"><h2 style="color:#2563eb;">Post-UTME Screening Update</h2><p>The updated screening schedule and departmental cut-off marks for 2026/2027 have been verified in the CampusAI Knowledge Base.</p><div style="text-align:center;margin:24px 0;"><a href="https://campusai.com.ng" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Check Status Now</a></div></div></body></html>` },
+        { id: '2', name: 'Admission List Notice', subject: '🎓 Admission List Release & Verification Notice', htmlContent: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f7;padding:20px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"><h2 style="color:#10b981;">Admission List Verified</h2><p>Your admission status can now be verified against official university portals and JAMB CAPS.</p><div style="text-align:center;margin:24px 0;"><a href="https://campusai.com.ng" style="background:#10b981;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Verify Admission Portal</a></div></div></body></html>` }
+      ];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleSaveCurrentTemplate = () => {
+    const templateName = prompt("Enter a name for this custom email template:");
+    if (!templateName || !templateName.trim()) return;
+
+    const newTemplate = {
+      id: Date.now().toString(),
+      name: templateName.trim(),
+      subject: emailSubject,
+      htmlContent: emailHtmlContent,
+    };
+
+    const updated = [newTemplate, ...savedTemplates];
+    setSavedTemplates(updated);
+    try {
+      localStorage.setItem('campusai_saved_email_templates', JSON.stringify(updated));
+      alert(`Template "${templateName}" saved successfully!`);
+    } catch (e) {
+      console.error("Error saving template:", e);
+    }
+  };
+
+  const handleDeleteTemplate = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this saved template?")) return;
+    const updated = savedTemplates.filter(t => t.id !== id);
+    setSavedTemplates(updated);
+    try {
+      localStorage.setItem('campusai_saved_email_templates', JSON.stringify(updated));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!emailSubject.trim() || !emailHtmlContent.trim()) {
+      alert("Please enter both subject and HTML content.");
+      return;
+    }
+    const testEmail = prompt("Enter email address to send test email to:", "eiweh123@gmail.com");
+    if (!testEmail || !testEmail.trim() || !testEmail.includes('@')) return;
+
+    setIsSendingEmails(true);
+    setEmailSendResult(null);
+
+    try {
+      const res = await axios.post('/api/admin/send-email', {
+        token: SECRET_TOKEN,
+        recipients: [testEmail.trim()],
+        subject: `[TEST] ${emailSubject}`,
+        htmlContent: emailHtmlContent,
+        apiKey: resendApiKey.trim() || undefined,
+        senderEmail: resendFromEmail.trim() || undefined,
+      });
+
+      if (res.data.success) {
+        setEmailSendResult({ success: true, sentCount: 1, total: 1 });
+        alert(`Test email successfully sent to ${testEmail}! Check your inbox and spam folder.`);
+      } else {
+        const errReason = res.data.error || 'Failed to send test email';
+        setEmailSendResult({ success: false, error: errReason });
+        alert(`Test email failed: ${errReason}`);
+      }
+    } catch (err: any) {
+      console.error("[Test Email Error]:", err);
+      const errReason = err.response?.data?.error || err.message;
+      setEmailSendResult({ success: false, error: errReason });
+      alert(`Test email error: ${errReason}`);
+    } finally {
+      setIsSendingEmails(false);
+    }
+  };
+
+  const handleSendEmailCampaign = async () => {
+    if (!emailSubject.trim() || !emailHtmlContent.trim()) {
+      alert("Please enter both subject and HTML content.");
+      return;
+    }
+    if (!resendApiKey.trim()) {
+      if (!confirm("You have not entered a Resend API Key in the Resend Config section. Do you want to try sending using server environment credentials?")) {
+        return;
+      }
+    }
+    
+    try {
+      let recipientsList: string[] = [];
+      if (emailRecipientGroup === 'users') {
+        recipientsList = recentUsers.map(u => u.email).filter((e): e is string => Boolean(e));
+        if (recipientsList.length === 0) {
+          const fetched = await fetchRecentUsers();
+          recipientsList = fetched.map(u => u.email).filter((e): e is string => Boolean(e));
+        }
+      } else if (emailRecipientGroup === 'subscribers') {
+        const subsSnapshot = await getDocs(collection(db, "subscribers"));
+        subsSnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.email) recipientsList.push(data.email);
+        });
+      } else {
+        recipientsList = customEmailsText
+          .split(/[\n,]+/)
+          .map(e => e.trim())
+          .filter(e => e && e.includes('@'));
+      }
+
+      if (recipientsList.length === 0) {
+        alert("No valid recipient email addresses found for this target group. Please check your recipient audience selection or custom email list.");
+        return;
+      }
+
+      if (!window.confirm(`Are you sure you want to broadcast this HTML email campaign to ${recipientsList.length} recipient(s)?`)) {
+        return;
+      }
+
+      setIsSendingEmails(true);
+      setEmailSendResult(null);
+
+      const res = await axios.post('/api/admin/send-email', {
+        token: SECRET_TOKEN,
+        recipients: recipientsList,
+        subject: emailSubject,
+        htmlContent: emailHtmlContent,
+        apiKey: resendApiKey.trim() || undefined,
+        senderEmail: resendFromEmail.trim() || undefined,
+      });
+
+      if (res.data.success) {
+        setEmailSendResult({ success: true, sentCount: res.data.sentCount, total: res.data.total });
+        alert(`Successfully dispatched email to ${res.data.sentCount}/${res.data.total} recipients!`);
+      } else {
+        const errReason = res.data.error || 'Failed to send emails';
+        setEmailSendResult({ success: false, error: errReason });
+        alert(`Email dispatch failed: ${errReason}`);
+      }
+    } catch (err: any) {
+      console.error("[Email Campaign Error]:", err);
+      const errReason = err.response?.data?.error || err.message;
+      setEmailSendResult({ success: false, error: errReason });
+      alert(`Email dispatch error: ${errReason}`);
+    } finally {
+      setIsSendingEmails(false);
+    }
+  };
 
   // ── Intelligence (Testimonials & Feedback) ───────────────────────────────
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -1073,12 +1277,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
+                  {tab === 'emails' ? 'Email Campaigns' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -2044,6 +2248,212 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">No {newsFilter} articles found</p>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── EMAILS / CAMPAIGNS TAB ── */}
+              {activeTab === 'emails' && (
+                <div className="space-y-8 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <FileText size={14} className="text-blue-500" /> HTML Email Campaigner & Newsletter
+                      </h3>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                        Dispatched securely via Resend API from your verified domain
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEmailPreviewMode(!emailPreviewMode)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${emailPreviewMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'}`}
+                      >
+                        <Eye size={14} /> {emailPreviewMode ? 'Editor Mode' : 'Live HTML Preview'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Settings & Templates */}
+                    <div className="space-y-6 lg:col-span-1 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recipient Audience</label>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => setEmailRecipientGroup('users')}
+                            className={`w-full p-3 rounded-2xl text-left text-xs font-bold transition-all flex items-center justify-between ${emailRecipientGroup === 'users' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+                          >
+                            <span>All Registered Users ({recentUsers.length})</span>
+                            <Users size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEmailRecipientGroup('subscribers')}
+                            className={`w-full p-3 rounded-2xl text-left text-xs font-bold transition-all flex items-center justify-between ${emailRecipientGroup === 'subscribers' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+                          >
+                            <span>Subscribed Alert List</span>
+                            <CheckCircle2 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEmailRecipientGroup('custom')}
+                            className={`w-full p-3 rounded-2xl text-left text-xs font-bold transition-all flex items-center justify-between ${emailRecipientGroup === 'custom' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+                          >
+                            <span>Custom Email Addresses</span>
+                            <FileText size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {emailRecipientGroup === 'custom' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Enter Emails (comma or newline separated)</label>
+                          <textarea
+                            value={customEmailsText}
+                            onChange={e => setCustomEmailsText(e.target.value)}
+                            rows={4}
+                            placeholder="student1@gmail.com, student2@futa.edu.ng"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                            <span>Resend API Key</span>
+                            <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline lowercase font-medium">Get key</a>
+                          </label>
+                          <input
+                            type="password"
+                            value={resendApiKey}
+                            onChange={e => setResendApiKey(e.target.value)}
+                            placeholder="re_..."
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-mono text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sender Email (From)</label>
+                          <input
+                            type="text"
+                            value={resendFromEmail}
+                            onChange={e => setResendFromEmail(e.target.value)}
+                            placeholder="CampusAI Admissions <onboarding@resend.dev>"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                          />
+                          <p className="text-[10px] text-gray-500 italic">For testing: onboarding@resend.dev. For production: admissions@yourdomain.com</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Templates</label>
+                          <button
+                            onClick={handleSaveCurrentTemplate}
+                            className="text-[10px] font-extrabold text-blue-600 hover:text-blue-700 uppercase tracking-wider flex items-center gap-1"
+                          >
+                            + Save Current
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                          {savedTemplates.map(t => (
+                            <div
+                              key={t.id}
+                              onClick={() => {
+                                setEmailSubject(t.subject);
+                                setEmailHtmlContent(t.htmlContent);
+                              }}
+                              className="p-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/80 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-all flex items-center justify-between group cursor-pointer"
+                            >
+                              <span className="truncate flex-1">📄 {t.name}</span>
+                              <button
+                                onClick={(e) => handleDeleteTemplate(t.id, e)}
+                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                title="Delete Template"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl space-y-2">
+                        <p className="text-[11px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider">💡 RESEND CONFIG TIP</p>
+                        <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                          For testing, use <code className="bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono text-blue-600">onboarding@resend.dev</code> as your sender. To use your custom domain, verify it at <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="underline text-blue-600 font-bold">resend.com/domains</a>.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right Editor & Preview */}
+                    <div className="space-y-6 lg:col-span-2 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Subject Line</label>
+                        <input
+                          type="text"
+                          value={emailSubject}
+                          onChange={e => setEmailSubject(e.target.value)}
+                          className="w-full px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                        />
+                      </div>
+
+                      {!emailPreviewMode ? (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                            <span>HTML Template Content</span>
+                            <span className="text-blue-500 lowercase font-bold tracking-normal italic">Full HTML & CSS supported</span>
+                          </label>
+                          <textarea
+                            value={emailHtmlContent}
+                            onChange={e => setEmailHtmlContent(e.target.value)}
+                            rows={16}
+                            className="w-full px-5 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-mono text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all leading-relaxed"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live HTML Render Preview</label>
+                          <div className="w-full h-[420px] bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-inner">
+                            <iframe
+                              srcDoc={emailHtmlContent}
+                              title="Email Preview"
+                              className="w-full h-full border-0"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+                        <div>
+                          {emailSendResult && (
+                            <p className={`text-xs font-bold ${emailSendResult.success ? 'text-emerald-500' : 'text-red-500'}`}>
+                              {emailSendResult.success ? `Successfully sent to ${emailSendResult.sentCount}/${emailSendResult.total} recipients.` : `Error: ${emailSendResult.error}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={handleSendTestEmail}
+                            disabled={isSendingEmails}
+                            className="px-6 py-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                          >
+                            Send Test Email
+                          </button>
+                          <button
+                            onClick={handleSendEmailCampaign}
+                            disabled={isSendingEmails}
+                            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {isSendingEmails ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                            Dispatch Email Campaign Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

@@ -1,0 +1,60 @@
+[
+  {
+    "institution_name": "Federal University of Agriculture, Abeokuta (FUNAAB)",
+    "slug": "funaab",
+    "formula_description": "Composite Grading System based on O'Level results and UTME score in a ratio of 50:50.",
+    "utme_weighting": 50,
+    "olevel_weighting": 50
+  },
+  {
+    "institution_name": "Nnamdi Azikiwe University (UNIZIK)",
+    "slug": "unizik",
+    "formula_description": "Weighted sum of JAMB score (70%) and O'Level score (30%) including a bonus for single sitting.",
+    "utme_weighting": 70,
+    "olevel_weighting": 30
+  },
+  {
+    "institution_name": "Federal University, Oye-Ekiti (FUOYE)",
+    "slug": "fuoye",
+    "formula_description": "Weighted sum of UTME (60%) and O'Level points (40%). Online screening only, no exam.",
+    "utme_weighting": 60,
+    "olevel_weighting": 40
+  },
+  {
+    "institution_name": "University of Ilorin (UNILORIN)",
+    "slug": "unilorin",
+    "formula_description": "Aggregate of UTME/A’Level score (50%); Post-UTME screening score (30%); and Five (5) relevant O’ Level grades (20%).",
+    "utme_weighting": 50,
+    "post_utme_weighting": 30,
+    "olevel_weighting": 20
+  },
+  {
+    "institution_name": "Federal University of Technology, Owerri (FUTO)",
+    "slug": "futo",
+    "formula_description": "Based on verified JAMB scores and O'Level results. No Post-UTME exam.",
+    "utme_weighting": 100,
+    "post_utme_weighting": 0
+  },
+  {
+    "institution_name": "University of Nigeria, Nsukka (UNN)",
+    "slug": "unn",
+    "formula_description": "(JAMB Score * 0.9) + (O'Level Screening Score * 0.1).",
+    "utme_weighting": 90,
+    "olevel_weighting": 10
+  },
+  {
+    "institution_name": "University of Lagos (UNILAG)",
+    "slug": "unilag",
+    "formula_description": "Aggregate Score = (UTME Score / 8) + Post-UTME Score + O'Level Points (50:30:20)",
+    "utme_weighting": 50,
+    "post_utme_weighting": 30,
+    "olevel_weighting": 20
+  },
+  {
+    "institution_name": "University of Ibadan (UI)",
+    "slug": "ui",
+    "formula_description": "Aggregate Score = (UTME Score / 8) + (Post-UTME Score / 2) (50:50)",
+    "utme_weighting": 50,
+    "post_utme_weighting": 50
+  }
+]
