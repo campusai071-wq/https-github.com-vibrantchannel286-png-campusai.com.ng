@@ -2614,13 +2614,18 @@ app.post("/api/admin/send-email", requireAdminToken as any, async (req: any, res
     const results = [];
     for (const email of recipients) {
       try {
-        const data = await resend.emails.send({
+        const response = await resend.emails.send({
           from,
           to: [email],
           subject,
           html: htmlContent,
         });
-        results.push({ email, success: true, data });
+        
+        if (response.error) {
+           results.push({ email, success: false, error: response.error.message });
+        } else {
+           results.push({ email, success: true, data: response.data });
+        }
       } catch (err: any) {
         results.push({ email, success: false, error: err.message });
       }

@@ -127,7 +127,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Resend Config state
   const [resendApiKey, setResendApiKey] = useState(() => localStorage.getItem('campusai_resend_api_key') || '');
-  const [resendFromEmail, setResendFromEmail] = useState(() => localStorage.getItem('campusai_resend_from_email') || 'CampusAI Admissions <onboarding@resend.dev>');
+  const [resendFromEmail, setResendFromEmail] = useState(() => localStorage.getItem('campusai_resend_from_email') || 'CampusAI Admissions <noreply@campusai.com.ng>');
 
   useEffect(() => {
     localStorage.setItem('campusai_resend_api_key', resendApiKey);
@@ -2341,10 +2341,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             type="text"
                             value={resendFromEmail}
                             onChange={e => setResendFromEmail(e.target.value)}
-                            placeholder="CampusAI Admissions <onboarding@resend.dev>"
+                            placeholder="CampusAI Admissions <noreply@campusai.com.ng>"
                             className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
                           />
-                          <p className="text-[10px] text-gray-500 italic">For testing: onboarding@resend.dev. For production: admissions@yourdomain.com</p>
+                          <p className="text-[10px] text-gray-500 italic">Example: CampusAI Admissions &lt;noreply@campusai.com.ng&gt;</p>
                         </div>
                       </div>
 
