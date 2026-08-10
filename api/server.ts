@@ -2627,6 +2627,17 @@ app.post("/api/admin/send-email", requireAdminToken as any, async (req: any, res
     }
 
     const successCount = results.filter(r => r.success).length;
+    if (successCount === 0) {
+      const firstError = results[0]?.error || 'Unknown Resend error';
+      return res.status(400).json({
+        success: false,
+        sentCount: 0,
+        total: recipients.length,
+        error: `Resend failed to send email: ${firstError}. Note: If using onboarding@resend.dev, Resend only allows sending to your own verified account email address unless you verify a custom domain at resend.com/domains.`,
+        results
+      });
+    }
+
     return res.json({ success: true, sentCount: successCount, total: recipients.length, results });
   } catch (err: any) {
     console.error("[Send Email Error]:", err);
