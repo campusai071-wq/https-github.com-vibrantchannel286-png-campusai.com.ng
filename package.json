@@ -7,7 +7,11 @@
     "dev": "tsx api/server.ts",
     "build": "vite build && esbuild api/server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^8.3.0",
@@ -55,7 +59,12 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",
     "@eslint/js": "^10.0.1",
+    "@playwright/cli": "^0.1.18",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.2.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/react": "^19.0.0",
@@ -63,10 +72,12 @@
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.27",
     "esbuild": "^0.28.1",
+    "jsdom": "^30.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",
-    "vite": "^7.3.0"
+    "vite": "^7.3.0",
+    "vitest": "^4.1.10"
   }
 }

@@ -13,6 +13,7 @@ import UniversityDirectory from './UniversityDirectory';
 import TopRankings from './TopRankings';
 import Sidebar from './Sidebar';
 import NewsDetailView from './NewsDetailView';
+import ToolsGrid from './ToolsGrid';
 
 // Code-split heavy secondary views & modals for faster initial load
 const PolicySection = lazy(() => import('./PolicySection'));
@@ -1070,6 +1071,11 @@ const AppContent: React.FC = () => {
                     }}
                   />
                   
+                  <Suspense fallback={<div className="h-40 flex items-center justify-center text-blue-500">Loading tools...</div>}>
+                    <ToolsGrid />
+                  </Suspense>
+
+                  
                   <div className="container mx-auto px-4 md:px-8 mt-20 max-w-lg">
                     {user && (
                       <>
@@ -1108,6 +1114,7 @@ const AppContent: React.FC = () => {
                       onUpgrade={() => setIsScholarPackOpen(true)} 
                       initialCategory={directoryInitialCategory}
                     />
+
                   </Suspense>
 
                   {/* POLICIES SECTION */}
@@ -1121,6 +1128,7 @@ const AppContent: React.FC = () => {
                       onLoginRequest={() => navigate('/login')} 
                       isMiniPreview={true}
                     />
+
                   </section>
 
                   {/* TESTIMONIALS SECTION */}
@@ -1146,6 +1154,7 @@ const AppContent: React.FC = () => {
                     onAdminLogout={handleLogout}
                     systemStatus={{ gemini: 'online', firebase: 'online' }}
                   />
+
               )}
             </>
           } />

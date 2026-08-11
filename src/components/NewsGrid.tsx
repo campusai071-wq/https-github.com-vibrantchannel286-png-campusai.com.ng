@@ -771,7 +771,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-12 gap-8">
         <div className="space-y-4 max-w-xl">
           <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight">
-            Campus Updates <br />
+            Campus Updates & Admission News <br />
             <span className="text-cyan-400 font-black tracking-tight">(2026 Cycle)</span>
           </h2>
 
