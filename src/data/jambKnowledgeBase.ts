@@ -865,6 +865,47 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official Profile",
     last_verified: "2026-08-11",
     version: "2026"
+  },
+  {
+    id: "jamb_ibass_eligibility_checker_system",
+    organization: "JAMB / IBASS",
+    page_type: "procedural",
+    category: "Brochure & Syllabus",
+    subcategory: "IBASS Eligibility Checker",
+    title: "JAMB IBASS Eligibility Checker & Automated Programme Verification System",
+    summary: "Official JAMB Integrated Brochure & Syllabus System (IBASS) tool enabling candidates to verify admission eligibility across modes of entry, institutions, O'Level subject combinations, A'Level credits, and UTME subject requirements.",
+    steps: [
+      "1. Access the official IBASS portal at https://ibass.jamb.gov.ng/eligibility-checker",
+      "2. Select Mode of Entry (UTME or Direct Entry), Institution Type (University, Polytechnic, COE, IEI), Category, target Institution, and Program.",
+      "3. Specify O'Level Credits (A1-C6) and Passes (D7-E8) across up to 9 selected SSCE subjects.",
+      "4. Specify A'Level Credits and Passes (if applying via Direct Entry).",
+      "5. Select 4 UTME Subject Combination (with English Language as mandatory compulsory subject).",
+      "6. Click 'Check Eligibility' to run instant validation against official IBASS brochure requirements and CAPS admission criteria."
+    ],
+    requirements: [
+      "5 O'Level credit passes (A1-C6) including English Language and Mathematics (where applicable) at maximum 2 sittings.",
+      "4 UTME subjects matching the official IBASS brochure requirements for target course.",
+      "Valid A'Level results / Diploma qualifications for Direct Entry candidates."
+    ],
+    eligibility_rules: [
+      "English Language is compulsory across all UTME subject combinations.",
+      "Subject combinations must strictly match the IBASS brochure for the selected institution and program.",
+      "Candidates with Awaiting Results (AR) can check eligibility conditionally before final result upload on CAPS."
+    ],
+    key_facts: [
+      "Official URL: https://ibass.jamb.gov.ng/",
+      "Provides digital brochure, e-syllabus, CBT guidelines, process manuals, and live eligibility checker.",
+      "Directly synced with JAMB Central Admissions Processing System (CAPS)."
+    ],
+    important_notes: [
+      "Always verify brochure requirements on IBASS before registering or changing courses to prevent disqualification."
+    ],
+    keywords: ["ibass", "eligibility checker", "jamb eligibility checker", "utme subject combination", "o level requirement checker", "ibass brochure", "jamb e-syllabus", "check programme eligibility"],
+    related_topics: ["UTME Registration", "JAMB CAPS", "Direct Entry", "O'Level Upload"],
+    official_source: "https://ibass.jamb.gov.ng/eligibility-checker",
+    source_type: "Official Portal Tool",
+    last_verified: "2026-08-11",
+    version: "2026"
   }
 ];
 

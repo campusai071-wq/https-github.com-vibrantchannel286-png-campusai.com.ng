@@ -408,6 +408,39 @@ const articles = [
     ],
     "last_verified": "2026-08-11",
     "version": "2026"
+  },
+  {
+    "id": "kb-jamb-ibass-eligibility-checker",
+    "title": "JAMB IBASS Eligibility Checker & Automated Programme Verification System",
+    "slug": "jamb-ibass-eligibility-checker-programme-verification",
+    "category": "Brochure & Syllabus",
+    "institution": "JAMB / IBASS",
+    "course": "",
+    "summary": "Official JAMB IBASS tool for verifying admission eligibility across modes of entry, subject combinations, O'Level credits, A'Level credits, and institution requirements.",
+    "content": "The Integrated Brochure & Syllabus System (IBASS) Eligibility Checker (https://ibass.jamb.gov.ng/eligibility-checker) allows candidates to verify admission eligibility before registration or changing courses. Users select Mode of Entry, Institution Type, Institution, and Programme, then enter their O'Level Credits/Passes, A'Level subjects (for DE), and 4 UTME subjects (with compulsory English Language). The system automatically evaluates subject alignment against official JAMB brochure rules and CAPS requirements.",
+    "requirements": [
+      "5 O'Level credit passes (A1-C6) including English Language and Mathematics at max 2 sittings",
+      "4 UTME subjects matching official brochure requirements"
+    ],
+    "steps": [
+      "Access https://ibass.jamb.gov.ng/eligibility-checker",
+      "Select Mode of Entry, Institution Type, Institution, and Programme",
+      "Select O'Level Credits and Passes across up to 9 subjects",
+      "Select A'Level Credits and Passes (for Direct Entry)",
+      "Choose 4 UTME Subjects (English Language mandatory)",
+      "Click 'Check Eligibility' for instant automated validation"
+    ],
+    "documents_required": ["O'Level Statement of Results", "A'Level / Diploma Certificates"],
+    "important_dates": [],
+    "fees": [],
+    "official_sources": ["https://ibass.jamb.gov.ng/eligibility-checker"],
+    "related_topics": ["UTME Registration", "JAMB CAPS", "Direct Entry"],
+    "keywords": ["ibass", "eligibility checker", "jamb eligibility checker", "utme subject combination", "ibass brochure", "check programme eligibility"],
+    "faq": [
+      {"question": "Where can I check if my UTME subject combination is correct for my course?", "answer": "You can check your subject combination on the official JAMB IBASS Eligibility Checker at https://ibass.jamb.gov.ng/eligibility-checker."}
+    ],
+    "last_verified": "2026-08-11",
+    "version": "2026"
   }
 ];
 
