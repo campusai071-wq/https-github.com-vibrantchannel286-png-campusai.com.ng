@@ -558,6 +558,313 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official Institution Portal",
     last_verified: "2026-08-10",
     version: "2026/2027"
+  },
+  {
+    id: "jamb_policy_meeting_cutoffs_2026",
+    organization: "JAMB / Federal Ministry of Education",
+    page_type: "policy",
+    category: "Policy & Eligibility",
+    subcategory: "Minimum Tolerable Admission Cut-offs",
+    title: "2026 JAMB Policy Meeting Approved Minimum Tolerable Admission Cut-off Scores",
+    summary: "Official minimum tolerable admission cutoff scores approved at the 2026 JAMB Policy Meeting for all tertiary institutions in Nigeria, minimum admission age (16 years), and DE clearance directives.",
+    steps: [],
+    requirements: [
+      "Minimum age of 16 years by December 31 of the admission year",
+      "UTME score meeting or exceeding national baseline threshold for institution type",
+      "Uploaded O'Level results on JAMB CAPS"
+    ],
+    eligibility_rules: [
+      "Universities minimum tolerable score: 150",
+      "Colleges of Nursing minimum tolerable score: 150",
+      "Polytechnics, Monotechnics, Colleges of Agriculture, Colleges of Education, and IEIs: 100",
+      "Individual institutions may set higher departmental cut-off marks, but no institution may admit candidates below these national minimum thresholds."
+    ],
+    key_facts: [
+      "Universities baseline: 150",
+      "Colleges of Nursing baseline: 150",
+      "Polytechnics / Colleges of Education / IEIs baseline: 100",
+      "Minimum admission age remains 16 years old.",
+      "94 candidates flagged on the official 2026 List of Solicitation Candidates.",
+      "43 institutions with 20 or more outstanding Direct Entry result clearance requests (e.g. Federal Poly Nasarawa 222, KadPoly 220, UNICAL 115, DELSU 95, UNIABUJA 81) summoned for mandatory clearance."
+    ],
+    important_notes: [
+      "Top competitive universities (e.g. UNILAG, UI, OAU, FUTA) typically set higher departmental screening cut-offs."
+    ],
+    keywords: ["2026 policy meeting", "minimum cutoff 150", "university cutoff 150", "polytechnic cutoff 100", "nursing cutoff 150", "admission age 16", "solicitation candidates", "outstanding de clearance"],
+    related_topics: ["UTME Registration", "JAMB CAPS", "Direct Entry"],
+    official_source: "https://www.jamb.gov.ng/",
+    source_type: "Official Website",
+    last_verified: "2026-08-11",
+    version: "2026"
+  },
+  {
+    id: "jamb_condonement_illegal_admissions_2026",
+    organization: "JAMB",
+    page_type: "procedural",
+    category: "Admissions",
+    subcategory: "Irregular Admission Condonement",
+    title: "Disclosure & Condonement of Irregularly/Illegally Admitted Candidates (2024/25 & 2025/26 Intakes)",
+    summary: "Official ministerial approval granted by the Honourable Minister of Education for condonement of candidates illegally admitted into Colleges of Education without JAMB for 2024/2025 and 2025/2026 academic sessions (Ref: JAMB/ADMS/DO/208/V.I).",
+    steps: [
+      "1. Obtain O'Level Result Verification Code from the relevant examination body website (WAEC: https://buyresultsverificationcode.waeconline.org.ng — ₦1,500 for 1 sitting, ₦2,000 for 2 sittings across exam bodies).",
+      "2. Approach any accredited CBT Center, Professional Registration Centre (PRC), or Institutional Professional Registration Centre (IPRC) with your O'Level Result Verification Code.",
+      "3. Make ePayment on the JAMB Portal: Application registration fee (₦3,500) + CBT/PRC/IPRC centre registration charges (₦700) = Total ₦4,200.",
+      "4. Select 1st Choice, 2nd Choice, and 3rd Choice (Colleges of Education). The 1st Choice MUST be the College and Programme in which the candidate was illegally admitted.",
+      "5. Supply all requirements, results, and upload filled registration template form.",
+      "6. College Admission Officer proposes and Provost recommends candidate to JAMB via eFacility portal to CAPS."
+    ],
+    requirements: [
+      "Official O'Level Result Verification Code (WAEC/NECO/NABTEB/NBAIS)",
+      "JAMB ePayment receipt for ₦4,200 (₦3,500 application + ₦700 centre charges)",
+      "Official endorsement by College Provost / Institution Registrar"
+    ],
+    eligibility_rules: [
+      "Applies strictly to 2024/2025 and 2025/2026 academic intakes. Does NOT apply to 2026 intakes.",
+      "Candidates with Awaiting Results (AR) status are NOT eligible for condonement.",
+      "All institution submissions must reach JAMB on or before June 30, 2026. False declarations or omissions will not be condoned."
+    ],
+    key_facts: [
+      "Condonement total fee: ₦4,200 on JAMB Portal.",
+      "1st Choice must match the exact College and Programme where the illegal admission took place.",
+      "Enables illegally admitted students to regularize admission and obtain valid JAMB Admission Letters."
+    ],
+    important_notes: [
+      "Candidates must obtain the SSCE verification code prior to visiting the CBT/IPRC centre."
+    ],
+    keywords: ["condonement of illegal admission", "irregular admission", "waiver", "colleges of education condonement", "waec verification code", "jamb 4200", "babaji", "jamb/adms/do/208/v.i"],
+    related_topics: ["JAMB Regularization", "O'Level Upload", "JAMB CAPS"],
+    official_source: "https://www.jamb.gov.ng/pdfs/2026/Letter%20to%20Provosts%20on%20Special%20waiver.pdf",
+    source_type: "Official Circular",
+    last_verified: "2026-08-11",
+    version: "2026"
+  },
+  {
+    id: "jamb_nce_nd_agric_registration_guidelines_2026",
+    organization: "JAMB / NCCE",
+    page_type: "policy",
+    category: "Registration & Admissions",
+    subcategory: "NCE & ND Agric Guidelines",
+    title: "2026/2027 NCE & ND Non-Technology Agric Registration Guidelines",
+    summary: "Official JAMB Registrar Advisory governing NCE mode registration, ND Non-Technology Agric Related Programmes, and complete abolition of 100/200 Level degree admissions in Colleges of Education starting 2026/2027 session.",
+    steps: [
+      "1. Obtain O'Level Result Verification Code from examination body website (WAEC: https://buyresultsverificationcode.waeconline.org.ng — ₦1,500 for 1 sitting, ₦2,000 for 2 sittings).",
+      "2. Send NIN to 55019 or 66019 to obtain a JAMB Profile Code.",
+      "3. Log in to e-Facility portal and select NCE/Agric registration option.",
+      "4. Make ePayment (₦3,500 application fee + ₦700 CBT fee; OR pay ONLY ₦700 if migrating from 2026 UTME application).",
+      "5. Present SSCE Verification Code, choose up to 3 choices (Colleges of Education), capture biometrics, and print Registration Slip.",
+      "6. College Admission Officer proposes and Provost recommends candidate on eFacility to CAPS."
+    ],
+    requirements: [
+      "NIN & JAMB Profile Code",
+      "SSCE Result Verification Code (WAEC/NECO/NABTEB/NBAIS)",
+      "Passport photograph & biometric capture"
+    ],
+    eligibility_rules: [
+      "NO 100 or 200 Level degree admissions allowed in any College of Education from 2026/2027 session — ALL entrants must be through NCE.",
+      "NO admissions into affiliated degree programmes in any College of Education from 2026/2027 session.",
+      "Candidate can be processed for ONLY ONE mode of entry at a time (choosing NCE suspends ongoing UTME/DE process)."
+    ],
+    key_facts: [
+      "2026 UTME Candidates migrating to NCE/ND Agric pay ONLY ₦700 registration fee (₦3,500 JAMB application fee is WAIVED).",
+      "2026 DE Candidates who chose affiliated COEs have 3 free options: Change of Institution, Transfer to Parent University, or Default to Second Choice.",
+      "2026 UTME (100L) Candidates who chose affiliated COEs have 3 free options: Change of Institution, Change to Second Choice, or Default to NCE Programme.",
+      "Every College of Education has an Institutional Professional Registration Centre (IPRC) with minimum 2 registration points."
+    ],
+    important_notes: [
+      "Candidates with Awaiting Results (AR) cannot be proposed or recommended on CAPS until O'Level results are verified and uploaded."
+    ],
+    keywords: ["nce registration guidelines", "nd agric registration", "no 100l in coe", "affiliated colleges of education", "nce 700 fee", "ncce", "jamb advisory june 2026"],
+    related_topics: ["UTME Registration", "Direct Entry", "JAMB CAPS"],
+    official_source: "https://www.jamb.gov.ng/pdfs/2026/V5%20Special%20Registration%20Flow%20NCE%20ND.pdf",
+    source_type: "Official Advisory",
+    last_verified: "2026-08-11",
+    version: "2026"
+  },
+  {
+    id: "jamb_inclusive_education_strategic_roadmap_2024_2028",
+    organization: "Federal Ministry of Education / JAMB",
+    page_type: "policy",
+    category: "Special Needs & Inclusion",
+    subcategory: "JEOG Strategic Roadmap",
+    title: "Strategic Roadmap for Inclusive Access to Quality Higher Education in Nigeria (2024–2028)",
+    summary: "Comprehensive 5-year strategic roadmap developed by the JAMB Equal Opportunity Group (JEOG) and Federal Ministry of Education (budget: ₦14,735,947,046) establishing national standards, trimodal UTME examination modes, and inclusion targets for persons with disabilities in tertiary institutions.",
+    steps: [],
+    requirements: [
+      "Eligible candidates with Special Needs (visual impairment, hearing impairment, physical/health impairment, autism, Down Syndrome, learning disabilities, albinism, etc.)",
+      "Registration via JEOG designated centers nationwide"
+    ],
+    eligibility_rules: [
+      "Trimodal UTME choice: (a) Fully Braille, (b) Fully CBT, or (c) Fully Read-Aloud by proctor.",
+      "Equal opportunity and non-discriminatory admission criteria applied across all tertiary institutions."
+    ],
+    key_facts: [
+      "Drafted by JEOG led by Registrar Prof. Is-haq Oloyede and Chairman Prof. Emeritus Peter Okebukola.",
+      "Total estimated implementation cost: ₦14,735,947,046.",
+      "Goal 1: Establish national standards & quality assurance guidelines for inclusive basic & higher education.",
+      "Goal 2: Establish & update national database of eligible Special Needs individuals by 2025.",
+      "Goal 3: At least 5% annual increase in admission of candidates with Special Needs through JAMB.",
+      "Goal 4: Trimodal UTME system with 5% annual increase in fully-CBT mode leading up to 2028.",
+      "Goal 5: 2% annual growth rate in UTME participation for non-visually impaired disability categories (autism, Down Syndrome, hard of hearing, muteness).",
+      "Goal 6: Expand basic education opportunities for blind/visually-impaired candidates by 5% annually.",
+      "Goal 7: 10% annual increase in tertiary institutions (Universities, Polytechnics, COEs) with ambient, disability-friendly environments and support centers.",
+      "Goal 8: At least 60% of students with disabilities report receiving non-discriminatory attention in class, hostels, and campus by 2028.",
+      "Goal 9: Rank Nigeria among top 5 in Africa and top 20 globally for successful inclusive education implementation."
+    ],
+    important_notes: [
+      "JAMB Equal Opportunity Group (JEOG) processes over 2,600 Special Needs candidates with an average success rate exceeding 33%."
+    ],
+    keywords: ["strategic roadmap inclusive access", "jeog", "jamb equal opportunity group", "special needs utme", "braille cbt read aloud", "disability access jamb", "peter okebukola", "ishaq oloyede", "inclusive education nigeria"],
+    related_topics: ["UTME Registration", "JAMB Policy Meeting", "JAMB CAPS"],
+    official_source: "https://www.jamb.gov.ng/PDFs/FINAL-2024-2028%20Strategic%20Roadmap%20for%20Inclusive%20Access%20to%20Quality%20Higher%20Education-Oct_2024updated.pdf",
+    source_type: "Official Policy Document",
+    last_verified: "2026-08-11",
+    version: "2024-2028"
+  },
+  {
+    id: "jamb_returnee_candidates_guidelines_2026",
+    organization: "JAMB",
+    page_type: "procedural",
+    category: "Admissions",
+    subcategory: "Foreign Returnees & Transfers",
+    title: "JAMB Returnee Candidates Application Guidelines (Foreign Returnees & Inter-University Transfer)",
+    summary: "Official JAMB process for Nigerian students displaced from foreign institutions (e.g. Ukraine, Sudan, Turkey) or seeking inter-university transfers to gain absorbed admission into Nigerian universities.",
+    steps: [
+      "1. Download the official 'Advisory for Returnee Students (Ukraine, Turkey, Sudan, Inter-University Transfer)' from JAMB website.",
+      "2. Download and review the Affidavit Guide and official Affidavit template.",
+      "3. Execute a sworn court Affidavit before a High Court commissioner for oaths.",
+      "4. Visit the official returnee portal: https://returnee.jamb.gov.ng/ and complete the application form.",
+      "5. Upload official academic transcripts from former university, previous admission letter, passport data page, and sworn affidavit.",
+      "6. JAMB evaluates credentials and issues formal clearance/recommendation to the target Nigerian university for absorption."
+    ],
+    requirements: [
+      "Official academic transcript from former foreign or local university",
+      "Sworn court Affidavit adhering to JAMB Affidavit Guide",
+      "Application submitted via https://returnee.jamb.gov.ng/",
+      "Valid international passport or national ID"
+    ],
+    eligibility_rules: [
+      "Must be a genuine returnee student displaced by war/crisis or seeking formal inter-university transfer.",
+      "Subject combinations and credit transfers must meet target university and NUC/JAMB standards."
+    ],
+    key_facts: [
+      "Provides legitimate academic path for Nigerian students affected by conflict in Ukraine, Sudan, and Turkey.",
+      "Generates official JAMB clearance and updated registration record."
+    ],
+    important_notes: [
+      "Ensure transcripts are official and verified by target institution before clearance finalization."
+    ],
+    keywords: ["returnee candidates", "ukraine returnee students", "sudan returnee students", "turkey returnee", "inter university transfer jamb", "returnee.jamb.gov.ng", "affidavit guide"],
+    related_topics: ["Direct Entry", "JAMB Regularization", "Admission Letter"],
+    official_source: "https://www.jamb.gov.ng/ReturneeApplicants.aspx",
+    source_type: "Official Portal Guidelines",
+    last_verified: "2026-08-11",
+    version: "2026"
+  },
+  {
+    id: "jamb_profiled_email_lost_sim_service",
+    organization: "JAMB",
+    page_type: "procedural",
+    category: "Services & Profile",
+    subcategory: "SIM Loss & Profile Update",
+    title: "Implementation of 'Profiled Email' Service to Substitute Lost SIM",
+    summary: "Official JAMB procedure allowing candidates who lost their registered SIM card to attach a 'Profiled Email' at an accredited CBT center via TEMPL 006 to restore profile access and receive SMS notifications.",
+    steps: [
+      "1. Candidate visits any accredited CBT Center and requests template TEMPL 006 ('add email' service).",
+      "2. Complete template details (Registration Number, Phone Number, Profile Code, and mandatory new email address never previously used on JAMB platform).",
+      "3. Sign the declaration/attestation section affirming accuracy.",
+      "4. CBT official logs in with authorized credentials on the CBT Registration App, initiates 'add email' feature, and uploads the signed TEMPL 006 template.",
+      "5. System validates new email address and sends a confirmation link or verification code to candidate's email inbox.",
+      "6. Candidate clicks verification link or inputs confirmation code to authenticate.",
+      "7. Profile is updated to 'Profiled Email', unlocking Password Reset, RESEND, RESULT, ePIN, and a new 'Messages' menu (acting as the SMS inbox of the lost SIM)."
+    ],
+    requirements: [
+      "New email address (never previously registered on JAMB platform)",
+      "Completed & signed TEMPL 006 template form",
+      "Registration Number, Phone Number, or Profile Code"
+    ],
+    eligibility_rules: [
+      "Email must be active, accessible, and not previously associated with another JAMB profile.",
+      "Template upload must be performed at an accredited CBT Center by an authorized official."
+    ],
+    key_facts: [
+      "Replaces the need for SIM retrieval for JAMB profile operations.",
+      "Restores access to 55019 / 66019 USSD commands via profile dashboard.",
+      "Adds a new 'Messages' menu inside eFacility profile where all 55019/66019 SMS notifications are mirrored."
+    ],
+    important_notes: [
+      "Candidate must sign the TEMPL 006 form to make the declaration legally binding."
+    ],
+    keywords: ["lost sim jamb", "profiled email", "templ 006", "add email jamb", "substitute lost sim", "jamb email update", "cbt registration app email", "55019 messages"],
+    related_topics: ["JAMB Profile Code", "E-Facility", "Password Reset"],
+    official_source: "https://www.jamb.gov.ng/img/2025Advisories/PROFILED_EMAIL_SERVICE1.pdf",
+    source_type: "Official Implementation Guide",
+    last_verified: "2026-08-11",
+    version: "2025/2026"
+  },
+  {
+    id: "jamb_minimum_admissible_age_16_years_policy",
+    organization: "JAMB / Federal Ministry of Education",
+    page_type: "policy",
+    category: "Policy & Eligibility",
+    subcategory: "Minimum Admissible Age",
+    title: "Admission of Candidates with Minimum Admissible Age of 16 Years (Ref: JAMB/ADMS/139/V.III)",
+    summary: "Official JAMB policy circular (Ref: JAMB/ADMS/139/V.III) enforcing 16 years as the minimum age for admission into Nigerian tertiary institutions, with flexibility for sessions extending into August 2025.",
+    steps: [
+      "1. Institutions harvest eligible candidates reaching 16 years of age between January 1st and August 31st, 2025 from CAPS.",
+      "2. Submit the harvested list to JAMB for final admission approval.",
+      "3. Candidates who meet departmental standards but were previously restricted due to age can now be considered."
+    ],
+    requirements: [
+      "Candidate must attain at least 16 years of age by 31st December 2024 (or 31st August 2025 for institutions whose 2024/2025 session extends through July 2025).",
+      "Full compliance with institution departmental and screening criteria."
+    ],
+    eligibility_rules: [
+      "Sacrosanct baseline: Candidate cannot be admitted below 16 years of age.",
+      "Institutions whose 2024/2025 admission cycle extends through July 2025 are allowed to admit candidates who turn 16 by August 31, 2025.",
+      "Institutions desiring to strictly enforce 16 years within the 2024 calendar year (by Dec 31, 2024) are completely free to do so."
+    ],
+    key_facts: [
+      "Ensures equity across institutions with varying academic calendar end-dates.",
+      "Signed by Director Admissions Mohammed A. Babaji on behalf of the Registrar.",
+      "Prevents candidates from being unduly disadvantaged due to delayed session calendars."
+    ],
+    important_notes: [
+      "16 years minimum age is a national baseline across all universities, polytechnics, colleges of nursing, and colleges of education."
+    ],
+    keywords: ["minimum age 16", "jamb/adms/139/v.iii", "admission age requirement", "16 years august 31 2025", "16 years december 31 2024", "caps age harvest", "babaji age circular"],
+    related_topics: ["JAMB Policy Meeting", "JAMB CAPS", "University Admission Criteria"],
+    official_source: "https://www.jamb.gov.ng/img/2024Advisories/PROFILED_EMAIL_SERVICE1.pdf",
+    source_type: "Official Circular",
+    last_verified: "2026-08-11",
+    version: "2024/2025"
+  },
+  {
+    id: "jamb_registrar_prof_segun_aina",
+    organization: "JAMB",
+    page_type: "profile",
+    category: "Governance & Leadership",
+    subcategory: "Executive Leadership",
+    title: "Profile of the Registrar & Chief Executive — Prof. Segun Aina",
+    summary: "Official profile of Prof. Segun Aina, the sixth Registrar and Chief Executive of the Joint Admissions and Matriculation Board (JAMB).",
+    steps: [],
+    requirements: [],
+    eligibility_rules: [],
+    key_facts: [
+      "Name: Prof. Segun Aina",
+      "Role: Sixth Registrar and Chief Executive Officer of JAMB.",
+      "Academic Background: Distinguished Professor of Computer Engineering.",
+      "Qualifications: B.Eng in Computer Systems Engineering (Univ. of Kent, UK), M.Sc in Internet Computing & Network Security (Loughborough Univ, UK), PhD in Digital Signal Processing (Loughborough Univ, UK), Senior Management Programme (Lagos Business School).",
+      "Key Pillars & Leadership Vision: Unwavering commitment to examination integrity, public sector innovation, digital transformation, artificial intelligence integration, and modernizing examination technology across Nigeria."
+    ],
+    important_notes: [
+      "Affirms readiness to strengthen operational processes, technological innovation, and transparent equal opportunity matriculation services."
+    ],
+    keywords: ["segun aina", "prof segun aina", "jamb registrar", "sixth registrar jamb", "computer engineering registrar"],
+    related_topics: ["JAMB Mandate", "Board Leadership"],
+    official_source: "https://www.jamb.gov.ng/Registrar_CE.aspx",
+    source_type: "Official Profile",
+    last_verified: "2026-08-11",
+    version: "2026"
   }
 ];
 
