@@ -25,6 +25,8 @@ export interface NewsItem {
   tags?: string[];
   isImportant?: boolean;
   views?: number;
+  likes?: number;
+  likedBy?: string[];
   createdAt?: any;
   updatedAt?: any;
   archivedAt?: any;

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { stringify } from '../services/utils';
 import { getStoredLinkPreviews } from '../services/linkPreviewService';
+import { trackPageView } from '../services/analytics';
 
 interface SEOProps {
   title?: string;
@@ -124,6 +125,10 @@ const SEO: React.FC<SEOProps> = ({
       "author": [{ "@type": "Person", "name": author }]
     } : {})
   };
+
+  useEffect(() => {
+    trackPageView(fullUrl, cleanTitle);
+  }, [fullUrl, cleanTitle]);
 
   return (
     <Helmet>

@@ -4,7 +4,7 @@ import { triggerBrowserNotification, slugify } from '../services/utils';
 import { 
   Calendar, RefreshCw, Newspaper, Brain, ShieldCheck, Box, Bookmark,
   BookmarkCheck, Plus, Database, Search, ArrowRight, Zap, Activity,
-  Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon
+  Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon, ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UniversityCategory, NewsItem } from '../types';
@@ -14,7 +14,9 @@ import {
   updateGlobalSyncMetadata, updateNewsItem, deleteNewsUpdate,
   logUserActivity, getStableNewsKey, normalizeCategory,
   getCloudNewsCount, getUserActivities, getSyncTime,
-  getEffectiveDateMs, sortNewsBySyncAndDate, getNewsSortTimestamp
+  getEffectiveDateMs, sortNewsBySyncAndDate, getNewsSortTimestamp,
+  readBookmarkIds, toggleBookmarkArticle, readLikedArticleIds,
+  getArticleLikesCount, toggleArticleLike
 } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
 import QuotaModal from './QuotaModal';
@@ -165,6 +167,19 @@ export const NewsCard: React.FC<{
   onDelete?: () => void;
 }> = ({ news, onRead, onDiscuss, isBookmarked, onToggleBookmark, isRelevant, onTagClick, isAdmin, onEdit, onDelete }) => {
   const [imgError, setImgError] = useState(false);
+  const [likesCount, setLikesCount] = useState<number>(() => getArticleLikesCount(news));
+  const [isLiked, setIsLiked] = useState<boolean>(() => readLikedArticleIds().includes(news.id));
+
+  useEffect(() => {
+    const updateLikesState = () => {
+      setLikesCount(getArticleLikesCount(news));
+      setIsLiked(readLikedArticleIds().includes(news.id));
+    };
+    updateLikesState();
+    window.addEventListener('campusai_likes_updated', updateLikesState);
+    return () => window.removeEventListener('campusai_likes_updated', updateLikesState);
+  }, [news]);
+
   const displayImage = React.useMemo(() => {
     if (imgError) return null;
     if (news.image && typeof news.image === 'string' && news.image.trim()) return news.image.trim();
@@ -174,7 +189,6 @@ export const NewsCard: React.FC<{
     }
     return null;
   }, [imgError, news.image, news.images]);
-  const totalImages = news.images && news.images.length > 0 ? news.images.length : (news.image ? 1 : 0);
 
   return (
     <article className="w-full">
@@ -200,7 +214,7 @@ export const NewsCard: React.FC<{
         </div>
 
         {/* Content */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0 justify-between">
           <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 hover:text-blue-600 transition-colors">
             <a 
               href={`/news/${news.slug || slugify(news.title)}`} 
@@ -209,9 +223,62 @@ export const NewsCard: React.FC<{
               {news.title}
             </a>
           </h3>
-          <div className="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2">
-            <span>{formatFallbackDate(news)}</span>
-            {news.category && <span className="text-blue-600">{news.category}</span>}
+
+          <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2 mt-auto">
+            <div className="flex items-center gap-1.5 truncate">
+              <span>{formatFallbackDate(news)}</span>
+              {news.category && <span className="text-blue-600 font-black">• {news.category}</span>}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Like Button with Count */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const res = toggleArticleLike(news);
+                  setIsLiked(res.isLiked);
+                  setLikesCount(res.newCount);
+                }}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight transition-all active:scale-90 cursor-pointer ${
+                  isLiked
+                    ? 'bg-blue-500/15 text-blue-600 dark:text-cyan-400 border border-blue-500/30'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-gray-200'
+                }`}
+                title={isLiked ? "Unlike article" : "Like article"}
+              >
+                <ThumbsUp size={11} fill={isLiked ? "currentColor" : "none"} />
+                <span>{likesCount}</span>
+              </button>
+
+              {/* Bookmark Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleBookmark(news.id);
+                }}
+                className={`p-1 rounded-full transition-all active:scale-90 cursor-pointer ${
+                  isBookmarked
+                    ? 'text-amber-500 bg-amber-500/10 border border-amber-500/20'
+                    : 'text-gray-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                title={isBookmarked ? "Remove Bookmark" : "Bookmark Article"}
+              >
+                {isBookmarked ? <BookmarkCheck size={13} className="text-amber-500" /> : <Bookmark size={13} />}
+              </button>
+
+              {isAdmin && (
+                <div className="flex items-center gap-1 ml-1">
+                  <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded" title="Edit Article">
+                    <Edit size={12} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="p-1 text-rose-500 hover:bg-rose-50 rounded" title="Delete Article">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -972,16 +1039,27 @@ const NewsGrid: React.FC<NewsGridProps> = ({
               </div>
             ) : filteredNews.length === 0 ? (
               <div className="space-y-6">
-                <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900 rounded-[32px] flex items-center justify-center mx-auto border border-gray-100 dark:border-gray-800">
-                  <Box size={32} className="text-gray-300" />
+                <div className="w-20 h-20 bg-amber-500/10 dark:bg-amber-500/5 rounded-[32px] flex items-center justify-center mx-auto border border-amber-500/20">
+                  <Bookmark size={32} className="text-amber-500" />
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">No Matches in Internal Index</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+                    {filter === 'Bookmarks' ? 'No Bookmarked Articles Yet' : 'No Matches in Internal Index'}
+                  </p>
                   <p className="text-xs text-gray-400 font-bold max-w-sm mx-auto leading-relaxed">
-                    This news isn't in your offline synchronization index. Let the AI agent scan live internet feeds directly?
+                    {filter === 'Bookmarks'
+                      ? 'You have not saved any articles to your bookmarks. Tap the bookmark icon on any news card to save it for instant reading.'
+                      : "This news isn't in your offline synchronization index. Let the AI agent scan live internet feeds directly?"}
                   </p>
                 </div>
-                {searchQuery.trim() ? (
+                {filter === 'Bookmarks' ? (
+                  <button 
+                    onClick={() => setFilter('All')} 
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-lg shadow-blue-500/20"
+                  >
+                    Explore All News
+                  </button>
+                ) : searchQuery.trim() ? (
                   <div className="space-y-4">
                     <button onClick={handleSmartSearchOnline} className="inline-flex items-center gap-2.5 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:scale-[1.02] shadow-xl hover:shadow-blue-500/20 transition-all active:scale-95">
                       <Sparkles size={12} className="animate-pulse" /> Launch Real-Time AI Factcheck

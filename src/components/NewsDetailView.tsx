@@ -11,7 +11,8 @@ import {
   fetchNewsComments, postNewsComment, deleteNewsComment,
   getNewsItemBySlug, updateNewsArticleContent, logUserActivity,
   deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews,
-  updateNewsItem
+  updateNewsItem, toggleBookmarkArticle, readBookmarkIds, readLikedArticleIds,
+  getArticleLikesCount, toggleArticleLike
 } from '../services/dbService';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
 import { expandNewsArticle } from '../services/geminiService';
@@ -79,6 +80,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [related, setRelated]             = useState<{ title: string; url: string }[]>([]);
   const [expansionError, setExpansionError] = useState<string | null>(null);
   const [isLiked, setIsLiked]             = useState(false);
+  const [likesCount, setLikesCount]       = useState<number>(0);
   const [likesList, setLikesList]         = useState<string[]>([]);
   const [isBookmarked, setIsBookmarked]   = useState(false);
   const [bookmarksList, setBookmarksList] = useState<string[]>([]);
@@ -329,72 +331,64 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
     // Restore bookmark and like state
     try {
-      const saved: string[] = JSON.parse(localStorage.getItem('campusai_bookmarks') || '[]');
+      const saved: string[] = readBookmarkIds();
       setIsBookmarked(saved.includes(news.id));
       setBookmarksList(saved);
     } catch {}
     try {
-      const savedLikes: string[] = JSON.parse(localStorage.getItem('campusai_news_likes') || '[]');
-      setIsLiked(savedLikes.includes(news.id));
-      setLikesList(savedLikes);
+      const likedIds = readLikedArticleIds();
+      setIsLiked(likedIds.includes(news.id));
+      setLikesCount(getArticleLikesCount(news));
     } catch {}
 
     // Related links
     if (news.relatedNews?.length) setRelated(news.relatedNews);
-  }, [news?.id, loadComments]);
+  }, [news?.id, loadComments, news]);
 
   useEffect(() => {
     const handleBookmarksUpdated = () => {
       try {
-        const saved: string[] = JSON.parse(localStorage.getItem('campusai_bookmarks') || '[]');
+        const saved: string[] = readBookmarkIds();
         setBookmarksList(saved);
         if (news) {
           setIsBookmarked(saved.includes(news.id));
         }
       } catch {}
     };
+    const handleLikesUpdated = () => {
+      if (news) {
+        setIsLiked(readLikedArticleIds().includes(news.id));
+        setLikesCount(getArticleLikesCount(news));
+      }
+    };
     window.addEventListener('campusai_bookmarks_updated', handleBookmarksUpdated);
+    window.addEventListener('campusai_likes_updated', handleLikesUpdated);
     return () => {
       window.removeEventListener('campusai_bookmarks_updated', handleBookmarksUpdated);
+      window.removeEventListener('campusai_likes_updated', handleLikesUpdated);
     };
   }, [news]);
 
   // ── Bookmark toggle ───────────────────────────────────────────────────────
-  const toggleBookmarkForId = useCallback((targetId: string) => {
-    try {
-      const current: string[] = JSON.parse(localStorage.getItem('campusai_bookmarks') || '[]');
-      const updated = current.includes(targetId)
-        ? current.filter(i => i !== targetId)
-        : [...current, targetId];
-      localStorage.setItem('campusai_bookmarks', JSON.stringify(updated));
-      setBookmarksList(updated);
-      if (news && targetId === news.id) {
-        setIsBookmarked(updated.includes(news.id));
-      }
-      window.dispatchEvent(new Event('campusai_bookmarks_updated'));
-    } catch (e) {
-      console.error("Bookmark save error:", e);
-    }
-  }, [news]);
-
   const handleToggleBookmark = useCallback(() => {
     if (!news) return;
-    toggleBookmarkForId(news.id);
-  }, [news, toggleBookmarkForId]);
+    const newBookmarked = toggleBookmarkArticle(news);
+    setIsBookmarked(newBookmarked);
+  }, [news]);
+
+  const handleToggleRelatedBookmark = useCallback((id: string) => {
+    const target = localRelatedNews.find(n => n.id === id) || (news && news.id === id ? news : null);
+    if (target) {
+      toggleBookmarkArticle(target);
+      setBookmarksList(readBookmarkIds());
+    }
+  }, [localRelatedNews, news]);
 
   const handleToggleLike = useCallback(() => {
     if (!news) return;
-    try {
-      const current: string[] = JSON.parse(localStorage.getItem('campusai_news_likes') || '[]');
-      const updated = current.includes(news.id)
-        ? current.filter(i => i !== news.id)
-        : [...current, news.id];
-      localStorage.setItem('campusai_news_likes', JSON.stringify(updated));
-      setLikesList(updated);
-      setIsLiked(updated.includes(news.id));
-    } catch (e) {
-      console.error("Like save error:", e);
-    }
+    const res = toggleArticleLike(news);
+    setIsLiked(res.isLiked);
+    setLikesCount(res.newCount);
   }, [news]);
 
   const handleDiscussWithAI = useCallback(() => {
@@ -691,15 +685,27 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             </button>
             <button
               onClick={handleToggleLike}
-              className={`p-2 rounded-xl transition-all active:scale-75 ${isLiked ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-400 hover:text-blue-600'}`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border active:scale-95 cursor-pointer ${
+                isLiked 
+                  ? 'bg-blue-500/10 text-blue-600 dark:text-cyan-400 border-blue-500/30' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title={isLiked ? "Unlike article" : "Like article"}
             >
-              <ThumbsUp size={18} fill={isLiked ? "currentColor" : "none"} />
+              <ThumbsUp size={14} fill={isLiked ? "currentColor" : "none"} />
+              <span>{likesCount} {likesCount === 1 ? 'Like' : 'Likes'}</span>
             </button>
             <button
               onClick={handleToggleBookmark}
-              className={`p-2 rounded-xl transition-all active:scale-75 ${isBookmarked ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'text-gray-400 hover:text-blue-600'}`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border active:scale-95 cursor-pointer ${
+                isBookmarked 
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' 
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title={isBookmarked ? "Remove Bookmark" : "Bookmark Article"}
             >
-              <Bookmark size={18} fill={isBookmarked ? "currentColor" : "none"} />
+              <Bookmark size={14} fill={isBookmarked ? "currentColor" : "none"} />
+              <span>{isBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
             </button>
           </div>
         </div>
@@ -1126,7 +1132,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                   news={item}
                   onRead={() => onSelectRelated(item)}
                   isBookmarked={bookmarksList.includes(item.id)}
-                  onToggleBookmark={toggleBookmarkForId}
+                  onToggleBookmark={handleToggleRelatedBookmark}
                   isAdmin={isAdmin}
                 />
               ))}

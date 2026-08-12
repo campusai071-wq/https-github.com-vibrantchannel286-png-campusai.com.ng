@@ -176,6 +176,117 @@ export const clearNewsCache = () => {
   lastRawFetchTime = 0;
 };
 
+// ─── Bookmark & Like Local Persistence Helpers ──────────────────────────────
+export const BOOKMARKS_KEY = 'campusai_bookmarks';
+export const BOOKMARKED_ARTICLES_KEY = 'campusai_bookmarked_articles';
+export const NEWS_LIKES_KEY = 'campusai_news_likes';
+export const NEWS_LIKE_COUNTS_KEY = 'campusai_news_like_counts';
+
+export const readBookmarkIds = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]'); } catch { return []; }
+};
+
+export const readBookmarkedArticles = (): Record<string, NewsItem> => {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(BOOKMARKED_ARTICLES_KEY) || '{}'); } catch { return {}; }
+};
+
+export const toggleBookmarkArticle = (item: NewsItem): boolean => {
+  if (!item || !item.id) return false;
+  const currentIds = readBookmarkIds();
+  const currentArticles = readBookmarkedArticles();
+  const isBookmarked = currentIds.includes(item.id);
+
+  let updatedIds: string[];
+  let updatedArticles = { ...currentArticles };
+
+  if (isBookmarked) {
+    updatedIds = currentIds.filter(id => id !== item.id);
+    delete updatedArticles[item.id];
+  } else {
+    updatedIds = [item.id, ...currentIds];
+    updatedArticles[item.id] = item;
+  }
+
+  try {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updatedIds));
+    localStorage.setItem(BOOKMARKED_ARTICLES_KEY, JSON.stringify(updatedArticles));
+    window.dispatchEvent(new Event('campusai_bookmarks_updated'));
+  } catch (e) {
+    console.error("toggleBookmarkArticle error:", e);
+  }
+
+  return !isBookmarked;
+};
+
+export const readLikedArticleIds = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(NEWS_LIKES_KEY) || '[]'); } catch { return []; }
+};
+
+export const readLikeCountsMap = (): Record<string, number> => {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(NEWS_LIKE_COUNTS_KEY) || '{}'); } catch { return {}; }
+};
+
+export const getBaseLikesCount = (item: NewsItem): number => {
+  if (item && typeof item.likes === 'number' && item.likes > 0) return item.likes;
+  if (!item || !item.id) return 15;
+  let hash = 0;
+  for (let i = 0; i < item.id.length; i++) {
+    hash = (hash << 5) - hash + item.id.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash % 76) + 12;
+};
+
+export const getArticleLikesCount = (item: NewsItem): number => {
+  if (!item || !item.id) return 0;
+  const countsMap = readLikeCountsMap();
+  if (countsMap[item.id] !== undefined) {
+    return countsMap[item.id];
+  }
+  const base = getBaseLikesCount(item);
+  const likedIds = readLikedArticleIds();
+  const total = likedIds.includes(item.id) ? base + 1 : base;
+  return total;
+};
+
+export const toggleArticleLike = (item: NewsItem): { isLiked: boolean; newCount: number } => {
+  if (!item || !item.id) return { isLiked: false, newCount: 0 };
+  const likedIds = readLikedArticleIds();
+  const countsMap = readLikeCountsMap();
+  const currentlyLiked = likedIds.includes(item.id);
+
+  const currentCount = getArticleLikesCount(item);
+  const newIsLiked = !currentlyLiked;
+  const newCount = newIsLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+  const updatedLikedIds = newIsLiked
+    ? [...likedIds, item.id]
+    : likedIds.filter(id => id !== item.id);
+
+  countsMap[item.id] = newCount;
+
+  try {
+    localStorage.setItem(NEWS_LIKES_KEY, JSON.stringify(updatedLikedIds));
+    localStorage.setItem(NEWS_LIKE_COUNTS_KEY, JSON.stringify(countsMap));
+    window.dispatchEvent(new Event('campusai_likes_updated'));
+  } catch (e) {
+    console.error("toggleArticleLike storage error:", e);
+  }
+
+  if (db) {
+    try {
+      const dRef = doc(db, "news", item.id);
+      updateDoc(dRef, { likes: newCount }).catch(() => {});
+    } catch (e) {}
+  }
+
+  return { isLiked: newIsLiked, newCount };
+};
+
 export const getNewsSortTimestamp = (item: NewsItem, now: number = Date.now()): number => {
   if (!item) return 0;
 
@@ -360,7 +471,9 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
           isLive: item.isLive ?? true,
           category: normalizeCategory(item.category || 'National', item.title || '')
         }));
-        const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
+        const localPublished = getPublishedNews();
+        const bookmarkedArticles = Object.values(readBookmarkedArticles());
+        const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
         
         if (!lastCreatedAt) {
           cachedRawNews = mergedNews;
@@ -426,7 +539,9 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
 
     console.log(`getCloudNews: Retrieved ${cloudNews.length} items from Firestore.`);
 
-    const mergedNews = lastCreatedAt ? cloudNews : [...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
+    const localPublished = getPublishedNews();
+    const bookmarkedArticles = Object.values(readBookmarkedArticles());
+    const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
 
     if (!lastCreatedAt) {
       cachedRawNews = mergedNews;
@@ -481,11 +596,7 @@ export const getCloudNewsCount = async (): Promise<number> => {
 };
 
 const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: number, includeJunk: boolean = false): NewsItem[] => {
-  let bookmarkedIds: string[] = [];
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-    } catch (e) {}
-  }
+  let bookmarkedIds: string[] = readBookmarkIds();
 
   const liveItemsCount = items.filter(item => item.isLive).length;
   console.log(`[DEBUG filterAndSortNews] Input count: ${items.length}, Live count: ${liveItemsCount}`);
@@ -666,20 +777,6 @@ export const getPublishedNews = (): NewsItem[] => {
 
 export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
   const token = ADMIN_TOKEN;
-  try {
-    const response = await axios.post(getApiUrl('/api/admin/news/action'), {
-      action: 'publish',
-      news,
-      token
-    });
-    if (response.data && response.data.success) {
-      clearNewsCache();
-      return response.data.id;
-    }
-  } catch (err) {
-    console.warn("publishNewsUpdate: Backend admin API call failed, falling back to direct client write:", err);
-  }
-
   const slug = news.slug || slugify(news.title);
   const todayStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
   let finalDate = news.date ? news.date.trim() : "";
@@ -687,22 +784,63 @@ export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
     finalDate = todayStr;
   }
 
-  if (db) {
-    const docRef = await addDoc(collection(db, "news"), {
-      ...news,
-      date: finalDate,
-      slug,
-      isLive: true,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+  let publishedId: string | null = null;
+
+  try {
+    const response = await axios.post(getApiUrl('/api/admin/news/action'), {
+      action: 'publish',
+      news,
+      token
     });
-    clearNewsCache();
-    return docRef.id;
+    if (response.data && response.data.success) {
+      publishedId = response.data.id;
+    }
+  } catch (err) {
+    console.warn("publishNewsUpdate: Backend admin API call failed, falling back to direct client write:", err);
   }
-  const current = getPublishedNews();
-  const newItem = { ...news, date: finalDate, id: Date.now().toString(), slug };
-  localStorage.setItem(NEWS_KEY, stringify([newItem, ...current]));
-  return newItem.id;
+
+  if (!publishedId && db) {
+    try {
+      const docRef = await addDoc(collection(db, "news"), {
+        ...news,
+        date: finalDate,
+        slug,
+        isLive: true,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+      publishedId = docRef.id;
+    } catch (e) {
+      console.warn("publishNewsUpdate direct addDoc failed:", e);
+    }
+  }
+
+  if (!publishedId) {
+    publishedId = Date.now().toString();
+  }
+
+  const publishedItem: NewsItem = {
+    ...news,
+    id: publishedId,
+    date: finalDate,
+    slug,
+    isLive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    const current = getPublishedNews();
+    const updated = [publishedItem, ...current.filter(n => n.id !== publishedId && n.slug !== slug)];
+    localStorage.setItem(NEWS_KEY, stringify(updated));
+  } catch (e) {}
+
+  clearNewsCache();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('campusai_news_updated'));
+  }
+
+  return publishedId;
 };
 
 export const deleteNewsUpdate = async (id: string) => {
