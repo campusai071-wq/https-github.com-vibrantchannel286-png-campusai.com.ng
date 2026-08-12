@@ -3,7 +3,7 @@ import { MOCK_NEWS, TICKER_HEADLINES } from '../constants';
 import { db, firestoreDatabaseId, hasLocalFirebase } from './firebaseConfig';
 export { db };
 import { slugify, stringify, cleanObject, getApiUrl } from './utils';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, Timestamp, where, updateDoc, getDoc, limit, writeBatch, getDocsFromServer, increment, onSnapshot, startAfter } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, Timestamp, where, updateDoc, getDoc, limit, writeBatch, getDocFromServer, increment, onSnapshot, startAfter } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from './firestoreUtils';
 import axios from 'axios';
 import { ADMIN_TOKEN } from '../lib/adminAuth';
@@ -439,123 +439,141 @@ export const getStableNewsKey = (title: string = "", category: string = ""): str
 
 export const getCloudNews = async (includeFuture: boolean = false, includeJunk: boolean = false, category?: string, lastCreatedAt?: any, limitOverride?: number): Promise<NewsItem[]> => {
   const now = Date.now();
-  const effectiveLimit = limitOverride || 30;
+  const effectiveLimit = limitOverride || 250;
   const isCacheValid = cachedRawNews && (now - lastRawFetchTime < RAW_CACHE_TTL_MS);
   const cachedLiveCount = cachedRawNews ? cachedRawNews.filter(n => n.isLive).length : 0;
   const needsMoreThanCached = cachedRawNews && cachedLiveCount < Math.min(effectiveLimit, 50);
 
   // Bypass cache if paginating (lastCreatedAt is present) or if we need more articles than cached
   if (cachedRawNews && isCacheValid && !needsMoreThanCached && !lastCreatedAt) {
-    console.log("getCloudNews: Returning cached news list (preventing redundant fetch).");
-    return filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
+    console.log("getCloudNews: Returning cached news list.");
+    const processed = filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
+    return category ? processed.filter(n => n.category === category) : processed;
   }
 
-
-  // Try proxy first (only if we are NOT using a custom user-provisioned Firebase database)
-  if (!hasLocalFirebase) {
+  // Direct client-side Firestore fetch using standard Firebase SDK
+  if (db) {
     try {
-      console.log(`getCloudNews: Attempting proxy fetch (limit: ${effectiveLimit})...`);
       const fetchLimit = effectiveLimit;
-      const payload: any = { 
-          collectionName: 'news',
-          orderByField: 'createdAt',
-          orderDirection: 'desc',
-          limitCount: fetchLimit
-      };
-      if (lastCreatedAt) {
-        payload.startAfterValue = lastCreatedAt;
+      console.log(`getCloudNews: Querying Firestore 'news' collection from server (limit: ${fetchLimit})...`);
+      const newsRef = collection(db, "news");
+      const constraints: any[] = [orderBy('createdAt', 'desc'), limit(fetchLimit)];
+      
+      if (lastCreatedAt !== undefined && lastCreatedAt !== null) {
+        try {
+          constraints.push(startAfter(lastCreatedAt));
+        } catch (err) {
+          console.warn("getCloudNews: Invalid startAfter cursor, ignoring cursor:", err);
+        }
       }
-      const res = await axios.post(getApiUrl('/api/fstore-query'), payload);
-      if (res.data.success) {
-        console.log(`getCloudNews: Proxy fetch successful. Retrieved ${res.data.data.length} items.`);
-        const cloudNews = res.data.data.map((item: any) => ({
-          ...item,
-          isLive: item.isLive ?? true,
-          category: normalizeCategory(item.category || 'National', item.title || '')
-        }));
+      
+      const q = query(newsRef, ...constraints);
+
+      let querySnapshot;
+      try {
+        // ALWAYS try getDocsFromServer FIRST to avoid stale local IndexedDB snapshots in browser
+        querySnapshot = await getDocsFromServer(q);
+        console.log(`getCloudNews: Firestore server fetch successful. Found ${querySnapshot.size} documents.`);
+      } catch (fetchError: any) {
+        console.warn("getCloudNews: Server fetch failed, trying local cache snapshot fallback...", fetchError?.message || fetchError);
+        querySnapshot = await getDocs(q);
+      }
+
+      const cloudNews: NewsItem[] = [];
+      querySnapshot.forEach((docSnap: any) => {
+        const data = docSnap.data();
+        cloudNews.push({
+          id: docSnap.id,
+          ...data,
+          isLive: data.isLive ?? true,
+          category: normalizeCategory(data.category || 'National', data.title || '')
+        });
+      });
+
+      console.log(`getCloudNews: Successfully retrieved ${cloudNews.length} items from Firestore.`);
+
+      if (cloudNews.length > 0) {
         const localPublished = getPublishedNews();
         const bookmarkedArticles = Object.values(readBookmarkedArticles());
-        const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
         
+        // Filter out mock news items that share title, slug, or ID with cloud articles
+        const uniqueMockNews = MOCK_NEWS.filter(m => 
+          !cloudNews.some((c: any) => 
+            c.id === m.id || 
+            (c.slug && m.slug && c.slug.toLowerCase() === m.slug.toLowerCase()) ||
+            (c.title && m.title && c.title.trim().toLowerCase() === m.title.trim().toLowerCase())
+          )
+        );
+
+        // Merge local posts, bookmarks, cloud news, and non-duplicate mock news
+        const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...uniqueMockNews];
+
         if (!lastCreatedAt) {
           cachedRawNews = mergedNews;
           lastRawFetchTime = now;
         }
 
         const processed = filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
-        if (category) {
-          return processed.filter(n => n.category === category);
-        }
-        return processed;
+        const filtered = category ? processed.filter(n => n.category === category) : processed;
+        return filtered;
       }
-    } catch (e) {
-      console.error("Proxy fetch failed, falling back to client-side:", e);
+    } catch (e: any) {
+      console.error("getCloudNews: Direct Firestore fetch failed, falling back to proxy/mock:", e);
     }
-  } else {
-    console.log("getCloudNews: Custom user-provisioned Firebase database is active. Bypassing proxy for direct client-side fetch.");
   }
 
-  // Fallback to existing logic
-  if (!db) {
-    console.error("getCloudNews: Firestore DB is NOT initialized. Returning MOCK_NEWS.");
-    const mockProcessed = filterAndSortNews(MOCK_NEWS, includeFuture, now, includeJunk);
-    return category ? mockProcessed.filter(n => n.category === category) : mockProcessed;
-  }
-
+  // Proxy Fallback if direct db failed
+  const apiUrl = getApiUrl('/api/fstore-query');
   try {
+    console.log(`getCloudNews: Attempting proxy fallback fetch (limit: ${effectiveLimit})...`);
     const fetchLimit = effectiveLimit;
-    console.log(`getCloudNews: Attempting cloud fetch (limit: ${fetchLimit})...`);
-    const newsRef = collection(db, "news");
-    const constraints: any[] = [orderBy('createdAt', 'desc'), limit(fetchLimit)];
-    if (lastCreatedAt) constraints.push(startAfter(lastCreatedAt));
-    
-    const q = query(newsRef, ...constraints);
-
-    let querySnapshot;
-    try {
-      console.log(`getCloudNews: Querying collection "news" in database: ${firestoreDatabaseId || '(default)'}`);
-      querySnapshot = await getDocs(q);
-      console.log(`getCloudNews: Smart Firestore fetch successful. Found ${querySnapshot.size} documents.`);
-    } catch (fetchError: any) {
-      console.warn("getCloudNews: Smart fetch failed. Detail:", fetchError.message || fetchError);
-      try {
-        console.log("getCloudNews: Trying direct server fallback...");
-        querySnapshot = await getDocsFromServer(q);
-        console.log(`getCloudNews: Server direct fallback fetch successful. Found ${querySnapshot.size} documents.`);
-      } catch (serverError: any) {
-        console.error("getCloudNews: Both smart fetch and server fallback failed. Error:", serverError.message || serverError);
-        return MOCK_NEWS;
+    const payload: any = { 
+        collectionName: 'news',
+        orderByField: 'createdAt',
+        orderDirection: 'desc',
+        limitCount: fetchLimit
+    };
+    if (lastCreatedAt) {
+      payload.startAfterValue = lastCreatedAt;
+    }
+    console.log("DEBUG: Proxy fetch URL:", apiUrl);
+    const res = await axios.post(apiUrl, payload);
+    if (res.data.success && res.data.data && res.data.data.length > 0) {
+      const cloudNews = res.data.data.map((item: any) => ({
+        ...item,
+        isLive: item.isLive ?? true,
+        category: normalizeCategory(item.category || 'National', item.title || '')
+      }));
+      const localPublished = getPublishedNews();
+      const bookmarkedArticles = Object.values(readBookmarkedArticles());
+      const uniqueMockNews = MOCK_NEWS.filter(m => 
+        !cloudNews.some((c: any) => 
+          c.id === m.id || 
+          (c.slug && m.slug && c.slug.toLowerCase() === m.slug.toLowerCase()) ||
+          (c.title && m.title && c.title.trim().toLowerCase() === m.title.trim().toLowerCase())
+        )
+      );
+      const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...uniqueMockNews];
+      
+      if (!lastCreatedAt) {
+        cachedRawNews = mergedNews;
+        lastRawFetchTime = now;
       }
+
+      const processed = filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
+      return category ? processed.filter(n => n.category === category) : processed;
     }
-
-    const cloudNews: NewsItem[] = [];
-    querySnapshot.forEach((docSnap: any) => {
-      const data = docSnap.data();
-      cloudNews.push({
-        id: docSnap.id,
-        ...data,
-        isLive: data.isLive ?? true,
-        category: normalizeCategory(data.category || 'National', data.title || '')
-      });
-    });
-
-    console.log(`getCloudNews: Retrieved ${cloudNews.length} items from Firestore.`);
-
-    const localPublished = getPublishedNews();
-    const bookmarkedArticles = Object.values(readBookmarkedArticles());
-    const mergedNews = lastCreatedAt ? cloudNews : [...localPublished, ...bookmarkedArticles, ...cloudNews, ...MOCK_NEWS.filter(m => !cloudNews.some((c: any) => c.id === m.id || c.slug === m.slug))];
-
-    if (!lastCreatedAt) {
-      cachedRawNews = mergedNews;
-      lastRawFetchTime = now;
-    }
-
-    const processed = filterAndSortNews(mergedNews, includeFuture, now, includeJunk);
-    return category ? processed.filter(n => n.category === category) : processed;
   } catch (e: any) {
-    console.error("getCloudNews: CRITICAL FAILURE", e);
-    return MOCK_NEWS;
+    console.error("Proxy fetch failed for URL:", apiUrl, e.message, e.response?.status, e.response?.data);
   }
+
+  // Final fallback to MOCK_NEWS if DB/Proxy are completely offline
+  console.warn("getCloudNews: All cloud sources failed. Returning MOCK_NEWS.");
+  const localPublished = getPublishedNews();
+  const bookmarkedArticles = Object.values(readBookmarkedArticles());
+  const fallbackNews = [...localPublished, ...bookmarkedArticles, ...MOCK_NEWS];
+  const mockProcessed = filterAndSortNews(fallbackNews, includeFuture, now, includeJunk);
+  return category ? mockProcessed.filter(n => n.category === category) : mockProcessed;
 };
 
 let cachedNewsCount: number | null = null;
@@ -568,33 +586,31 @@ export const getCloudNewsCount = async (): Promise<number> => {
     return cachedNewsCount;
   }
 
-  try {
-
-    if (!hasLocalFirebase) {
-      try {
-        const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
-        if (res.data.success) {
-          cachedNewsCount = res.data.count;
-          lastCountFetchTime = now;
-          return res.data.count;
-        }
-      } catch (e) {
-        console.warn("Proxy count fetch failed, using fallback:", e);
-      }
+  if (db) {
+    try {
+      const { getCountFromServer, collection } = await import("firebase/firestore");
+      const snap = await getCountFromServer(collection(db, "news"));
+      const count = snap.data().count;
+      cachedNewsCount = count;
+      lastCountFetchTime = now;
+      return count;
+    } catch (e) {
+      console.warn("Client count fetch failed, trying proxy fallback:", e);
     }
-
-    if (!db) return MOCK_NEWS.length;
-    
-    const { getCountFromServer, collection } = await import("firebase/firestore");
-    const snap = await getCountFromServer(collection(db, "news"));
-    const count = snap.data().count;
-    cachedNewsCount = count;
-    lastCountFetchTime = now;
-    return count;
-  } catch (e) {
-    console.warn("Client count fetch failed, using fallback:", e);
-    return MOCK_NEWS.length;
   }
+
+  try {
+    const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
+    if (res.data.success) {
+      cachedNewsCount = res.data.count;
+      lastCountFetchTime = now;
+      return res.data.count;
+    }
+  } catch (e) {
+    console.warn("Proxy count fetch failed:", e);
+  }
+
+  return MOCK_NEWS.length;
 };
 
 const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: number, includeJunk: boolean = false): NewsItem[] => {
@@ -1380,14 +1396,18 @@ export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisi
   if (!db) return { pageViews: 0, uniqueVisitors: 0 };
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    const snap = await getDoc(docRef);
+    const snap = await getDocFromServer(docRef);
     if (snap.exists()) {
       const d = snap.data();
       return { pageViews: d.pageViews || 0, uniqueVisitors: d.uniqueVisitors || 0 };
     }
     return { pageViews: 0, uniqueVisitors: 0 };
-  } catch (e) {
-    console.error("Error reading traffic stats:", e);
+  } catch (e: any) {
+    if (e.message?.includes('offline')) {
+      console.warn("Traffic stats: client is offline, skipping read.");
+    } else {
+      console.error("Error reading traffic stats:", e);
+    }
     return { pageViews: 0, uniqueVisitors: 0 };
   }
 };
@@ -1396,7 +1416,7 @@ export const incrementTrafficStats = async (isNewVisitor: boolean) => {
   if (!db) return;
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    const snap = await getDoc(docRef);
+    const snap = await getDocFromServer(docRef);
     if (!snap.exists()) {
       await setDoc(docRef, {
         pageViews: 1,
@@ -1410,8 +1430,12 @@ export const incrementTrafficStats = async (isNewVisitor: boolean) => {
         lastUpdated: Timestamp.now()
       });
     }
-  } catch (e) {
-    console.error("Error updating traffic stats:", e);
+  } catch (e: any) {
+    if (e.message?.includes('offline')) {
+      console.warn("Traffic stats: client is offline, skipping update.");
+    } else {
+      console.error("Error updating traffic stats:", e);
+    }
   }
 };
 

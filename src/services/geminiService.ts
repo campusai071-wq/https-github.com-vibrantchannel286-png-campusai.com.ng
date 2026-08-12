@@ -630,7 +630,7 @@ export const runAIWithFallback = async (
         continue;
       }
       
-      console.error(`Error with key ${attemptIndex + 1}:`, errorDetail);
+      console.error(`Error with key ${attemptIndex + 1}:`, errorDetail, error);
     }
   }
 

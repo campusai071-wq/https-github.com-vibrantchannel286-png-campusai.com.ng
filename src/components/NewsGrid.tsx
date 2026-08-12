@@ -412,7 +412,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsLocalLoading(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const targetLimit = limitOverride || 30;
+      const targetLimit = limitOverride || 250;
       const cloudNews = await getCloudNews(false, false, category, undefined, targetLimit);
       const sorted = [...cloudNews].sort(sortNewsBySyncAndDate);
       setNewsList(sorted);
@@ -460,7 +460,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     if (searchQuery.trim().length > 0) {
       if (!hasFetchedAllForSearch) {
         setHasFetchedAllForSearch(true);
-        loadLocalNews(filter, 100);
+        loadLocalNews(filter, 500);
       }
     } else {
       if (hasFetchedAllForSearch) {
@@ -475,7 +475,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsFetchingMore(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const newNews = await getCloudNews(false, false, category, lastCreatedAt, 30);
+      const newNews = await getCloudNews(false, false, category, lastCreatedAt, 100);
       
       if (!newNews || newNews.length === 0) {
         setHasMore(false);

@@ -63,6 +63,127 @@ const getFallbackDateStr = (item: NewsItem | null): string => {
   return "RECENTLY";
 };
 
+const XVideoEmbed: React.FC<{ tweetId: string; cleanHref: string }> = ({ tweetId, cleanHref }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [status, setStatus] = React.useState<'loading' | 'success' | 'fallback'>('loading');
+
+  React.useEffect(() => {
+    let isMounted = true;
+    let scriptTimer: NodeJS.Timeout;
+    const wrapper = document.createElement('div');
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+      containerRef.current.appendChild(wrapper);
+    }
+
+    const renderTweet = () => {
+      if ((window as any).twttr && (window as any).twttr.widgets) {
+        if (containerRef.current) {
+          (window as any).twttr.widgets
+            .createTweet(tweetId, wrapper, {
+              theme: 'dark',
+              align: 'center',
+              conversation: 'none',
+              cards: 'visible',
+              dnt: true
+            })
+            .then((el: any) => {
+              if (isMounted) {
+                if (el) setStatus('success');
+                else setStatus('fallback');
+              } else {
+                // If unmounted while fetching, clean up the injected iframe
+                wrapper.remove();
+              }
+            })
+            .catch(() => {
+              if (isMounted) setStatus('fallback');
+            });
+        }
+      } else {
+        setStatus('fallback');
+      }
+    };
+
+    if (!(window as any).twttr) {
+      const existingScript = document.getElementById('twitter-wjs');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'twitter-wjs';
+        script.src = 'https://platform.twitter.com/widgets.js';
+        script.async = true;
+        script.onload = () => {
+          if (isMounted) renderTweet();
+        };
+        script.onerror = () => {
+          if (isMounted) setStatus('fallback');
+        };
+        document.body.appendChild(script);
+      } else {
+        existingScript.addEventListener('load', renderTweet);
+        scriptTimer = setTimeout(() => {
+          if (isMounted && status === 'loading') {
+            renderTweet();
+          }
+        }, 1500);
+      }
+    } else {
+      renderTweet();
+    }
+
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted && status === 'loading') {
+        setStatus('fallback');
+      }
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(scriptTimer);
+      clearTimeout(fallbackTimer);
+      wrapper.remove(); // Synchronously remove from DOM on unmount
+    };
+  }, [tweetId]);
+
+  return (
+    <div className="my-8 flex justify-center w-full">
+      <div className="w-full max-w-[550px] relative">
+        <div ref={containerRef} className="w-full flex justify-center min-h-[200px]" />
+
+        {status === 'loading' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-400 bg-gray-50/5 rounded-xl border border-gray-100/10 min-h-[200px]">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <span className="text-xs font-semibold">Loading X post...</span>
+          </div>
+        )}
+
+        {status === 'fallback' && (
+          <div className="w-full my-2 p-6 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 text-center flex flex-col items-center gap-4 shadow-xl">
+            <div className="w-14 h-14 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
+              <Zap className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-white">Watch Official JAMB Broadcast</h4>
+              <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                Play the full video announcement directly on X (Twitter).
+              </p>
+            </div>
+            <a
+              href={cleanHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs font-bold tracking-wide transition-all shadow-lg shadow-blue-600/30 active:scale-95 flex items-center gap-2"
+            >
+              <span>Play Video on X</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   news: initialNews, user, onClose, relatedNews, onSelectRelated, onLoginRequest, isAdmin
 }) => {
@@ -926,16 +1047,21 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                 remarkPlugins={[remarkGfm]}
                 components={{
                   img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} referrerPolicy="no-referrer" /> : null),
-                  a: ({ node, ...props }) => {
-                    const href = props.href || '';
-                    const ytMatch = href.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-                    
+                  p: ({ node, children, ...props }) => (
+                    <div className="mb-6 leading-relaxed font-normal text-gray-800 dark:text-gray-200">{children}</div>
+                  ),
+                  a: ({ node, children, href, ...props }) => {
+                    const cleanHref = href || '';
+
+                    // 1. YouTube Video & Shorts
+                    const ytMatch = cleanHref.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
                     if (ytMatch && ytMatch[1]) {
+                      const videoId = ytMatch[1];
                       return (
-                        <div className="my-8 relative w-full overflow-hidden rounded-3xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 shadow-xl" style={{ paddingTop: '56.25%' }}>
+                        <div className="my-8 relative w-full overflow-hidden rounded-3xl bg-gray-900 border border-gray-800 shadow-2xl" style={{ paddingTop: '56.25%' }}>
                           <iframe 
                             className="absolute top-0 left-0 w-full h-full" 
-                            src={`https://www.youtube.com/embed/${ytMatch[1]}`} 
+                            src={`https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`} 
                             title="YouTube video player"
                             frameBorder="0" 
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
@@ -944,7 +1070,67 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                         </div>
                       );
                     }
-                    return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words font-medium" />;
+
+                    // 2. X (Twitter) Video / Status Link
+                    const xMatch = cleanHref.match(/(?:twitter\.com|x\.com)\/(?:[a-zA-Z0-9_]+\/status\/|i\/status\/)(\d+)/i);
+                    if (xMatch && xMatch[1]) {
+                      return <XVideoEmbed tweetId={xMatch[1]} cleanHref={cleanHref} />;
+                    }
+
+                    // 3. Direct Video Files (.mp4, .webm, .ogg, .mov, .m3u8)
+                    if (cleanHref.match(/\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i)) {
+                      return (
+                        <div className="my-8 rounded-[28px] overflow-hidden bg-black shadow-2xl border border-gray-800">
+                          <div className="px-5 py-3 bg-gray-900 border-b border-gray-800 text-[10px] font-black uppercase tracking-widest text-gray-300 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span>🎬 Interactive Video Stream</span>
+                          </div>
+                          <video 
+                            controls 
+                            preload="metadata"
+                            className="w-full max-h-[500px] object-contain bg-black"
+                            src={cleanHref}
+                          >
+                            Your browser does not support HTML video playback.
+                          </video>
+                        </div>
+                      );
+                    }
+
+                    // 4. TikTok Video
+                    const tiktokMatch = cleanHref.match(/(?:tiktok\.com)\/@[^\/]+\/video\/(\d+)/i);
+                    if (tiktokMatch && tiktokMatch[1]) {
+                      const tiktokId = tiktokMatch[1];
+                      return (
+                        <div className="my-8 flex justify-center">
+                          <iframe
+                            src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
+                            title="TikTok Video"
+                            className="w-full max-w-[340px] h-[600px] rounded-3xl border-0 shadow-2xl"
+                            allowFullScreen
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 5. Facebook Video
+                    if (cleanHref.match(/facebook\.com\/.*\/videos\/\d+/i) || cleanHref.match(/fb\.watch\/.+/i)) {
+                      return (
+                        <div className="my-8 relative w-full overflow-hidden rounded-3xl bg-gray-900 border border-gray-800 shadow-xl" style={{ paddingTop: '56.25%' }}>
+                          <iframe 
+                            className="absolute top-0 left-0 w-full h-full" 
+                            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanHref)}&show_text=false`} 
+                            title="Facebook video player"
+                            frameBorder="0" 
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" 
+                            allowFullScreen 
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Standard Link
+                    return <a {...props} href={cleanHref} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words font-medium">{children}</a>;
                   }
                 }}
               >
