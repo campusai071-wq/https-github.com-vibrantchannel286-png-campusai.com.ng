@@ -58,6 +58,9 @@ const toMs = (val: any): number => {
 
 const formatFallbackDate = (item: NewsItem): string => {
   if (!item) return "RECENT UPDATE";
+  if (item.date && typeof item.date === 'string' && item.date.trim() && !item.date.includes("[") && !item.date.includes("]")) {
+    return item.date.trim();
+  }
   const ms = getSyncTime(item);
   if (ms > 0) {
     return new Date(ms).toLocaleDateString('en-US', {
@@ -417,7 +420,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       
       if (sorted.length > 0) {
         setLastCreatedAt(sorted[sorted.length - 1].createdAt);
-        setHasMore(sorted.length >= targetLimit);
+        setHasMore(sorted.length >= 10);
       } else {
         setHasMore(false);
       }
@@ -1083,13 +1086,17 @@ const NewsGrid: React.FC<NewsGridProps> = ({
 
       {/* Load more */}
       {(!isLocalLoading && filteredNews.length > 0) && (
-        <div className="mt-12 text-center pb-12">
+        <div className="mt-12 text-center pb-12 flex flex-col items-center justify-center gap-3">
+          <div className="text-xs font-bold text-gray-500 dark:text-gray-400">
+            Showing <span className="text-blue-600 dark:text-cyan-400 font-black">{Math.min(visibleCount, filteredNews.length)}</span> of <span className="font-black text-gray-900 dark:text-white">{filteredNews.length}</span> reports {totalArchivedCount > filteredNews.length ? `(${totalArchivedCount}+ total in database)` : ''}
+          </div>
+
           {filteredNews.length > visibleCount || hasMore ? (
             <button 
               onClick={() => {
                 const nextVisible = visibleCount + REVEAL_STEP;
                 setVisibleCount(nextVisible);
-                if (hasMore && !isFetchingMore) {
+                if (nextVisible >= filteredNews.length && hasMore && !isFetchingMore) {
                   fetchMoreNews(filter);
                 }
               }} 

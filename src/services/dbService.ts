@@ -231,26 +231,29 @@ export const readLikeCountsMap = (): Record<string, number> => {
 };
 
 export const getBaseLikesCount = (item: NewsItem): number => {
-  if (item && typeof item.likes === 'number' && item.likes > 0) return item.likes;
-  if (!item || !item.id) return 15;
-  let hash = 0;
-  for (let i = 0; i < item.id.length; i++) {
-    hash = (hash << 5) - hash + item.id.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash % 76) + 12;
+  if (item && typeof item.likes === 'number' && item.likes >= 0) return item.likes;
+  return 0;
 };
 
 export const getArticleLikesCount = (item: NewsItem): number => {
   if (!item || !item.id) return 0;
-  const countsMap = readLikeCountsMap();
-  if (countsMap[item.id] !== undefined) {
-    return countsMap[item.id];
-  }
-  const base = getBaseLikesCount(item);
   const likedIds = readLikedArticleIds();
-  const total = likedIds.includes(item.id) ? base + 1 : base;
-  return total;
+  const userHasLiked = likedIds.includes(item.id);
+  const base = getBaseLikesCount(item);
+  const countsMap = readLikeCountsMap();
+
+  if (countsMap[item.id] !== undefined) {
+    const cachedVal = countsMap[item.id];
+    // Sanity check: If cachedVal in countsMap is a legacy seeded mock count (e.g. > 5) while base is 0 and user hasn't explicitly liked it, purge it!
+    if (cachedVal > 5 && base === 0 && !userHasLiked) {
+      delete countsMap[item.id];
+      try { localStorage.setItem(NEWS_LIKE_COUNTS_KEY, JSON.stringify(countsMap)); } catch {}
+      return 0;
+    }
+    return cachedVal;
+  }
+
+  return userHasLiked ? base + 1 : base;
 };
 
 export const toggleArticleLike = (item: NewsItem): { isLiked: boolean; newCount: number } => {
@@ -298,19 +301,18 @@ export const getNewsSortTimestamp = (item: NewsItem, now: number = Date.now()): 
   let updatedMs = toMs(item.updatedAt);
   let archivedMs = toMs(item.archivedAt);
 
-  // Cap future timestamps to `now` (+ 1 minute buffer) so future-dated items
-  // don't float off into the future or break sorting.
   const maxAllowed = now + 60000;
   if (pubMs > maxAllowed) pubMs = now;
   if (createdMs > maxAllowed) createdMs = now;
   if (updatedMs > maxAllowed) updatedMs = now;
   if (archivedMs > maxAllowed) archivedMs = now;
 
-  if (pubMs > 0 && createdMs > 0) {
-    return Math.max(pubMs, createdMs);
+  // Article's true publication date comes first
+  if (pubMs > 0) {
+    return pubMs;
   }
 
-  return pubMs || createdMs || archivedMs || updatedMs || 0;
+  return createdMs || archivedMs || updatedMs || 0;
 };
 
 export const getSyncTime = (item: NewsItem, now: number = Date.now()): number => {
@@ -635,8 +637,8 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
     })
     .sort((a, b) => sortNewsBySyncAndDate(a, b, now));
 
-  // Deduplicate by stable key, title (normalized) and slug to prevent repeated news
-  const seenStableKeys = new Set<string>();
+  // Deduplicate by ID, slug, and exact normalized title to prevent identical duplicates without dropping user articles
+  const seenIds = new Set<string>();
   const seenTitles = new Set<string>();
   const seenSlugs = new Set<string>();
   const deduplicated: NewsItem[] = [];
@@ -645,21 +647,18 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
     if (!item) continue;
     const normTitle = (item.title || "").trim().toLowerCase().replace(/\s+/g, ' ');
     const slug = item.slug ? item.slug.trim().toLowerCase() : '';
-    const stableKey = getStableNewsKey(item.title || "", item.category || "");
     
-    // Check if we already have this stable key, title or slug
-    if (seenStableKeys.has(stableKey) || seenTitles.has(normTitle) || (slug && seenSlugs.has(slug))) {
+    // Check if we already have this exact ID, exact slug, or identical title
+    if (seenIds.has(item.id) || (slug && seenSlugs.has(slug)) || (normTitle && seenTitles.has(normTitle))) {
       if (item.isLive) {
-        console.log(`[DEBUG filterAndSortNews] Dropped live item due to deduplication: ${item.title}. StableKey: ${stableKey}, SeenStableKey: ${seenStableKeys.has(stableKey)}, SeenTitle: ${seenTitles.has(normTitle)}, SeenSlug: ${slug && seenSlugs.has(slug)}`);
+        console.log(`[DEBUG filterAndSortNews] Dropped exact duplicate item: ${item.title}`);
       }
       continue;
     }
     
-    seenStableKeys.add(stableKey);
-    seenTitles.add(normTitle);
-    if (slug) {
-      seenSlugs.add(slug);
-    }
+    seenIds.add(item.id);
+    if (normTitle) seenTitles.add(normTitle);
+    if (slug) seenSlugs.add(slug);
     deduplicated.push(item);
   }
 

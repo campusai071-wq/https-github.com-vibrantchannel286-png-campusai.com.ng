@@ -5,18 +5,21 @@ declare global {
   }
 }
 
-export const GA_MEASUREMENT_ID = 'G-QN3QBT9QX4';
+export const GA_MEASUREMENT_IDS = ['G-W136GWE5E0', 'G-QN3QBT9QX4'];
+export const GA_MEASUREMENT_ID = 'G-W136GWE5E0';
 
 /**
- * Tracks a pageview in Google Analytics
+ * Tracks a pageview in Google Analytics across all measurement IDs
  */
 export const trackPageView = (url: string, title?: string) => {
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
   try {
-    window.gtag('config', GA_MEASUREMENT_ID, {
-      page_path: url,
-      page_title: title || document.title,
-      page_location: window.location.href,
+    GA_MEASUREMENT_IDS.forEach((id) => {
+      window.gtag!('config', id, {
+        page_path: url,
+        page_title: title || document.title,
+        page_location: window.location.href,
+      });
     });
   } catch (err) {
     console.warn("[GA] trackPageView error:", err);
