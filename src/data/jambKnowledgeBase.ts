@@ -841,7 +841,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
   {
     id: "jamb_registrar_prof_segun_aina",
     organization: "JAMB",
-    page_type: "profile",
+    page_type: "informational",
     category: "Governance & Leadership",
     subcategory: "Executive Leadership",
     title: "Profile of the Registrar & Chief Executive — Prof. Segun Aina",

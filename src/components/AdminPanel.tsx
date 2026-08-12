@@ -22,6 +22,10 @@ import {
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
   saveKnowledgeFragment, getPredictionAccuracyStats, getAdminNotifications, AdminNotification
 } from '../services/dbService';
+import {
+  getStoredLinkPreviews, fetchLinkPreviewsFromCloud, saveLinkPreviewImage,
+  deleteLinkPreviewImage, DEFAULT_LINK_PREVIEWS, LinkPreviewMap, LinkPreviewItem
+} from '../services/linkPreviewService';
 import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
@@ -79,13 +83,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures'
   >('analytics');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
@@ -370,6 +374,88 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [socialWhatsapp, setSocialWhatsapp]   = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, currentUni: '' });
+
+  // ── Link Pictures / Previews Management State ──────────────────────────────────
+  const [linkPreviewsMap, setLinkPreviewsMap] = useState<LinkPreviewMap>({});
+  const [previewFilter, setPreviewFilter] = useState('');
+  const [customLinkPath, setCustomLinkPath] = useState('');
+  const [customLinkTitle, setCustomLinkTitle] = useState('');
+  const [customLinkSubtitle, setCustomLinkSubtitle] = useState('');
+  const [customLinkImageUrl, setCustomLinkImageUrl] = useState('');
+  const [isSavingLinkPreview, setIsSavingLinkPreview] = useState(false);
+  const [uploadingPath, setUploadingPath] = useState<string | null>(null);
+
+  const loadLinkPreviews = useCallback(async () => {
+    const initial = getStoredLinkPreviews();
+    setLinkPreviewsMap(initial);
+    const cloud = await fetchLinkPreviewsFromCloud();
+    if (cloud && Object.keys(cloud).length > 0) {
+      setLinkPreviewsMap(cloud);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'link_pictures') {
+      loadLinkPreviews();
+    }
+  }, [activeTab, loadLinkPreviews]);
+
+  const handleLinkPictureFileUpload = async (path: string, file: File, title?: string, subtitle?: string) => {
+    if (!file) return;
+    try {
+      setUploadingPath(path);
+      const compressedBase64 = await compressImage(file, 800);
+      const updated = await saveLinkPreviewImage(path, compressedBase64, title, subtitle);
+      setLinkPreviewsMap(updated);
+      alert(`Preview picture updated for ${path}`);
+    } catch (e: any) {
+      console.error('Failed to compress or save link preview picture:', e);
+      alert('Failed to upload picture: ' + (e.message || 'Unknown error'));
+    } finally {
+      setUploadingPath(null);
+    }
+  };
+
+  const handleLinkPictureUrlSave = async (path: string, imageUrl: string, title?: string, subtitle?: string) => {
+    if (!imageUrl.trim()) return;
+    try {
+      setIsSavingLinkPreview(true);
+      const updated = await saveLinkPreviewImage(path, imageUrl.trim(), title, subtitle);
+      setLinkPreviewsMap(updated);
+      alert(`Preview picture URL saved for ${path}`);
+    } catch (e: any) {
+      alert('Failed to save preview URL: ' + (e.message || 'Unknown error'));
+    } finally {
+      setIsSavingLinkPreview(false);
+    }
+  };
+
+  const handleLinkPictureDelete = async (path: string) => {
+    if (!confirm(`Are you sure you want to remove the custom picture for ${path}?`)) return;
+    try {
+      const updated = await deleteLinkPreviewImage(path);
+      setLinkPreviewsMap(updated);
+      alert(`Removed preview picture for ${path}`);
+    } catch (e: any) {
+      alert('Failed to delete preview picture: ' + e.message);
+    }
+  };
+
+  const handleAddCustomLinkItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customLinkPath.trim()) {
+      alert('Please provide a path (e.g. /login or /calculator)');
+      return;
+    }
+    const normPath = customLinkPath.trim().startsWith('/') ? customLinkPath.trim() : `/${customLinkPath.trim()}`;
+    await saveLinkPreviewImage(normPath, customLinkImageUrl.trim(), customLinkTitle.trim() || normPath, customLinkSubtitle.trim() || 'Custom Link');
+    setCustomLinkPath('');
+    setCustomLinkTitle('');
+    setCustomLinkSubtitle('');
+    setCustomLinkImageUrl('');
+    loadLinkPreviews();
+    alert(`Added custom link preview for ${normPath}`);
+  };
 
   // ── IndexNow ─────────────────────────────────────────────────────────────────
   const [indexNowUrls, setIndexNowUrls] = useState('https://campusai.com.ng/\nhttps://campusai.com.ng/news\nhttps://campusai.com.ng/resultslip');
@@ -1281,12 +1367,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
-                  className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
+                  className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'emails' ? 'Email Campaigns' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
+                  {tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -1500,12 +1586,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="space-y-8 text-left">
                   <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6 border border-gray-100 dark:border-gray-800">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Key size={14} /> API Core Nodes & Developer Identity</h3>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">
+                      <Info size={18} className="shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div>
+                        <p className="font-bold">AI Model Precedence & Fallback Architecture</p>
+                        <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-300/80 leading-relaxed">
+                          Primary AI inference uses Groq, OpenRouter, Nvidia, Mistral, and Cohere engines. Gemini API keys act strictly as secondary fallback options when primary providers are rate-limited or unconfigured.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="space-y-4">
                       {[
-                        { label: 'Gemini Primary API Key',  val: geminiKey,      set: setGeminiKey,      ph: 'AI Core Key 1...' },
-                        { label: 'Gemini Backup API Key 2', val: geminiKey2,     set: setGeminiKey2,     ph: 'AI Core Key 2...' },
-                        { label: 'Gemini Backup API Key 3', val: geminiKey3,     set: setGeminiKey3,     ph: 'AI Core Key 3...' },
-                        { label: 'Flutterwave Public Key',  val: flutterwaveKey, set: setFlutterwaveKey, ph: 'FLWPUBK-...' },
+                        { label: 'Gemini API Key 1 (Fallback Provider)', val: geminiKey,      set: setGeminiKey,      ph: 'Gemini Fallback Key 1...' },
+                        { label: 'Gemini API Key 2 (Fallback Provider)', val: geminiKey2,     set: setGeminiKey2,     ph: 'Gemini Fallback Key 2...' },
+                        { label: 'Gemini API Key 3 (Fallback Provider)', val: geminiKey3,     set: setGeminiKey3,     ph: 'Gemini Fallback Key 3...' },
+                        { label: 'Flutterwave Public Key',              val: flutterwaveKey, set: setFlutterwaveKey, ph: 'FLWPUBK-...' },
                       ].map(({ label, val, set, ph }) => (
                         <div key={label}>
                           <label className="text-[10px] font-black uppercase text-gray-500 ml-2">{label}</label>
@@ -2513,6 +2609,232 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── LINK PICTURES / PREVIEWS TAB ── */}
+              {activeTab === 'link_pictures' && (
+                <div className="space-y-8 text-left">
+                  {/* Top Bar Header */}
+                  <div className="p-6 bg-gradient-to-r from-blue-900/20 via-indigo-900/10 to-transparent border border-blue-500/20 rounded-3xl space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                          <ImageIcon size={18} /> Link Preview Pictures Manager
+                        </h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
+                          Upload custom preview pictures for all app pages & tool links (Calculators, Dashboard, Login, Syllabus, Post-UTME Hub, Directory, etc.). These pictures are rendered on tool cards and OpenGraph social share cards.
+                        </p>
+                      </div>
+                      <button
+                        onClick={loadLinkPreviews}
+                        className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md shrink-0 self-start md:self-auto"
+                      >
+                        <RefreshCw size={14} /> Refresh Previews
+                      </button>
+                    </div>
+
+                    {/* Filter & Search */}
+                    <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                      <div className="relative flex-1 w-full">
+                        <Search size={14} className="absolute left-3.5 top-3.5 text-gray-400" />
+                        <input
+                          type="text"
+                          value={previewFilter}
+                          onChange={e => setPreviewFilter(e.target.value)}
+                          placeholder="Search link path or page name (e.g. /calculator, /login, UNILAG...)"
+                          className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-900 rounded-xl text-xs border border-gray-200 dark:border-gray-800 focus:border-blue-500 outline-none dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add Custom Link Preview Card */}
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900/80 rounded-3xl border border-gray-200 dark:border-gray-800 space-y-4">
+                    <h4 className="text-xs font-black uppercase text-gray-500 flex items-center gap-2">
+                      <Plus size={14} className="text-blue-500" /> Add Custom Page / Route Preview Picture
+                    </h4>
+                    <form onSubmit={handleAddCustomLinkItem} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <input
+                        type="text"
+                        value={customLinkPath}
+                        onChange={e => setCustomLinkPath(e.target.value)}
+                        placeholder="Path (e.g. /forum or /scholar-pack)"
+                        className="p-3 bg-white dark:bg-gray-950 rounded-xl text-xs border border-gray-200 dark:border-gray-800 dark:text-white font-mono"
+                      />
+                      <input
+                        type="text"
+                        value={customLinkTitle}
+                        onChange={e => setCustomLinkTitle(e.target.value)}
+                        placeholder="Page Title (e.g. Community Forum)"
+                        className="p-3 bg-white dark:bg-gray-950 rounded-xl text-xs border border-gray-200 dark:border-gray-800 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        value={customLinkSubtitle}
+                        onChange={e => setCustomLinkSubtitle(e.target.value)}
+                        placeholder="Subtitle (e.g. Discussions)"
+                        className="p-3 bg-white dark:bg-gray-950 rounded-xl text-xs border border-gray-200 dark:border-gray-800 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        value={customLinkImageUrl}
+                        onChange={e => setCustomLinkImageUrl(e.target.value)}
+                        placeholder="Image URL or upload below"
+                        className="p-3 bg-white dark:bg-gray-950 rounded-xl text-xs border border-gray-200 dark:border-gray-800 dark:text-white"
+                      />
+                      <div className="md:col-span-4 flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
+                        >
+                          <Plus size={14} /> Add Route Item
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Managed Previews Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {(() => {
+                      const mergedMap: Record<string, LinkPreviewItem> = {};
+                      DEFAULT_LINK_PREVIEWS.forEach(item => {
+                        mergedMap[item.path] = { ...item };
+                      });
+                      Object.entries(linkPreviewsMap).forEach(([p, item]) => {
+                        mergedMap[p] = { ...(mergedMap[p] || {}), ...item, path: p };
+                      });
+
+                      const allItems = Object.values(mergedMap);
+                      const filtered = allItems.filter(item => {
+                        if (!previewFilter.trim()) return true;
+                        const query = previewFilter.toLowerCase();
+                        return item.path.toLowerCase().includes(query) ||
+                               item.title.toLowerCase().includes(query) ||
+                               (item.subtitle && item.subtitle.toLowerCase().includes(query));
+                      });
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="col-span-full p-12 text-center text-gray-400 bg-gray-50 dark:bg-gray-900 rounded-3xl">
+                            No links match "{previewFilter}".
+                          </div>
+                        );
+                      }
+
+                      return filtered.map(item => {
+                        const hasCustomPic = !!item.imageUrl && item.imageUrl.trim().length > 0;
+                        const isUploading = uploadingPath === item.path;
+
+                        return (
+                          <div
+                            key={item.path}
+                            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4 flex flex-col justify-between hover:border-blue-500/40 transition-all shadow-sm"
+                          >
+                            <div>
+                              {/* Header & Path */}
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div>
+                                  <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                                    {item.title}
+                                  </h4>
+                                  <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400 mt-0.5">
+                                    campusai.com.ng{item.path}
+                                  </div>
+                                </div>
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                  {item.subtitle || 'Route'}
+                                </span>
+                              </div>
+
+                              {/* Preview Box */}
+                              <div className="relative w-full h-36 bg-gray-100 dark:bg-gray-950 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 group">
+                                {hasCustomPic ? (
+                                  <>
+                                    <img
+                                      src={item.imageUrl}
+                                      alt={item.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md shadow-md">
+                                      Custom Active
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4 text-center space-y-2">
+                                    <ImageIcon size={28} className="opacity-40" />
+                                    <span className="text-[10px] uppercase font-bold text-gray-400">
+                                      Default Card View (No Picture)
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions & Controls */}
+                            <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-800/80">
+                              {/* File Upload Option */}
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+                                  Upload Picture File
+                                </label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={isUploading}
+                                  onChange={e => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      handleLinkPictureFileUpload(item.path, e.target.files[0], item.title, item.subtitle);
+                                    }
+                                  }}
+                                  className="w-full text-[10px] text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-600 dark:file:text-blue-400 hover:file:bg-blue-100 cursor-pointer"
+                                />
+                              </div>
+
+                              {/* Direct URL Input Option */}
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  defaultValue={hasCustomPic ? item.imageUrl : ''}
+                                  placeholder="Or paste Image URL..."
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      handleLinkPictureUrlSave(item.path, (e.target as HTMLInputElement).value, item.title, item.subtitle);
+                                    }
+                                  }}
+                                  id={`url_input_${item.path.replace(/\//g, '_')}`}
+                                  className="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl text-[10px] border border-gray-200 dark:border-gray-800 dark:text-white"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const input = document.getElementById(`url_input_${item.path.replace(/\//g, '_')}`) as HTMLInputElement;
+                                    if (input && input.value) {
+                                      handleLinkPictureUrlSave(item.path, input.value, item.title, item.subtitle);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-blue-700 transition-all shrink-0"
+                                >
+                                  Save URL
+                                </button>
+                              </div>
+
+                              {/* Delete Action if active */}
+                              {hasCustomPic && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleLinkPictureDelete(item.path)}
+                                  className="w-full py-1.5 bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 flex items-center justify-center gap-1"
+                                >
+                                  <Trash2 size={12} /> Remove Custom Picture
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               )}
 

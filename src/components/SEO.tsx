@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { stringify } from '../services/utils';
+import { getStoredLinkPreviews } from '../services/linkPreviewService';
 
 interface SEOProps {
   title?: string;
@@ -59,8 +60,13 @@ const SEO: React.FC<SEOProps> = ({
 
   const newsSlug = (canonical || cleanPath).includes('/news/') ? (canonical || cleanPath).split('/news/')[1] : "";
 
+  const customPreviews = getStoredLinkPreviews();
+  const currentCustomPreview = customPreviews[cleanPath || '/']?.imageUrl || customPreviews[cleanPath]?.imageUrl;
+
   let ogImage = `${siteDomain}/og-image.png`;
-  if (image && typeof image === 'string' && (image.trim().startsWith('http://') || image.trim().startsWith('https://'))) {
+  if (currentCustomPreview && (currentCustomPreview.startsWith('http') || currentCustomPreview.startsWith('data:'))) {
+    ogImage = currentCustomPreview;
+  } else if (image && typeof image === 'string' && (image.trim().startsWith('http://') || image.trim().startsWith('https://'))) {
     ogImage = image.trim();
   } else if (newsSlug) {
     ogImage = `${siteDomain}/api/article-image?slug=${encodeURIComponent(newsSlug.split('?')[0].replace(/\/$/, ''))}`;
