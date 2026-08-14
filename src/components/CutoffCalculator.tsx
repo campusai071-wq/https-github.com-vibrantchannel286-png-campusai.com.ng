@@ -26,7 +26,7 @@ import {
   deductScholarCredit, FREE_GUEST_LIMIT, FREE_USER_LIMIT,
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
-import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome } from '../services/dbService';
+import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -2136,6 +2136,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const enrichedResult = { ...result, predictionId };
       setAiResult(enrichedResult);
       setShowResults(true);
+
+      // Increment persistent global calculations metric for site analytics
+      incrementGlobalCalculationCount().catch(err => console.error("Error incrementing global calculation count:", err));
 
       savePredictionRecord({
         predictionId,

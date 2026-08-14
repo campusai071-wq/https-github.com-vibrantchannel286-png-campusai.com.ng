@@ -1,7 +1,7 @@
 import { UserProfile, UserRole } from '../types';
 import { db, auth } from './firebaseConfig';
 import { stringify } from './utils';
-import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot, where } from "firebase/firestore";
+import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot, where, getAggregateFromServer, sum } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from './firestoreUtils';
 import { validateUserProfile } from '../lib/validation';
 
@@ -503,6 +503,20 @@ export const getTotalUserCount = async (): Promise<number> => {
       console.error("getTotalUserCount fallback also failed:", fallbackErr);
       return 0;
     }
+  }
+};
+
+export const getGlobalCalculationsSum = async (): Promise<number> => {
+  if (!db) return 0;
+  try {
+    const coll = collection(db, "users");
+    const snapshot = await getAggregateFromServer(coll, {
+      total: sum('lifetime_calculations')
+    });
+    return snapshot.data().total;
+  } catch (e: any) {
+    console.error("getGlobalCalculationsSum error:", e);
+    return 0;
   }
 };
 

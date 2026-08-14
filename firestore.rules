@@ -49,7 +49,9 @@ service cloud.firestore {
              (data.is_premium == false || data.is_premium == true) &&
              (data.daily_requests is int && data.daily_requests >= 0) &&
              (!('scholarCredits' in data) || data.scholarCredits is int) &&
-             (!('meritUsageCount' in data) || data.meritUsageCount is int);
+             (!('meritUsageCount' in data) || data.meritUsageCount is int) &&
+             (!('lifetime_calculations' in data) || data.lifetime_calculations is int) &&
+             (!('daily_last_reset' in data) || data.daily_last_reset is string);
     }
 
     function isValidNews(data) {
@@ -140,7 +142,7 @@ service cloud.firestore {
       
       allow update: if isOwner(userId) && (
         // Action: User self-update including premium activation
-        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount'])) ||
+        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'daily_last_reset', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount', 'lifetime_calculations'])) ||
         // Action: Admin override
         isAdmin()
       );
@@ -230,7 +232,7 @@ service cloud.firestore {
     }
 
     match /user_activities/{activityId} {
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow create: if (isSignedIn() && incoming().userId == request.auth.uid) || (!isSignedIn() && incoming().userId == 'guest');
       allow read: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
     }
 

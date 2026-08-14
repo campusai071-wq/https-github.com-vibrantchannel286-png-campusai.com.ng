@@ -26,7 +26,7 @@ import {
   getStoredLinkPreviews, fetchLinkPreviewsFromCloud, saveLinkPreviewImage,
   deleteLinkPreviewImage, DEFAULT_LINK_PREVIEWS, LinkPreviewMap, LinkPreviewItem
 } from '../services/linkPreviewService';
-import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
+import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT, getGlobalCalculationsSum } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
 import { auth, db } from '../services/firebaseConfig';
@@ -349,7 +349,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [allActivities, setAllActivities] = useState<UserActivity[]>([]);
   const [adminLogs, setAdminLogs] = useState<AdminNotification[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [trafficStats, setTrafficStats]   = useState({ pageViews: 0, uniqueVisitors: 0 });
+  const [trafficStats, setTrafficStats]   = useState({ pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 });
   const [isResettingTraffic, setIsResettingTraffic] = useState(false);
   const [isPurgingLogs, setIsPurgingLogs] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -664,6 +664,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Users ───────────────────────────────────────────────────────────────────
   const [recentUsers, setRecentUsers]     = useState<UserProfile[]>([]);
   const [totalUserCount, setTotalUserCount] = useState(0);
+  const [globalCalculationsSum, setGlobalCalculationsSum] = useState(0);
 
   // ── Notifications ────────────────────────────────────────────────────────────
   const [asuuStatus, setAsuuStatus] = useState({
@@ -746,14 +747,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadAnalyticsData = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
-      const [logs, stats, adminLogsResult] = await Promise.all([
+      const [logs, stats, adminLogsResult, globalCalcSum] = await Promise.all([
         getAllUserActivities(500),
         getTrafficStats(),
-        getAdminNotifications()
+        getAdminNotifications(),
+        getGlobalCalculationsSum()
       ]);
       setAllActivities(logs);
       if (stats) setTrafficStats(stats);
       if (adminLogsResult) setAdminLogs(adminLogsResult);
+      if (typeof globalCalcSum === 'number') setGlobalCalculationsSum(globalCalcSum);
     } catch (e) {
       console.error("Analytics load error:", e);
     } finally {
@@ -822,9 +825,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadUsers = useCallback(async () => {
     setIsUserLoading(true);
     try {
-      const [users, count] = await Promise.all([fetchRecentUsers(), getTotalUserCount()]);
+      const [users, count, globalCalcSum] = await Promise.all([fetchRecentUsers(), getTotalUserCount(), getGlobalCalculationsSum()]);
       setRecentUsers(users);
       setTotalUserCount(Math.max(count, users.length));
+      setGlobalCalculationsSum(globalCalcSum);
     } finally {
       setIsUserLoading(false);
     }
@@ -836,7 +840,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     if (!isOpen || !admin.isLoggedIn) return;
     loadInitialData();
     loadUsers();
+    loadAnalyticsData();
     reloadKeySummaries();
+
+    const handleActivity = () => {
+      loadAnalyticsData();
+      loadUsers();
+    };
+    window.addEventListener('campusai_activity_logged', handleActivity);
+    return () => window.removeEventListener('campusai_activity_logged', handleActivity);
   }, [isOpen, admin.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load specific tab data when switching tabs
@@ -1307,7 +1319,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const finalNotAdmitted = notAdmittedCount;
   const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
   const activeTodayCount = uniqueActiveToday.size;
-  const grandCalculations = Math.max(totalCalculations, recentUsers.reduce((s, u) => s + (u.lifetime_calculations || 0), 0));
+  const grandCalculations = Math.max(trafficStats.totalCalculations || 0, globalCalculationsSum || 0, totalCalculations || 0);
   const todayLagosStr     = getNigerianDateStr();
   const todayLagosMidnight = getNigerianMidnight();
 

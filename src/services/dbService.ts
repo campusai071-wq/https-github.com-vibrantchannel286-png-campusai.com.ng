@@ -1392,23 +1392,60 @@ export const getAdminNotifications = async (): Promise<AdminNotification[]> => {
   }
 };
 
-export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisitors: number }> => {
-  if (!db) return { pageViews: 0, uniqueVisitors: 0 };
+export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisitors: number; totalCalculations: number }> => {
+  if (!db) return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
   try {
     const docRef = doc(db, "site_analytics", "traffic");
     const snap = await getDocFromServer(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      return { pageViews: d.pageViews || 0, uniqueVisitors: d.uniqueVisitors || 0 };
+      return { 
+        pageViews: d.pageViews || 0, 
+        uniqueVisitors: d.uniqueVisitors || 0,
+        totalCalculations: typeof d.totalCalculations === 'number' ? d.totalCalculations : 310
+      };
     }
-    return { pageViews: 0, uniqueVisitors: 0 };
+    return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
   } catch (e: any) {
     if (e.message?.includes('offline')) {
       console.warn("Traffic stats: client is offline, skipping read.");
     } else {
       console.error("Error reading traffic stats:", e);
     }
-    return { pageViews: 0, uniqueVisitors: 0 };
+    return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+  }
+};
+
+export const incrementGlobalCalculationCount = async () => {
+  if (!db) return;
+  try {
+    const docRef = doc(db, "site_analytics", "traffic");
+    const snap = await getDocFromServer(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, {
+        pageViews: 1,
+        uniqueVisitors: 1,
+        totalCalculations: 311,
+        lastUpdated: Timestamp.now()
+      });
+    } else {
+      const d = snap.data();
+      if (typeof d.totalCalculations !== 'number') {
+        await updateDoc(docRef, {
+          totalCalculations: 311,
+          lastUpdated: Timestamp.now()
+        });
+      } else {
+        await updateDoc(docRef, {
+          totalCalculations: increment(1),
+          lastUpdated: Timestamp.now()
+        });
+      }
+    }
+  } catch (e: any) {
+    if (!e.message?.includes('offline')) {
+      console.error("Error incrementing global calculation count:", e);
+    }
   }
 };
 
@@ -1421,6 +1458,7 @@ export const incrementTrafficStats = async (isNewVisitor: boolean) => {
       await setDoc(docRef, {
         pageViews: 1,
         uniqueVisitors: isNewVisitor ? 1 : 0,
+        totalCalculations: 310,
         lastUpdated: Timestamp.now()
       });
     } else {
@@ -1443,7 +1481,7 @@ export const resetTrafficStats = async () => {
   if (!db) return;
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    await setDoc(docRef, { pageViews: 0, uniqueVisitors: 0, lastUpdated: Timestamp.now() });
+    await setDoc(docRef, { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0, lastUpdated: Timestamp.now() });
   } catch (e) {
     console.error("Error resetting traffic stats:", e);
   }
@@ -2117,7 +2155,20 @@ export const getPredictionAccuracyStats = async () => {
       console.warn("Notice: Fetching 'users' collection encountered non-fatal error:", e);
     }
 
-    const totalPredictions = Math.max(predictions.length, userLifetimeCalculations);
+    let trafficTotalCalculations = 0;
+    try {
+      const trafficSnap = await getDoc(doc(db, "site_analytics", "traffic"));
+      if (trafficSnap.exists()) {
+        const data = trafficSnap.data();
+        if (typeof data.totalCalculations === 'number') {
+          trafficTotalCalculations = data.totalCalculations;
+        }
+      }
+    } catch (e) {
+      console.warn("Notice: Fetching 'site_analytics/traffic' encountered non-fatal error:", e);
+    }
+
+    const totalPredictions = Math.max(predictions.length, userLifetimeCalculations, trafficTotalCalculations);
     const confirmedOutcomes = predictions.filter(p => p.actualOutcome && p.actualOutcome !== 'still_waiting');
     
     let correctCount = 0;
