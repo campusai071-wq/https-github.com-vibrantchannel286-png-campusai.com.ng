@@ -1916,6 +1916,8 @@ export interface GlobalPredictionRecord {
   isELDSState: boolean;
   isCatchmentState: boolean;
   predictionDate: string;
+  detailedStrategy?: string;
+  formulaExplanation?: string;
   createdAt?: any;
   helpful?: boolean;
   helpfulRating?: number;

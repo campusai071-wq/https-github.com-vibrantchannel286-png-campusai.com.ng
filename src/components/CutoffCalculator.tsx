@@ -2154,7 +2154,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         stateOfOrigin: stateOfOrigin || '',
         isELDSState: !!isELDSState,
         isCatchmentState: !!isCatchmentState,
-        predictionDate: new Date().toISOString().split('T')[0]
+        predictionDate: new Date().toISOString().split('T')[0],
+        detailedStrategy: result.detailedStrategy || '',
+        formulaExplanation: formulaText || ''
       }).catch(err => console.error("Error saving global prediction record:", err));
 
       // Automatically save this calculation attempt to history with local storage persistence
