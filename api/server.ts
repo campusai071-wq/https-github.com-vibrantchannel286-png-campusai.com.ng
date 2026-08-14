@@ -2026,7 +2026,7 @@ app.post("/api/search", async (req: any, res: any) => {
     let localMatches: any[] = [];
 
     if (words.length > 0) {
-      const snap: any = await withTimeout(newsRef.orderBy("date", "desc").limit(50).get(), 1200, "Local news query");
+      const snap: any = await withTimeout(newsRef.orderBy("date", "desc").limit(50).get(), 4000, "Local news query");
 
       snap.forEach((doc: any) => {
         const data = doc.data();
@@ -2072,7 +2072,7 @@ app.post("/api/search", async (req: any, res: any) => {
         try {
           const response = await axios.post('https://google.serper.dev/search', { q: query }, {
             headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-            timeout: 2500
+            timeout: 8000
           });
           if (response.data && response.data.organic && response.data.organic.length > 0) {
             const results = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet, source: 'Serper' }));
@@ -2093,7 +2093,7 @@ app.post("/api/search", async (req: any, res: any) => {
           const client = new TavilyClient({ apiKey: key });
           const response: any = await withTimeout(
             client.search({ query, search_depth: "basic", max_results: 5 }),
-            2500,
+            8000,
             "Tavily search"
           );
           if (response && response.results && response.results.length > 0) {
@@ -2131,7 +2131,7 @@ app.post("/api/search", async (req: any, res: any) => {
             contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
             config: { tools: [{ googleSearch: {} }] }
           }),
-          3000,
+          8000,
           `Gemini search grounding`
         );
 
@@ -2287,6 +2287,84 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     res.status(500).send("Error generating sitemap");
   }
 });
+
+
+// Google News Sitemap
+app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: any) => {
+  try {
+    let newsDocs: any[] = [];
+    if (adminDb) {
+      try {
+        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(1000).get();
+        snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn("[Sitemap] AdminDb error:", e);
+      }
+    }
+    if (newsDocs.length === 0 && dbInstance) {
+      try {
+        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(1000));
+        const querySnap = await getDocs(q);
+        querySnap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn("[Sitemap] DbInstance error:", e);
+      }
+    }
+
+    if (Array.isArray(MOCK_NEWS)) {
+      MOCK_NEWS.forEach((m: any) => {
+        const mSlug = m.slug || m.id;
+        if (!newsDocs.some((n: any) => (n.slug || n.id) === mSlug)) {
+          newsDocs.push(m);
+        }
+      });
+    }
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">`;
+
+    const addedUrls = new Set<string>();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    newsDocs.forEach((data: any) => {
+      const slug = data.slug || data.id;
+      const fullUrl = `https://campusai.com.ng/news/${slug}`;
+      
+      if (!addedUrls.has(fullUrl)) {
+        addedUrls.add(fullUrl);
+        const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
+        
+        let title = data.title || 'Campus News';
+        // Sanitize title for XML
+        title = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+        
+        xml += `
+  <url>
+    <loc>${fullUrl}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>CampusAI</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${lastMod}</news:publication_date>
+      <news:title>${title}</news:title>
+    </news:news>
+  </url>`;
+      }
+    });
+
+    xml += `
+</urlset>`;
+
+    res.header('Content-Type', 'application/xml; charset=utf-8');
+    res.send(xml);
+  } catch (e) {
+    console.error("[News Sitemap Error]", e);
+    res.status(500).send("Error generating news sitemap");
+  }
+});
+
 
 async function notifyIndexNow(urls: string[]) {
   try {

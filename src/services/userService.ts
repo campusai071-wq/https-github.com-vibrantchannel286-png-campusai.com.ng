@@ -1,7 +1,7 @@
 import { UserProfile, UserRole } from '../types';
 import { db, auth } from './firebaseConfig';
 import { stringify } from './utils';
-import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot } from "firebase/firestore";
+import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot, where } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from './firestoreUtils';
 import { validateUserProfile } from '../lib/validation';
 
@@ -464,7 +464,28 @@ export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
   try {
     const q = query(collection(db, "users"), orderBy("last_active", "desc"), limit(50));
     const snap = await getDocs(q);
-    return snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
+    const users = snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
+    
+    // Backfill real calculation count from predictions table for accuracy
+    const enhancedUsers = await Promise.all(users.map(async (u) => {
+      try {
+        let count = u.lifetime_calculations || u.meritUsageCount || 0;
+        if (u.email) {
+          const predQuery = query(collection(db, "predictions"), where("userEmail", "==", u.email));
+          const predSnap = await getCountFromServer(predQuery);
+          const actualCount = predSnap.data().count;
+          if (actualCount > count) {
+            count = actualCount;
+            // Fire-and-forget: update db to permanently fix it for the user
+            updateDoc(doc(db, "users", u.uid), { lifetime_calculations: actualCount }).catch(() => {});
+          }
+        }
+        return { ...u, lifetime_calculations: count };
+      } catch (e) {
+        return u; // fallback to whatever was stored
+      }
+    }));
+    return enhancedUsers;
   } catch (e: any) { console.error("fetchRecentUsers error:", e); return []; }
 };
 

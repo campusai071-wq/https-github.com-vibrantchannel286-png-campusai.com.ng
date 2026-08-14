@@ -3805,10 +3805,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                         <p className="text-[10px] text-amber-200 leading-relaxed font-semibold">
-                          {parseFloat(aggregateScore.toString()) >= parseFloat(String(aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
-                            <>✅ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> meets or exceeds the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                          {parseFloat(aggregateScore.toString()) >= parseFloat(String(aiResult.cutoffValue || aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) ? (
+                            <>✅ Your calculated aggregate of <span className="text-white font-extrabold">{aggregateScore}%</span> is above the {aiResult.cutoffIsOfficial ? 'official' : 'historical/projected'} benchmark of <span className="text-white font-extrabold">{aiResult.cutoffValue || aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. This suggests you are competitive, but it does not guarantee admission. Follow the action plan to maximize your chances.</>
                           ) : (
-                            <>⚠️ Your aggregate score of <span className="text-white font-extrabold">{aggregateScore}%</span> is close to or below the estimated historical benchmark of <span className="text-white font-extrabold">{aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. To maximize your chances of gaining admission this year, follow this action plan.</>
+                            <>⚠️ Your calculated aggregate of <span className="text-white font-extrabold">{aggregateScore}%</span> is below the {aiResult.cutoffIsOfficial ? 'official' : 'historical/projected'} benchmark of <span className="text-white font-extrabold">{aiResult.cutoffValue || aiResult.departmentalCutoff || aiResult.cutoff}</span> for {targetCourse || courseSearch}. You may need a backup plan. Follow the action plan for strategies.</>
                           )}
                         </p>
                       </div>
@@ -4002,9 +4002,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </div>
                       <p className="text-[11px] text-gray-200 font-semibold leading-relaxed">
                         {aiResult.predictionConfidenceInterval || (() => {
-                          const val = parseFloat(aiResult.departmentalCutoff || aiResult.cutoff);
+                          const val = parseFloat(aiResult.cutoffValue || aiResult.departmentalCutoff || aiResult.cutoff);
                           if (!isNaN(val)) {
-                            const isPercentage = (aiResult.departmentalCutoff || aiResult.cutoff || '').toString().includes('%');
+                            const isPercentage = (aiResult.cutoffValue || aiResult.departmentalCutoff || aiResult.cutoff || '').toString().includes('%');
                             const suffix = isPercentage ? '%' : '';
                             return `Simulated range: ${(val - 1.5).toFixed(1)}${suffix} - ${(val + 1.5).toFixed(1)}${suffix} aggregate index with a normal competitive variance threshold.`;
                           }
@@ -4226,9 +4226,19 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       <p className="text-[7px] font-black text-gray-400 uppercase mb-1">School UTME</p>
                       <p className="text-sm font-black text-white">{aiResult.institutionalCutoff || 'N/A'}</p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 relative group cursor-help">
                       <p className="text-[7px] font-black text-gray-400 uppercase mb-1">Course Aggregate</p>
-                      <p className="text-sm font-black text-cyan-400">{aiResult.departmentalCutoff || aiResult.cutoff}</p>
+                      <p className="text-sm font-black text-cyan-400">{aiResult.departmentalCutoff || aiResult.cutoffValue || aiResult.cutoff}</p>
+                      {aiResult.cutoffType && (
+                        <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[6px] font-bold uppercase tracking-wider bg-white/10 text-gray-300">
+                          {aiResult.cutoffType.replace(/_/g, ' ')} {aiResult.cutoffYear ? `(${aiResult.cutoffYear})` : ''}
+                        </span>
+                      )}
+                      
+                      {/* Tooltip for context */}
+                      <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-gray-300 text-[9px] p-2 rounded-lg border border-gray-700 pointer-events-none z-10 shadow-xl">
+                        This is {aiResult.cutoffIsOfficial ? 'an official' : 'a projected'} benchmark based on {aiResult.cutoffSource || 'historical data'}. It does not guarantee admission.
+                      </div>
                     </div>
                     <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                       <p className="text-[7px] font-black text-gray-400 uppercase mb-1">Reliability Index</p>

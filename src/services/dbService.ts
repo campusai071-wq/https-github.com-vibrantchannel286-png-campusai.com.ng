@@ -103,7 +103,7 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
     const q = query(newsRef, where("slug", "==", cleanSlug));
     let querySnapshot;
     try {
-      querySnapshot = await getDocsFromServer(q);
+      querySnapshot = await getDocs(q);
     } catch (e) {
       querySnapshot = await getDocs(q);
     }
@@ -111,7 +111,7 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
       let bestDoc = querySnapshot.docs[0];
       if (querySnapshot.docs.length > 1) {
         let bestTime = 0;
-        querySnapshot.docs.forEach(docSnap => {
+        querySnapshot.docs.forEach((docSnap: any) => {
           const t = toMs(docSnap.data().updatedAt) || toMs(docSnap.data().createdAt) || 0;
           if (t > bestTime) {
             bestTime = t;
@@ -472,7 +472,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       let querySnapshot;
       try {
         // ALWAYS try getDocsFromServer FIRST to avoid stale local IndexedDB snapshots in browser
-        querySnapshot = await getDocsFromServer(q);
+        querySnapshot = await getDocs(q);
         console.log(`getCloudNews: Firestore server fetch successful. Found ${querySnapshot.size} documents.`);
       } catch (fetchError: any) {
         console.warn("getCloudNews: Server fetch failed, trying local cache snapshot fallback...", fetchError?.message || fetchError);

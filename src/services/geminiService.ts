@@ -1894,6 +1894,12 @@ export const getCourseCutoffInfo = async (
         departmentalCutoff: "N/A",
         institutionalCutoff: "160",
         cutoff: "N/A",
+        cutoffValue: "N/A",
+        cutoffType: "estimated_benchmark",
+        cutoffYear: new Date().getFullYear(),
+        cutoffSource: "Algorithmic Ruleset",
+        cutoffIsOfficial: false,
+        cutoffConfidence: "high",
         mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
         scoreBreakdown: [
           { factor: "Aggregate", impact: `${score}%` },
@@ -2022,6 +2028,12 @@ export const getCourseCutoffInfo = async (
       departmentalCutoff: `${cutoffVal}%`,
       institutionalCutoff: manualOverride?.institutionalCutoff || "160",
       cutoff: `${cutoffVal}%`,
+      cutoffValue: cutoffVal,
+      cutoffType: manualOverride ? "official_departmental_cutoff" : "estimated_benchmark",
+      cutoffYear: new Date().getFullYear(),
+      cutoffSource: manualOverride ? "Manual System Override" : "Algorithmic Estimation",
+      cutoffIsOfficial: !!manualOverride,
+      cutoffConfidence: manualOverride ? "high" : "medium",
       mathBreakdown,
       scoreBreakdown: [
         { factor: "Aggregate Score", impact: `${score}%` },
@@ -2140,11 +2152,27 @@ CRITICAL RULES FOR ADMISSION ANALYSIS:
 - Is ELDS State: ${isELDS ? 'YES' : 'NO'}
 - Is Catchment Area Candidate: ${isCatchment ? 'YES' : 'NO'}
 
+CRITICAL - CUTOFF CATEGORIZATION:
+You must explicitly classify what type of cutoff benchmark you are providing.
+- cutoffValue: The numerical value (e.g., "78.875")
+- cutoffType: Must be one of: "historical_closing_aggregate", "estimated_benchmark", "official_departmental_cutoff", "eligibility_minimum"
+- cutoffYear: The year this cutoff data is from (e.g., "2024", "2025")
+- cutoffSource: Where this data comes from (e.g., "Official University Bulletin", "Historical Trend Analysis", "Manual System Override")
+- cutoffIsOfficial: boolean (true only if it's an exact, confirmed figure from the school for the current session)
+- cutoffConfidence: "high", "medium", or "low"
+- DO NOT present estimated or historical benchmarks as guaranteed final cutoff points.
+
 Return JSON:
 {
   "institutionalCutoff": "string",
   "departmentalCutoff": "string",
   "cutoff": "string",
+  "cutoffValue": "string",
+  "cutoffType": "string",
+  "cutoffYear": "string",
+  "cutoffSource": "string",
+  "cutoffIsOfficial": false,
+  "cutoffConfidence": "string",
   "mathBreakdown": "string",
   "scoreBreakdown": [
     { "factor": "string", "impact": "string" }
@@ -2209,6 +2237,12 @@ Return JSON:
       departmentalCutoff: `${cutoffVal}%`,
       institutionalCutoff: "160",
       cutoff: `${cutoffVal}%`,
+      cutoffValue: cutoffVal,
+      cutoffType: "estimated_benchmark",
+      cutoffYear: new Date().getFullYear(),
+      cutoffSource: "Algorithmic Ruleset",
+      cutoffIsOfficial: false,
+      cutoffConfidence: "medium",
       mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
       scoreBreakdown: [
         { factor: "Aggregate", impact: `${score}%` },
