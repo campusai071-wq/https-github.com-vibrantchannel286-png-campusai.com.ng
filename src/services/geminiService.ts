@@ -1648,7 +1648,7 @@ export function sanitizeAlternativeCourses(
   return cleaned;
 }
 
-const enforceAdmissionTiers = (
+export const enforceAdmissionTiers = (
   score: number,
   cutoffVal: number,
   university: string,

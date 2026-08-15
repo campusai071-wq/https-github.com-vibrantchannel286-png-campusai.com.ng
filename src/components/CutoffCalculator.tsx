@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
 import universityData from '../data/universities';
-import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown, validateMandatorySubjects, validateOlevelRequirements } from '../services/geminiService';
+import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown, validateMandatorySubjects, validateOlevelRequirements, enforceAdmissionTiers } from '../services/geminiService';
 import {
   getLocalProfile, checkAndIncrementCalculations as checkAndIncrementRequests,
   DAILY_LIMIT, getUserProfile, saveUserProfile, incrementMeritUsage,
@@ -2140,6 +2140,25 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       // Increment persistent global calculations metric for site analytics
       incrementGlobalCalculationCount().catch(err => console.error("Error incrementing global calculation count:", err));
 
+      const olevelsString = subjects.map(s => `${s.name}: ${s.grade}`).join(', ');
+      
+      // Calculate deterministic values
+      const deterministic = enforceAdmissionTiers(
+        parseFloat(aggregateScore.toString()) || 0,
+        parseFloat((result.departmentalCutoff || result.cutoff || '55').toString().replace(/[^0-9.]/g, '')) || 55,
+        targetUni.name,
+        targetCourse || courseSearch,
+        stateOfOrigin,
+        !!isELDSState,
+        !!isCatchmentState,
+        isAR,
+        isPostUtmePending,
+        parseFloat(jambScore) || 0,
+        parseFloat(postUtmeScore) || 0,
+        formulaText,
+        olevelsString
+      );
+
       savePredictionRecord({
         predictionId,
         userId: user?.uid || 'guest',
@@ -2149,9 +2168,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         aggregateScore: parseFloat(aggregateScore.toString()) || 0,
         jambScore: parseFloat(jambScore) || 0,
         postUtmeScore: parseFloat(postUtmeScore) || 0,
-        verdict: result.verdict || 'Borderline',
+        verdict: deterministic.verdict || result.verdict || 'Borderline',
         confidence: result.reliability || 'Medium',
-        predictedProbability: result.probability || 50,
+        predictedProbability: deterministic.probability || result.probability || 50,
         departmentalCutoff: result.departmentalCutoff || result.cutoff || '',
         institutionalCutoff: result.institutionalCutoff || '',
         stateOfOrigin: stateOfOrigin || '',
