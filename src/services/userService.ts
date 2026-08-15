@@ -466,25 +466,10 @@ export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
     const snap = await getDocs(q);
     const users = snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
     
-    // Backfill real calculation count from predictions table for accuracy
-    const enhancedUsers = await Promise.all(users.map(async (u) => {
-      try {
-        let count = u.lifetime_calculations || u.meritUsageCount || 0;
-        if (u.email) {
-          const predQuery = query(collection(db, "predictions"), where("userEmail", "==", u.email));
-          const predSnap = await getCountFromServer(predQuery);
-          const actualCount = predSnap.data().count;
-          if (actualCount > count) {
-            count = actualCount;
-            // Fire-and-forget: update db to permanently fix it for the user
-            updateDoc(doc(db, "users", u.uid), { lifetime_calculations: actualCount }).catch(() => {});
-          }
-        }
-        return { ...u, lifetime_calculations: count };
-      } catch (e) {
-        return u; // fallback to whatever was stored
-      }
-    }));
+    // Backfill real calculation count from predictions table for accuracy (disabled to avoid quota issues)
+    const enhancedUsers = users.map((u) => {
+        return { ...u, lifetime_calculations: u.lifetime_calculations || u.meritUsageCount || 0 };
+    });
     return enhancedUsers;
   } catch (e: any) { console.error("fetchRecentUsers error:", e); return []; }
 };

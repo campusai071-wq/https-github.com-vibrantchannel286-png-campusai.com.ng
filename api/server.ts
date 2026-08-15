@@ -1983,6 +1983,48 @@ Only output the JSON object or NO_UPDATES, no other text.`;
   }
 });
 
+// Flutterwave Webhook
+app.post("/api/webhooks/flutterwave", express.json(), async (req: any, res: any) => {
+  const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET;
+  const signature = req.headers["verif-hash"];
+
+  if (!signature || signature !== secretHash) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  const payload = req.body;
+  if (payload.event === "charge.completed" && payload.data.status === "successful") {
+    const { email } = payload.data.customer;
+
+    const db = getAdminFirestore();
+    const usersSnapshot = await db.collection("users").where("email", "==", email).get();
+
+    if (!usersSnapshot.empty) {
+      const userDoc = usersSnapshot.docs[0];
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+
+      await db.collection("users").doc(userId).update({
+        scholarCredits: (userData.scholarCredits || 0) + 5,
+        is_premium: true,
+        last_premium_payment: AdminTimestamp.now()
+      });
+
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'CampusAI Admissions <noreply@campusai.com.ng>',
+        to: email,
+        subject: 'Scholar Pack Activated!',
+        text: `Hello, your Scholar Pack has been activated successfully. You have been granted 5 additional premium credits. Enjoy your learning journey!`,
+      });
+
+      return res.status(200).json({ success: true });
+    }
+  }
+
+  return res.status(200).json({ success: true });
+});
+
 app.post("/api/seed-manual", async (req: any, res: any) => {
   try {
     const doc = req.body;

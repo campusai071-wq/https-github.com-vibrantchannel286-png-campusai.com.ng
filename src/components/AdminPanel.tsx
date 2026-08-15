@@ -26,7 +26,7 @@ import {
   getStoredLinkPreviews, fetchLinkPreviewsFromCloud, saveLinkPreviewImage,
   deleteLinkPreviewImage, DEFAULT_LINK_PREVIEWS, LinkPreviewMap, LinkPreviewItem
 } from '../services/linkPreviewService';
-import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT, getGlobalCalculationsSum } from '../services/userService';
+import { fetchRecentUsers, getTotalUserCount, updateUserProfile, FREE_USER_LIMIT } from '../services/userService';
 import { admissionsService } from '../services/admissionsService';
 import { fetchLiveNews, getUniversityScoringSystem, getAPIKeysSummary, APIKeySummaryItem } from '../services/geminiService';
 import { auth, db } from '../services/firebaseConfig';
@@ -36,6 +36,7 @@ import { SystemHealthStatus } from './SystemHealthStatus';
 import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../services/indexNowService';
 import NewsDetailView from './NewsDetailView';
 import { ADMIN_TOKEN } from '../lib/adminAuth';
+import PredictionDetailsModal from './PredictionDetailsModal';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -80,6 +81,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Auth state ──────────────────────────────────────────────────────────────
   const [loginToken, setLoginToken] = useState('');
   const [authFailed, setAuthFailed]   = useState(false);
+  const [selectedUserForPredictions, setSelectedUserForPredictions] = useState<any>(null);
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
@@ -664,7 +666,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Users ───────────────────────────────────────────────────────────────────
   const [recentUsers, setRecentUsers]     = useState<UserProfile[]>([]);
   const [totalUserCount, setTotalUserCount] = useState(0);
-  const [globalCalculationsSum, setGlobalCalculationsSum] = useState(0);
+
 
   // ── Notifications ────────────────────────────────────────────────────────────
   const [asuuStatus, setAsuuStatus] = useState({
@@ -747,16 +749,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadAnalyticsData = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
-      const [logs, stats, adminLogsResult, globalCalcSum] = await Promise.all([
+      const [logs, stats, adminLogsResult] = await Promise.all([
         getAllUserActivities(500),
         getTrafficStats(),
-        getAdminNotifications(),
-        getGlobalCalculationsSum()
+        getAdminNotifications()
       ]);
       setAllActivities(logs);
       if (stats) setTrafficStats(stats);
       if (adminLogsResult) setAdminLogs(adminLogsResult);
-      if (typeof globalCalcSum === 'number') setGlobalCalculationsSum(globalCalcSum);
     } catch (e) {
       console.error("Analytics load error:", e);
     } finally {
@@ -825,10 +825,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadUsers = useCallback(async () => {
     setIsUserLoading(true);
     try {
-      const [users, count, globalCalcSum] = await Promise.all([fetchRecentUsers(), getTotalUserCount(), getGlobalCalculationsSum()]);
+      const [users, count] = await Promise.all([fetchRecentUsers(), getTotalUserCount()]);
       setRecentUsers(users);
       setTotalUserCount(Math.max(count, users.length));
-      setGlobalCalculationsSum(globalCalcSum);
     } finally {
       setIsUserLoading(false);
     }
@@ -1319,7 +1318,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const finalNotAdmitted = notAdmittedCount;
   const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
   const activeTodayCount = uniqueActiveToday.size;
-  const grandCalculations = Math.max(trafficStats.totalCalculations || 0, globalCalculationsSum || 0, totalCalculations || 0);
+  const grandCalculations = Math.max(trafficStats.totalCalculations || 0, totalCalculations || 0);
   const todayLagosStr     = getNigerianDateStr();
   const todayLagosMidnight = getNigerianMidnight();
 
@@ -2616,11 +2615,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             >
                               Grant 3 SP
                             </button>
+                            <button
+                              onClick={() => setSelectedUserForPredictions(u)}
+                              className="mt-2 px-2 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[7px] font-black uppercase hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+                            >
+                              View Predictions
+                            </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+                  <PredictionDetailsModal
+                    isOpen={!!selectedUserForPredictions}
+                    onClose={() => setSelectedUserForPredictions(null)}
+                    userEmail={selectedUserForPredictions?.email || ''}
+                    userName={selectedUserForPredictions?.displayName || ''}
+                  />
                 </div>
               )}
 
