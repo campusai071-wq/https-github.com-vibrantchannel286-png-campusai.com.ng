@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, Share2, ShieldCheck, Award, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
-import jsPDF from 'jspdf';
 import { formatStrategyMarkdown } from '../services/geminiService';
 
 interface PdfExportModalProps {
@@ -72,6 +70,10 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
         await document.fonts.ready;
       }
 
+      const htmlToImage = await import('html-to-image');
+      const jspdfModule = await import('jspdf');
+      const JsPdfClass = (jspdfModule as any).jsPDF || (jspdfModule as any).default || jspdfModule;
+
       const width = 800;
       const height = element.scrollHeight || element.offsetHeight;
 
@@ -88,7 +90,7 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
         }
       });
 
-      const pdf = new jsPDF({
+      const pdf = new JsPdfClass({
         orientation: 'p',
         unit: 'mm',
         format: 'a4'
@@ -136,6 +138,8 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
       if (document.fonts) {
         await document.fonts.ready;
       }
+
+      const htmlToImage = await import('html-to-image');
 
       const width = 800;
       const height = element.scrollHeight || element.offsetHeight;
@@ -487,3 +491,5 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
     </div>
   );
 };
+
+export default PdfExportModal;

@@ -34,8 +34,8 @@ import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
 import CalculationAnimation from './CalculationAnimation';
 
-const PdfExportModal = React.lazy(() => import('./PdfExportModal').then(module => ({ default: module.PdfExportModal })));
-const FileUploadHubModal = React.lazy(() => import('./FileUploadHubModal').then(module => ({ default: module.FileUploadHubModal })));
+const PdfExportModal = React.lazy(() => import('./PdfExportModal'));
+const FileUploadHubModal = React.lazy(() => import('./FileUploadHubModal'));
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -5731,34 +5731,38 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       <Testimonials />
 
-      <Suspense fallback={null}>
-        <PdfExportModal
-          isOpen={isPdfExportModalOpen}
-          onClose={() => setIsPdfExportModalOpen(false)}
-          resultData={{
-            targetUni,
-            targetCourse,
-            courseSearch,
-            jambScore,
-            postUtmeScore,
-            isPostUtmePending,
-            aggregateScore,
-            admissionProbability,
-            confidenceLevel,
-            stateOfOrigin,
-            subjects,
-            hasOLevel: computedScoringSystem ? computedScoringSystem.hasOLevel : true,
-            aiResult
-          }}
-        />
-      </Suspense>
+      {isPdfExportModalOpen && (
+        <Suspense fallback={null}>
+          <PdfExportModal
+            isOpen={isPdfExportModalOpen}
+            onClose={() => setIsPdfExportModalOpen(false)}
+            resultData={{
+              targetUni,
+              targetCourse,
+              courseSearch,
+              jambScore,
+              postUtmeScore,
+              isPostUtmePending,
+              aggregateScore,
+              admissionProbability,
+              confidenceLevel,
+              stateOfOrigin,
+              subjects,
+              hasOLevel: computedScoringSystem ? computedScoringSystem.hasOLevel : true,
+              aiResult
+            }}
+          />
+        </Suspense>
+      )}
 
-      <Suspense fallback={null}>
-        <FileUploadHubModal
-          isOpen={isUploadHubModalOpen}
-          onClose={() => setIsUploadHubModalOpen(false)}
-        />
-      </Suspense>
+      {isUploadHubModalOpen && (
+        <Suspense fallback={null}>
+          <FileUploadHubModal
+            isOpen={isUploadHubModalOpen}
+            onClose={() => setIsUploadHubModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </section>
   );
 };

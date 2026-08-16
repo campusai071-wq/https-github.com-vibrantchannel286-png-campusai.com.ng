@@ -214,3 +214,5 @@ export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, 
     </div>
   );
 };
+
+export default FileUploadHubModal;
