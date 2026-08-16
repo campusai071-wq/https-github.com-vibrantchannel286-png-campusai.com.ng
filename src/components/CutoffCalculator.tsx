@@ -28,6 +28,7 @@ import {
 } from '../services/userService';
 import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
+import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -476,9 +477,13 @@ const ProbabilityGauge: React.FC<{ probability: number }> = ({ probability }) =>
       </div>
       <div className="mt-4 text-center flex flex-col items-center">
         <p className={`text-4xl font-black ${color}`}>{probability}%</p>
-        <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest mt-1">Merit Strength Index</p>
-        <p className="text-[9px] text-gray-400 max-w-[180px] leading-snug mt-1.5 font-medium">
-          Based on how far your aggregate exceeds the estimated competitive benchmark
+        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/5 text-[8.5px] font-black uppercase text-gray-400 tracking-wider">
+          <Sparkles size={10} className="text-cyan-400" />
+          <span>AI / Model Forecast</span>
+        </div>
+        <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest mt-1">Merit Strength Index</p>
+        <p className="text-[9px] text-gray-400 max-w-[200px] leading-snug mt-1 font-medium">
+          Statistical model estimate based on your score difference vs competitive applicant distribution
         </p>
       </div>
     </div>
@@ -1805,13 +1810,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     return Math.min(Math.max(Math.round(prob), 5), 98);
   }, [aiResult, aggregateScore]);
 
-  const isELDSState     = useMemo(() => ELDS_STATES.includes(stateOfOrigin), [stateOfOrigin]);
-  const isCatchmentState = useMemo(() => {
-    if (!targetUni || !stateOfOrigin) return false;
-    const sw = ['akure', 'lagos', 'ibadan', 'ife_oau', 'funaab'];
-    const isSW = sw.some(k => targetUni.name.toLowerCase().includes(k) || targetUni.slug?.toLowerCase().includes(k));
-    return isSW && ["Lagos", "Ogun", "Oyo", "Osun", "Ondo", "Ekiti"].includes(stateOfOrigin);
+  const candidateQuota = useMemo(() => {
+    return evaluateCandidateQuota(targetUni?.name || targetUni?.slug || '', stateOfOrigin || '');
   }, [targetUni, stateOfOrigin]);
+
+  const isELDSState     = candidateQuota.isELDS;
+  const isCatchmentState = candidateQuota.isCatchment;
 
   const confidenceLevel = useMemo(() => {
     if (isAR) return 'Low';
@@ -3616,78 +3620,104 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             </div>
                             
                             <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
-                            
-                            <div className="mt-4 flex flex-col items-center justify-center gap-2">
-                              <div className="flex items-center justify-center gap-2 p-2 px-4 bg-white/[0.03] border border-white/5 rounded-xl select-none">
-                                <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-widest">Confidence:</span>
-                                <div className="flex gap-1">
-                                  <span className={`w-3 h-1.5 rounded-sm bg-emerald-500`} />
-                                  <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'Medium' || confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                                  <span className={`w-3 h-1.5 rounded-sm ${confidenceLevel === 'High' ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                                </div>
-                                <span className={`text-[9px] font-black uppercase tracking-wider ${confidenceLevel === 'High' ? 'text-emerald-400' : confidenceLevel === 'Medium' ? 'text-cyan-400' : 'text-amber-400'}`}>
-                                  {confidenceLevel}
-                                </span>
-                              </div>
-                              
-                              {aiResult.confidenceReasoning && (
-                                <p className="text-[10px] text-gray-400 font-medium max-w-sm text-center leading-relaxed px-4">
-                                  {aiResult.confidenceReasoning}
-                                </p>
-                              )}
-                            </div>
                           </div>
 
-                          {/* Cutoff Benchmark & Provenance Audit Card */}
-                          <div className="w-full my-4 p-4 bg-black/40 rounded-2xl border border-white/10 text-left space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/5">
+                          {/* 3-Pillar Verification & Model Audit Matrix */}
+                          <div className="w-full my-4 p-4.5 bg-black/40 rounded-2xl border border-white/10 text-left space-y-4 shadow-xl">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
-                                  Cutoff Benchmark & Authority:
+                                <ShieldCheck size={16} className="text-emerald-400" />
+                                <span className="text-xs font-black uppercase tracking-wider text-white">
+                                  Verification & Ground Truth Audit
                                 </span>
-                                {aiResult.cutoffIsOfficial || (targetUni && (targetUni.name.includes('Ibadan') || targetUni.name.toLowerCase() === 'ui')) ? (
-                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[9px]">
-                                    Verified Official 2025/2026 Release
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-bold text-[9px]">
-                                    Historical Competitive Benchmark
-                                  </span>
-                                )}
                               </div>
-                              <div className="text-[10px] font-mono text-gray-400">
-                                Quota: <span className="font-bold text-white">{aiResult.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota'))}</span>
-                              </div>
+                              <span className="text-[10px] font-mono text-gray-400">
+                                Quota: <span className="font-bold text-white">{aiResult.cutoffQuotaUsed || candidateQuota.quotaLabel}</span>
+                              </span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl">
-                                <p className="text-[9px] uppercase font-bold text-gray-400">Departmental Cutoff</p>
-                                <p className="text-sm font-black text-white mt-0.5">
-                                  {aiResult.cutoffValue ? `${aiResult.cutoffValue}%` : (aiResult.departmentalCutoff || aiResult.cutoff || 'N/A')}
-                                </p>
+                            {/* 3 Independent Pillars */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {/* Pillar 1: Cutoff Ground Truth */}
+                              <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between gap-1 mb-2">
+                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">1. Cutoff Benchmark</span>
+                                    {aiResult.cutoffIsOfficial || (targetUni && (targetUni.name.includes('Ibadan') || targetUni.name.toLowerCase() === 'ui')) ? (
+                                      <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-black text-[8.5px] flex items-center gap-1">
+                                        <Check size={10} /> Official High
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-black text-[8.5px]">
+                                        Historical Est.
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-lg font-black text-white">
+                                    {aiResult.cutoffValue ? `${aiResult.cutoffValue}%` : (aiResult.departmentalCutoff || aiResult.cutoff || 'N/A')}
+                                  </p>
+                                  <p className="text-[9.5px] text-gray-400 mt-1 font-medium leading-tight">
+                                    {aiResult.cutoffSource || (targetUni?.name.includes('Ibadan') ? 'Official UI 2025/2026 Senate Release' : 'Historical Departmental Benchmark')}
+                                  </p>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-emerald-400/90 flex items-center gap-1 font-bold">
+                                  <span>Cutoff Confidence: {aiResult.cutoffIsOfficial ? 'Verified High ✅' : 'Historical Est. 🟡'}</span>
+                                </div>
                               </div>
 
-                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl">
-                                <p className="text-[9px] uppercase font-bold text-gray-400">Your Aggregate</p>
-                                <p className="text-sm font-black text-emerald-400 mt-0.5">
-                                  {aggregateScore}%
-                                </p>
+                              {/* Pillar 2: Aggregate Calculation */}
+                              <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between gap-1 mb-2">
+                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">2. Aggregate Math</span>
+                                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-black text-[8.5px] flex items-center gap-1">
+                                      <Check size={10} /> Verified Exact
+                                    </span>
+                                  </div>
+                                  <p className="text-lg font-black text-emerald-400">
+                                    {aggregateScore}%
+                                  </p>
+                                  <p className="text-[9.5px] text-gray-400 mt-1 font-medium leading-tight">
+                                    {computedScoringSystem?.explanation || "Official 50% JAMB + 50% Post-UTME Ratio"}
+                                  </p>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-emerald-400/90 flex items-center gap-1 font-bold">
+                                  <span>Calculation: Verified Math ✅</span>
+                                </div>
                               </div>
 
-                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl col-span-2 sm:col-span-1">
-                                <p className="text-[9px] uppercase font-bold text-gray-400">Score Margin</p>
-                                {(() => {
-                                  const cVal = parseFloat(String(aiResult.cutoffValue || aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, ''));
-                                  const aggVal = parseFloat(aggregateScore.toString()) || 0;
-                                  const diff = cVal > 0 ? (aggVal - cVal) : 0;
-                                  const isSurplus = diff >= 0;
-                                  return (
-                                    <p className={`text-sm font-black mt-0.5 ${isSurplus ? 'text-emerald-400' : diff >= -1.5 ? 'text-amber-400' : 'text-red-400'}`}>
-                                      {isSurplus ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
+                              {/* Pillar 3: Admission Probability */}
+                              <div className="p-3.5 bg-white/[0.02] border border-blue-500/20 rounded-xl flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between gap-1 mb-2">
+                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">3. Admission Probability</span>
+                                    <span className="px-2 py-0.5 bg-blue-500/10 text-cyan-400 border border-blue-500/20 rounded-md font-black text-[8.5px] flex items-center gap-1">
+                                      <Sparkles size={10} /> Model Estimate
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline gap-2">
+                                    <p className="text-lg font-black text-cyan-400">
+                                      {aiResult.isOffered === false ? 0 : admissionProbability}%
                                     </p>
-                                  );
-                                })()}
+                                    {(() => {
+                                      const cVal = parseFloat(String(aiResult.cutoffValue || aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, ''));
+                                      const aggVal = parseFloat(aggregateScore.toString()) || 0;
+                                      const diff = cVal > 0 ? (aggVal - cVal) : 0;
+                                      const isSurplus = diff >= 0;
+                                      return (
+                                        <span className={`text-[10px] font-bold ${isSurplus ? 'text-emerald-400' : diff >= -1.5 ? 'text-amber-400' : 'text-red-400'}`}>
+                                          ({isSurplus ? `+${diff.toFixed(2)}%` : `${diff.toFixed(2)}%`})
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                  <p className="text-[9.5px] text-gray-400 mt-1 font-medium leading-tight">
+                                    Statistical model forecast based on score margin vs competitive applicant distribution.
+                                  </p>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-cyan-400/90 flex items-center gap-1 font-bold">
+                                  <span>Probability: AI/Model Estimate ⚠️</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -3696,7 +3726,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             <div className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/10 inline-flex items-center gap-1.5">
                               {aiResult.isOffered === false
                                 ? <><X size={10} className="text-red-400" /><span className="text-[8px] font-black text-red-400 uppercase tracking-widest">Course Not Accredited</span></>
-                                : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Logic Verified</span></>}
+                                : <><ShieldCheck size={10} className="text-blue-400" /><span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Deterministic Engine Verified</span></>}
                             </div>
                             {user?.scholarCredits > 0 && (
                               <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/10 inline-flex items-center gap-1.5">

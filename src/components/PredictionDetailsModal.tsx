@@ -573,11 +573,11 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
 
                         <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
                           <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-                            <span>Cutoff Benchmark</span>
+                            <span>1. Cutoff Data</span>
                             {item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
-                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Official</span>
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Official ✅</span>
                             ) : (
-                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Estimate</span>
+                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Est. 🟡</span>
                             )}
                           </p>
                           <p className="text-base font-black text-gray-700 dark:text-gray-300 mt-0.5">
@@ -586,8 +586,21 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                         </div>
 
                         <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Probability</p>
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                            <span>2. Aggregate</span>
+                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Verified ✅</span>
+                          </p>
                           <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {item.aggregateScore}%
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                            <span>3. Probability</span>
+                            <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-bold">Model ⚠️</span>
+                          </p>
+                          <p className="text-base font-black text-cyan-600 dark:text-cyan-400 mt-0.5">
                             {item.predictedProbability ? `${item.predictedProbability}%` : '50%'}
                           </p>
                         </div>

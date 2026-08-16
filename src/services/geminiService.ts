@@ -63,6 +63,7 @@ import { getUniversityFromDB } from "../data/universityData";
 import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
+import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
 
@@ -1899,6 +1900,14 @@ export const getCourseCutoffInfo = async (
   olevelPoints = 0
 ) => {
   let fallbackDeterministicResult: any = null;
+  // ─── EVALUATE CANDIDATE QUOTA (ELDS vs CATCHMENT vs OPEN MERIT) ─────────────
+  const candidateQuota = evaluateCandidateQuota(university, stateOfOrigin);
+  const resolvedIsELDS = isELDS || candidateQuota.isELDS;
+  const resolvedIsCatchment = isCatchment || candidateQuota.isCatchment;
+  const quotaUsedText = resolvedIsELDS 
+    ? `ELDS Quota (${stateOfOrigin || 'Concession'})` 
+    : (resolvedIsCatchment ? `Catchment Quota (${stateOfOrigin || 'Catchment'})` : 'National Merit Quota');
+
   try {
     // ─── DEDUPLICATE AND NORMALIZE JAMB SUBJECTS ──────────────────────────────
     const cleanJambSubjects = Array.from(
@@ -1947,7 +1956,7 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v6`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${resolvedIsELDS}_${resolvedIsCatchment}_${quotaDiscount}_v7`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -1957,7 +1966,7 @@ export const getCourseCutoffInfo = async (
       if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
         const uiCutoff = getUICutoffByCourse(course);
         if (uiCutoff) {
-          const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+          const targetCutoff = resolvedIsELDS ? uiCutoff.elds : (resolvedIsCatchment ? uiCutoff.catchment : uiCutoff.merit);
           manualOverride = {
             institution: "University of Ibadan (UI)",
             course: uiCutoff.programme,
@@ -1982,7 +1991,7 @@ export const getCourseCutoffInfo = async (
         cachedResult.cutoff = manualOverride.departmentalCutoff;
         const parsedCutoffVal = parseFloat(manualOverride.departmentalCutoff.replace(/[^0-9.]/g, '')) || 55.0;
         const reEval = enforceAdmissionTiers(
-          score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
+          score, parsedCutoffVal, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
           isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
           true
         );
@@ -1993,7 +2002,7 @@ export const getCourseCutoffInfo = async (
         cachedResult.cutoffIsOfficial = true;
         cachedResult.cutoffType = "official_departmental_cutoff";
         cachedResult.cutoffSource = manualOverride.explanation || "Official Institutional Release";
-        cachedResult.cutoffQuotaUsed = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
+        cachedResult.cutoffQuotaUsed = quotaUsedText;
         cachedResult.scoreDiff = Number((score - parsedCutoffVal).toFixed(2));
       }
       if (Array.isArray(cachedResult.alternatives)) {
@@ -2044,7 +2053,7 @@ export const getCourseCutoffInfo = async (
     if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
       const uiCutoff = getUICutoffByCourse(course);
       if (uiCutoff) {
-        const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+        const targetCutoff = resolvedIsELDS ? uiCutoff.elds : (resolvedIsCatchment ? uiCutoff.catchment : uiCutoff.merit);
         manualOverride = {
           institution: "University of Ibadan (UI)",
           course: uiCutoff.programme,
@@ -2072,7 +2081,7 @@ export const getCourseCutoffInfo = async (
     }
 
     const deterministicEvaluation = enforceAdmissionTiers(
-      score, cutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
+      score, cutoffVal, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
       isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
       !!manualOverride
     );
@@ -2081,7 +2090,6 @@ export const getCourseCutoffInfo = async (
     const scoreLabel = isPendingState ? 'Projected Aggregate Score' : 'Aggregate Score';
     const mathBreakdown = `${scoreLabel}: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400. Raw Post-UTME: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : (isPostUtmePending ? 'Pending' : 'N/A')}.`;
 
-    const quotaUsedText = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
     const scoreDiffVal = Number((score - cutoffVal).toFixed(2));
 
     fallbackDeterministicResult = {
@@ -2322,7 +2330,7 @@ Return JSON:
     if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
       const uiCutoff = getUICutoffByCourse(course);
       if (uiCutoff) {
-        const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+        const targetCutoff = resolvedIsELDS ? uiCutoff.elds : (resolvedIsCatchment ? uiCutoff.catchment : uiCutoff.merit);
         manualOverride = {
           institution: "University of Ibadan (UI)",
           course: uiCutoff.programme,
@@ -2338,11 +2346,10 @@ Return JSON:
       if (match) cutoffVal = parseFloat(match[1]);
     }
     const enforced = enforceAdmissionTiers(
-      score, cutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
+      score, cutoffVal, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
       isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
       !!manualOverride
     );
-    const quotaUsedText = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
     const scoreDiffVal = Number((score - cutoffVal).toFixed(2));
     return {
       departmentalCutoff: `${cutoffVal}%`,
