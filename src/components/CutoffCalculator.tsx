@@ -27,6 +27,7 @@ import {
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
 import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
+import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -559,19 +560,39 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
   },
   ui: {
     fullName: "University of Ibadan (UI)",
-    formulaDesc: "UI uses a straightforward 50:50 combination of UTME and Post-UTME. No O'Level grade points are used in the aggregate.",
+    formulaDesc: "UI uses a straightforward 50:50 combination of UTME and Post-UTME. Aggregate = (JAMB / 8) + (Post-UTME / 2). No O'Level grade points are added to the aggregate, but 5 credits in 1 sitting are mandatory for core faculties.",
     formulaSteps: [
       "JAMB Score: Divided by 8 (Max 50 points).",
       "Post-UTME Exam: Divided by 2 (Max 50 points).",
-      "Aggregate = (JAMB / 8) + (Post-UTME / 2). No O'Level points are added, but you must pass all 5 required subjects at a single sitting!"
+      "Aggregate = (JAMB / 8) + (Post-UTME / 2). Minimum 50% aggregate required for admission consideration across all faculties."
     ],
     cutoffs: [
-      { course: "Medicine & Surgery", score: "82.15+" },
-      { course: "Nursing Science", score: "71.50+" },
-      { course: "Pharmacy", score: "73.80+" },
-      { course: "Law", score: "75.50+" },
-      { course: "Computer Science", score: "72.40+" },
-      { course: "Economics", score: "69.80+" }
+      { course: "Medicine and Surgery", score: "78.875" },
+      { course: "Nursing Science", score: "71.375" },
+      { course: "Law", score: "70.875" },
+      { course: "Mechanical Engineering", score: "70.500" },
+      { course: "Electrical & Electronics Engineering", score: "70.000" },
+      { course: "Pharmacy", score: "69.125" },
+      { course: "Dentistry", score: "68.625" },
+      { course: "Accounting", score: "68.500" },
+      { course: "Physiotherapy", score: "65.125" },
+      { course: "Computer Science", score: "63.500" },
+      { course: "Medical Laboratory Science", score: "63.250" },
+      { course: "Civil Engineering", score: "63.250" },
+      { course: "Petroleum Engineering", score: "62.750" },
+      { course: "Communication and Language Arts", score: "61.000" },
+      { course: "Economics", score: "58.125" },
+      { course: "Veterinary Medicine", score: "57.125" },
+      { course: "Linguistics", score: "56.875" },
+      { course: "Agricultural & Environmental Eng.", score: "56.875" },
+      { course: "English", score: "56.500" },
+      { course: "Theatre Arts", score: "56.000" },
+      { course: "Physiology", score: "55.750" },
+      { course: "Human Nutrition & Dietetics", score: "55.625" },
+      { course: "Political Science", score: "55.375" },
+      { course: "Biomedical Engineering", score: "55.375" },
+      { course: "Psychology", score: "54.500" },
+      { course: "Biochemistry", score: "53.125" }
     ],
     postUtmeGuide: {
       format: "Computer-Based Test (CBT)",
@@ -1279,6 +1300,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isHandbookLoading, setIsHandbookLoading] = useState(false);
   const [handbookCourseDetails, setHandbookCourseDetails] = useState<Record<string, any>>({});
   const [isCheckingDetails, setIsCheckingDetails] = useState<string | null>(null);
+
+  // ── UI 2025/2026 Cutoffs Explorer State ──
+  const [isUICutoffsModalOpen, setIsUICutoffsModalOpen] = useState(false);
+  const [uiCutoffSearch, setUiCutoffSearch] = useState('');
+  const [uiFacultyFilter, setUiFacultyFilter] = useState('ALL');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -2451,7 +2477,20 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                 {activeGuideTab === 'cutoff' && (
                   <div className="space-y-3 w-full">
-                    <p className="text-xs text-gray-300 font-medium leading-relaxed">Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <p className="text-xs text-gray-300 font-medium leading-relaxed">
+                        {currentSchoolSlug === 'ui' ? 'Official UI 2025/2026 Departmental Cut-Off Marks (Top Programmes):' : 'Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:'}
+                      </p>
+                      {currentSchoolSlug === 'ui' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsUICutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View All 79 UI Cut-Off Marks (Merit / Catchment / ELDS)
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                       {schoolLandingInfo.cutoffs.map((item, cIdx) => (
                         <div key={cIdx} className="p-2.5 bg-black/40 border border-white/5 rounded-xl text-center hover:border-cyan-500/20 transition-all">
@@ -5395,6 +5434,210 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       </div>
 
 
+
+      {/* UI 2025/2026 Cutoff Marks Explorer Modal */}
+      <AnimatePresence>
+        {isUICutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsUICutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-gray-950 w-full max-w-5xl rounded-[32px] overflow-hidden shadow-2xl border border-emerald-500/20 my-auto z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-white/5 bg-gradient-to-r from-emerald-950/40 via-gray-900 to-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                    <GraduationCap size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest">
+                        Official UI Release • 2025/2026
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
+                      University of Ibadan (UI) Departmental Cut-Off Marks
+                    </h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      Undergraduate Admissions Unit • Approved Merit, Catchment & ELDS Benchmarks (50:50 Formula)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsUICutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all self-end sm:self-auto shrink-0 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Filters & Search */}
+              <div className="p-4 sm:p-6 border-b border-white/5 bg-black/40 flex flex-col gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={uiCutoffSearch}
+                      onChange={e => setUiCutoffSearch(e.target.value)}
+                      placeholder="Search across all 79 UI programmes (e.g., Medicine, Nursing, Law, Civil Engineering)..."
+                      className="w-full pl-9 pr-4 py-2.5 bg-gray-900 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                    {uiCutoffSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setUiCutoffSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Faculty Filters */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  <span className="text-[8px] font-black uppercase text-gray-500 tracking-wider shrink-0 mr-1">
+                    Faculties:
+                  </span>
+                  {['ALL', ...getUIFaculties()].map(faculty => (
+                    <button
+                      key={faculty}
+                      type="button"
+                      onClick={() => setUiFacultyFilter(faculty)}
+                      className={`px-2.5 py-1 rounded-lg text-[8.5px] font-black uppercase tracking-wider whitespace-nowrap transition-all ${
+                        uiFacultyFilter === faculty
+                          ? 'bg-emerald-500 text-black shadow-md'
+                          : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {faculty === 'ALL' ? 'All (79)' : faculty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table Container */}
+              <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+                {(() => {
+                  const filtered = UI_CUTOFFS_2025_2026.filter(item => {
+                    const matchesSearch =
+                      item.programme.toLowerCase().includes(uiCutoffSearch.toLowerCase()) ||
+                      item.faculty.toLowerCase().includes(uiCutoffSearch.toLowerCase());
+                    const matchesFaculty = uiFacultyFilter === 'ALL' || item.faculty === uiFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+                        <BookOpen size={32} className="text-gray-600" />
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">No programmes matched your filter</p>
+                        <button
+                          type="button"
+                          onClick={() => { setUiCutoffSearch(''); setUiFacultyFilter('ALL'); }}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[9px] font-black uppercase tracking-wider border border-white/10"
+                        >
+                          Clear Filters
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/10 text-[9px] font-black uppercase tracking-wider text-gray-400">
+                            <th className="py-3 px-3">#</th>
+                            <th className="py-3 px-3">Programme</th>
+                            <th className="py-3 px-3">Faculty</th>
+                            <th className="py-3 px-3 text-center text-emerald-400">Merit (%)</th>
+                            <th className="py-3 px-3 text-center text-cyan-400">Catchment (%)</th>
+                            <th className="py-3 px-3 text-center text-amber-400">ELDS (%)</th>
+                            <th className="py-3 px-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="py-3 px-3 font-mono text-[10px] text-gray-500">{idx + 1}</td>
+                              <td className="py-3 px-3 font-bold text-white uppercase tracking-tight">{item.programme}</td>
+                              <td className="py-3 px-3 text-[10px] text-gray-400 uppercase tracking-tight">{item.faculty}</td>
+                              <td className="py-3 px-3 text-center font-mono font-black text-emerald-400">{item.merit}</td>
+                              <td className="py-3 px-3 text-center font-mono font-black text-cyan-400">{item.catchment}</td>
+                              <td className="py-3 px-3 text-center font-mono font-black text-amber-400">{item.elds}</td>
+                              <td className="py-3 px-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const uiUni = universityData.find(u => u.name.toLowerCase().includes('ibadan'));
+                                    if (uiUni) {
+                                      setTargetUni(uiUni);
+                                      setUniSearch(uiUni.name);
+                                    }
+                                    setTargetCourse(item.programme);
+                                    setCourseSearch(item.programme);
+                                    setIsUICutoffsModalOpen(false);
+                                    setActiveTab('calculate');
+                                    const el = document.getElementById('jamb-score');
+                                    if (el) {
+                                      el.focus();
+                                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 rounded-lg text-[8.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                                >
+                                  Calculate Chance
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-emerald-400" />
+                  <span>UI Aggregate Formula = (JAMB / 8) + (Post-UTME / 2). Institutional Minimum: 50.0%</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://admissions.ui.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    UI Admissions Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsUICutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Testimonials />
 

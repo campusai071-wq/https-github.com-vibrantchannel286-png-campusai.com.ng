@@ -137,6 +137,21 @@ export const DEFAULT_INSTITUTIONS: AdmissionInstitution[] = [
 
 export const DEFAULT_ADMISSION_ARTICLES: AdmissionArticle[] = [
   {
+    id: 'ui_2025_2026_cutoffs',
+    slug: 'ui-2025-2026-cutoffs',
+    title: 'University of Ibadan (UI) Official 2025/2026 Departmental Cut-Off Marks',
+    category: 'Cutoff Marks',
+    summary: 'Official University of Ibadan (UI) Undergraduate Admissions Unit approved cut-off marks across all 13 Faculties for the 2025/2026 academic session covering Merit, Catchment, and ELDS quotas.',
+    content: '### University of Ibadan (UI) 2025/2026 Cut-Off Marks\n\nThe Undergraduate Admissions Unit of the University of Ibadan (UI) has officially released the approved departmental aggregate cut-off marks for the 2025/2026 admission exercise.\n\n#### Key Departmental Benchmarks (Merit / Catchment / ELDS):\n- **Medicine & Surgery**: 78.875 / 78.875 / 77.375\n- **Nursing Science**: 71.375 / 71.375 / 67.875\n- **Law**: 70.875 / 70.875 / 67.625\n- **Mechanical Engineering**: 70.500 / 70.500 / 60.125\n- **Electrical and Electronics Engineering**: 70.000 / 70.000 / 58.875\n- **Pharmacy**: 69.125 / 69.125 / 62.875\n- **Dentistry**: 68.625 / 68.625 / 66.750\n- **Accounting**: 68.500 / 68.500 / 66.125\n- **Physiotherapy**: 65.125 / 65.125 / 61.625\n- **Computer Science**: 63.500 / 63.500 / 53.500\n- **Medical Laboratory Science**: 63.250 / 63.250 / 60.250\n- **Civil Engineering**: 63.250 / 63.250 / 57.000\n- **Petroleum Engineering**: 62.750 / 62.750 / 57.125\n- **Communication and Language Arts**: 61.000 / 61.000 / 58.500\n- **Economics**: 58.125 / 58.125 / 53.625\n- **Veterinary Medicine**: 57.125 / 57.125 / 57.125\n\n#### Institutional Aggregate Formula:\nUI uses a 50:50 combination of UTME and Post-UTME:\n**Aggregate = (JAMB / 8) + (Post-UTME / 2)** (Maximum: 100 points, Baseline minimum: 50.0 points).',
+    last_verified: 'August 2026',
+    next_review: 'November 2026',
+    version: 1,
+    official_sources: ['https://www.ui.edu.ng', 'https://admissions.ui.edu.ng'],
+    institution: 'University of Ibadan (UI)',
+    keywords: ['ui', 'university of ibadan', 'cut off marks', '2025/2026', 'merit', 'catchment', 'elds', 'medicine', 'nursing', 'law', 'engineering'],
+    updatedAt: null
+  },
+  {
     id: 'jamb_2026_policy_meeting',
     slug: 'jamb-2026-policy-meeting',
     title: 'JAMB 2026 Official Policy Guidelines & Minimum Cutoff Benchmarks',

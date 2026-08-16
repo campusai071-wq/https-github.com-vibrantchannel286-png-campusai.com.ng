@@ -62,6 +62,7 @@ import { searchWeb, searchWebRaw } from "./searchService";
 import { getUniversityFromDB } from "../data/universityData";
 import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
+import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
 
@@ -1661,7 +1662,8 @@ export const enforceAdmissionTiers = (
   jambScore = 0,
   postUtmeScore = 0,
   formulaText = '',
-  oLevels = ''
+  oLevels = '',
+  isOfficialCutoff = false
 ) => {
   const normUni = university.toLowerCase();
   const f = formulaText ? formulaText.toLowerCase() : '';
@@ -1804,14 +1806,36 @@ export const enforceAdmissionTiers = (
       detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Very Strong / Excellent**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nCongratulations! Your aggregate score of **${score}%** significantly clears the typical estimated competitive benchmark of **${cutoffVal}%** by **+${diff.toFixed(2)}%** under the **${quotaText}**. You are in an exceptional winning position to secure a premium merit list spot at **${university}**.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS:** Access the CAPS portal to accept your admission as soon as it is officially offered.\n*   **Accept Admission Promptly:** Remember you have exactly 4 weeks to accept the admission on CAPS once offered.\n*   **Track Portal Fees:** Prepare your acceptance fees and monitor the school's official website for clearance deadlines.` + seasonalTimeline,
       recommendation: `Congratulations! Your aggregate score is exceptional and significantly clears the typical cutoff. You are in an outstanding position to secure a merit list spot. Focus on accepting your admission on CAPS.`
     };
+  } else if (diff < 0 && diff >= -1.5) {
+    // 4A. THE BORDERLINE DEFICIT TIER (Score is 0.01% to 1.50% BELOW Cutoff)
+    // Very narrow deficit: candidate is right on the threshold, strong candidate for catchment adjustment, VC discretion, or supplementary lists.
+    const prob = Math.min(Math.max(Math.round(48 + (diff * 8)), 36), 49);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
+    return {
+      verdict: "Borderline / Competitive Deficit",
+      probability: prob,
+      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Borderline / Competitive Deficit**\n- **Admission Probability:** **${prob}% (High Supplementary Potential)**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is narrowly below the ${benchmarkLabel} of **${cutoffVal}%** (a slight deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nWhile this narrow deficit makes primary First-Batch Merit admission competitive, candidates within 0.1% to 1.5% of the benchmark remain the prime candidates for Catchment quota adjustments, Educationally Less Developed States (ELDS) considerations, and Supplementary Admission List releases. You are well within striking distance, but you must remain proactive.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS Closely:** Check your JAMB CAPS profile daily for 'Admission in Progress' (AIP) or supplementary transfer offers.\n*   **Confirm O'Level Uploads:** Ensure your WAEC/NECO results are correctly uploaded on JAMB CAPS to avoid disqualification during batch processing.\n*   **Prepare a Targeted Backup:** Identify 1 or 2 closely related departments where your aggregate score exceeds the benchmark, ready to accept a transfer if offered.` + seasonalTimeline,
+      recommendation: `Your aggregate score of ${score}% is only ${Math.abs(diff).toFixed(2)}% below the ${benchmarkLabel} (${cutoffVal}%). You remain a strong candidate for catchment or supplementary lists. Track your JAMB CAPS portal daily.`
+    };
+  } else if (diff < -1.5 && diff >= -4.0) {
+    // 4B. THE MODERATE DEFICIT TIER (Score is 1.51% to 4.00% BELOW Cutoff)
+    const prob = Math.min(Math.max(Math.round(32 + ((diff + 1.5) * 5)), 18), 34);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
+    return {
+      verdict: "Low Probability / Supplementary Backup",
+      probability: prob,
+      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Low Probability / Supplementary Backup**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is lower than the ${benchmarkLabel} of **${cutoffVal}%** (a deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nSecuring primary merit admission with a ${Math.abs(diff).toFixed(2)}% gap is challenging. While supplementary lists may absorb a small fraction of candidates, your primary admission probability for this specific programme is low. Proactive steps are necessary to protect your admission year.\n\n### 3. Actionable Next Steps\n*   **Explore JAMB Change of Course:** Consider pivoting to related allied programmes with lower cutoffs matching your subject combination.\n*   **Explore JAMB Change of Institution:** State or private universities with more favorable cutoff lines can guarantee admission this session.\n*   **Maintain CAPS Verification:** Ensure all O'Level results are verified on JAMB CAPS.` + seasonalTimeline,
+      recommendation: `Your aggregate score is ${Math.abs(diff).toFixed(2)}% below the ${benchmarkLabel}. Primary merit is unlikely. We advise exploring a JAMB Change of Course or Institution.`
+    };
   } else {
-    // 4. THE BELOW CUTOFF TIER (Score < Cutoff)
-    const prob = Math.min(Math.max(Math.round(25 + (diff * 3)), 5), 29);
+    // 4C. THE SEVERE DEFICIT TIER (Score is > 4.00% BELOW Cutoff)
+    const prob = Math.min(Math.max(Math.round(15 + ((diff + 4) * 1.5)), 5), 16);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
     return {
       verdict: "Low Probability",
       probability: prob,
-      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Low Probability**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is lower than the typical departmental merit cutoff of **${cutoffVal}%** (a deficit of **${diff.toFixed(2)}%**) under the **${quotaText}**. We must be realistic and honest: securing primary merit admission for this specific programme has a low probability. However, you have clear proactive pathways to manage this risk.\n\n### 3. Actionable Next Steps\n*   **JAMB Change of Course:** Pivot immediately by performing a Change of Course to a less competitive department (e.g., related courses) matching your subject combination.\n*   **JAMB Change of Institution:** Consider changing your institution to state or private universities with lower cutoff thresholds.\n*   **Verify O'Level Uploads:** Keep your WAEC/NECO grades uploaded correctly so that you remain eligible for supplementary lists or alternative programs.` + seasonalTimeline,
-      recommendation: `Your aggregate score is below the competitive cutoff. Pivot immediately by considering a Change of Course or Institution to less competitive options to secure admission.`
+      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Low Probability**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is significantly below the ${benchmarkLabel} of **${cutoffVal}%** (a deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nAt a deficit of ${Math.abs(diff).toFixed(2)}%, securing admission into this competitive programme is highly improbable. To avoid losing the entire 2026/2027 admission cycle, you should take immediate corrective action.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Change your course on JAMB CAPS to an alternative discipline where your score places you safely above the benchmark.\n*   **JAMB Change of Institution:** Consider institutions with lower aggregate cutoffs.\n*   **Verify Document Uploads:** Keep your O'Level grades uploaded on CAPS so new institutions can process your file seamlessly.` + seasonalTimeline,
+      recommendation: `Your aggregate score has a significant deficit (${Math.abs(diff).toFixed(2)}%) against the ${benchmarkLabel}. Pivot immediately via JAMB Change of Course or Institution to secure admission.`
     };
   }
 };
@@ -1930,6 +1954,19 @@ export const getCourseCutoffInfo = async (
       let manualOverride = await getCutoffOverride(university, course);
       const nUni = university.toLowerCase().trim();
       const nCourse = course.toLowerCase().trim();
+      if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
+        const uiCutoff = getUICutoffByCourse(course);
+        if (uiCutoff) {
+          const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+          manualOverride = {
+            institution: "University of Ibadan (UI)",
+            course: uiCutoff.programme,
+            departmentalCutoff: `${targetCutoff}%`,
+            institutionalCutoff: "200",
+            explanation: `Official UI 2025/2026 Cutoff: Merit (${uiCutoff.merit}%), Catchment (${uiCutoff.catchment}%), ELDS (${uiCutoff.elds}%)`
+          };
+        }
+      }
       if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure")) && nCourse.includes("metallurgical")) {
         manualOverride = {
           institution: university,
@@ -1998,6 +2035,19 @@ export const getCourseCutoffInfo = async (
     let manualOverride = await getCutoffOverride(university, course);
     const nUni = university.toLowerCase().trim();
     const nCourse = course.toLowerCase().trim();
+    if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
+      const uiCutoff = getUICutoffByCourse(course);
+      if (uiCutoff) {
+        const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+        manualOverride = {
+          institution: "University of Ibadan (UI)",
+          course: uiCutoff.programme,
+          departmentalCutoff: `${targetCutoff}%`,
+          institutionalCutoff: "200",
+          explanation: `Official UI 2025/2026 Cutoff: Merit (${uiCutoff.merit}%), Catchment (${uiCutoff.catchment}%), ELDS (${uiCutoff.elds}%)`
+        };
+      }
+    }
     if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure")) && nCourse.includes("metallurgical")) {
       manualOverride = {
         institution: university,
@@ -2017,7 +2067,8 @@ export const getCourseCutoffInfo = async (
 
     const deterministicEvaluation = enforceAdmissionTiers(
       score, cutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
-      isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
+      isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
+      !!manualOverride
     );
 
     const isPendingState = isPostUtmePending || isAwaitingResult;
@@ -2202,6 +2253,36 @@ Return JSON:
 
     const parsed = safeJsonParse(response.text, {});
     if (parsed) {
+      // 1. Enforce verified cutoff ground truths if manualOverride / official UI data is present
+      if (manualOverride) {
+        parsed.departmentalCutoff = manualOverride.departmentalCutoff;
+        parsed.cutoff = manualOverride.departmentalCutoff;
+        parsed.cutoffValue = cutoffVal;
+        parsed.cutoffIsOfficial = true;
+        parsed.cutoffType = "official_departmental_cutoff";
+        parsed.cutoffSource = (manualOverride.institution.includes("UI") || manualOverride.institution.includes("Ibadan"))
+          ? "Official University of Ibadan (UI) 2025/2026 Cut-Off Release"
+          : "Verified Administrative System Ground Truth";
+        parsed.cutoffConfidence = "high";
+        parsed.reliability = "high";
+      } else {
+        // If not an official override, ensure it is honestly categorized
+        parsed.cutoffIsOfficial = false;
+        parsed.cutoffType = "estimated_benchmark";
+        parsed.cutoffSource = parsed.cutoffSource || "Historical Competitive Benchmark";
+      }
+
+      // 2. Lock verdict and probability strictly to deterministic tier calibration
+      parsed.probability = deterministicEvaluation.probability;
+      parsed.verdict = deterministicEvaluation.verdict;
+
+      // 3. Sanitize strategy markdown to prevent hallucinated 'official' claims when estimated
+      if (parsed.detailedStrategy && !parsed.cutoffIsOfficial) {
+        parsed.detailedStrategy = parsed.detailedStrategy
+          .replace(/official departmental cutoff/gi, "estimated competitive benchmark")
+          .replace(/official cutoff/gi, "estimated benchmark");
+      }
+
       if (Array.isArray(parsed.alternatives)) {
         parsed.alternatives = sanitizeAlternativeCourses(
           parsed.alternatives,
@@ -2223,7 +2304,21 @@ Return JSON:
       return fallbackDeterministicResult;
     }
     const cleanSubjects = Array.isArray(jambSubjects) ? jambSubjects.filter(Boolean) : [];
-    const manualOverride = await getCutoffOverride(university, course);
+    let manualOverride = await getCutoffOverride(university, course);
+    const nUni = university.toLowerCase().trim();
+    if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
+      const uiCutoff = getUICutoffByCourse(course);
+      if (uiCutoff) {
+        const targetCutoff = isELDS ? uiCutoff.elds : (isCatchment ? uiCutoff.catchment : uiCutoff.merit);
+        manualOverride = {
+          institution: "University of Ibadan (UI)",
+          course: uiCutoff.programme,
+          departmentalCutoff: `${targetCutoff}%`,
+          institutionalCutoff: "200",
+          explanation: `Official UI 2025/2026 Cutoff: Merit (${uiCutoff.merit}%), Catchment (${uiCutoff.catchment}%), ELDS (${uiCutoff.elds}%)`
+        };
+      }
+    }
     let cutoffVal = extractCutoffFallback(course, null);
     if (manualOverride && manualOverride.departmentalCutoff) {
       const match = manualOverride.departmentalCutoff.toString().match(/(\d+(\.\d+)?)/);
@@ -2231,7 +2326,8 @@ Return JSON:
     }
     const enforced = enforceAdmissionTiers(
       score, cutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
-      isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
+      isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
+      !!manualOverride
     );
     return {
       departmentalCutoff: `${cutoffVal}%`,

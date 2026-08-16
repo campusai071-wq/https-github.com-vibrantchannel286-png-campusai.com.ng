@@ -12,6 +12,18 @@ export const ADMISSION_DATES = {
 
 export const MOCK_NEWS: NewsItem[] = [
   {
+    id: '19',
+    slug: 'ui-releases-official-2025-2026-departmental-cut-off-marks',
+    title: 'University of Ibadan (UI) Releases Official 2025/2026 Departmental Cut-Off Marks',
+    category: 'Federal',
+    date: 'August 16, 2026',
+    image: '',
+    excerpt: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially released the approved departmental aggregate cut-off marks for the 2025/2026 admission exercise across all faculties.',
+    fullContent: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially published the approved departmental aggregate cut-off marks for the 2025/2026 undergraduate admission exercise.\n\nThe released document contains merit, catchment, and Educationally Less Developed States (ELDS) cutoff marks across all 13 faculties:\n\nKey Highlights:\n- Medicine and Surgery: 78.875 (Merit & Catchment) / 77.375 (ELDS)\n- Nursing Science: 71.375 (Merit & Catchment) / 67.875 (ELDS)\n- Law: 70.875 (Merit & Catchment) / 67.625 (ELDS)\n- Mechanical Engineering: 70.500 (Merit & Catchment) / 60.125 (ELDS)\n- Electrical and Electronics Engineering: 70.000 (Merit & Catchment) / 58.875 (ELDS)\n- Pharmacy: 69.125 (Merit & Catchment) / 62.875 (ELDS)\n- Dentistry: 68.625 (Merit & Catchment) / 66.750 (ELDS)\n- Accounting: 68.500 (Merit & Catchment) / 66.125 (ELDS)\n- Physiotherapy: 65.125 (Merit & Catchment) / 61.625 (ELDS)\n- Computer Science: 63.500 (Merit & Catchment) / 53.500 (ELDS)\n- Medical Laboratory Science: 63.250 (Merit & Catchment) / 60.250 (ELDS)\n- Civil Engineering: 63.250 (Merit & Catchment) / 57.000 (ELDS)\n- Petroleum Engineering: 62.750 (Merit & Catchment) / 57.125 (ELDS)\n- Communication and Language Arts: 61.000 (Merit & Catchment) / 58.500 (ELDS)\n- Economics: 58.125 (Merit & Catchment) / 53.625 (ELDS)\n- Veterinary Medicine: 57.125 (Merit & Catchment) / 57.125 (ELDS)\n\nCandidates are advised that aggregate scores are computed via: Aggregate = (JAMB / 8) + (Post-UTME / 2).',
+    sourceUrl: 'https://admissions.ui.edu.ng',
+    isImportant: true
+  },
+  {
     id: '18',
     slug: 'post-utme-screening-registration-2026-begins-select',
     title: 'Post-UTME 2026: Select Universities Begin Screening Registration',

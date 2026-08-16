@@ -43,7 +43,7 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
     name: "University of Ibadan",
     founded: "1948",
     motto: "Recte Sapere Fons (To think straight is the fount of knowledge)",
-    bestKnownFor: "Medicine, Arts, and Post-graduate studies. Nigeria's premier university.",
+    bestKnownFor: "Medicine, Arts, Law, Pharmacy, Engineering, and Post-graduate studies. Nigeria's premier university.",
     campusVibe: "Academic, serene, and traditional. Strong emphasis on research and excellence.",
     facultyStudentRatio: "1:25",
     researchOutput: "Very High - The leading research institution in West Africa.",
@@ -52,12 +52,22 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
       hasJamb: true,
       hasPostUtme: true,
       hasOLevel: false,
-      explanation: "UI typically uses a 50:50 ratio between JAMB and Post-UTME. O-Level is used for basic eligibility (5 credits)."
+      explanation: "UI uses a 50:50 formula: (JAMB Score / 8) + (Post-UTME / 2). 5 O-Level credit passes in 1 sitting required for key competitive courses."
     },
     courses: [
-      "Adult Education", "Agriculture", "Anthropology", "Archaeology", "Biochemistry",
-      "Communication and Language Arts", "History", "Medicine and Surgery", "Nursing Science",
-      "Political Science", "Sociology", "Theatre Arts", "Veterinary Medicine"
+      "Medicine and Surgery", "Nursing Science", "Dentistry", "Pharmacy", "Physiotherapy",
+      "Medical Laboratory Science", "Physiology", "Biochemistry", "Human Nutrition and Dietetics",
+      "Environmental Health Science", "Law", "Computer Science", "Mechanical Engineering",
+      "Electrical and Electronics Engineering", "Civil Engineering", "Petroleum Engineering",
+      "Biomedical Engineering", "Agricultural and Environmental Engineering", "Industrial and Production Engineering",
+      "Automotive Engineering", "Food Technology", "Wood Products Engineering", "Economics",
+      "Accounting", "Banking and Finance", "Marketing and Consumer Studies", "Political Science",
+      "Psychology", "Sociology", "Communication and Language Arts", "English", "Linguistics",
+      "Theatre Arts", "Arabic Language and Literature", "History", "Philosophy", "Music",
+      "Microbiology", "Geology", "Physics", "Industrial Chemistry", "Mathematics",
+      "Botany", "Zoology", "Chemistry", "Statistics", "Architecture", "Urban and Regional Planning",
+      "Estate Management", "Quantity Surveying", "Veterinary Medicine", "Agric. Economics",
+      "Animal Science", "Crop and Horticultural Sciences", "Soil Resources Management", "Educational Management"
     ]
   },
   "Obafemi Awolowo University": {
