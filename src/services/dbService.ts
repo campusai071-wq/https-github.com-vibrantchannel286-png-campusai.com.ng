@@ -1956,6 +1956,8 @@ export interface GlobalPredictionRecord {
   predictionDate: string;
   detailedStrategy?: string;
   formulaExplanation?: string;
+  subjects?: Array<{ name: string; grade: string }>;
+  olevelsString?: string;
   createdAt?: any;
   helpful?: boolean;
   helpfulRating?: number;

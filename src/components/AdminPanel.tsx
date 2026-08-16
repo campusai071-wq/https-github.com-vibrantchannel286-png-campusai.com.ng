@@ -2613,7 +2613,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               }}
                               className="mt-2 px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[7px] font-black uppercase hover:bg-amber-500 hover:text-white transition-all border border-amber-500/20"
                             >
-                              Grant 3 SP
+                              Grant 5 SP
                             </button>
                             <button
                               onClick={() => setSelectedUserForPredictions(u)}
@@ -2629,8 +2629,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <PredictionDetailsModal
                     isOpen={!!selectedUserForPredictions}
                     onClose={() => setSelectedUserForPredictions(null)}
+                    userId={selectedUserForPredictions?.uid || ''}
                     userEmail={selectedUserForPredictions?.email || ''}
-                    userName={selectedUserForPredictions?.displayName || ''}
+                    userName={selectedUserForPredictions?.displayName || selectedUserForPredictions?.email || 'Scholar'}
+                    userProfile={selectedUserForPredictions}
                   />
                 </div>
               )}
