@@ -1953,6 +1953,12 @@ export interface GlobalPredictionRecord {
   stateOfOrigin: string;
   isELDSState: boolean;
   isCatchmentState: boolean;
+  cutoffType?: string;
+  cutoffIsOfficial?: boolean;
+  cutoffSource?: string;
+  cutoffYear?: number | string;
+  cutoffQuotaUsed?: string;
+  scoreDiff?: number;
   predictionDate: string;
   detailedStrategy?: string;
   formulaExplanation?: string;

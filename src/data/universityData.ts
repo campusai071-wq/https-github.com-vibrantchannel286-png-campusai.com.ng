@@ -175,6 +175,71 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
       "Midwifery (ND/HND)", "Nursing (ND/HND)", "Public Health Nursing (ND/HND)"
     ]
   },
+  "University of Ilorin": {
+    name: "University of Ilorin",
+    founded: "1975",
+    motto: "Probitas Doctrina (Character and Learning)",
+    bestKnownFor: "Medicine, Law, Nursing, Engineering, Agriculture, and Accounting. Known as the 'Better by Far' University with consistent uninterrupted academic calendar.",
+    campusVibe: "Disciplined, peaceful, and highly competitive. One of Nigeria's most applied-to universities.",
+    facultyStudentRatio: "1:30",
+    researchOutput: "High - Leading in clinical medical sciences, agricultural breakthroughs, and legal education.",
+    facilities: ["UNILORIN Main Library", "University Teaching Hospital (UITH)", "UNILORIN CBT Center", "Research Sugar Research Institute"],
+    scoringSystem: {
+      hasJamb: true,
+      hasPostUtme: true,
+      hasOLevel: true,
+      explanation: "UNILORIN uses a 50:30:20 aggregate formula: JAMB UTME Score (50%), CBT Post-UTME Screening (30%), and 5 relevant O'Level subject grades (20%). O'Level scale: A1=4.0, B2=3.6, B3=3.2, C4=2.8, C5=2.4, C6=2.0 (max 20 marks)."
+    },
+    courses: [
+      "Medicine and Surgery", "Nursing Science", "Pharmacy", "Law", "Computer Science", "Accounting", 
+      "Mechanical Engineering", "Civil Engineering", "Electrical and Electronics Engineering", 
+      "Biomedical Engineering", "Chemical Engineering", "Agricultural and Biosystems Engineering",
+      "Economics", "Mass Communication", "Medical Laboratory Science", "Biochemistry", "Microbiology", 
+      "Agriculture", "Veterinary Medicine", "Physiology", "Anatomy", "Dentistry", "Finance", 
+      "Business Administration", "Political Science", "Educational Management", "Sociology"
+    ]
+  },
+  "University of Benin": {
+    name: "University of Benin",
+    founded: "1970",
+    motto: "Knowledge for Service",
+    bestKnownFor: "Engineering, Medicine, Pharmacy, and Law. Known as UNIBEST / Great UNIBEN.",
+    campusVibe: "Vibrant, historic, and academically intense. Located in Ugbowo, Benin City.",
+    facultyStudentRatio: "1:32",
+    researchOutput: "High - Renowned for petroleum engineering, pharmacognosy, and medical specialties.",
+    facilities: ["John Harris Library", "UBTH Teaching Hospital", "Center of Excellence in Geosciences"],
+    scoringSystem: {
+      hasJamb: true,
+      hasPostUtme: true,
+      hasOLevel: false,
+      explanation: "UNIBEN uses a 50:50 formula: (JAMB Score / 8) + (Post-UTME / 2). Total aggregate is out of 100%."
+    },
+    courses: [
+      "Medicine and Surgery", "Pharmacy", "Law", "Dentistry", "Nursing Science", "Mechanical Engineering",
+      "Civil Engineering", "Petroleum Engineering", "Electrical/Electronics Engineering", "Computer Science",
+      "Accounting", "Economics", "Business Administration", "Medical Laboratory Science", "Physiotherapy"
+    ]
+  },
+  "Delta State University": {
+    name: "Delta State University",
+    founded: "1992",
+    motto: "Knowledge, Character and Service",
+    bestKnownFor: "Medicine, Law, Education, and Management Sciences.",
+    campusVibe: "Energetic, state-of-the-art multi-campus environment centered in Abraka.",
+    facultyStudentRatio: "1:30",
+    researchOutput: "Moderate to High - Strong focus on regional healthcare and environmental science.",
+    facilities: ["DELSU Main Library", "DELSU Teaching Hospital Oghara", "E-Learning Center"],
+    scoringSystem: {
+      hasJamb: true,
+      hasPostUtme: true,
+      hasOLevel: false,
+      explanation: "DELSU uses a 50:50 formula: (JAMB Score / 8) + (Post-UTME / 2). Total aggregate is out of 100%."
+    },
+    courses: [
+      "Medicine and Surgery", "Law", "Nursing Science", "Pharmacy", "Medical Laboratory Science",
+      "Accounting", "Business Administration", "Economics", "Computer Science", "Mass Communication"
+    ]
+  },
   "Federal University, Oye-Ekiti": {
     name: "Federal University, Oye-Ekiti",
     founded: "2011",

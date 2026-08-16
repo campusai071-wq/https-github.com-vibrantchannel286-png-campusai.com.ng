@@ -1947,7 +1947,7 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v5`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${isELDS}_${isCatchment}_${quotaDiscount}_v6`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -1983,12 +1983,18 @@ export const getCourseCutoffInfo = async (
         const parsedCutoffVal = parseFloat(manualOverride.departmentalCutoff.replace(/[^0-9.]/g, '')) || 55.0;
         const reEval = enforceAdmissionTiers(
           score, parsedCutoffVal, university, course, stateOfOrigin, isELDS, isCatchment,
-          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels
+          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
+          true
         );
         cachedResult.verdict = reEval.verdict;
         cachedResult.probability = reEval.probability;
         cachedResult.recommendation = reEval.recommendation;
         cachedResult.detailedStrategy = reEval.detailedStrategy;
+        cachedResult.cutoffIsOfficial = true;
+        cachedResult.cutoffType = "official_departmental_cutoff";
+        cachedResult.cutoffSource = manualOverride.explanation || "Official Institutional Release";
+        cachedResult.cutoffQuotaUsed = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
+        cachedResult.scoreDiff = Number((score - parsedCutoffVal).toFixed(2));
       }
       if (Array.isArray(cachedResult.alternatives)) {
         cachedResult.alternatives = sanitizeAlternativeCourses(
@@ -2075,6 +2081,9 @@ export const getCourseCutoffInfo = async (
     const scoreLabel = isPendingState ? 'Projected Aggregate Score' : 'Aggregate Score';
     const mathBreakdown = `${scoreLabel}: ${score}% calculated for ${university} (${course}). Raw JAMB Score: ${jambScore > 0 ? jambScore : 'Not provided'} / 400. Raw Post-UTME: ${postUtmeScore > 0 ? `${postUtmeScore} / 100` : (isPostUtmePending ? 'Pending' : 'N/A')}.`;
 
+    const quotaUsedText = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
+    const scoreDiffVal = Number((score - cutoffVal).toFixed(2));
+
     fallbackDeterministicResult = {
       departmentalCutoff: `${cutoffVal}%`,
       institutionalCutoff: manualOverride?.institutionalCutoff || "160",
@@ -2082,9 +2091,11 @@ export const getCourseCutoffInfo = async (
       cutoffValue: cutoffVal,
       cutoffType: manualOverride ? "official_departmental_cutoff" : "estimated_benchmark",
       cutoffYear: new Date().getFullYear(),
-      cutoffSource: manualOverride ? "Manual System Override" : "Algorithmic Estimation",
+      cutoffSource: manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Algorithmic Estimation",
       cutoffIsOfficial: !!manualOverride,
       cutoffConfidence: manualOverride ? "high" : "medium",
+      cutoffQuotaUsed: quotaUsedText,
+      scoreDiff: scoreDiffVal,
       mathBreakdown,
       scoreBreakdown: [
         { factor: "Aggregate Score", impact: `${score}%` },
@@ -2275,6 +2286,8 @@ Return JSON:
       // 2. Lock verdict and probability strictly to deterministic tier calibration
       parsed.probability = deterministicEvaluation.probability;
       parsed.verdict = deterministicEvaluation.verdict;
+      parsed.cutoffQuotaUsed = quotaUsedText;
+      parsed.scoreDiff = scoreDiffVal;
 
       // 3. Sanitize strategy markdown to prevent hallucinated 'official' claims when estimated
       if (parsed.detailedStrategy && !parsed.cutoffIsOfficial) {
@@ -2329,24 +2342,28 @@ Return JSON:
       isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
       !!manualOverride
     );
+    const quotaUsedText = isELDS ? 'ELDS Quota' : (isCatchment ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota');
+    const scoreDiffVal = Number((score - cutoffVal).toFixed(2));
     return {
       departmentalCutoff: `${cutoffVal}%`,
-      institutionalCutoff: "160",
+      institutionalCutoff: manualOverride?.institutionalCutoff || "160",
       cutoff: `${cutoffVal}%`,
       cutoffValue: cutoffVal,
-      cutoffType: "estimated_benchmark",
+      cutoffType: manualOverride ? "official_departmental_cutoff" : "estimated_benchmark",
       cutoffYear: new Date().getFullYear(),
-      cutoffSource: "Algorithmic Ruleset",
-      cutoffIsOfficial: false,
-      cutoffConfidence: "medium",
+      cutoffSource: manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Algorithmic Estimation",
+      cutoffIsOfficial: !!manualOverride,
+      cutoffConfidence: manualOverride ? "high" : "medium",
+      cutoffQuotaUsed: quotaUsedText,
+      scoreDiff: scoreDiffVal,
       mathBreakdown: `Aggregate score of ${score}% calculated for ${university} (${course}).`,
       scoreBreakdown: [
         { factor: "Aggregate", impact: `${score}%` },
         { factor: "Cutoff", impact: `${cutoffVal}%` }
       ],
       subjectCombinationValidation: validateMandatorySubjects(course, cleanSubjects),
-      reliability: "medium",
-      confidenceReasoning: "Fallback algorithmic evaluation applied.",
+      reliability: manualOverride ? "high" : "medium",
+      confidenceReasoning: manualOverride ? "Official verified cutoff override applied." : "Fallback algorithmic evaluation applied.",
       evidencePanel: [],
       recommendation: enforced.recommendation,
       detailedStrategy: enforced.detailedStrategy,

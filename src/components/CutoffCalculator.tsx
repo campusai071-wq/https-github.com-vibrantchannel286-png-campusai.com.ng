@@ -2202,6 +2202,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         stateOfOrigin: stateOfOrigin || '',
         isELDSState: !!isELDSState,
         isCatchmentState: !!isCatchmentState,
+        cutoffType: result.cutoffType || (result.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
+        cutoffIsOfficial: !!result.cutoffIsOfficial,
+        cutoffSource: result.cutoffSource || '',
+        cutoffYear: result.cutoffYear || '2025/2026',
+        cutoffQuotaUsed: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
+        scoreDiff: typeof result.scoreDiff === 'number' ? result.scoreDiff : (parseFloat(aggregateScore.toString()) - (parseFloat(result.cutoffValue) || parseFloat(result.departmentalCutoff) || 0)),
         predictionDate: new Date().toISOString().split('T')[0],
         detailedStrategy: result.detailedStrategy || '',
         formulaExplanation: formulaText || '',
@@ -3629,6 +3635,60 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                   {aiResult.confidenceReasoning}
                                 </p>
                               )}
+                            </div>
+                          </div>
+
+                          {/* Cutoff Benchmark & Provenance Audit Card */}
+                          <div className="w-full my-4 p-4 bg-black/40 rounded-2xl border border-white/10 text-left space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                                  Cutoff Benchmark & Authority:
+                                </span>
+                                {aiResult.cutoffIsOfficial || (targetUni && (targetUni.name.includes('Ibadan') || targetUni.name.toLowerCase() === 'ui')) ? (
+                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[9px]">
+                                    Verified Official 2025/2026 Release
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-bold text-[9px]">
+                                    Historical Competitive Benchmark
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] font-mono text-gray-400">
+                                Quota: <span className="font-bold text-white">{aiResult.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin || 'State'})` : 'National Merit Quota'))}</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl">
+                                <p className="text-[9px] uppercase font-bold text-gray-400">Departmental Cutoff</p>
+                                <p className="text-sm font-black text-white mt-0.5">
+                                  {aiResult.cutoffValue ? `${aiResult.cutoffValue}%` : (aiResult.departmentalCutoff || aiResult.cutoff || 'N/A')}
+                                </p>
+                              </div>
+
+                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl">
+                                <p className="text-[9px] uppercase font-bold text-gray-400">Your Aggregate</p>
+                                <p className="text-sm font-black text-emerald-400 mt-0.5">
+                                  {aggregateScore}%
+                                </p>
+                              </div>
+
+                              <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl col-span-2 sm:col-span-1">
+                                <p className="text-[9px] uppercase font-bold text-gray-400">Score Margin</p>
+                                {(() => {
+                                  const cVal = parseFloat(String(aiResult.cutoffValue || aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, ''));
+                                  const aggVal = parseFloat(aggregateScore.toString()) || 0;
+                                  const diff = cVal > 0 ? (aggVal - cVal) : 0;
+                                  const isSurplus = diff >= 0;
+                                  return (
+                                    <p className={`text-sm font-black mt-0.5 ${isSurplus ? 'text-emerald-400' : diff >= -1.5 ? 'text-amber-400' : 'text-red-400'}`}>
+                                      {isSurplus ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
+                                    </p>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
 

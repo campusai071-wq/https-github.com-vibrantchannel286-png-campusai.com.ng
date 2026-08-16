@@ -32,6 +32,12 @@ export interface DetailedCalculationRecord {
   predictedProbability?: number;
   departmentalCutoff?: string | number;
   institutionalCutoff?: string | number;
+  cutoffType?: string;
+  cutoffIsOfficial?: boolean;
+  cutoffSource?: string;
+  cutoffYear?: string | number;
+  cutoffQuotaUsed?: string;
+  scoreDiff?: number;
   stateOfOrigin?: string;
   isELDSState?: boolean;
   isCatchmentState?: boolean;
@@ -566,17 +572,70 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                         </div>
 
                         <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Dept Cutoff</p>
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                            <span>Cutoff Benchmark</span>
+                            {item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Official</span>
+                            ) : (
+                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Estimate</span>
+                            )}
+                          </p>
                           <p className="text-base font-black text-gray-700 dark:text-gray-300 mt-0.5">
-                            {item.departmentalCutoff || 'Official Cutoff'}
+                            {item.departmentalCutoff || 'Benchmark'}
                           </p>
                         </div>
 
                         <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
                           <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Probability</p>
                           <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                            {item.predictedProbability ? `${item.predictedProbability}%` : 'High'}
+                            {item.predictedProbability ? `${item.predictedProbability}%` : '50%'}
                           </p>
+                        </div>
+                      </div>
+
+                      {/* Cutoff Provenance & Quota Audit Banner */}
+                      <div className="p-3.5 bg-gradient-to-r from-gray-50 to-gray-100/70 dark:from-gray-900 dark:to-gray-950 border border-gray-200/90 dark:border-gray-800 rounded-xl text-xs space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-black uppercase text-gray-800 dark:text-gray-200">
+                              Cutoff Provenance & Authority:
+                            </span>
+                            {item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
+                              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-md font-bold text-[10px]">
+                                Verified Official 2025/2026 Release
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-md font-bold text-[10px]">
+                                Historical Competitive Benchmark
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400">
+                            Quota: <span className="font-bold text-gray-700 dark:text-gray-200">{item.cutoffQuotaUsed || (item.isCatchmentState ? `Catchment (${item.stateOfOrigin || 'State'})` : item.isELDSState ? 'ELDS' : 'National Merit')}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Score vs Cutoff Margin:
+                          </span>
+                          {(() => {
+                            const cVal = parseFloat(String(item.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) || 0;
+                            const diff = cVal > 0 ? (aggNum - cVal) : 0;
+                            const isPositive = diff >= 0;
+                            return (
+                              <span className={`font-mono font-black px-2 py-0.5 rounded-md ${
+                                isPositive 
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' 
+                                  : diff >= -1.5 
+                                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                                    : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                              }`}>
+                                {isPositive ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
+                                {diff >= -1.5 && diff < 0 ? ' (Borderline)' : ''}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
 
