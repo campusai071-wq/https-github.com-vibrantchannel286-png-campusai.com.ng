@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, X, Zap, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
+import { trackPremiumClick } from '../services/analytics';
 
 interface QuotaModalProps {
   isOpen: boolean;
@@ -46,7 +47,10 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
 
               <div className="space-y-4">
                 <button 
-                  onClick={onUpgrade}
+                  onClick={() => {
+                    trackPremiumClick({ placement: 'quota_modal_full_pack', target_plan: 'Scholar Pack 2026' });
+                    onUpgrade();
+                  }}
                   className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition-all"
                 >
                   <Crown size={18} /> Activate Scholar Pack
@@ -54,6 +58,7 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 
                 <button 
                   onClick={() => {
+                    trackPremiumClick({ placement: 'quota_modal_refill', target_plan: '1 Extra AI Session' });
                     const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '1 Extra AI Session' } });
                     window.dispatchEvent(event);
                   }}

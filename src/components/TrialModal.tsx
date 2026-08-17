@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, X, Sparkles, LogIn, GraduationCap } from 'lucide-react';
+import { trackPremiumClick } from '../services/analytics';
 
 interface TrialModalProps {
   isOpen: boolean;
@@ -60,7 +61,10 @@ const TrialModal: React.FC<TrialModalProps> = ({ isOpen, onClose, type, onLogin,
                     You have used your free calculations. Upgrade to Scholar Pack for unlimited access
                   </p>
                   <button 
-                    onClick={onUpgrade}
+                    onClick={() => {
+                      trackPremiumClick({ placement: 'trial_modal', target_plan: 'Scholar Pack 2026' });
+                      onUpgrade?.();
+                    }}
                     className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition-all"
                   >
                     <Crown size={18} /> Upgrade to Scholar Pack

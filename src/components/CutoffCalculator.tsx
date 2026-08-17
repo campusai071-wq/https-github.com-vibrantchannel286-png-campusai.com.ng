@@ -29,6 +29,7 @@ import {
 import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
+import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -2139,6 +2140,18 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     setShowResults(true);
     setFeedbackStatus('none');
     setAdmissionStatus('none');
+
+    // GA4 Event: calculator_used
+    trackCalculatorUsed({
+      calculator_type: 'jamb_aggregate',
+      university: activeUni.name,
+      course: activeCourse,
+      aggregate_score: aggregateScore,
+      jamb_score: jambScore,
+      post_utme_score: postUtmeScore,
+      state_of_origin: stateOfOrigin
+    });
+
     try {
       const formulaText    = resolvedScoringSystem?.explanation || "Pure Academic Formula (JAMB / 4)";
       const computedDiscount = 0;
@@ -2188,6 +2201,18 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         formulaText,
         olevelsString
       );
+
+      // GA4 Event: admission_analysis
+      trackAdmissionAnalysis({
+        university: targetUni.name,
+        course: targetCourse || courseSearch,
+        aggregate_score: parseFloat(aggregateScore.toString()) || 0,
+        verdict: deterministic.verdict || result.verdict || 'Borderline',
+        probability: deterministic.probability || result.probability || 50,
+        is_official_cutoff: !!result.cutoffIsOfficial,
+        cutoff_used: result.cutoffValue || result.departmentalCutoff || result.cutoff || '',
+        quota: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
+      });
 
       savePredictionRecord({
         predictionId,
@@ -2809,6 +2834,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             <button
                               key={u.name}
                               onClick={() => {
+                                trackInstitutionSearch({
+                                  search_term: u.name,
+                                  institution_type: u.type || u.category || 'University'
+                                });
                                 const slug = u.slug;
                                 const isDedicated = ['unilag', 'oau', 'ui', 'lasu', 'uniben', 'unilorin', 'unn', 'futa', 'abu-zaria', 'abu'].includes(slug);
                                 if (isDedicated) {

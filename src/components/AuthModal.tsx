@@ -8,6 +8,7 @@ import { auth, googleProvider } from '../services/firebaseConfig';
 import { signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
 import { initializeUserProfile } from '../services/userService';
 import { trackReferral } from '../services/userService';
+import { trackSignUp } from '../services/analytics';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
@@ -79,6 +80,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
           const userCred = await createUserWithEmailAndPassword(auth, email, password);
           await initializeUserProfile(userCred.user, role);
           
+          // GA4 Event: sign_up
+          trackSignUp({ method: 'email_password', role: role, user_id: userCred.user?.uid });
+
           const referralCode = localStorage.getItem('campusai_referral_code');
           if (referralCode && userCred.user) {
             await trackReferral(referralCode, userCred.user.uid);
@@ -90,6 +94,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         } else {
           const mockDB = JSON.parse(localStorage.getItem('campusai_mock_db') || '{}');
           mockDB[email] = { password, displayName, role };
+          trackSignUp({ method: 'demo_email', role: role });
           try {
             localStorage.setItem('campusai_mock_db', stringify(mockDB));
           } catch (e) {
@@ -141,6 +146,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         } else {
           // Use standard Web Popup
           userCred = await signInWithPopup(auth, googleProvider);
+        }
+        
+        if (mode === 'signup' && userCred?.user) {
+          trackSignUp({ method: 'google', role: role, user_id: userCred.user.uid });
         }
         
         const referralCode = localStorage.getItem('campusai_referral_code');

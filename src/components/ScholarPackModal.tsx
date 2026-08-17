@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, X, Check, Zap, ShieldCheck, ArrowRight, Sparkles, Loader2, CreditCard } from 'lucide-react';
 import { useFlutterwave } from 'flutterwave-react-v3';
@@ -14,6 +14,7 @@ const closePaymentModal = () => {
 import { updateUserProfile } from '../services/userService';
 import { db, MASTER_CONFIG } from '../services/firebaseConfig';
 import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { trackPremiumClick, trackPaymentStarted, trackPurchase } from '../services/analytics';
 
 interface ScholarPackModalProps {
   isOpen: boolean;
@@ -29,6 +30,16 @@ interface ScholarPackModalProps {
 
 const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, user, paymentConfig = { type: 'pack', amount: 500, label: 'Scholar Pack 2026' } }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      trackPremiumClick({
+        placement: 'scholar_pack_modal',
+        target_plan: paymentConfig.label,
+        current_credits: user?.scholarCredits || 0,
+      });
+    }
+  }, [isOpen, paymentConfig.label, user?.scholarCredits]);
 
   const fwConfig = {
     public_key: MASTER_CONFIG.FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK_TEST-X',
@@ -56,9 +67,27 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     if (!user) return;
     setIsProcessing(true);
     
+    // GA4 Event: payment_started
+    trackPaymentStarted({
+      item_name: paymentConfig.label,
+      amount: paymentConfig.amount,
+      currency: 'NGN',
+      payment_type: paymentConfig.type,
+      tx_ref: fwConfig.tx_ref
+    });
+
     handleFlutterPayment({
       callback: async (response) => {
         if (response.status === "successful") {
+          // GA4 Event: purchase
+          trackPurchase({
+            transaction_id: response.transaction_id || response.tx_ref || fwConfig.tx_ref,
+            value: paymentConfig.amount,
+            currency: 'NGN',
+            item_name: paymentConfig.label,
+            payment_type: paymentConfig.type,
+          });
+
           if (paymentConfig.type === 'pack') {
             const currentCredits = user?.scholarCredits || 0;
             await updateUserProfile({ 

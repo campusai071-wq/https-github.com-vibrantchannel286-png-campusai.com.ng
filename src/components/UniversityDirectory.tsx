@@ -6,6 +6,7 @@ import universityData from '../data/universities';
 import { getUniversityDetailedInfo, getUniversityCourses, getPostUtmeDates } from '../services/geminiService';
 import { getPostUtmeRecordForSchool, PostUtmeStatusType } from '../services/postUtmeTracker';
 import { PostUtmeInfo } from '../types';
+import { trackInstitutionSearch } from '../services/analytics';
 
 interface UniBio {
   bio: string;
@@ -90,6 +91,10 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
   }, [externalHighlight, urlSlug]);
 
   const handleShowInfo = async (uni: any, updateUrl: boolean = true) => {
+    trackInstitutionSearch({
+      search_term: uni.name,
+      institution_type: uni.category || 'University'
+    });
     setSelectedUni(uni);
     if (updateUrl && uni.slug) {
       navigate(`/universities/${uni.slug}`, { replace: true });
