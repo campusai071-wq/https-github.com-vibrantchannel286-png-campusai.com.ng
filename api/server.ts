@@ -2323,6 +2323,7 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     xml += `\n</urlset>`;
 
     res.header('Content-Type', 'application/xml; charset=utf-8');
+    res.header('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
     res.send(xml);
   } catch (e) {
     console.error("[Sitemap Error]", e);
@@ -2400,6 +2401,7 @@ app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: an
 </urlset>`;
 
     res.header('Content-Type', 'application/xml; charset=utf-8');
+    res.header('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
     res.send(xml);
   } catch (e) {
     console.error("[News Sitemap Error]", e);
@@ -2800,7 +2802,7 @@ if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
       let html = fs.readFileSync(indexPath, 'utf-8');
       html = await injectSEO(html, req.path);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
       res.send(html);
     } catch (err) {
       console.error("[Server HTML Error]", err);
