@@ -1618,7 +1618,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   // Real-time pre-calculation subject combination validation
   const liveSubjectValidation = useMemo(() => {
     const courseName = targetCourse || courseSearch;
-    if (!jambSubject1 || !jambSubject2 || !jambSubject3 || !courseName) {
+    if ((!jambSubject1 && !jambSubject2 && !jambSubject3) || !courseName) {
       return { valid: true, reason: '' };
     }
     const jambList = ['English Language', jambSubject1, jambSubject2, jambSubject3].filter(Boolean);
@@ -3272,7 +3272,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             </div>
 
             {/* Live Pre-Calculation Subject Warning / Validation Notice */}
-            {jambSubject1 && jambSubject2 && jambSubject3 && !liveSubjectValidation.valid && (
+            {(jambSubject1 || jambSubject2 || jambSubject3) && !liveSubjectValidation.valid && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2.5 animate-fade-in">
                 <TriangleAlert size={15} className="text-red-400 mt-0.5 shrink-0" />
                 <div className="space-y-1">

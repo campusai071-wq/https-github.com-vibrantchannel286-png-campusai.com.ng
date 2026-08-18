@@ -386,6 +386,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [customLinkImageUrl, setCustomLinkImageUrl] = useState('');
   const [isSavingLinkPreview, setIsSavingLinkPreview] = useState(false);
   const [uploadingPath, setUploadingPath] = useState<string | null>(null);
+  const [previewInputUrls, setPreviewInputUrls] = useState<Record<string, string>>({});
 
   const loadLinkPreviews = useCallback(async () => {
     const initial = getStoredLinkPreviews();
@@ -2878,22 +2879,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               <div className="flex gap-2">
                                 <input
                                   type="text"
-                                  defaultValue={hasCustomPic ? item.imageUrl : ''}
+                                  value={previewInputUrls[item.path] !== undefined ? previewInputUrls[item.path] : (item.imageUrl || '')}
+                                  onChange={e => setPreviewInputUrls({ ...previewInputUrls, [item.path]: e.target.value })}
                                   placeholder="Or paste Image URL..."
                                   onKeyDown={e => {
                                     if (e.key === 'Enter') {
-                                      handleLinkPictureUrlSave(item.path, (e.target as HTMLInputElement).value, item.title, item.subtitle);
+                                      const val = previewInputUrls[item.path] !== undefined ? previewInputUrls[item.path] : (item.imageUrl || '');
+                                      if (val.trim()) {
+                                        handleLinkPictureUrlSave(item.path, val.trim(), item.title, item.subtitle);
+                                      } else {
+                                        alert('Please enter a valid image URL.');
+                                      }
                                     }
                                   }}
-                                  id={`url_input_${item.path.replace(/\//g, '_')}`}
                                   className="flex-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-950 rounded-xl text-[10px] border border-gray-200 dark:border-gray-800 dark:text-white"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const input = document.getElementById(`url_input_${item.path.replace(/\//g, '_')}`) as HTMLInputElement;
-                                    if (input && input.value) {
-                                      handleLinkPictureUrlSave(item.path, input.value, item.title, item.subtitle);
+                                    const val = previewInputUrls[item.path] !== undefined ? previewInputUrls[item.path] : (item.imageUrl || '');
+                                    if (val && val.trim()) {
+                                      handleLinkPictureUrlSave(item.path, val.trim(), item.title, item.subtitle);
+                                    } else {
+                                      alert('Please enter an image URL or upload an image file.');
                                     }
                                   }}
                                   className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-blue-700 transition-all shrink-0"
