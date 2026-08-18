@@ -40,10 +40,14 @@ const SEO: React.FC<SEOProps> = ({
   const rawPath = typeof window !== 'undefined' ? window.location.pathname : "";
   const cleanPath = rawPath === '/' ? '' : rawPath.split('?')[0].replace(/\/+$/, "");
   
-  // SEO standards: Title < 70, Desc < 160
-  const cleanDescription = (description || defaultDescription).length > 160
-    ? (description || defaultDescription).substring(0, 157) + '...'
-    : (description || defaultDescription);
+  // SEO standards: Title < 70, Desc between 70 and 160
+  const rawDesc = description || defaultDescription;
+  const paddedDesc = rawDesc.length < 70 
+    ? `${rawDesc} - Calculate aggregate scores, view official cutoff marks, and check admission requirements with CampusAI Nigeria 2026.` 
+    : rawDesc;
+  const cleanDescription = paddedDesc.length > 160
+    ? paddedDesc.substring(0, 157) + '...'
+    : paddedDesc;
 
   let formattedTitle = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
   if (title) {

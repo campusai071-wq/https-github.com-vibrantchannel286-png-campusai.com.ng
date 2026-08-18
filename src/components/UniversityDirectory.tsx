@@ -491,7 +491,18 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                     const theme = getCategoryTheme(uni.category);
                     const initials = uni.slug ? uni.slug.substring(0, 2).toUpperCase() : uni.name.substring(0, 2).toUpperCase();
                     return (
-                      <motion.div key={uni.name} onClick={() => handleShowInfo(uni)} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }} className="flex items-center justify-between p-4 md:p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[24px] md:rounded-[32px] hover:border-blue-500 dark:hover:border-cyan-500 hover:shadow-xl transition-all group cursor-pointer relative overflow-hidden">
+                      <motion.a 
+                        key={uni.name} 
+                        href={`/universities/${uni.slug}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleShowInfo(uni);
+                        }}
+                        initial={{ opacity: 0, y: 15 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        transition={{ delay: idx * 0.04 }} 
+                        className="flex items-center justify-between p-4 md:p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[24px] md:rounded-[32px] hover:border-blue-500 dark:hover:border-cyan-500 hover:shadow-xl transition-all group cursor-pointer relative overflow-hidden"
+                      >
                         <div className="flex items-center gap-4 md:gap-5 relative z-10 overflow-hidden">
                           <div className={`w-14 h-14 md:w-16 md:h-16 shrink-0 rounded-[16px] md:rounded-[20px] ${theme.bg} flex items-center justify-center font-black text-xl md:text-2xl ${theme.text} border ${theme.border} transition-all duration-500 shadow-sm`}>{initials}</div>
                           <div className="flex flex-col gap-1 overflow-hidden">
@@ -505,7 +516,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                           </div>
                         </div>
                         <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all"><Info size={18} /></button>
-                      </motion.div>
+                      </motion.a>
                     );
                   })}
                 </motion.div>
