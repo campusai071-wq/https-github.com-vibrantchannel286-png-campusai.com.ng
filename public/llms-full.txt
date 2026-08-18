@@ -1,0 +1,18 @@
+# CampusAI Nigeria - Full Documentation for LLMs
+
+> CampusAI is Nigeria's leading AI admission strategist and aggregate calculation platform for 2026.
+
+## Overview & Purpose
+CampusAI helps Nigerian university aspirants accurately calculate their admission screening aggregate scores, verify mandatory JAMB and O-Level subject combinations, check departmental cutoff marks across 100+ universities, and forecast admission probabilities.
+
+## Key Features & Tools
+1. **Aggregate Calculator Hub**: Computes precise admission points based on institutional scoring formulas (e.g., UNILAG 50:30:20, LASU 60:40, ABU 50:50).
+2. **Pre-Calculation Subject Validation**: Automatically validates JAMB and O-Level subject combinations against official JAMB brochure rules to prevent candidate disqualification.
+3. **AI Admission Strategist**: Powered by Google Gemini to provide personalized feedback on admission odds, catchment benefits, and alternative course recommendations.
+4. **University Directory**: Comprehensive directory of federal, state, and private universities in Nigeria with verified cutoff marks and faculty lists.
+
+## Frequently Asked Questions (FAQ)
+- **What is a JAMB aggregate score?** A combined score calculated from your JAMB UTME score, Post-UTME screening score, and O-Level grades.
+- **What subjects are compulsory for Medicine?** Use of English, Biology, Chemistry, and Physics.
+- **What subjects are compulsory for Engineering?** Use of English, Mathematics, Physics, and Chemistry.
+- **What subjects are compulsory for Law?** Use of English, Literature-in-English, and any two Arts or Social Science subjects.

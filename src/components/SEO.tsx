@@ -113,16 +113,30 @@ const SEO: React.FC<SEOProps> = ({
     "publisher": {
       "@type": "Organization",
       "name": "CampusAI Nigeria",
+      "url": siteDomain,
       "logo": {
         "@type": "ImageObject",
         "url": `${siteDomain}/favicon.ico.png`
-      }
+      },
+      "sameAs": [
+        "https://twitter.com/CampusAI_NG",
+        "https://facebook.com/CampusAINigeria",
+        "https://linkedin.com/company/campusai-nigeria",
+        "https://instagram.com/campusai.ng"
+      ]
     },
     ...(article ? {
       "headline": title || cleanTitle,
       "datePublished": pubIso,
       "dateModified": modIso,
       "author": [{ "@type": "Person", "name": author }]
+    } : {}),
+    ...(isCalculator ? {
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "NGN"
+      }
     } : {})
   };
 

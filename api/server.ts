@@ -2783,6 +2783,27 @@ app.use("/api", (req, res) => {
   });
 });
 
+// LLMs.txt routes for AI agents & generative engines (https://llmstxt.org)
+app.get('/llms.txt', (req, res) => {
+  const filePath = path.join(process.cwd(), 'public', 'llms.txt');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Not Found');
+  }
+});
+
+app.get('/llms-full.txt', (req, res) => {
+  const filePath = path.join(process.cwd(), 'public', 'llms-full.txt');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Not Found');
+  }
+});
+
 async function injectSEO(html: string, reqPath: string): Promise<string> {
   return await seoInject(html, reqPath, adminDb, dbInstance);
 }
