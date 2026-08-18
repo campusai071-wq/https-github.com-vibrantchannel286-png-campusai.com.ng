@@ -14,7 +14,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText } from 'lucide-react';
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
@@ -1615,6 +1615,16 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     setBypassSubjectDisqualificationAlert(false);
   }, [jambScore, targetUni, targetCourse, courseSearch, jambSubject1, jambSubject2, jambSubject3, subjects]);
 
+  // Real-time pre-calculation subject combination validation
+  const liveSubjectValidation = useMemo(() => {
+    const courseName = targetCourse || courseSearch;
+    if (!jambSubject1 || !jambSubject2 || !jambSubject3 || !courseName) {
+      return { valid: true, reason: '' };
+    }
+    const jambList = ['English Language', jambSubject1, jambSubject2, jambSubject3].filter(Boolean);
+    return validateMandatorySubjects(courseName, jambList);
+  }, [targetCourse, courseSearch, jambSubject1, jambSubject2, jambSubject3]);
+
   // Fetch scoring system & courses when uni changes
   useEffect(() => {
     if (!targetUni) return;
@@ -2155,29 +2165,36 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     try {
       const formulaText    = resolvedScoringSystem?.explanation || "Pure Academic Formula (JAMB / 4)";
       const computedDiscount = 0;
-      
-      // Determine if they were already beyond their daily free allowance before running this check
-      const wasDailyLimitExceededBefore = (user?.daily_requests || 0) >= 1;
-
-      const result = await getCourseCutoffInfo(
-        activeUni.name, activeCourse, aggregateScore,
-        subjects.map(s => `${s.name}: ${s.grade}`).join(', '),
-        Array.from(
-          new Set(
-            ['English Language', jambSubject1, jambSubject2, jambSubject3]
-              .flatMap(s => String(s || '').split(/[_,\/\+]+/))
-              .map(s => String(s || '').trim())
-              .filter(Boolean)
-          )
-        ),
-        user?.role, isAR, isPostUtmePending, formulaText,
-        stateOfOrigin, isELDSState, isCatchmentState, computedDiscount,
-        parseFloat(jambScore) || 0,
-        isPostUtmePending ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70) : (parseFloat(postUtmeScore) || 0)
-      );
       const predictionId = `pred_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const enrichedResult = { ...result, predictionId };
-      setAiResult(enrichedResult);
+      let result: any = null;
+      let enrichedResult: any = null;
+
+      if (user) {
+        // AI Analysis call only for authenticated users
+        result = await getCourseCutoffInfo(
+          activeUni.name, activeCourse, aggregateScore,
+          subjects.map(s => `${s.name}: ${s.grade}`).join(', '),
+          Array.from(
+            new Set(
+              ['English Language', jambSubject1, jambSubject2, jambSubject3]
+                .flatMap(s => String(s || '').split(/[_,\/\+]+/))
+                .map(s => String(s || '').trim())
+                .filter(Boolean)
+            )
+          ),
+          user?.role, isAR, isPostUtmePending, formulaText,
+          stateOfOrigin, isELDSState, isCatchmentState, computedDiscount,
+          parseFloat(jambScore) || 0,
+          isPostUtmePending ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70) : (parseFloat(postUtmeScore) || 0)
+        );
+        enrichedResult = { ...result, predictionId };
+        setAiResult(enrichedResult);
+      } else {
+        // 0 AI API calls / 0 tokens consumed for guests
+        // Fast UI feedback delay for smooth math calculation
+        await new Promise(res => setTimeout(res, 350));
+        setAiResult(null);
+      }
       setShowResults(true);
 
       // Increment persistent global calculations metric for site analytics
@@ -2185,64 +2202,86 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       const olevelsString = subjects.map(s => `${s.name}: ${s.grade}`).join(', ');
       
-      // Calculate deterministic values
-      const deterministic = enforceAdmissionTiers(
-        parseFloat(aggregateScore.toString()) || 0,
-        parseFloat((result.departmentalCutoff || result.cutoff || '55').toString().replace(/[^0-9.]/g, '')) || 55,
-        targetUni.name,
-        targetCourse || courseSearch,
-        stateOfOrigin,
-        !!isELDSState,
-        !!isCatchmentState,
-        isAR,
-        isPostUtmePending,
-        parseFloat(jambScore) || 0,
-        parseFloat(postUtmeScore) || 0,
-        formulaText,
-        olevelsString
-      );
+      if (user && result) {
+        // Calculate deterministic values for authenticated users
+        const isDisqualified = result.probability === 0 || 
+          (result.verdict && result.verdict.toLowerCase().includes('disqualif')) ||
+          result.departmentalCutoff === 'N/A' ||
+          result.subjectCombinationValidation?.valid === false;
 
-      // GA4 Event: admission_analysis
-      trackAdmissionAnalysis({
-        university: targetUni.name,
-        course: targetCourse || courseSearch,
-        aggregate_score: parseFloat(aggregateScore.toString()) || 0,
-        verdict: deterministic.verdict || result.verdict || 'Borderline',
-        probability: deterministic.probability || result.probability || 50,
-        is_official_cutoff: !!result.cutoffIsOfficial,
-        cutoff_used: result.cutoffValue || result.departmentalCutoff || result.cutoff || '',
-        quota: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
-      });
+        const rawCutoff = (result.departmentalCutoff || result.cutoff || '').toString().replace(/[^0-9.]/g, '');
+        const parsedCutoffVal = parseFloat(rawCutoff) || (isDisqualified ? 0 : 55);
 
-      savePredictionRecord({
-        predictionId,
-        userId: user?.uid || 'guest',
-        userEmail: user?.email || '',
-        university: targetUni.name,
-        course: targetCourse || courseSearch,
-        aggregateScore: parseFloat(aggregateScore.toString()) || 0,
-        jambScore: parseFloat(jambScore) || 0,
-        postUtmeScore: parseFloat(postUtmeScore) || 0,
-        verdict: deterministic.verdict || result.verdict || 'Borderline',
-        confidence: result.reliability || 'Medium',
-        predictedProbability: deterministic.probability || result.probability || 50,
-        departmentalCutoff: result.departmentalCutoff || result.cutoff || '',
-        institutionalCutoff: result.institutionalCutoff || '',
-        stateOfOrigin: stateOfOrigin || '',
-        isELDSState: !!isELDSState,
-        isCatchmentState: !!isCatchmentState,
-        cutoffType: result.cutoffType || (result.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
-        cutoffIsOfficial: !!result.cutoffIsOfficial,
-        cutoffSource: result.cutoffSource || '',
-        cutoffYear: result.cutoffYear || '2025/2026',
-        cutoffQuotaUsed: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
-        scoreDiff: typeof result.scoreDiff === 'number' ? result.scoreDiff : (parseFloat(aggregateScore.toString()) - (parseFloat(result.cutoffValue) || parseFloat(result.departmentalCutoff) || 0)),
-        predictionDate: new Date().toISOString().split('T')[0],
-        detailedStrategy: result.detailedStrategy || '',
-        formulaExplanation: formulaText || '',
-        subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
-        olevelsString: olevelsString || ''
-      }).catch(err => console.error("Error saving global prediction record:", err));
+        let finalVerdict = result.verdict || 'Borderline';
+        let finalProbability = typeof result.probability === 'number' ? result.probability : 50;
+
+        if (isDisqualified) {
+          finalVerdict = result.verdict || 'Disqualified / Invalid Subject Combination';
+          finalProbability = 0;
+        } else if (parsedCutoffVal > 0) {
+          const deterministic = enforceAdmissionTiers(
+            parseFloat(aggregateScore.toString()) || 0,
+            parsedCutoffVal,
+            targetUni.name,
+            targetCourse || courseSearch,
+            stateOfOrigin,
+            !!isELDSState,
+            !!isCatchmentState,
+            isAR,
+            isPostUtmePending,
+            parseFloat(jambScore) || 0,
+            parseFloat(postUtmeScore) || 0,
+            formulaText,
+            olevelsString
+          );
+          if (deterministic?.verdict) finalVerdict = deterministic.verdict;
+          if (typeof deterministic?.probability === 'number') finalProbability = deterministic.probability;
+        }
+
+        // GA4 Event: admission_analysis
+        trackAdmissionAnalysis({
+          university: targetUni.name,
+          course: targetCourse || courseSearch,
+          aggregate_score: parseFloat(aggregateScore.toString()) || 0,
+          verdict: finalVerdict,
+          probability: finalProbability,
+          is_official_cutoff: !!result.cutoffIsOfficial,
+          cutoff_used: result.cutoffValue || result.departmentalCutoff || result.cutoff || '',
+          quota: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
+        });
+
+        savePredictionRecord({
+          predictionId,
+          userId: user.uid,
+          userEmail: user.email || '',
+          userName: user.displayName || 'Registered Scholar',
+          isGuest: false,
+          university: targetUni.name,
+          course: targetCourse || courseSearch,
+          aggregateScore: parseFloat(aggregateScore.toString()) || 0,
+          jambScore: parseFloat(jambScore) || 0,
+          postUtmeScore: parseFloat(postUtmeScore) || 0,
+          verdict: finalVerdict,
+          confidence: result.reliability || (isDisqualified ? 'High' : 'Medium'),
+          predictedProbability: finalProbability,
+          departmentalCutoff: result.departmentalCutoff || result.cutoff || (isDisqualified ? 'N/A' : ''),
+          institutionalCutoff: result.institutionalCutoff || '',
+          stateOfOrigin: stateOfOrigin || '',
+          isELDSState: !!isELDSState,
+          isCatchmentState: !!isCatchmentState,
+          cutoffType: result.cutoffType || (result.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
+          cutoffIsOfficial: !!result.cutoffIsOfficial,
+          cutoffSource: result.cutoffSource || '',
+          cutoffYear: result.cutoffYear || '2025/2026',
+          cutoffQuotaUsed: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
+          scoreDiff: typeof result.scoreDiff === 'number' ? result.scoreDiff : (isDisqualified ? 0 : (parseFloat(aggregateScore.toString()) - (parseFloat(result.cutoffValue) || parseFloat(result.departmentalCutoff) || 0))),
+          predictionDate: new Date().toISOString().split('T')[0],
+          detailedStrategy: result.detailedStrategy || '',
+          formulaExplanation: formulaText || '',
+          subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
+          olevelsString: olevelsString || ''
+        }).catch(err => console.error("Error saving global prediction record:", err));
+      }
 
       // Automatically save this calculation attempt to history with local storage persistence
       const newAttempt: SavedProfile = {
@@ -2299,9 +2338,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         logUserActivity({ 
           userId: user.uid, 
           type: 'calculation', 
-          title: 'Admission Audit', 
+          title: 'Admission Audit (Registered)', 
           description: `Calculated aggregate for ${targetCourse || courseSearch} at ${targetUni.name}`,
           metadata: {
+            predictionId,
+            userEmail: user.email || '',
+            userName: user.displayName || 'Registered Scholar',
+            isGuest: false,
             course: targetCourse || courseSearch,
             university: targetUni.name,
             subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
@@ -2310,6 +2353,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             aggregateScore: aggregateScore,
             jambScore: jambScore,
             postUtmeScore: postUtmeScore,
+            verdict: result?.verdict || 'Borderline',
             hasOLevel: computedScoringSystem?.hasOLevel || false
           }
         });
@@ -2318,9 +2362,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         logUserActivity({ 
           userId: 'guest', 
           type: 'calculation', 
-          title: 'Admission Audit', 
+          title: 'Admission Audit (Guest)', 
           description: `Calculated aggregate for ${targetCourse || courseSearch} at ${targetUni.name}`,
           metadata: {
+            predictionId,
+            userEmail: '',
+            userName: 'Guest Scholar',
+            isGuest: true,
             course: targetCourse || courseSearch,
             university: targetUni.name,
             subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
@@ -2329,6 +2377,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             aggregateScore: aggregateScore,
             jambScore: jambScore,
             postUtmeScore: postUtmeScore,
+            verdict: 'Guest Calculation',
             hasOLevel: computedScoringSystem?.hasOLevel || false
           }
         });
@@ -3222,6 +3271,29 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               ))}
             </div>
 
+            {/* Live Pre-Calculation Subject Warning / Validation Notice */}
+            {jambSubject1 && jambSubject2 && jambSubject3 && !liveSubjectValidation.valid && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2.5 animate-fade-in">
+                <TriangleAlert size={15} className="text-red-400 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-red-400">
+                    ⚠️ Subject Combination Warning (Pre-Calculation Check)
+                  </p>
+                  <p className="text-[8.5px] text-red-200/90 font-medium leading-relaxed">
+                    {liveSubjectValidation.reason} <span className="font-bold underline">Please correct your subject combination before calculating to avoid disqualification.</span>
+                  </p>
+                </div>
+              </div>
+            )}
+            {jambSubject1 && jambSubject2 && jambSubject3 && liveSubjectValidation.valid && (
+              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+                <Check size={13} className="text-emerald-400 shrink-0" />
+                <p className="text-[8px] font-bold text-emerald-300">
+                  ✅ Subject combination matches requirements for <span className="font-black text-white">{targetCourse || courseSearch}</span>.
+                </p>
+              </div>
+            )}
+
             {/* O-Level grades */}
             {(!computedScoringSystem || computedScoringSystem.hasOLevel) && (
               <div id="olevel-subject-list" className="space-y-2.5 pt-2.5 border-t border-white/5">
@@ -3616,7 +3688,174 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         <CalculationAnimation />
                         <span className="text-sm font-bold text-gray-400 animate-pulse font-mono uppercase tracking-wider">Analyzing Admission Chances...</span>
                      </div>
-                  ) : aiResult ? (() => {
+                  ) : aiResult ? (
+                    !user ? (
+                      /* GUEST VIEW: Aggregate Math Summary + High-Converting Sign-In Gate */
+                      <div className="space-y-6 mt-4">
+                        {/* Formula & Calculation Breakdown Card */}
+                        <div className="p-5 bg-black/40 rounded-2xl border border-white/10 text-left space-y-4 shadow-xl">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+                            <div className="flex items-center gap-2">
+                              <Calculator size={16} className="text-emerald-400" />
+                              <span className="text-xs font-black uppercase tracking-wider text-white">
+                                Aggregate Score Formula Breakdown
+                              </span>
+                            </div>
+                            <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-black text-[9px] uppercase tracking-wider flex items-center gap-1">
+                              <Check size={10} /> Verified Math Exact
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {/* UTME Score Contribution */}
+                            <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
+                              <p className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">JAMB UTME (400)</p>
+                              <p className="text-lg font-black text-white mt-0.5">{jambScore || '0'}<span className="text-xs text-gray-500 font-normal"> / 400</span></p>
+                              <p className="text-[9px] text-gray-400 mt-1 font-medium leading-tight">
+                                {computedScoringSystem?.hasPostUtme ? 'Scaled to 50% ratio' : 'Scaled to institutional weight'}
+                              </p>
+                            </div>
+
+                            {/* Post-UTME / Screening Score Contribution */}
+                            <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
+                              <p className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">Post-UTME / Screening</p>
+                              <p className="text-lg font-black text-white mt-0.5">
+                                {isPostUtmePending ? 'Pending' : (postUtmeScore ? `${postUtmeScore}` : '0')}
+                                <span className="text-xs text-gray-500 font-normal">{isPostUtmePending ? ' (Projected)' : ' / 100'}</span>
+                              </p>
+                              <p className="text-[9px] text-gray-400 mt-1 font-medium leading-tight">
+                                {computedScoringSystem?.hasPostUtme ? 'Institutional screening contribution' : 'Point-based screening'}
+                              </p>
+                            </div>
+
+                            {/* Calculated Total Aggregate */}
+                            <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl sm:col-span-2 md:col-span-1">
+                              <p className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-400">Total Calculated Aggregate</p>
+                              <p className="text-xl font-black text-emerald-400 mt-0.5">{aggregateScore}%</p>
+                              <p className="text-[9px] text-emerald-300/80 mt-1 font-medium leading-tight truncate">
+                                {computedScoringSystem?.explanation || "Standard Institutional Scoring Formula"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-white/[0.02] rounded-xl border border-white/5 text-[9.5px] text-gray-300 flex items-start gap-2">
+                            <Info size={14} className="text-blue-400 shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Scoring Formula:</strong> {computedScoringSystem?.explanation || "Pure Academic Formula (JAMB / 4)."}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Primary Gated Callout / Sign In Prompt */}
+                        <div className="p-6 md:p-8 bg-gradient-to-b from-blue-900/30 via-black/60 to-purple-950/30 border-2 border-blue-500/30 rounded-[28px] text-left shadow-2xl relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none" />
+
+                          <div className="relative z-10 space-y-5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full font-black text-[9px] uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
+                                <Lock size={11} className="text-blue-400" /> Guest Scholar • Full Analysis Gated
+                              </span>
+                              <span className="text-[9.5px] font-bold text-gray-400">
+                                Target: <strong className="text-white">{targetUni?.name}</strong>
+                              </span>
+                            </div>
+
+                            <div>
+                              <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                                Unlock Your Full 2026 Admission Analysis
+                              </h3>
+                              <p className="text-xs md:text-sm text-gray-300 mt-2 leading-relaxed">
+                                Your aggregate score of <strong className="text-emerald-400">{aggregateScore}%</strong> is computed! Sign in to reveal your official cut-off benchmark, admission probability rating, and custom AI strategy report:
+                              </p>
+                            </div>
+
+                            {/* Feature Highlights Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                              <div className="p-3.5 bg-white/[0.04] border border-white/10 rounded-xl flex items-start gap-2.5">
+                                <div className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg shrink-0 mt-0.5">
+                                  <ShieldCheck size={14} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-white">Official Cut-Off Benchmark</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+                                    Compare your {aggregateScore}% directly against merit, catchment, and ELDS cutoffs.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="p-3.5 bg-white/[0.04] border border-white/10 rounded-xl flex items-start gap-2.5">
+                                <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0 mt-0.5">
+                                  <Sparkles size={14} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-white">Admission Probability & Gauge</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+                                    Detailed chance forecast (Strong, Competitive, or Borderline) with score margin.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="p-3.5 bg-white/[0.04] border border-white/10 rounded-xl flex items-start gap-2.5">
+                                <div className="p-1.5 bg-purple-500/20 text-purple-400 rounded-lg shrink-0 mt-0.5">
+                                  <Brain size={14} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-white">AI Strategy & Action Plan</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+                                    Custom step-by-step checklist, JAMB CAPS transfer tactics, and screening prep.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="p-3.5 bg-white/[0.04] border border-white/10 rounded-xl flex items-start gap-2.5">
+                                <div className="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg shrink-0 mt-0.5">
+                                  <FileText size={14} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-white">Result Slip PDF / Image Export</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+                                    Export, print, and save your official verified admission calculation slip.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* CTA Button */}
+                            <div className="pt-3 space-y-3">
+                              <button
+                                onClick={onLoginRequest}
+                                className="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-black text-xs md:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-blue-500/25 active:scale-[0.98] transition-all cursor-pointer"
+                              >
+                                <LogIn size={18} /> Sign In to View Full Analysis (100% Free)
+                              </button>
+
+                              <p className="text-center text-[10px] text-gray-400 font-medium flex items-center justify-center gap-1.5">
+                                <span>✨ 1-Click Google Sign In</span>
+                                <span>•</span>
+                                <span>Free for Nigerian Scholars</span>
+                                <span>•</span>
+                                <span>Save calculation history</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Blurred Teaser Silhouette */}
+                        <div className="relative rounded-2xl overflow-hidden border border-white/5 opacity-40 select-none pointer-events-none filter blur-[2px]">
+                          <div className="p-5 bg-black/40 space-y-4">
+                            <div className="h-6 bg-white/10 rounded-lg w-1/3 mx-auto"></div>
+                            <div className="h-28 bg-white/5 rounded-xl"></div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="h-20 bg-white/5 rounded-xl"></div>
+                              <div className="h-20 bg-white/5 rounded-xl"></div>
+                              <div className="h-20 bg-white/5 rounded-xl"></div>
+                            </div>
+                            <div className="h-24 bg-white/5 rounded-xl"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (() => {
                       let chanceLevel = '🔴 Unlikely';
                       let chanceColor = 'text-red-500';
                       let chanceBg = 'bg-red-500/10 border-red-500/20';
@@ -3782,11 +4021,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         </div>
                       </>
                     );
-                  })() : null}
+                  })()
+                ) : null}
 
-                  {aiResult && (
-                    <>
-                      {/* Evidence Panel */}
+                {user && aiResult && (
+                  <>
+                    {/* Evidence Panel */}
                       {aiResult.evidencePanel && Array.isArray(aiResult.evidencePanel) && aiResult.evidencePanel.filter((e: any) => e && (e.value || e.type || e.sourceUrl)).length > 0 && (
                         <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
                           <details className="group" open>
@@ -4868,33 +5108,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     </div>
                   )}
 
-                   {/* Limited view paywall overlay */}
-                  {isLimitedView && (
-                    <div className="absolute inset-x-0 bottom-0 top-[60%] bg-gradient-to-t from-gray-900 via-gray-900/90 to-transparent flex flex-col items-center justify-end p-8 text-center">
-                      <div className="p-1 px-3 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-3">
-                        {user ? 'Daily Limit Reached' : 'Trial Mode Active'}
+                    {/* Limited view paywall overlay for registered users on free tier */}
+                    {user && isLimitedView && (
+                      <div className="absolute inset-x-0 bottom-0 top-[60%] bg-gradient-to-t from-gray-900 via-gray-900/90 to-transparent flex flex-col items-center justify-end p-8 text-center">
+                        <div className="p-1 px-3 bg-amber-500/10 border border-amber-500/20 rounded-full text-[8px] font-black text-amber-400 uppercase tracking-widest mb-3">
+                          Daily Limit Reached
+                        </div>
+                        <h6 className="text-sm font-black mb-2">
+                          Daily Limit Reached
+                        </h6>
+                        <p className="text-[10px] text-gray-400 mb-4 max-w-[200px]">
+                          You have used your 1 free full-strategist calculation for today. Upgrade to check unlimited matches!
+                        </p>
+                        <button
+                          onClick={() => onPremiumRequired?.()}
+                          className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg shadow-xl hover:from-amber-400 hover:to-yellow-400 transition-all cursor-pointer"
+                        >
+                          Activate Scholar Pack
+                        </button>
                       </div>
-                      <h6 className="text-sm font-black mb-2">
-                        {user ? 'Daily Limit Reached' : 'Unlock Full Analysis'}
-                      </h6>
-                      <p className="text-[10px] text-gray-400 mb-4 max-w-[200px]">
-                        {user 
-                          ? 'You have used your 1 free full-strategist calculation for today. Upgrade to check unlimited matches!' 
-                          : 'Get detailed mathematical breakdown, budget analysis, and strategic alternatives.'}
-                      </p>
-                      <button
-                        onClick={() => user ? onPremiumRequired?.() : onLoginRequest()}
-                        className="px-6 py-2.5 bg-cyan-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg shadow-xl hover:bg-cyan-400 transition-all"
-                      >
-                        {user ? 'Activate Scholar Pack' : 'Sign In to Unlock'}
-                      </button>
-                    </div>
-                  )}
+                    )}
                     </>
                   )}
                 </div>
 
-                {aiResult && (
+                {user && aiResult && (
                   <>
                     {/* AI Analysis */}
                     <div className={`p-6 md:p-8 bg-blue-600 rounded-[24px] shadow-lg text-white relative overflow-hidden ${isLimitedView ? 'opacity-50 grayscale' : ''}`}>
@@ -4961,7 +5199,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 )}
 
                 {/* Alternatives */}
-                {!isLimitedView && aiResult.alternatives?.length > 0 && (
+                {user && !isLimitedView && aiResult.alternatives?.length > 0 && (
                   <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 md:p-8">
                     <div className="flex items-center gap-3 mb-4">
                       <ArrowRight size={18} className="text-gray-400" />
@@ -5013,7 +5251,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 )}
 
                 {/* Entry budget */}
-                {aiResult.fresherBudget && (
+                {user && aiResult.fresherBudget && (
                   <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-[24px] p-6 md:p-8">
                     <div className="flex items-center gap-3 mb-4">
                       <Wallet size={18} className="text-emerald-400" />

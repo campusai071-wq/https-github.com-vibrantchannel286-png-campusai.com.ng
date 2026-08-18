@@ -2,10 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   X, Loader2, Brain, Calendar, GraduationCap, Award, 
   TrendingUp, CheckCircle2, AlertTriangle, XCircle, Clock, 
-  Sparkles, Layers, Search, RefreshCw, ChevronDown, ChevronUp, UserCheck
+  Sparkles, Layers, Search, RefreshCw, ChevronDown, ChevronUp, UserCheck, Zap, User
 } from 'lucide-react';
 import { db } from '../services/firebaseConfig';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 
 interface PredictionDetailsModalProps {
   isOpen: boolean;
@@ -22,6 +22,8 @@ export interface DetailedCalculationRecord {
   predictionId?: string;
   userId?: string;
   userEmail?: string;
+  userName?: string;
+  isGuest?: boolean;
   university: string;
   course: string;
   aggregateScore: number | string;
@@ -88,7 +90,14 @@ const formatDate = (ms: number): string => {
 
 const getVerdictBadge = (verdict?: string) => {
   const v = (verdict || '').toLowerCase();
-  if (v.includes('admit') || v.includes('high') || v.includes('safe') || v.includes('strong')) {
+  if (v.includes('disqualif') || v.includes('invalid') || v.includes('ineligible') || v.includes('mismatch') || v.includes('fail') || v.includes('deficit')) {
+    return {
+      label: verdict || 'Disqualified',
+      bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30',
+      icon: XCircle
+    };
+  }
+  if (v.includes('admit') || v.includes('high') || v.includes('safe') || v.includes('strong') || v.includes('excellent')) {
     return {
       label: verdict || 'Highly Likely',
       bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
@@ -116,6 +125,140 @@ const getVerdictBadge = (verdict?: string) => {
   };
 };
 
+export const getVerdictCategory = (record: { 
+  verdict?: string; 
+  predictedProbability?: number; 
+  departmentalCutoff?: any; 
+  detailedStrategy?: string;
+}): 'high' | 'borderline' | 'low' | 'disqualified' => {
+  const v = (record.verdict || '').toLowerCase();
+  const strat = (record.detailedStrategy || '').toLowerCase();
+  const prob = record.predictedProbability;
+  
+  if (
+    prob === 0 ||
+    v.includes('disqualif') || 
+    v.includes('invalid') || 
+    v.includes('ineligible') || 
+    v.includes('mismatch') || 
+    v.includes('deficit') ||
+    strat.includes('disqualif') ||
+    strat.includes('invalid subject combination') ||
+    strat.includes('admission probability:** **0%') ||
+    strat.includes('probability: 0%') ||
+    record.departmentalCutoff === 'N/A'
+  ) {
+    return 'disqualified';
+  }
+  
+  if (
+    v.includes('admit') || 
+    v.includes('high') || 
+    v.includes('safe') || 
+    v.includes('strong') || 
+    v.includes('excellent') || 
+    (typeof prob === 'number' && prob >= 70)
+  ) {
+    return 'high';
+  }
+  
+  if (
+    v.includes('border') || 
+    v.includes('compet') || 
+    v.includes('medium') || 
+    v.includes('moderate') || 
+    v.includes('fair') || 
+    (typeof prob === 'number' && prob >= 40 && prob < 70)
+  ) {
+    return 'borderline';
+  }
+  
+  if (
+    v.includes('risk') || 
+    v.includes('low') || 
+    v.includes('unlikely') || 
+    v.includes('not') || 
+    (typeof prob === 'number' && prob > 0 && prob < 40)
+  ) {
+    return 'low';
+  }
+
+  return 'borderline';
+};
+
+const sanitizeRecord = (
+  data: any, 
+  recordId: string, 
+  ms: number, 
+  isGuest: boolean, 
+  source: 'prediction' | 'activity',
+  fallbackUserName?: string
+): DetailedCalculationRecord => {
+  const strategy = String(data.detailedStrategy || '').toLowerCase();
+  const rawVerdict = String(data.verdict || '');
+  const isDisqualified = 
+    strategy.includes('disqualif') || 
+    strategy.includes('invalid subject combination') ||
+    strategy.includes('admission probability:** **0%') ||
+    strategy.includes('probability: 0%') ||
+    rawVerdict.toLowerCase().includes('disqualif') ||
+    rawVerdict.toLowerCase().includes('invalid subject') ||
+    rawVerdict.toLowerCase().includes('ineligible') ||
+    data.departmentalCutoff === 'N/A' ||
+    data.predictedProbability === 0;
+
+  let finalVerdict = data.verdict;
+  let finalProbability = typeof data.predictedProbability === 'number' ? data.predictedProbability : (data.aggregateScore >= 60 ? 75 : 45);
+
+  if (isDisqualified) {
+    finalVerdict = 'Disqualified / Invalid Subject Combination';
+    finalProbability = 0;
+  }
+
+  return {
+    id: recordId,
+    source,
+    predictionId: recordId,
+    userId: data.userId || (isGuest ? 'guest' : ''),
+    userEmail: data.userEmail || '',
+    userName: data.userName || fallbackUserName || (isGuest ? 'Guest Scholar' : 'Registered Scholar'),
+    isGuest,
+    university: data.university || 'Target University',
+    course: data.course || 'Target Course',
+    aggregateScore: data.aggregateScore ?? 0,
+    jambScore: data.jambScore,
+    postUtmeScore: data.postUtmeScore,
+    verdict: finalVerdict,
+    confidence: isDisqualified ? 'High' : (data.confidence || 'Medium'),
+    predictedProbability: finalProbability,
+    departmentalCutoff: isDisqualified ? 'N/A' : (data.departmentalCutoff || data.cutoff || ''),
+    institutionalCutoff: data.institutionalCutoff || '',
+    cutoffType: data.cutoffType,
+    cutoffIsOfficial: data.cutoffIsOfficial,
+    cutoffSource: data.cutoffSource,
+    cutoffYear: data.cutoffYear,
+    cutoffQuotaUsed: isDisqualified ? 'Disqualified (Ineligible)' : data.cutoffQuotaUsed,
+    scoreDiff: isDisqualified ? 0 : data.scoreDiff,
+    stateOfOrigin: data.stateOfOrigin,
+    isELDSState: data.isELDSState,
+    isCatchmentState: data.isCatchmentState,
+    predictionDate: data.predictionDate,
+    detailedStrategy: data.detailedStrategy,
+    formulaExplanation: data.formulaExplanation,
+    subjects: data.subjects,
+    olevelsString: data.olevelsString,
+    rawTimestamp: data.createdAt || data.timestamp,
+    formattedDate: formatDate(ms),
+    actualOutcome: data.actualOutcome,
+    actualUni: data.actualUni,
+    actualCourse: data.actualCourse,
+    admissionType: data.admissionType,
+    outcomeNote: data.outcomeNote,
+    helpful: data.helpful,
+    extraData: data
+  };
+};
+
 const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({ 
   isOpen, 
   onClose, 
@@ -129,9 +272,14 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<'all' | 'guest' | 'registered'>('all');
+  const [verdictFilter, setVerdictFilter] = useState<'all' | 'high' | 'borderline' | 'low' | 'disqualified'>('all');
+
+  const isGuestMode = userId === 'guest' || userName?.toLowerCase().includes('guest');
+  const isAllMode = userId === 'all';
 
   const fetchUserData = async () => {
-    if (!db || (!userEmail && !userId)) {
+    if (!db) {
       setIsLoading(false);
       return;
     }
@@ -142,156 +290,176 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
     try {
       const mergedRecordsMap = new Map<string, DetailedCalculationRecord>();
 
-      // 1. Query "predictions" by userEmail (without composite index orderBy)
-      if (userEmail) {
+      // CASE A: GUEST ONLY OR ALL CALCULATIONS MODE
+      if (isGuestMode || isAllMode) {
+        // 1. Fetch from "predictions" collection
         try {
-          const qEmail = query(
-            collection(db, "predictions"), 
-            where("userEmail", "==", userEmail.trim().toLowerCase())
-          );
-          const snapEmail = await getDocs(qEmail);
-          snapEmail.docs.forEach(docSnap => {
-            const data: any = docSnap.data();
-            const recordId = data.predictionId || docSnap.id;
-            const ms = getRecordTimestampMs(data);
-            mergedRecordsMap.set(recordId, {
-              id: recordId,
-              source: 'prediction',
-              predictionId: recordId,
-              userId: data.userId,
-              userEmail: data.userEmail,
-              university: data.university || 'Target University',
-              course: data.course || 'Target Course',
-              aggregateScore: data.aggregateScore ?? 0,
-              jambScore: data.jambScore,
-              postUtmeScore: data.postUtmeScore,
-              verdict: data.verdict,
-              confidence: data.confidence,
-              predictedProbability: data.predictedProbability,
-              departmentalCutoff: data.departmentalCutoff,
-              institutionalCutoff: data.institutionalCutoff,
-              stateOfOrigin: data.stateOfOrigin,
-              isELDSState: data.isELDSState,
-              isCatchmentState: data.isCatchmentState,
-              predictionDate: data.predictionDate,
-              detailedStrategy: data.detailedStrategy,
-              formulaExplanation: data.formulaExplanation,
-              subjects: data.subjects,
-              olevelsString: data.olevelsString,
-              rawTimestamp: data.createdAt || data.timestamp,
-              formattedDate: formatDate(ms),
-              actualOutcome: data.actualOutcome,
-              actualUni: data.actualUni,
-              actualCourse: data.actualCourse,
-              admissionType: data.admissionType,
-              outcomeNote: data.outcomeNote,
-              helpful: data.helpful,
-              extraData: data
-            });
-          });
-        } catch (err: any) {
-          console.warn("Predictions by email fetch notice:", err?.message || err);
-        }
-      }
+          let snap;
+          try {
+            snap = await getDocs(query(collection(db, "predictions"), orderBy("createdAt", "desc"), limit(400)));
+          } catch {
+            snap = await getDocs(query(collection(db, "predictions"), limit(400)));
+          }
 
-      // 2. Query "predictions" by userId (if available)
-      if (userId) {
-        try {
-          const qUid = query(
-            collection(db, "predictions"), 
-            where("userId", "==", userId)
-          );
-          const snapUid = await getDocs(qUid);
-          snapUid.docs.forEach(docSnap => {
+          snap.docs.forEach(docSnap => {
             const data: any = docSnap.data();
             const recordId = data.predictionId || docSnap.id;
             const ms = getRecordTimestampMs(data);
-            if (!mergedRecordsMap.has(recordId)) {
-              mergedRecordsMap.set(recordId, {
-                id: recordId,
-                source: 'prediction',
-                predictionId: recordId,
-                userId: data.userId,
-                userEmail: data.userEmail,
-                university: data.university || 'Target University',
-                course: data.course || 'Target Course',
-                aggregateScore: data.aggregateScore ?? 0,
-                jambScore: data.jambScore,
-                postUtmeScore: data.postUtmeScore,
-                verdict: data.verdict,
-                confidence: data.confidence,
-                predictedProbability: data.predictedProbability,
-                departmentalCutoff: data.departmentalCutoff,
-                institutionalCutoff: data.institutionalCutoff,
-                stateOfOrigin: data.stateOfOrigin,
-                isELDSState: data.isELDSState,
-                isCatchmentState: data.isCatchmentState,
-                predictionDate: data.predictionDate,
-                detailedStrategy: data.detailedStrategy,
-                formulaExplanation: data.formulaExplanation,
-                subjects: data.subjects,
-                olevelsString: data.olevelsString,
-                rawTimestamp: data.createdAt || data.timestamp,
-                formattedDate: formatDate(ms),
-                actualOutcome: data.actualOutcome,
-                actualUni: data.actualUni,
-                actualCourse: data.actualCourse,
-                admissionType: data.admissionType,
-                outcomeNote: data.outcomeNote,
-                helpful: data.helpful,
-                extraData: data
-              });
+            const isGuest = data.isGuest !== undefined 
+              ? Boolean(data.isGuest) 
+              : (!data.userId || data.userId === 'guest' || !data.userEmail);
+
+            if (isAllMode || (isGuestMode && isGuest)) {
+              mergedRecordsMap.set(recordId, sanitizeRecord(data, recordId, ms, isGuest, 'prediction'));
             }
           });
         } catch (err: any) {
-          console.warn("Predictions by UID fetch notice:", err?.message || err);
+          console.warn("Predictions global fetch notice:", err?.message || err);
         }
-      }
 
-      // 3. Supplementary fetch from "user_activities" for calculation audits
-      if (userId) {
+        // 2. Fetch from "user_activities" collection for guest/all audits
         try {
-          const qActs = query(
-            collection(db, "user_activities"),
-            where("userId", "==", userId)
-          );
-          const snapActs = await getDocs(qActs);
+          let snapActs;
+          try {
+            snapActs = await getDocs(query(collection(db, "user_activities"), orderBy("timestamp", "desc"), limit(400)));
+          } catch {
+            snapActs = await getDocs(query(collection(db, "user_activities"), limit(400)));
+          }
+
           snapActs.docs.forEach(docSnap => {
             const data: any = docSnap.data();
-            if (data.type === 'calculation' || data.metadata?.aggregateScore || data.metadata?.jambScore) {
-              const recordId = `act_${docSnap.id}`;
+            const desc = data.description || '';
+            const isCalc = data.type === 'calculation' || desc.includes('Calculated aggregate') || data.metadata?.university;
+
+            if (isCalc) {
+              const recordId = data.metadata?.predictionId || `act_${docSnap.id}`;
               const ms = getRecordTimestampMs(data);
               const meta = data.metadata || {};
-              
-              // Only insert if not already captured from predictions collection
-              const existingMatch = Array.from(mergedRecordsMap.values()).find(
-                r => r.university === (meta.university || data.description) && 
-                     r.course === meta.course && 
-                     Math.abs(getRecordTimestampMs(r) - ms) < 5000
-              );
+              const isGuest = !data.userId || data.userId === 'guest' || !data.userEmail || meta.isGuest;
 
-              if (!existingMatch) {
-                mergedRecordsMap.set(recordId, {
-                  id: recordId,
-                  source: 'activity',
-                  userId: data.userId,
-                  university: meta.university || (data.description ? data.description.replace('Calculated aggregate for ', '').split(' at ')[1] : 'Audited School'),
-                  course: meta.course || (data.description ? data.description.replace('Calculated aggregate for ', '').split(' at ')[0] : 'Audited Course'),
-                  aggregateScore: meta.aggregateScore ?? 0,
-                  jambScore: meta.jambScore,
-                  postUtmeScore: meta.postUtmeScore,
-                  verdict: meta.verdict || 'Audited',
-                  formulaExplanation: meta.formula,
-                  subjects: meta.subjects,
-                  rawTimestamp: data.timestamp,
-                  formattedDate: formatDate(ms),
-                  extraData: data
-                });
+              if (isAllMode || (isGuestMode && isGuest)) {
+                if (!mergedRecordsMap.has(recordId)) {
+                  let university = meta.university || '';
+                  let course = meta.course || '';
+                  if (!university && desc.includes(' at ')) {
+                    university = desc.split(' at ')[1]?.trim() || '';
+                  }
+                  if (!course && desc.includes('Calculated aggregate for ')) {
+                    course = desc.replace('Calculated aggregate for ', '').split(' at ')[0]?.trim() || '';
+                  }
+
+                  const activityData = {
+                    ...data,
+                    userId: data.userId || 'guest',
+                    userEmail: data.userEmail || '',
+                    userName: isGuest ? 'Guest Scholar' : 'Registered Scholar',
+                    isGuest: Boolean(isGuest),
+                    university: university || 'Audited School',
+                    course: course || 'Audited Course',
+                    aggregateScore: meta.aggregateScore ?? 0,
+                    jambScore: meta.jambScore,
+                    postUtmeScore: meta.postUtmeScore,
+                    verdict: meta.verdict || (Number(meta.aggregateScore || 0) >= 60 ? 'Competitive' : 'Borderline'),
+                    formulaExplanation: meta.formula,
+                    subjects: meta.subjects,
+                    detailedStrategy: meta.detailedStrategy || desc
+                  };
+
+                  mergedRecordsMap.set(recordId, sanitizeRecord(activityData, recordId, ms, Boolean(isGuest), 'activity'));
+                }
               }
             }
           });
         } catch (err: any) {
-          console.warn("Activities fetch notice:", err?.message || err);
+          console.warn("Activities global fetch notice:", err?.message || err);
+        }
+      } else {
+        // CASE B: SPECIFIC REGISTERED USER MODE
+        // 1. Query "predictions" by userEmail
+        if (userEmail) {
+          try {
+            const qEmail = query(
+              collection(db, "predictions"), 
+              where("userEmail", "==", userEmail.trim().toLowerCase())
+            );
+            const snapEmail = await getDocs(qEmail);
+            snapEmail.docs.forEach(docSnap => {
+              const data: any = docSnap.data();
+              const recordId = data.predictionId || docSnap.id;
+              const ms = getRecordTimestampMs(data);
+              mergedRecordsMap.set(recordId, sanitizeRecord(data, recordId, ms, false, 'prediction', userName));
+            });
+          } catch (err: any) {
+            console.warn("Predictions by email fetch notice:", err?.message || err);
+          }
+        }
+
+        // 2. Query "predictions" by userId
+        if (userId) {
+          try {
+            const qUid = query(
+              collection(db, "predictions"), 
+              where("userId", "==", userId)
+            );
+            const snapUid = await getDocs(qUid);
+            snapUid.docs.forEach(docSnap => {
+              const data: any = docSnap.data();
+              const recordId = data.predictionId || docSnap.id;
+              const ms = getRecordTimestampMs(data);
+              if (!mergedRecordsMap.has(recordId)) {
+                mergedRecordsMap.set(recordId, sanitizeRecord(data, recordId, ms, false, 'prediction', userName));
+              }
+            });
+          } catch (err: any) {
+            console.warn("Predictions by uid fetch notice:", err?.message || err);
+          }
+        }
+
+        // 3. Supplementary fetch from "user_activities" for calculation audits
+        if (userId) {
+          try {
+            const qActs = query(
+              collection(db, "user_activities"),
+              where("userId", "==", userId)
+            );
+            const snapActs = await getDocs(qActs);
+            snapActs.docs.forEach(docSnap => {
+              const data: any = docSnap.data();
+              if (data.type === 'calculation' || data.metadata?.aggregateScore || data.metadata?.jambScore) {
+                const recordId = `act_${docSnap.id}`;
+                const ms = getRecordTimestampMs(data);
+                const meta = data.metadata || {};
+                
+                const existingMatch = Array.from(mergedRecordsMap.values()).find(
+                  r => r.university === (meta.university || data.description) && 
+                       r.course === meta.course && 
+                       Math.abs(getRecordTimestampMs(r) - ms) < 5000
+                );
+
+                if (!existingMatch) {
+                  const activityData = {
+                    ...data,
+                    userId: data.userId,
+                    userEmail: data.userEmail,
+                    userName: userName,
+                    isGuest: false,
+                    university: meta.university || (data.description ? data.description.replace('Calculated aggregate for ', '').split(' at ')[1] : 'Audited School'),
+                    course: meta.course || (data.description ? data.description.replace('Calculated aggregate for ', '').split(' at ')[0] : 'Audited Course'),
+                    aggregateScore: meta.aggregateScore ?? 0,
+                    jambScore: meta.jambScore,
+                    postUtmeScore: meta.postUtmeScore,
+                    verdict: meta.verdict || (Number(meta.aggregateScore || 0) >= 60 ? 'Competitive' : 'Borderline'),
+                    formulaExplanation: meta.formula,
+                    subjects: meta.subjects,
+                    detailedStrategy: meta.detailedStrategy || data.description
+                  };
+                  mergedRecordsMap.set(recordId, sanitizeRecord(activityData, recordId, ms, false, 'activity', userName));
+                }
+              }
+            });
+          } catch (err: any) {
+            console.warn("Activities fetch notice:", err?.message || err);
+          }
         }
       }
 
@@ -321,19 +489,33 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
       setRecords([]);
       setSearchTerm('');
       setExpandedCardId(null);
+      setVerdictFilter('all');
+      setFilterMode('all');
     }
   }, [isOpen, userEmail, userId]);
 
   const filteredRecords = useMemo(() => {
-    if (!searchTerm.trim()) return records;
+    let result = records;
+    if (filterMode === 'guest') {
+      result = result.filter(r => r.isGuest || !r.userEmail || r.userId === 'guest');
+    } else if (filterMode === 'registered') {
+      result = result.filter(r => !r.isGuest && r.userEmail && r.userId !== 'guest');
+    }
+
+    if (verdictFilter !== 'all') {
+      result = result.filter(r => getVerdictCategory(r) === verdictFilter);
+    }
+
+    if (!searchTerm.trim()) return result;
     const s = searchTerm.toLowerCase();
-    return records.filter(r => 
+    return result.filter(r => 
       (r.university && r.university.toLowerCase().includes(s)) ||
       (r.course && r.course.toLowerCase().includes(s)) ||
       (r.verdict && r.verdict.toLowerCase().includes(s)) ||
+      (r.userEmail && r.userEmail.toLowerCase().includes(s)) ||
       (r.formattedDate && r.formattedDate.toLowerCase().includes(s))
     );
-  }, [records, searchTerm]);
+  }, [records, searchTerm, filterMode, verdictFilter]);
 
   // Aggregate stats
   const stats = useMemo(() => {
@@ -346,11 +528,35 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
       .filter(n => n > 0);
 
     const maxAgg = scores.length > 0 ? Math.max(...scores) : 0;
+    const avgAgg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 'N/A';
     const maxJamb = jambScores.length > 0 ? Math.max(...jambScores) : (userProfile?.jambScore || 0);
+
+    const guestCount = records.filter(r => r.isGuest || !r.userEmail || r.userId === 'guest').length;
+    const registeredCount = records.length - guestCount;
+
+    let highCount = 0;
+    let borderlineCount = 0;
+    let lowCount = 0;
+    let disqualifiedCount = 0;
+
+    records.forEach(r => {
+      const cat = getVerdictCategory(r);
+      if (cat === 'disqualified') disqualifiedCount++;
+      else if (cat === 'high') highCount++;
+      else if (cat === 'borderline') borderlineCount++;
+      else if (cat === 'low') lowCount++;
+    });
 
     return {
       total: records.length,
+      guestCount,
+      registeredCount,
+      highCount,
+      borderlineCount,
+      lowCount,
+      disqualifiedCount,
       topAggregate: maxAgg > 0 ? `${maxAgg.toFixed(1)}%` : 'N/A',
+      avgAggregate: avgAgg !== 'N/A' ? `${avgAgg}%` : 'N/A',
       topJamb: maxJamb > 0 ? maxJamb : (userProfile?.jambScore || 'N/A'),
       primaryUni: records[0]?.university || userProfile?.targetUni || 'None',
       primaryCourse: records[0]?.course || userProfile?.targetCourse || 'None'
@@ -368,14 +574,21 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
         {/* Modal Top Header */}
         <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-blue-50/50 via-indigo-50/20 to-transparent dark:from-blue-950/20 dark:via-gray-900 dark:to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-              <Brain size={22} />
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 ${
+              isGuestMode ? 'bg-amber-600 text-white shadow-amber-500/20' : 'bg-blue-600 text-white shadow-blue-500/20'
+            }`}>
+              {isGuestMode ? <Zap size={22} /> : <Brain size={22} />}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base md:text-lg font-black text-gray-900 dark:text-white leading-tight">
-                  {userName || 'Scholar'}
+                  {userName || (isGuestMode ? 'Guest Scholars (Anonymous Audits)' : isAllMode ? 'All Platform Calculations' : 'Scholar')}
                 </h2>
+                {isGuestMode && (
+                  <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded-full border border-amber-500/20 uppercase tracking-wider flex items-center gap-1">
+                    <Zap size={10} /> Anonymous Visitors
+                  </span>
+                )}
                 {userProfile?.is_premium && (
                   <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded-full border border-amber-500/20 uppercase tracking-wider">
                     Scholar Pack Pro
@@ -383,7 +596,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-mono flex items-center gap-2 mt-0.5">
-                <span>{userEmail || 'No email registered'}</span>
+                <span>{userEmail || (isGuestMode ? 'Non-authenticated prospective candidate audits' : isAllMode ? 'Live stream of candidate evaluations' : 'No email registered')}</span>
                 {userProfile?.stateOfOrigin && (
                   <span className="hidden sm:inline text-gray-400">• State: {userProfile.stateOfOrigin}</span>
                 )}
@@ -413,40 +626,201 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
         {/* Scholar Quick Stat Bar */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-6 py-3.5 bg-gray-50/80 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-800 text-xs">
-            <div className="p-2 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Total Audits</p>
-              <p className="text-sm font-black text-blue-600 dark:text-blue-400">{stats.total} calculations</p>
+            <div className="p-2.5 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Total Calculations</p>
+              <p className="text-sm font-black text-blue-600 dark:text-blue-400">{stats.total} audits</p>
             </div>
-            <div className="p-2 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800">
+            <div className="p-2.5 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800 shadow-sm">
               <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Top Aggregate</p>
               <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">{stats.topAggregate}</p>
             </div>
-            <div className="p-2 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Best JAMB Score</p>
-              <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">{stats.topJamb}</p>
+            <div className="p-2.5 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                {isGuestMode ? 'Average Aggregate' : 'Best JAMB Score'}
+              </p>
+              <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                {isGuestMode ? stats.avgAggregate : stats.topJamb}
+              </p>
             </div>
-            <div className="p-2 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Credits Remaining</p>
+            <div className="p-2.5 rounded-xl bg-white dark:bg-gray-950 border border-gray-200/60 dark:border-gray-800 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                {isGuestMode ? 'Audience Type' : 'Credits Remaining'}
+              </p>
               <p className="text-sm font-black text-amber-600 dark:text-amber-400">
-                {userProfile?.scholarCredits || 0} SP
+                {isGuestMode ? 'Anonymous Guests' : `${userProfile?.scholarCredits || 0} SP`}
               </p>
             </div>
           </div>
         )}
 
+        {/* Verdict & Probability Breakdown Filter Bar */}
+        {stats && stats.total > 0 && (
+          <div className="px-6 py-3 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <Brain size={12} className="text-blue-500" />
+                  Verdict & Probability Distribution ({stats.total} Total)
+                </span>
+                {verdictFilter !== 'all' && (
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-md text-[9px] font-black uppercase tracking-wider">
+                    Filtering: {verdictFilter.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              {verdictFilter !== 'all' && (
+                <button 
+                  onClick={() => setVerdictFilter('all')}
+                  className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  Clear Verdict Filter
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* High Probability */}
+              <button
+                type="button"
+                onClick={() => setVerdictFilter(verdictFilter === 'high' ? 'all' : 'high')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  verdictFilter === 'high'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-sm ring-2 ring-emerald-500/20'
+                    : 'bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/70 dark:border-gray-800 hover:border-emerald-400/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 size={11} /> High Probability
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-gray-400">
+                    {stats.total > 0 ? `${Math.round((stats.highCount / stats.total) * 100)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{stats.highCount}</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Highly Likely</span>
+                </div>
+              </button>
+
+              {/* Borderline / Competitive */}
+              <button
+                type="button"
+                onClick={() => setVerdictFilter(verdictFilter === 'borderline' ? 'all' : 'borderline')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  verdictFilter === 'borderline'
+                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-sm ring-2 ring-amber-500/20'
+                    : 'bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/70 dark:border-gray-800 hover:border-amber-400/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <AlertTriangle size={11} /> Borderline / Compet.
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-gray-400">
+                    {stats.total > 0 ? `${Math.round((stats.borderlineCount / stats.total) * 100)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-base font-black text-amber-700 dark:text-amber-300">{stats.borderlineCount}</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Competitive</span>
+                </div>
+              </button>
+
+              {/* Low Probability / Risky */}
+              <button
+                type="button"
+                onClick={() => setVerdictFilter(verdictFilter === 'low' ? 'all' : 'low')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  verdictFilter === 'low'
+                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 shadow-sm ring-2 ring-rose-500/20'
+                    : 'bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/70 dark:border-gray-800 hover:border-rose-400/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                    <XCircle size={11} /> Low Probability
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-gray-400">
+                    {stats.total > 0 ? `${Math.round((stats.lowCount / stats.total) * 100)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-base font-black text-rose-700 dark:text-rose-300">{stats.lowCount}</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Risky / Low Chance</span>
+                </div>
+              </button>
+
+              {/* Disqualified */}
+              <button
+                type="button"
+                onClick={() => setVerdictFilter(verdictFilter === 'disqualified' ? 'all' : 'disqualified')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  verdictFilter === 'disqualified'
+                    ? 'bg-red-50 dark:bg-red-950/40 border-red-500 shadow-sm ring-2 ring-red-500/20'
+                    : 'bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/70 dark:border-gray-800 hover:border-red-400/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 flex items-center gap-1">
+                    <XCircle size={11} /> Disqualified
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-gray-400">
+                    {stats.total > 0 ? `${Math.round((stats.disqualifiedCount / stats.total) * 100)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-base font-black text-red-700 dark:text-red-400">{stats.disqualifiedCount}</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Ineligible (0%)</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Search & Filter Bar */}
-        <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
+        <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search by university, course or verdict..."
+              placeholder="Search by university, course, verdict, or candidate..."
               className="w-full pl-9 pr-4 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:outline-none focus:border-blue-500 dark:text-white"
             />
           </div>
-          <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap">
+
+          {isAllMode && (
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
+              <button
+                onClick={() => setFilterMode('all')}
+                className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-lg transition-colors ${
+                  filterMode === 'all' ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-white shadow-sm' : 'text-gray-400'
+                }`}
+              >
+                All ({records.length})
+              </button>
+              <button
+                onClick={() => setFilterMode('guest')}
+                className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-lg transition-colors flex items-center gap-1 ${
+                  filterMode === 'guest' ? 'bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-gray-400'
+                }`}
+              >
+                <Zap size={10} /> Guests ({stats?.guestCount || 0})
+              </button>
+              <button
+                onClick={() => setFilterMode('registered')}
+                className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-lg transition-colors flex items-center gap-1 ${
+                  filterMode === 'registered' ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-400'
+                }`}
+              >
+                <User size={10} /> Registered ({stats?.registeredCount || 0})
+              </button>
+            </div>
+          )}
+
+          <span className="text-[11px] font-bold text-gray-400 whitespace-nowrap self-center">
             Showing {filteredRecords.length} of {records.length}
           </span>
         </div>
@@ -510,6 +884,15 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                         <span className="font-mono text-[10px] font-bold text-gray-400 flex items-center gap-1">
                           <Calendar size={12} /> {item.formattedDate}
                         </span>
+                        {item.isGuest ? (
+                          <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 flex items-center gap-1">
+                            <Zap size={10} /> Guest Scholar
+                          </span>
+                        ) : item.userEmail ? (
+                          <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 flex items-center gap-1">
+                            <User size={10} /> {item.userEmail}
+                          </span>
+                        ) : null}
                         {item.stateOfOrigin && (
                           <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md">
                             {item.stateOfOrigin}
@@ -556,101 +939,137 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                     <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50 space-y-5">
                       
                       {/* Metric Score Breakdown Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">JAMB Score</p>
-                          <p className="text-base font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
-                            {item.jambScore ? `${item.jambScore} / 400` : 'Not provided'}
-                          </p>
-                        </div>
+                      {(() => {
+                        const isDisqualified = item.predictedProbability === 0 || 
+                          (item.verdict && item.verdict.toLowerCase().includes('disqualif')) ||
+                          item.departmentalCutoff === 'N/A' ||
+                          (item.detailedStrategy && item.detailedStrategy.toLowerCase().includes('disqualif'));
 
-                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
-                          <p className="text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
-                            {item.postUtmeScore ? `${item.postUtmeScore}` : 'Pending / 0'}
-                          </p>
-                        </div>
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">JAMB Score</p>
+                                <p className="text-base font-black text-indigo-600 dark:text-indigo-400 mt-0.5">
+                                  {item.jambScore ? `${item.jambScore} / 400` : 'Not provided'}
+                                </p>
+                              </div>
 
-                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-                            <span>1. Cutoff Data</span>
-                            {item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
-                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Official ✅</span>
-                            ) : (
-                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Est. 🟡</span>
-                            )}
-                          </p>
-                          <p className="text-base font-black text-gray-700 dark:text-gray-300 mt-0.5">
-                            {item.departmentalCutoff || 'Benchmark'}
-                          </p>
-                        </div>
+                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
+                                <p className="text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
+                                  {item.postUtmeScore ? `${item.postUtmeScore}` : 'Pending / 0'}
+                                </p>
+                              </div>
 
-                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-                            <span>2. Aggregate</span>
-                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Verified ✅</span>
-                          </p>
-                          <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                            {item.aggregateScore}%
-                          </p>
-                        </div>
+                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                                  <span>1. Cutoff Data</span>
+                                  {isDisqualified ? (
+                                    <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold">N/A ❌</span>
+                                  ) : item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Official ✅</span>
+                                  ) : (
+                                    <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Est. 🟡</span>
+                                  )}
+                                </p>
+                                <p className="text-base font-black text-gray-700 dark:text-gray-300 mt-0.5">
+                                  {isDisqualified ? 'N/A' : (item.departmentalCutoff || 'Benchmark')}
+                                </p>
+                              </div>
 
-                        <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-                            <span>3. Probability</span>
-                            <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-bold">Model ⚠️</span>
-                          </p>
-                          <p className="text-base font-black text-cyan-600 dark:text-cyan-400 mt-0.5">
-                            {item.predictedProbability ? `${item.predictedProbability}%` : '50%'}
-                          </p>
-                        </div>
-                      </div>
+                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                                  <span>2. Aggregate</span>
+                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">Verified ✅</span>
+                                </p>
+                                <p className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                  {item.aggregateScore}%
+                                </p>
+                              </div>
 
-                      {/* Cutoff Provenance & Quota Audit Banner */}
-                      <div className="p-3.5 bg-gradient-to-r from-gray-50 to-gray-100/70 dark:from-gray-900 dark:to-gray-950 border border-gray-200/90 dark:border-gray-800 rounded-xl text-xs space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-black uppercase text-gray-800 dark:text-gray-200">
-                              Cutoff Provenance & Authority:
-                            </span>
-                            {item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
-                              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-md font-bold text-[10px]">
-                                Verified Official 2025/2026 Release
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-md font-bold text-[10px]">
-                                Historical Competitive Benchmark
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400">
-                            Quota: <span className="font-bold text-gray-700 dark:text-gray-200">{item.cutoffQuotaUsed || (item.isCatchmentState ? `Catchment (${item.stateOfOrigin || 'State'})` : item.isELDSState ? 'ELDS' : 'National Merit')}</span>
-                          </div>
-                        </div>
+                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+                                  <span>3. Probability</span>
+                                  {isDisqualified ? (
+                                    <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold">Disqualified ❌</span>
+                                  ) : (
+                                    <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-bold">Model ⚠️</span>
+                                  )}
+                                </p>
+                                <p className={`text-base font-black mt-0.5 ${isDisqualified ? 'text-rose-600 dark:text-rose-400' : 'text-cyan-600 dark:text-cyan-400'}`}>
+                                  {item.predictedProbability !== undefined && item.predictedProbability !== null ? `${item.predictedProbability}%` : '50%'}
+                                </p>
+                              </div>
+                            </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Score vs Cutoff Margin:
-                          </span>
-                          {(() => {
-                            const cVal = parseFloat(String(item.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) || 0;
-                            const diff = cVal > 0 ? (aggNum - cVal) : 0;
-                            const isPositive = diff >= 0;
-                            return (
-                              <span className={`font-mono font-black px-2 py-0.5 rounded-md ${
-                                isPositive 
-                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' 
-                                  : diff >= -1.5 
-                                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                                    : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
-                              }`}>
-                                {isPositive ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
-                                {diff >= -1.5 && diff < 0 ? ' (Borderline)' : ''}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </div>
+                            {/* Cutoff Provenance & Quota Audit Banner */}
+                            <div className="p-3.5 bg-gradient-to-r from-gray-50 to-gray-100/70 dark:from-gray-900 dark:to-gray-950 border border-gray-200/90 dark:border-gray-800 rounded-xl text-xs space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[11px] font-black uppercase text-gray-800 dark:text-gray-200">
+                                    Cutoff Provenance & Authority:
+                                  </span>
+                                  {isDisqualified ? (
+                                    <span className="px-2 py-0.5 bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded-md font-bold text-[10px]">
+                                      Disqualified (Subject Mismatch / Ineligible)
+                                    </span>
+                                  ) : item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
+                                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-md font-bold text-[10px]">
+                                      Verified Official 2025/2026 Release
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-md font-bold text-[10px]">
+                                      Historical Competitive Benchmark
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400">
+                                  Quota: <span className="font-bold text-gray-700 dark:text-gray-200">{item.cutoffQuotaUsed || (item.isCatchmentState ? `Catchment (${item.stateOfOrigin || 'State'})` : item.isELDSState ? 'ELDS' : 'National Merit')}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
+                                <span className="text-gray-600 dark:text-gray-400">
+                                  Score vs Cutoff Margin:
+                                </span>
+                                {(() => {
+                                  if (isDisqualified) {
+                                    return (
+                                      <span className="font-mono font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                                        Disqualified (Subject Mismatch / 0% Probability)
+                                      </span>
+                                    );
+                                  }
+
+                                  const cVal = parseFloat(String(item.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) || 0;
+                                  if (cVal === 0) {
+                                    return (
+                                      <span className="font-mono font-black px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                        N/A (No Cutoff Benchmark)
+                                      </span>
+                                    );
+                                  }
+                                  const diff = aggNum - cVal;
+                                  const isPositive = diff >= 0;
+                                  return (
+                                    <span className={`font-mono font-black px-2 py-0.5 rounded-md ${
+                                      isPositive 
+                                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' 
+                                        : diff >= -1.5 
+                                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                                          : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                                    }`}>
+                                      {isPositive ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
+                                      {diff >= -1.5 && diff < 0 ? ' (Borderline)' : ''}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
 
                       {/* O'Level Breakdown Section */}
                       {((item.subjects && item.subjects.length > 0) || item.olevelsString) && (

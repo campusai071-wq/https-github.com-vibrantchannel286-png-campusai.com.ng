@@ -5,7 +5,7 @@ import {
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown
+  ChevronDown, AlertTriangle, XCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -1455,18 +1455,40 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
-                      { label: 'Total Calculations', value: grandCalculations, sub: 'Audits delivered to candidates', icon: <Zap size={14} className="text-red-500 dark:text-red-400" />, color: 'red' },
+                      { 
+                        label: 'Total Calculations', 
+                        value: grandCalculations, 
+                        sub: 'Audits delivered to candidates', 
+                        icon: <Zap size={14} className="text-red-500 dark:text-red-400" />, 
+                        color: 'red',
+                        action: () => setSelectedUserForPredictions({
+                          uid: 'all',
+                          email: 'all@campusai.com.ng',
+                          displayName: 'All Platform Calculations'
+                        }),
+                        actionLabel: 'Inspect All Audits'
+                      },
                       { label: 'Daily Actives (DAU)', value: activeTodayCount, sub: 'Active scholars in last 24h', icon: <Users size={14} className="text-blue-500 dark:text-blue-400" />, color: 'blue' },
                       { label: 'Global Database Directory', value: totalUserCount, sub: 'Registered scholar profiles', icon: <Database size={14} className="text-amber-500 dark:text-amber-400" />, color: 'amber' },
-                    ].map(({ label, value, sub, icon, color }) => (
-                      <div key={label} className={`p-6 bg-gradient-to-br from-${color}-500/10 to-${color}-500/5 border border-${color}-500/20 dark:border-${color}-500/10 rounded-3xl relative overflow-hidden`}>
+                    ].map(({ label, value, sub, icon, color, action, actionLabel }: any) => (
+                      <div key={label} className={`p-6 bg-gradient-to-br from-${color}-500/10 to-${color}-500/5 border border-${color}-500/20 dark:border-${color}-500/10 rounded-3xl relative overflow-hidden flex flex-col justify-between`}>
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-500/5 rounded-full blur-2xl -mr-4 -mt-4`} />
-                        <div className="flex items-center justify-between mb-4">
-                          <span className={`text-[9px] font-mono font-black text-${color}-600 dark:text-${color}-400 uppercase tracking-widest`}>{label}</span>
-                          {icon}
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <span className={`text-[9px] font-mono font-black text-${color}-600 dark:text-${color}-400 uppercase tracking-widest`}>{label}</span>
+                            {icon}
+                          </div>
+                          <p className="text-3xl font-black text-gray-900 dark:text-white">{value}</p>
+                          <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">{sub}</p>
                         </div>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white">{value}</p>
-                        <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">{sub}</p>
+                        {action && (
+                          <button
+                            onClick={action}
+                            className="mt-4 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-600 dark:text-red-400 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-red-500/20 w-fit flex items-center gap-1 active:scale-95"
+                          >
+                            <Eye size={10} /> {actionLabel}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2572,10 +2594,54 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* ── USERS TAB ── */}
               {activeTab === 'users' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Users size={14} /> Scholar Directory</h3>
-                    <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase">{totalUserCount} Souls</div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Users size={14} /> Scholar Directory</h3>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Inspect individual candidate audits, guest runs, and allocate scholar credits</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setSelectedUserForPredictions({
+                          uid: 'all',
+                          email: 'all@campusai.com.ng',
+                          displayName: 'All Platform Calculations'
+                        })}
+                        className="px-3.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                      >
+                        <Zap size={12} /> Master Calculation Feed
+                      </button>
+                      <div className="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-sm">{totalUserCount} Souls</div>
+                    </div>
                   </div>
+
+                  {/* Dedicated Anonymous Guest Calculations Card */}
+                  <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">Anonymous Guest Scholars</p>
+                          <span className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-full">Live Audits</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                          Aggregate calculations run by prospective candidates prior to registration or sign-in
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedUserForPredictions({
+                        uid: 'guest',
+                        email: 'guest@campusai.com.ng',
+                        displayName: 'Guest Scholars (Anonymous Audits)'
+                      })}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 shrink-0 active:scale-95"
+                    >
+                      <Eye size={12} /> Inspect Guest Audits
+                    </button>
+                  </div>
+
                   {isUserLoading ? (
                     <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-blue-600" size={28} /></div>
                   ) : (
@@ -2626,14 +2692,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       ))}
                     </div>
                   )}
-                  <PredictionDetailsModal
-                    isOpen={!!selectedUserForPredictions}
-                    onClose={() => setSelectedUserForPredictions(null)}
-                    userId={selectedUserForPredictions?.uid || ''}
-                    userEmail={selectedUserForPredictions?.email || ''}
-                    userName={selectedUserForPredictions?.displayName || selectedUserForPredictions?.email || 'Scholar'}
-                    userProfile={selectedUserForPredictions}
-                  />
                 </div>
               )}
 
@@ -3310,12 +3368,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                     {/* Quick Metric Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-white/10">
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Global Predictions</p>
-                        <p className="text-2xl font-black text-white mt-1">
-                          {accuracyStats?.totalPredictions ?? 0}
-                        </p>
-                        <p className="text-[8.5px] text-gray-400 font-medium mt-1">Logged in Firestore</p>
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col justify-between">
+                        <div>
+                          <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Global Predictions</p>
+                          <p className="text-2xl font-black text-white mt-1">
+                            {accuracyStats?.totalPredictions ?? 0}
+                          </p>
+                          <p className="text-[8.5px] text-gray-400 font-medium mt-1">Logged in Firestore</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedUserForPredictions({
+                            uid: 'all',
+                            email: 'all@campusai.com.ng',
+                            displayName: 'All Platform Predictions'
+                          })}
+                          className="mt-3 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1 w-fit"
+                        >
+                          <Eye size={10} /> Inspect Stream
+                        </button>
                       </div>
 
                       <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
@@ -3350,6 +3420,69 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </p>
                       </div>
                     </div>
+
+                    {/* Global Verdict & Probability Distribution */}
+                    {accuracyStats?.verdictDistribution && (
+                      <div className="pt-4 border-t border-white/10 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
+                            <Brain size={12} className="text-cyan-400" />
+                            Global Verdict & Probability Distribution
+                          </p>
+                          <button
+                            onClick={() => setSelectedUserForPredictions({
+                              uid: 'all',
+                              email: 'all@campusai.com.ng',
+                              displayName: 'All Platform Predictions'
+                            })}
+                            className="text-[9px] font-bold text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye size={10} /> Inspect Full Stream
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black uppercase text-emerald-400 flex items-center gap-1">
+                                <CheckCircle2 size={11} /> High Probability
+                              </span>
+                            </div>
+                            <p className="text-xl font-black text-white mt-1">{accuracyStats.verdictDistribution.high}</p>
+                            <p className="text-[8.5px] text-emerald-300/70 font-medium">Highly Likely / Safe</p>
+                          </div>
+
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black uppercase text-amber-400 flex items-center gap-1">
+                                <AlertTriangle size={11} /> Borderline / Compet.
+                              </span>
+                            </div>
+                            <p className="text-xl font-black text-white mt-1">{accuracyStats.verdictDistribution.borderline}</p>
+                            <p className="text-[8.5px] text-amber-300/70 font-medium">Competitive Band</p>
+                          </div>
+
+                          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black uppercase text-rose-400 flex items-center gap-1">
+                                <XCircle size={11} /> Low Probability
+                              </span>
+                            </div>
+                            <p className="text-xl font-black text-white mt-1">{accuracyStats.verdictDistribution.low}</p>
+                            <p className="text-[8.5px] text-rose-300/70 font-medium">Risky / Low Chance</p>
+                          </div>
+
+                          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black uppercase text-red-400 flex items-center gap-1">
+                                <XCircle size={11} /> Disqualified
+                              </span>
+                            </div>
+                            <p className="text-xl font-black text-white mt-1">{accuracyStats.verdictDistribution.disqualified}</p>
+                            <p className="text-[8.5px] text-red-300/70 font-medium">Ineligible (0%)</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Architecture Pipeline Visualizer */}
@@ -3440,6 +3573,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
         )}
+
+        {/* Global Prediction & Audit Inspection Modal */}
+        <PredictionDetailsModal
+          isOpen={!!selectedUserForPredictions}
+          onClose={() => setSelectedUserForPredictions(null)}
+          userId={selectedUserForPredictions?.uid || ''}
+          userEmail={selectedUserForPredictions?.email || ''}
+          userName={selectedUserForPredictions?.displayName || selectedUserForPredictions?.email || 'Scholar'}
+          userProfile={selectedUserForPredictions}
+        />
 
         {/* ── News Content Editor Overlay ── */}
         <AnimatePresence>
