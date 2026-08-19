@@ -515,7 +515,12 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                             <h4 className="font-bold text-base md:text-lg text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors truncate max-w-[150px] sm:max-w-none">{uni.name}</h4>
                           </div>
                         </div>
-                        <button className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all"><Info size={18} /></button>
+                        <button 
+                          aria-label={`View information for ${uni.name}`}
+                          className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl md:rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all"
+                        >
+                          <Info size={18} />
+                        </button>
                       </motion.a>
                     );
                   })}
