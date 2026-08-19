@@ -621,6 +621,12 @@ export const runAIWithFallback = async (
       }
       
       const msg = errorDetail.toLowerCase();
+      const isNetwork = msg.includes('network error') || msg.includes('econrefused') || msg.includes('failed to fetch') || msg.includes('net::err') || msg.includes('err_connection');
+      if (isNetwork) {
+        console.warn(`Network error connecting to API server. Stopping key rotation.`);
+        break;
+      }
+
       const isQuota = msg.includes('quota') || msg.includes('429') || msg.includes('limit') || msg.includes('exhausted');
       const isInvalid = msg.includes('invalid') || msg.includes('400') || msg.includes('not valid');
       const isBlocked = msg.includes('403') || msg.includes('permission') || msg.includes('blocked');

@@ -906,6 +906,95 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official Portal Tool",
     last_verified: "2026-08-11",
     version: "2026"
+  },
+  {
+    id: "fuoye_2026_post_utme_screening",
+    organization: "Federal University Oye-Ekiti (FUOYE)",
+    page_type: "policy",
+    category: "Post-UTME",
+    subcategory: "Screening & Cut-off Marks",
+    title: "FUOYE 2026/2027 UPASE Screening Official Step-by-Step Application Guide",
+    summary: "Complete official candidate guide for the Federal University Oye-Ekiti (FOUYE) 2026/2027 University Pre-Admission Screening Exercise (UPASE), covering portal login, personal detail updates, requirement checks, Remita fee payment (₦2,000 screening + ₦2,500 COP), document uploads, and clearance statuses.",
+    steps: [
+      "1. Access Portal: Visit https://putme.fuoye.edu.ng/utme/ and review requirements/cut-off marks.",
+      "2. Login: Use your JAMB Registration Number as username and any registered name as password. (Candidates who recently changed institution should wait 3-4 working days or contact call centre).",
+      "3. Update Personal Details: Provide valid email address, active phone number, and current contact address.",
+      "4. Verify Requirements: Check JAMB score, core/optional subjects, and O'Level requirements against your chosen programme.",
+      "5. Screening Fee Payment: Generate Remita RRR and pay ₦2,000 UTME/DE screening fee (or ₦2,500 Change of Programme fee if switching courses).",
+      "6. Upload Documents: Scan and upload O'Level certificates/results and passport photograph (max 100KB).",
+      "7. Final Submission & Status Tracking: Submit application and monitor status ('CLEARED', 'REJECTED', 'DISQUALIFIED', 'PROPOSED')."
+    ],
+    requirements: [
+      "Minimum JAMB cut-off mark: 150 (Medicine 280, Nursing 240, MLS 230, Radiography 220, Criminology 210, Mass Comm/Accounting/Business Admin/Theatre Arts/Computer Science 200).",
+      "O'Level result credits in relevant subjects (English Language and Mathematics compulsory).",
+      "Valid JAMB Registration Number and registered name."
+    ],
+    eligibility_rules: [
+      "FUOYE conducts online point screening (JAMB UTME score 60% + O'Level score 30% + Sitting Bonus 10%). No written post-UTME exam.",
+      "Department of Law: FUOYE will NOT admit candidates into the Department of Law for the 2026/2027 academic session. Candidates must change to other available programmes.",
+      "Awaiting Result (AR) candidates may apply but submission requires O'Level result upload.",
+      "Deadline: August 28, 2026."
+    ],
+    key_facts: [
+      "Portal URL: https://putme.fuoye.edu.ng/utme/",
+      "Application Deadline: August 28, 2026",
+      "Screening Fee: ₦2,000 | Change of Programme Fee: ₦2,500",
+      "Passport Photograph Size: Maximum 100KB (permanent for university duration)",
+      "Application Statuses: CLEARED, REJECTED, DISQUALIFIED, PROPOSED"
+    ],
+    important_notes: [
+      "No official communication will be sent via email/SMS; candidates must regularly log in to check status.",
+      "Clearance does not guarantee admission until final PROPOSED status via JAMB CAPS."
+    ],
+    keywords: ["fuoye upase 2026", "fuoye post utme guide", "putme.fuoye.edu.ng", "fuoye screening portal", "fuoye remita payment", "fuoye clearance status"],
+    related_topics: ["Post-UTME Release Hub", "University Cut-off Marks", "Aggregate Calculator"],
+    official_source: "https://putme.fuoye.edu.ng/utme/",
+    source_type: "Official University PDF Guide",
+    last_verified: "2026-08-19",
+    version: "2026"
+  },
+  {
+    id: "futes_iyin_2026_post_utme_screening",
+    organization: "Federal University of Technology and Environmental Sciences, Iyin-Ekiti (FUTES-IYIN)",
+    page_type: "policy",
+    category: "Post-UTME",
+    subcategory: "Screening & Cut-off Marks",
+    title: "FUTES-IYIN 2026/2027 Post-UTME Screening Guidelines & Cut-Off Marks",
+    summary: "Official guidelines, department cut-off marks, fees (₦2,000 screening + ₦3,000 portal access), Direct Entry requirements, and faculty programs for Federal University of Technology and Environmental Sciences, Iyin-Ekiti (FUTES-IYIN) 2026/2027 admission exercise.",
+    steps: [
+      "Visit the FUTES-IYIN Admission portal at https://portal.futes.edu.ng/apply",
+      "Sign up with a valid email address to receive an activation token (unactivated accounts deleted after 48 hours).",
+      "Complete biodata and fill out application forms meticulously.",
+      "Pay Post-UTME Screening Fee (₦2,000) and Portal Access Fee (₦3,000) through REMITA platform.",
+      "Upload passport photograph (max 100KB) and O'Level results (minimum 5 credits in relevant subjects including English and Mathematics at not more than 2 sittings)."
+    ],
+    requirements: [
+      "Minimum JAMB cut-off mark: 160 (Some programmes require 180, e.g. Biochemistry, Microbiology, Science Lab Tech, Civil & Environmental Engineering, Computer Engineering, Electrical & Electronics Eng, Mechanical Eng, Mechatronics Eng, Architecture, Software Engineering, Computer Science, Cyber Security).",
+      "5 O'Level credit passes in relevant subjects including English Language and Mathematics.",
+      "Direct Entry candidates: National Diploma not below Upper Credit or A'Level passes in 3 relevant subjects."
+    ],
+    eligibility_rules: [
+      "Candidates must have attained minimum age of 16 years by September 30, 2026.",
+      "Candidates who wish to change institution to FUTES-IYIN must apply via JAMB website and select 'OTHER' Choice option on portal.",
+      "Direct Entry transcript must be forwarded to the Registrar by September 30, 2026."
+    ],
+    key_facts: [
+      "Portal URL: https://portal.futes.edu.ng/apply",
+      "Screening Fee: ₦2,000 + Portal Access Fee: ₦3,000 (Total ₦5,000 via REMITA)",
+      "Support lines: 08023628913, 08067271169",
+      "Email: info@futes.edu.ng",
+      "Faculties: Natural and Applied Sciences, Engineering and Technology, Environmental Sciences Design and Management, Computing"
+    ],
+    important_notes: [
+      "Passport photograph cannot be changed throughout your stay in the University once uploaded.",
+      "Ensure accurate completion of registration details."
+    ],
+    keywords: ["futes-iyin", "federal university of technology and environmental sciences iyin-ekiti", "futes-iyin post-utme 2026", "futes-iyin cut-off mark", "portal.futes.edu.ng"],
+    related_topics: ["Post-UTME Release Hub", "University Cut-off Marks"],
+    official_source: "https://portal.futes.edu.ng/apply",
+    source_type: "Official University Portal",
+    last_verified: "2026-08-19",
+    version: "2026"
   }
 ];
 

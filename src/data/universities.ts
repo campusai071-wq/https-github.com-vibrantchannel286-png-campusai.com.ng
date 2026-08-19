@@ -256,7 +256,8 @@ const universityData = [
   {"name": "National Institute for Nigerian Languages", "slug": "ninlan", "category": "National", "url": "https://ninlan.edu.ng/"},
   {"name": "National Institute for Sports", "slug": "nis-lagos", "category": "National", "url": "https://nislagos.org/"},
   {"name": "Miva Open University", "slug": "miva", "category": "Private", "url": "https://miva.university/"},
-  {"name": "Seyiaba College, Ijuodo", "slug": "seyiaba", "category": "Private", "url": "https://seyiabacollege.com"}
+  {"name": "Seyiaba College, Ijuodo", "slug": "seyiaba", "category": "Private", "url": "https://seyiabacollege.com"},
+  {"name": "Federal University of Technology and Environmental Sciences, Iyin-Ekiti", "slug": "futes-iyin", "category": "Federal", "url": "https://portal.futes.edu.ng/apply"}
 ];
 
 export default universityData;

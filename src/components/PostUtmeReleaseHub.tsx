@@ -194,13 +194,23 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   },
   "Federal University Oye-Ekiti": {
     isOut: true,
-    statusText: "Registration Active",
-    details: "FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: 2 August 2026.",
+    statusText: "Registration Active (Closes Aug 28)",
+    details: "FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: August 28, 2026. Note: Law department will NOT admit candidates for 2026/2027.",
     portalLink: "https://putme.fuoye.edu.ng/utme/",
     cutoffScore: "150",
     registrationFee: 2000,
     citationUrl: "https://myschoolgist.com/news/fuoye-post-utme-form/",
-    eligibilityText: "Minimum JAMB score: 150"
+    eligibilityText: "Minimum JAMB score: 150. Law department suspended for 2026/2027. Awaiting result candidates may apply."
+  },
+  "Federal University of Technology and Environmental Sciences, Iyin-Ekiti": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUTES-IYIN 2026/2027 Post-UTME screening exercise is open. Minimum JAMB score: 160 (some courses require 180).",
+    portalLink: "https://portal.futes.edu.ng/apply",
+    cutoffScore: "160",
+    registrationFee: 5000,
+    citationUrl: "https://portal.futes.edu.ng/apply",
+    eligibilityText: "Minimum JAMB score: 160. Screening fee: ₦2,000 + Portal access fee: ₦3,000."
   },
   "Nnamdi Azikiwe University": {
     isOut: true,
