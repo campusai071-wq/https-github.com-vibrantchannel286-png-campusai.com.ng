@@ -258,7 +258,8 @@ export const incrementMeritUsage = async (uid?: string) => {
 
 export const subscribeToUserProfile = (uid: string, callback: (profile: UserProfile) => void) => {
   if (!db || !isRealUser(uid)) return () => {};
-  return onSnapshot(doc(db, "users", uid), (snapshot: any) => {
+  // Replaced redundant onSnapshot real-time listener with a one-time getDoc read to audit and eliminate excessive Firestore reads
+  getDoc(doc(db, "users", uid)).then((snapshot: any) => {
     if (snapshot.exists()) {
       const cloudData = snapshot.data();
       
@@ -270,9 +271,10 @@ export const subscribeToUserProfile = (uid: string, callback: (profile: UserProf
       localStorage.setItem(QUOTA_KEY, stringify(merged));
       callback(merged);
     }
-  }, (error) => {
+  }).catch((error) => {
     handleFirestoreError(error, OperationType.GET, `users/${uid}`);
   });
+  return () => {}; // No-op unsubscribe function
 };
 
 export const updateUserProfile = async (data: Partial<UserProfile>, uid?: string) => {

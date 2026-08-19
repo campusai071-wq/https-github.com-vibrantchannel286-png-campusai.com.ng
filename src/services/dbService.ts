@@ -1549,14 +1549,48 @@ export const saveCachedUniversityCourses = async (institution: string, courses: 
   }
 };
 
+// Session-based memory & sessionStorage cache for static data like cutoff marks and admission formulas to reduce daily Firestore reads
+const staticDataSessionCache = new Map<string, { data: any; expiry: number }>();
+const SESSION_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour session cache
+
+const getCachedStaticData = (key: string): any | null => {
+  const cached = staticDataSessionCache.get(key);
+  if (cached && cached.expiry > Date.now()) {
+    return cached.data;
+  }
+  try {
+    const sessionVal = sessionStorage.getItem(`campusai_static_${key}`);
+    if (sessionVal) {
+      const parsed = JSON.parse(sessionVal);
+      if (parsed.expiry > Date.now()) {
+        staticDataSessionCache.set(key, parsed);
+        return parsed.data;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setCachedStaticData = (key: string, data: any) => {
+  const expiry = Date.now() + SESSION_CACHE_TTL_MS;
+  staticDataSessionCache.set(key, { data, expiry });
+  try {
+    sessionStorage.setItem(`campusai_static_${key}`, JSON.stringify({ data, expiry }));
+  } catch (e) {}
+};
+
 export const getCachedCourseCutoffInfo = async (institution: string, course: string): Promise<any | null> => {
   const key = slugify(`${institution}_${course}`);
+  const cached = getCachedStaticData(`cutoff_${key}`);
+  if (cached) return cached;
+
   if (!db) return null;
   try {
     const snap = await getDoc(doc(db, "cached_course_cutoff_info", key));
     if (snap.exists()) {
       const d = snap.data();
       const resData = d.data || d;
+      setCachedStaticData(`cutoff_${key}`, resData);
       return resData;
     }
     return null;
