@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
 import { getLocalProfile } from '../services/userService';
 import { triggerBrowserNotification } from '../services/utils';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebaseConfig';
 
 export const useNotificationManager = () => {
   useEffect(() => {
@@ -39,62 +37,9 @@ export const useNotificationManager = () => {
 
     const timer = setTimeout(checkAndTrigger, 5000);
 
-    // Real-time news publish notification
-    let unsubscribeNews: (() => void) | undefined;
-    
-    if (db) {
-      let isInitial = true;
-      let maxTimestamp = Date.now() - 60000; // default fallback is 1 minute ago
-
-      const q = query(collection(db, "news"), orderBy("createdAt", "desc"), limit(10));
-      unsubscribeNews = onSnapshot(q, (snapshot) => {
-        let newMax = maxTimestamp;
-        
-        snapshot.docChanges().forEach((change) => {
-          const docData = change.doc.data();
-          let docTime = 0;
-          const createdAt = docData.createdAt;
-          
-          if (createdAt && typeof createdAt.toMillis === 'function') {
-            docTime = createdAt.toMillis();
-          } else if (createdAt && typeof createdAt.seconds === 'number') {
-            docTime = createdAt.seconds * 1000;
-          } else if (typeof createdAt === 'number') {
-            docTime = createdAt;
-          } else if (typeof createdAt === 'string') {
-            docTime = new Date(createdAt).getTime();
-          } else {
-            docTime = Date.now();
-          }
-
-          if (docTime > newMax) {
-            newMax = docTime;
-          }
-
-          // Only trigger for newly added documents after the initial sync load
-          if (change.type === 'added' && !isInitial) {
-            if (docTime > maxTimestamp) {
-              triggerBrowserNotification(
-                `CampusAI: New Admission News 🔔`,
-                `${docData.title || 'Click to view the latest update!'}`,
-                docData.slug || ''
-              );
-            }
-          }
-        });
-
-        maxTimestamp = newMax;
-        isInitial = false;
-      }, (error) => {
-        console.warn("News notification listener error:", error);
-      });
-    }
-
     return () => {
       clearTimeout(timer);
-      if (unsubscribeNews) {
-        unsubscribeNews();
-      }
     };
   }, []);
 };
+
