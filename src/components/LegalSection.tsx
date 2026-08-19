@@ -80,6 +80,12 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
           icon: Scale,
           color: 'text-orange-500',
           text: 'All calculations, user profiles, and active checklist histories can be completely and instantly expunged upon custom request by contacting support@campusai.com.ng.'
+        },
+        {
+          title: '5. Advertising and Third-Party Cookies',
+          icon: Globe,
+          color: 'text-blue-500',
+          text: 'We may work with third-party advertising partners, such as Google AdSense, to serve ads on our platform. These partners may use cookies or web beacons to collect information about your visits to our site and other sites to provide advertisements about goods and services that may be of interest to you. You can manage or disable cookie preferences directly through your browser settings.'
         }
       ]
     },
