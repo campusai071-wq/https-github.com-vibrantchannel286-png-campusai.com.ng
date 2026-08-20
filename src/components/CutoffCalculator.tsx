@@ -27,7 +27,7 @@ import {
   deductScholarCredit, FREE_GUEST_LIMIT, FREE_USER_LIMIT,
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
-import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
+import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, saveGlobalCalculationRecord, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
@@ -2277,7 +2277,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       const olevelsString = subjects.map(s => `${s.name}: ${s.grade}`).join(', ');
       
-      if (user && result) {
+      if (result) {
         // Calculate deterministic values for authenticated users
         const isDisqualified = result.probability === 0 || 
           (result.verdict && result.verdict.toLowerCase().includes('disqualif')) ||
@@ -2327,10 +2327,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
         savePredictionRecord({
           predictionId,
-          userId: user.uid,
-          userEmail: user.email || '',
-          userName: user.displayName || 'Registered Scholar',
-          isGuest: false,
+          userId: user?.uid || 'guest',
+          userEmail: user?.email || '',
+          userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar'),
+          isGuest: !user,
           university: targetUni.name,
           course: targetCourse || courseSearch,
           aggregateScore: parseFloat(aggregateScore.toString()) || 0,
@@ -2400,6 +2400,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         }));
       } catch (e) {}
 
+      // Globally log the calculation for admin tracking
+      saveGlobalCalculationRecord(newAttempt, user?.uid).catch(err => 
+        console.error('Failed to log global calculation record:', err)
+      );
+
       if (user) {
         // Persist to account so it shows up on any device/browser
         saveCalculationAttempt(user.uid, newAttempt).catch(err =>
@@ -2411,15 +2416,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         await incrementCalculations(user.uid);
         await incrementMeritUsage(user.uid);
         logUserActivity({ 
-          userId: user.uid, 
+          userId: user?.uid || 'guest', 
           type: 'calculation', 
           title: 'Admission Audit (Registered)', 
           description: `Calculated aggregate for ${targetCourse || courseSearch} at ${targetUni.name}`,
           metadata: {
             predictionId,
-            userEmail: user.email || '',
-            userName: user.displayName || 'Registered Scholar',
-            isGuest: false,
+            userEmail: user?.email || '',
+            userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar'),
+            isGuest: !user,
             course: targetCourse || courseSearch,
             university: targetUni.name,
             subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),

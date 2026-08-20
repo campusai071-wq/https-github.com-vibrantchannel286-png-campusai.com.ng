@@ -1825,6 +1825,21 @@ export const saveCalculationAttempt = async (userId: string, attempt: Calculatio
   });
 };
 
+// Globally save a calculation record for admin tracking (works for guest & authenticated)
+export const saveGlobalCalculationRecord = async (attempt: CalculationAttemptDoc, userId?: string) => {
+  if (!db) return;
+  try {
+    const ref = collection(db, 'global_calculations');
+    await addDoc(ref, {
+      ...attempt,
+      userId: userId || 'guest',
+      createdAt: Timestamp.now(),
+    });
+  } catch (err) {
+    console.error('Failed to log global calculation record:', err);
+  }
+};
+
 // Fetch the last N calculation attempts for a logged-in user
 export const getCalculationAttempts = async (userId: string, max = 5): Promise<CalculationAttemptDoc[]> => {
   const ref = collection(db, 'users', userId, 'calculationAttempts');
