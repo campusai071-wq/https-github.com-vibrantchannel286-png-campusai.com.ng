@@ -1446,13 +1446,21 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       searchKey.toLowerCase().includes(u.name?.toLowerCase())
     );
     if (found) {
-      if (!targetUni || targetUni.name !== found.name) {
-        setTargetUni(found);
-        setUniSearch(found.name);
-        setTargetCourse('');
-        setCourseSearch('');
-        setAvailableCourses([]);
+      setTargetUni(found);
+      setUniSearch(found.name);
+      setTargetCourse('');
+      setCourseSearch('');
+      setAvailableCourses([]);
+
+      // Instantly set scoring system from TOP_INSTITUTION_MAP if available
+      const foundSlug = found.slug || (found.name || '').toLowerCase().replace(/\s+/g, '-');
+      const instantMatch =
+        TOP_INSTITUTION_MAP[foundSlug] ||
+        Object.entries(TOP_INSTITUTION_MAP).find(([k]) => found.name.toLowerCase().includes(k))?.[1];
+      if (instantMatch) {
+        setScoringSystem(instantMatch);
       }
+
       if (initialSchoolName) {
         onClearInitialSchool?.();
       }
@@ -1460,7 +1468,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
     }
-  }, [initialSchoolName, currentSchoolSlug, onClearInitialSchool, targetUni]);
+  }, [initialSchoolName, currentSchoolSlug]);
 
   // Load saved profiles & calculation attempts with local storage persistence
   useEffect(() => {
@@ -1477,18 +1485,20 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       console.error('Error reading local calculation attempts:', e);
     }
 
-    // 2. Hydrate previous active result if present in local storage
+    // 2. Hydrate previous active result if present in local storage (unless specific school slug/prop is active)
     try {
       const lastResultStr = localStorage.getItem('campusai_last_calculation_result');
       if (lastResultStr) {
         const lastRes = JSON.parse(lastResultStr);
         if (lastRes && lastRes.aiResult) {
           setAiResult(lastRes.aiResult);
-          if (lastRes.uniName) {
-            const u = universityData.find((x: any) => x.name === lastRes.uniName);
-            if (u) { setTargetUni(u); setUniSearch(u.name); }
+          if (!initialSchoolName && !currentSchoolSlug) {
+            if (lastRes.uniName) {
+              const u = universityData.find((x: any) => x.name === lastRes.uniName);
+              if (u) { setTargetUni(u); setUniSearch(u.name); }
+            }
+            if (lastRes.courseName) { setTargetCourse(lastRes.courseName); setCourseSearch(lastRes.courseName); }
           }
-          if (lastRes.courseName) { setTargetCourse(lastRes.courseName); setCourseSearch(lastRes.courseName); }
           if (lastRes.jambScore) setJambScore(lastRes.jambScore);
           if (lastRes.postUtmeScore) setPostUtmeScore(lastRes.postUtmeScore);
           if (lastRes.stateOfOrigin) setStateOfOrigin(lastRes.stateOfOrigin);
@@ -3045,13 +3055,13 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 <button
                   type="button"
                   onClick={() => setManualOverrideActive(!manualOverrideActive)}
-                  className={`px-2 py-0.5 rounded text-[7px] font-black uppercase transition-all flex items-center gap-1 border ${
+                  className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg ${
                     manualOverrideActive
-                      ? 'bg-amber-500/20 text-amber-500 border-amber-500/30'
-                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                      ? 'bg-amber-500 text-black border border-amber-400 shadow-amber-500/30'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-emerald-900/40'
                   }`}
                 >
-                  ⚙️ {manualOverrideActive ? 'Use Official' : 'School Changed System? Customize'}
+                  <Sliders size={12} /> {manualOverrideActive ? '✨ Use Official Formula' : '⚙️ School Changed System? Customize Formula'}
                 </button>
               </div>
 
