@@ -4325,9 +4325,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           {(admissionProbability >= 65 ? [
                             {
                               id: 'step1',
-                              title: isClosed ? 'Verify Post-UTME Screening & Upload O\'Level' : 'Complete Post-UTME registration',
+                              title: isClosed ? 'Verify Post-UTME Screening' : 'Complete Post-UTME registration',
                               desc: isClosed 
-                                ? `Post-UTME registration for ${targetUni?.name || 'this institution'} is closed. Verify that your screening details and WAEC/NECO O'Level results are correctly uploaded on JAMB CAPS.`
+                                ? `Post-UTME registration for ${targetUni?.name || 'this institution'} is closed. Verify that your screening details are correctly recorded.`
                                 : `Ensure you have registered for the Post-UTME screening on the official ${targetUni?.name || 'institution'} portal.`
                             },
                             {
@@ -4452,7 +4452,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 <div>
                                   <div className="flex justify-between items-start gap-2 mb-1">
                                     <h6 className="font-extrabold text-white text-[10px] uppercase tracking-tight">{alt.name}</h6>
-                                    <span className="shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md text-[7px] font-black tracking-widest uppercase">{alt.typicalCutoff}</span>
+                                    <span className="shrink-0 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md text-[7px] font-black tracking-widest uppercase">{alt.matchPercentage}</span>
                                   </div>
                                   <p className="text-[9.5px] text-gray-400 leading-tight font-semibold mt-1">{alt.reasoning}</p>
                                 </div>
@@ -5291,7 +5291,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           <div>
                             <div className="flex justify-between items-start mb-2 gap-2">
                               <h6 className="font-bold text-white text-[10px] leading-tight">{alt.name}</h6>
-                              <span className="shrink-0 px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded-md text-[7px] font-black tracking-widest uppercase">{alt.typicalCutoff}</span>
+                              <span className="shrink-0 px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded-md text-[7px] font-black tracking-widest uppercase">{alt.matchPercentage}</span>
                             </div>
                             <p className="text-[9px] text-gray-400 leading-tight font-medium line-clamp-2 mb-3">{alt.reasoning}</p>
                           </div>

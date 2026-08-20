@@ -1176,7 +1176,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
   // 1. Groq
   if (process.env.GROQ_API_KEY) {
-    const groqModels = ['llama-3.3-70b-specdec', 'deepseek-r1-distill-llama-70b', 'llama3-70b-8192', 'llama3-8b-8192'];
+    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
     for (const modelName of groqModels) {
       try {
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -2674,7 +2674,7 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
           }
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
-          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.3-70b-specdec', max_tokens: 3 });
+          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.3-70b-versatile', max_tokens: 3 });
           if (completion?.choices?.length > 0) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Tavily') {
           const client = new TavilyClient({ apiKey: item.rawKey });

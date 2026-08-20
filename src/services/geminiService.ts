@@ -1614,7 +1614,7 @@ export function sanitizeAlternativeCourses(
       if (!existing.some(n => n.includes('soil') || n.includes('crop') || n.includes('animal') || n.includes('agricultural'))) {
         cleaned.push({
           name: `Soil Science / Animal Science at ${university}`,
-          typicalCutoff: "50.0%",
+          matchPercentage: "85%",
           reasoning: "Provides a viable, lower competitive cutoff alternative within the Agricultural Sciences faculty matching your subject background."
         });
       }
@@ -1622,32 +1622,32 @@ export function sanitizeAlternativeCourses(
         const stateUni = stateOfOrigin.toLowerCase().includes('delta') ? 'Delta State University (DELSU)' : `${stateOfOrigin} State University`;
         cleaned.push({
           name: `Agricultural Economics at ${stateUni}`,
-          typicalCutoff: "52.0%",
+          matchPercentage: "88%",
           reasoning: `Provides a strong catchment advantage at ${stateUni} for candidates with Agricultural Science and Chemistry subjects.`
         });
       } else if (cleaned.length < 2) {
         cleaned.push({
           name: `Food Science and Technology at ${university}`,
-          typicalCutoff: "54.0%",
+          matchPercentage: "92%",
           reasoning: "Maintains high career alignment in agricultural/food sciences with an achievable competitive cutoff mark."
         });
       }
     } else if (candFaculty === 'HEALTH_MEDICINE') {
       cleaned.push({
         name: `Anatomy / Human Physiology at ${university}`,
-        typicalCutoff: "55.0%",
+        matchPercentage: "95%",
         reasoning: "Shares core medical science subjects (Biology, Chemistry, Physics) with lower aggregate requirements."
       });
     } else if (candFaculty === 'ENGINEERING_TECH') {
       cleaned.push({
         name: `Industrial Physics / Applied Mathematics at ${university}`,
-        typicalCutoff: "52.0%",
+        matchPercentage: "88%",
         reasoning: "Leverages strong Mathematics and Physics subjects with favorable admission cutoffs."
       });
     } else if (candFaculty === 'SOCIAL_SCIENCE_COMMERCIAL') {
       cleaned.push({
         name: `Sociology / Public Administration at ${university}`,
-        typicalCutoff: "52.0%",
+        matchPercentage: "88%",
         reasoning: "Offers a viable alternative within Social Sciences matching Government, Economics, or Commercial subjects."
       });
     }
@@ -2203,7 +2203,7 @@ CRITICAL RULES FOR ADMISSION ANALYSIS:
 2. REALISTIC FRESHER BUDGET:
    - "fresherBudget" MUST be a realistic, structured, professional cost breakdown for a first-year student at "${university}" in NGN.
 3. STRICT FACULTY BOUNDARY MANDATE:
-   - "alternatives" MUST contain 2 to 4 actual alternative courses offered at ${university} or alternative Nigerian universities matching candidate's written JAMB subjects (${cleanJambSubjects.join(', ')}).
+   - "alternatives" MUST contain 2 to 4 actual alternative courses offered at ${university} matching candidates written JAMB subjects (${cleanJambSubjects.join(', ')}). Set matchPercentage high (e.g. "85%", "92%", "98%") reflecting strong OLevel/JAMB overlap.
 4. STRATEGIC ADVISEMENT BY STRICT TIER ASSIGNMENT:
    Compare candidate aggregate (${score}%) directly against cutoff (${cutoffVal}%):
    - Tier 1: BORDERLINE (Score == Cutoff) -> "Borderline", Probability 50-60%.
@@ -2261,7 +2261,7 @@ Return JSON:
   "detailedStrategy": "string",
   "probability": 75,
   "verdict": "Strong",
-  "alternatives": [{ "name": "string", "typicalCutoff": "string", "reasoning": "string" }],
+  "alternatives": [{ "name": "string", "matchPercentage": "string", "reasoning": "string" }],
   "strengths": ["string"],
   "riskFactors": ["string"],
   "isOffered": true,
@@ -2304,7 +2304,9 @@ Return JSON:
       parsed.scoreDiff = scoreDiffVal;
 
       // 3. Sanitize strategy markdown to prevent hallucinated 'official' claims when estimated
-      if (parsed.detailedStrategy && !parsed.cutoffIsOfficial) {
+      if (!parsed.detailedStrategy || parsed.detailedStrategy.length < 50 || parsed.detailedStrategy.includes("Summary...") || parsed.detailedStrategy.includes("detailed above")) {
+        parsed.detailedStrategy = deterministicEvaluation.detailedStrategy;
+      } else if (parsed.detailedStrategy && !parsed.cutoffIsOfficial) {
         parsed.detailedStrategy = parsed.detailedStrategy
           .replace(/official departmental cutoff/gi, "estimated competitive benchmark")
           .replace(/official cutoff/gi, "estimated benchmark");

@@ -1230,7 +1230,7 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* WHATSAPP STICKY BANNER */}
-      <div className="fixed bottom-24 right-4 md:right-8 md:bottom-8 z-[100] group flex items-center">
+      <div className="fixed bottom-24 right-4 md:right-8 md:bottom-24 z-[100] group flex items-center">
         <a 
           href="https://whatsapp.com/channel/0029VbD6bCD1NCraoIlpD218"
           target="_blank"
