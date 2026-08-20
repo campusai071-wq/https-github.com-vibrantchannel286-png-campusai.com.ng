@@ -843,12 +843,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     loadAnalyticsData();
     reloadKeySummaries();
 
+    let activityDebounceTimer: any = null;
     const handleActivity = () => {
-      loadAnalyticsData();
-      loadUsers();
+      if (activityDebounceTimer) return;
+      activityDebounceTimer = setTimeout(() => {
+        activityDebounceTimer = null;
+        loadAnalyticsData();
+        loadUsers();
+      }, 30000); // Debounce to at most once per 30 seconds
     };
     window.addEventListener('campusai_activity_logged', handleActivity);
-    return () => window.removeEventListener('campusai_activity_logged', handleActivity);
+    return () => {
+      if (activityDebounceTimer) clearTimeout(activityDebounceTimer);
+      window.removeEventListener('campusai_activity_logged', handleActivity);
+    };
   }, [isOpen, admin.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load specific tab data when switching tabs

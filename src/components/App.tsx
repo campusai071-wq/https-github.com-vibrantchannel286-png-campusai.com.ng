@@ -223,7 +223,11 @@ const AppContent: React.FC = () => {
       }
     } catch (e) {}
 
-    const interval = setInterval(async () => {
+    const checkSync = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return; // Skip background tabs completely to preserve quota
+      }
+
       const { getGlobalSyncMetadata } = await import('../services/dbService');
       const data = await getGlobalSyncMetadata();
       const currentSyncTime = data.lastSync;
@@ -308,10 +312,14 @@ const AppContent: React.FC = () => {
           console.error("Failed to process background sync updates:", err);
         }
       }
-    }, 60000);
+    };
+
+    const interval = setInterval(checkSync, 180000); // 3 minutes interval
+    window.addEventListener('focus', checkSync);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('focus', checkSync);
     };
   }, []);
 

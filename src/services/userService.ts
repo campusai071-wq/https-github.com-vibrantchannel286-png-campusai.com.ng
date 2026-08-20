@@ -476,20 +476,25 @@ export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
   } catch (e: any) { console.error("fetchRecentUsers error:", e); return []; }
 };
 
+let cachedTotalUserCount: number | null = null;
+let lastTotalUserCountTime = 0;
+const USER_COUNT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
 export const getTotalUserCount = async (): Promise<number> => {
   if (!db) return 0;
+  const now = Date.now();
+  if (cachedTotalUserCount !== null && (now - lastTotalUserCountTime < USER_COUNT_CACHE_TTL)) {
+    return cachedTotalUserCount;
+  }
   try {
     const snap = await getCountFromServer(collection(db, "users"));
-    return snap.data().count;
+    const count = snap.data().count;
+    cachedTotalUserCount = count;
+    lastTotalUserCountTime = now;
+    return count;
   } catch (e: any) {
-    console.warn("getTotalUserCount: getCountFromServer failed (possibly Quota exceeded), trying getDocs fallback:", e);
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      return snap.size;
-    } catch (fallbackErr: any) {
-      console.error("getTotalUserCount fallback also failed:", fallbackErr);
-      return 0;
-    }
+    console.warn("getTotalUserCount: getCountFromServer failed:", e);
+    return cachedTotalUserCount || 0;
   }
 };
 

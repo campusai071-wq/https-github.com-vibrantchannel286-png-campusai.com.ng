@@ -458,7 +458,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     steps: [
       "Step 1: Compute UTME Score Component (75% max): Divide your JAMB score by 400, then multiply by 75. Formula: (JAMB Score / 400) * 75.",
       "Step 2: Compute O'Level Score Component (25% max): Sum the points of your best 5 relevant O'Level subjects (Mathematics, English Language, and 3 core subjects relevant to your course).",
-      "Step 3: O'Level Grade Point Scale: A1 = 6 points, B2 = 5 points, B3 = 4 points, C4 = 3 points, C5 = 2 points, C6 = 1 point (Maximum 30 raw points across 5 subjects, scaled to 25%).",
+      "Step 3: O'Level Grade Point Scale: A1 = 80, B2 = 72, B3 = 67, C4 = 62, C5 = 57, C6 = 52. Average across 5 subjects is multiplied by 25% (or Sum of 5 grades / 20).",
       "Step 4: Total Aggregate Score: Add UTME Component + O'Level Component for a final score out of 100%."
     ],
     requirements: [

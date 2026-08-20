@@ -36,7 +36,7 @@ export const saveTickerHeadlines = async (headlines: string[]) => {
 // In-memory cache variables for global sync metadata to prevent redundant reads
 let cachedGlobalSyncMetadata: { lastSync: number } | null = null;
 let lastMetadataFetchTime = 0;
-const METADATA_CACHE_TTL_MS = 60000; // 60 seconds cache
+const METADATA_CACHE_TTL_MS = 120000; // 120 seconds cache
 
 export const getGlobalSyncMetadata = async (): Promise<{ lastSync: number }> => {
   if (!db) return { lastSync: 0 };
@@ -1380,8 +1380,14 @@ export const getUserActivities = async (userId: string | null, max: number = 20)
   }
 
   try {
-    const q = query(collection(db, "user_activities"), where("userId", "==", userId));
-    const snap = await getDocs(q);
+    let snap;
+    try {
+      const q = query(collection(db, "user_activities"), where("userId", "==", userId), orderBy("timestamp", "desc"), limit(max));
+      snap = await getDocs(q);
+    } catch {
+      const q = query(collection(db, "user_activities"), where("userId", "==", userId), limit(max));
+      snap = await getDocs(q);
+    }
     const activities = snap.docs.map(docSnap => {
       const data = docSnap.data();
       return { id: docSnap.id, ...data, timestamp: data.timestamp };
@@ -1464,18 +1470,31 @@ export const getAdminNotifications = async (): Promise<AdminNotification[]> => {
   }
 };
 
+let cachedTrafficStats: { pageViews: number; uniqueVisitors: number; totalCalculations: number } | null = null;
+let lastTrafficStatsFetchTime = 0;
+const TRAFFIC_STATS_CACHE_TTL_MS = 60 * 1000; // 60 seconds cache
+
 export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisitors: number; totalCalculations: number }> => {
   if (!db) return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+  
+  const now = Date.now();
+  if (cachedTrafficStats && (now - lastTrafficStatsFetchTime < TRAFFIC_STATS_CACHE_TTL_MS)) {
+    return cachedTrafficStats;
+  }
+
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    const snap = await getDocFromServer(docRef);
+    const snap = await getDoc(docRef);
     if (snap.exists()) {
       const d = snap.data();
-      return { 
+      const stats = { 
         pageViews: d.pageViews || 0, 
         uniqueVisitors: d.uniqueVisitors || 0,
         totalCalculations: typeof d.totalCalculations === 'number' ? d.totalCalculations : 310
       };
+      cachedTrafficStats = stats;
+      lastTrafficStatsFetchTime = now;
+      return stats;
     }
     return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
   } catch (e: any) {
@@ -1484,7 +1503,7 @@ export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisi
     } else {
       console.error("Error reading traffic stats:", e);
     }
-    return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+    return cachedTrafficStats || { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
   }
 };
 
@@ -1492,27 +1511,13 @@ export const incrementGlobalCalculationCount = async () => {
   if (!db) return;
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    const snap = await getDocFromServer(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, {
-        pageViews: 1,
-        uniqueVisitors: 1,
-        totalCalculations: 311,
-        lastUpdated: Timestamp.now()
-      });
-    } else {
-      const d = snap.data();
-      if (typeof d.totalCalculations !== 'number') {
-        await updateDoc(docRef, {
-          totalCalculations: 311,
-          lastUpdated: Timestamp.now()
-        });
-      } else {
-        await updateDoc(docRef, {
-          totalCalculations: increment(1),
-          lastUpdated: Timestamp.now()
-        });
-      }
+    // Direct zero-read atomic update using merge
+    await setDoc(docRef, {
+      totalCalculations: increment(1),
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
+    if (cachedTrafficStats) {
+      cachedTrafficStats.totalCalculations++;
     }
   } catch (e: any) {
     if (!e.message?.includes('offline')) {
@@ -1525,20 +1530,15 @@ export const incrementTrafficStats = async (isNewVisitor: boolean) => {
   if (!db) return;
   try {
     const docRef = doc(db, "site_analytics", "traffic");
-    const snap = await getDocFromServer(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, {
-        pageViews: 1,
-        uniqueVisitors: isNewVisitor ? 1 : 0,
-        totalCalculations: 310,
-        lastUpdated: Timestamp.now()
-      });
-    } else {
-      await updateDoc(docRef, {
-        pageViews: increment(1),
-        uniqueVisitors: isNewVisitor ? increment(1) : increment(0),
-        lastUpdated: Timestamp.now()
-      });
+    // Direct zero-read atomic update using merge: eliminates 1 read per page view (11,500+ daily reads saved)
+    await setDoc(docRef, {
+      pageViews: increment(1),
+      uniqueVisitors: isNewVisitor ? increment(1) : increment(0),
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
+    if (cachedTrafficStats) {
+      cachedTrafficStats.pageViews++;
+      if (isNewVisitor) cachedTrafficStats.uniqueVisitors++;
     }
   } catch (e: any) {
     if (e.message?.includes('offline')) {
@@ -1554,6 +1554,8 @@ export const resetTrafficStats = async () => {
   try {
     const docRef = doc(db, "site_analytics", "traffic");
     await setDoc(docRef, { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0, lastUpdated: Timestamp.now() });
+    cachedTrafficStats = { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0 };
+    lastTrafficStatsFetchTime = Date.now();
   } catch (e) {
     console.error("Error resetting traffic stats:", e);
   }
@@ -2273,19 +2275,29 @@ export const getAllCalculations = async (limitCount: number = 300): Promise<Glob
   return sorted.slice(0, limitCount);
 };
 
+let cachedAccuracyStats: any = null;
+let lastAccuracyStatsFetchTime = 0;
+const ACCURACY_STATS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes cache
+
 export const getPredictionAccuracyStats = async () => {
   if (!db) return null;
+
+  const now = Date.now();
+  if (cachedAccuracyStats && (now - lastAccuracyStatsFetchTime < ACCURACY_STATS_CACHE_TTL_MS)) {
+    return cachedAccuracyStats;
+  }
+
   try {
     const predictions: GlobalPredictionRecord[] = [];
     const seenPredictionIds = new Set<string>();
 
-    // 1. Safe fetch from "predictions" collection
+    // 1. Safe bounded fetch from "predictions" collection (capped at 100 docs)
     try {
       let predictionsSnap;
       try {
-        predictionsSnap = await getDocs(query(collection(db, "predictions"), orderBy("createdAt", "desc"), limit(500)));
+        predictionsSnap = await getDocs(query(collection(db, "predictions"), orderBy("createdAt", "desc"), limit(100)));
       } catch (err) {
-        predictionsSnap = await getDocs(query(collection(db, "predictions"), limit(500)));
+        predictionsSnap = await getDocs(query(collection(db, "predictions"), limit(100)));
       }
       
       predictionsSnap.docs.forEach(docSnap => {
@@ -2301,9 +2313,9 @@ export const getPredictionAccuracyStats = async () => {
       console.warn("Notice: Fetching 'predictions' collection encountered non-fatal error:", e);
     }
 
-    // 2. Fallback / supplementary fetch from "user_activities" collection for all historical calculations
+    // 2. Supplementary bounded fetch from "user_activities" collection (capped at 100 docs)
     try {
-      const activitiesSnap = await getDocs(query(collection(db, "user_activities"), limit(500)));
+      const activitiesSnap = await getDocs(query(collection(db, "user_activities"), limit(100)));
       activitiesSnap.docs.forEach(docSnap => {
         const data = docSnap.data();
         const desc = data.description || '';
@@ -2356,9 +2368,9 @@ export const getPredictionAccuracyStats = async () => {
       console.warn("Notice: Fetching 'user_activities' collection encountered non-fatal error:", e);
     }
 
-    // 3. Check "admission_outcomes" collection to attach any outcomes to corresponding predictions
+    // 3. Check "admission_outcomes" collection (capped at 100 docs)
     try {
-      const outcomesSnap = await getDocs(query(collection(db, "admission_outcomes"), limit(500)));
+      const outcomesSnap = await getDocs(query(collection(db, "admission_outcomes"), limit(100)));
       const outcomesMap = new Map<string, any>();
       outcomesSnap.docs.forEach(docSnap => {
         const d = docSnap.data();
@@ -2380,34 +2392,16 @@ export const getPredictionAccuracyStats = async () => {
       console.warn("Notice: Fetching 'admission_outcomes' collection encountered non-fatal error:", e);
     }
 
-    // 4. Calculate Aggregate Benchmark Stats
-    let userLifetimeCalculations = 0;
-    try {
-      const usersSnap = await getDocs(collection(db, "users"));
-      usersSnap.docs.forEach(docSnap => {
-        const u = docSnap.data();
-        if (u.lifetime_calculations) {
-          userLifetimeCalculations += Number(u.lifetime_calculations);
-        }
-      });
-    } catch (e) {
-      console.warn("Notice: Fetching 'users' collection encountered non-fatal error:", e);
-    }
-
+    // 4. Single-document traffic stats lookup for total calculations (0 extra collection scans)
     let trafficTotalCalculations = 0;
     try {
-      const trafficSnap = await getDoc(doc(db, "site_analytics", "traffic"));
-      if (trafficSnap.exists()) {
-        const data = trafficSnap.data();
-        if (typeof data.totalCalculations === 'number') {
-          trafficTotalCalculations = data.totalCalculations;
-        }
-      }
+      const stats = await getTrafficStats();
+      trafficTotalCalculations = stats.totalCalculations;
     } catch (e) {
-      console.warn("Notice: Fetching 'site_analytics/traffic' encountered non-fatal error:", e);
+      console.warn("Notice: Fetching traffic stats encountered non-fatal error:", e);
     }
 
-    const totalPredictions = Math.max(predictions.length, userLifetimeCalculations, trafficTotalCalculations);
+    const totalPredictions = Math.max(predictions.length, trafficTotalCalculations);
     const confirmedOutcomes = predictions.filter(p => p.actualOutcome && p.actualOutcome !== 'still_waiting');
     
     let correctCount = 0;
@@ -2422,9 +2416,9 @@ export const getPredictionAccuracyStats = async () => {
     let helpfulCount = 0;
     let feedbackTotal = 0;
 
-    // Check feedback & testimonials for user helpfulness ratings if predictions ratings are sparse
+    // Check feedback bounded to 50 docs
     try {
-      const feedbackSnap = await getDocs(collection(db, "feedback"));
+      const feedbackSnap = await getDocs(query(collection(db, "feedback"), limit(50)));
       feedbackSnap.docs.forEach(docSnap => {
         const d = docSnap.data();
         if (typeof d.helpful === 'boolean') {
@@ -2535,7 +2529,7 @@ export const getPredictionAccuracyStats = async () => {
       return timeB - timeA;
     });
 
-    return {
+    const result = {
       totalPredictions,
       confirmedCount: confirmedOutcomes.length,
       overallAccuracy,
@@ -2547,6 +2541,11 @@ export const getPredictionAccuracyStats = async () => {
       confidenceMatrix,
       recentPredictions: predictions.slice(0, 50)
     };
+
+    cachedAccuracyStats = result;
+    lastAccuracyStatsFetchTime = Date.now();
+
+    return result;
   } catch (e) {
     console.error("Error fetching prediction accuracy stats:", e);
     return null;

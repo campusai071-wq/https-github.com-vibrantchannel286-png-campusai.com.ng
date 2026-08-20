@@ -218,8 +218,9 @@ const calculateAggregateScore = (
   const desc = system.explanation.toLowerCase();
   const formula = system.formula || '';
 
-  if (formula === 'futa_75_25' || normalizedUni.includes('futa') || desc.includes('75:25') || desc.includes('75_25')) {
-    return (jamb / 400 * 75) + (olevelTotal / 50 * 25);
+  if (formula === 'futa_75_25' || normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure')) || desc.includes('75:25') || desc.includes('75_25')) {
+    // FUTA 75:25: JAMB is (JAMB / 400) * 75, O'Level is (Average of 5 grades) * 0.25 = (olevelTotal / 5) * 0.25
+    return (jamb / 400 * 75) + ((olevelTotal / 5) * 0.25);
   }
   if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40') || desc.includes('60_40')) {
     return (jamb / 400 * 60) + olevelTotal;
@@ -244,8 +245,8 @@ const calculateAggregateScore = (
   }
 
   if (desc.includes('point-based')) {
-    if (normalizedUni.includes('futa')) {
-      return (jamb / 400 * 75) + (olevelTotal / 50 * 25);
+    if (normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure'))) {
+      return (jamb / 400 * 75) + ((olevelTotal / 5) * 0.25);
     }
     return (jamb / 8) + olevelTotal;
   }
@@ -260,6 +261,17 @@ const getUniversityGradePoints = (uniName: string): {
   styleDesc: string;
 } => {
   const normalized = uniName.toLowerCase();
+
+  if (normalized.includes('futa') || (normalized.includes('technology') && normalized.includes('akure'))) {
+    const map: Record<OLevelGrade, number> = {
+      'A1': 80, 'B2': 72, 'B3': 67, 'C4': 62, 'C5': 57, 'C6': 52, 'D7': 0, 'E8': 0, 'F9': 0
+    };
+    return {
+      gradeMap: map,
+      maxPoints: 400,
+      styleDesc: "FUTA 75:25 O'Level scale (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52, best 5 average scaled to 25%)"
+    };
+  }
   
   if (normalized.includes('fuoye') || normalized.includes('oye-ekiti') || normalized.includes('oye ekiti')) {
     const map: Record<OLevelGrade, number> = {
@@ -5057,8 +5069,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                       olevelContribText = `O'Level: ${activeOlevelPoints.toFixed(1)} pts (30% max, sum of best 5)`;
                                       postContribText = `+${sittings === 1 ? '10' : '6'} pts (${sittings === 1 ? 'One Sitting' : 'Two Sittings'})`;
                                     } else if (formula === 'futa_75_25' || normalizedUni.includes('futa') || desc.includes('75:25')) {
-                                      jambContribText = `${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
-                                      olevelContribText = `${activeOlevelPoints} / 50 * 25 = ${(activeOlevelPoints / 50 * 25).toFixed(2)} pts (25%)`;
+                                      jambContribText = `UTME: ${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
+                                      olevelContribText = `O'Level: (${activeOlevelPoints} / 5) * 25% = ${((activeOlevelPoints / 5) * 0.25).toFixed(2)} pts (25%)`;
                                     } else if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40')) {
                                       jambContribText = `${jambVal} / 400 * 60 = ${(jambVal / 400 * 60).toFixed(2)} pts (60%)`;
                                       olevelContribText = `${activeOlevelPoints} pts (40%)`;
@@ -5078,9 +5090,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                       jambContribText = `${jambVal} / 8 = ${(jambVal / 8).toFixed(2)} pts (50%)`;
                                       olevelContribText = `${activeOlevelPoints} pts (50%)`;
                                     } else if (desc.includes('point-based')) {
-                                      if (normalizedUni.includes('futa')) {
-                                        jambContribText = `${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
-                                        olevelContribText = `${activeOlevelPoints} / 50 * 25 = ${(activeOlevelPoints / 50 * 25).toFixed(2)} pts (25%)`;
+                                      if (normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure'))) {
+                                        jambContribText = `UTME: ${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
+                                        olevelContribText = `O'Level: (${activeOlevelPoints} / 5) * 25% = ${((activeOlevelPoints / 5) * 0.25).toFixed(2)} pts (25%)`;
                                       } else {
                                         jambContribText = `${jambVal} / 8 = ${(jambVal / 8).toFixed(2)} pts (50%)`;
                                         olevelContribText = `${activeOlevelPoints} pts (50%)`;
@@ -6096,6 +6108,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               stateOfOrigin,
               subjects,
               hasOLevel: computedScoringSystem ? computedScoringSystem.hasOLevel : true,
+              hasPostUtme: computedScoringSystem ? computedScoringSystem.hasPostUtme : !((targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure') || (targetUni?.name || '').toLowerCase().includes('lasu')),
+              olevelPoints: (computedScoringSystem?.formula === 'futa_75_25' || (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure')) 
+                ? parseFloat(((activeOlevelPoints / 5) * 0.25).toFixed(2)) 
+                : activeOlevelPoints,
+              computedScoringSystem,
               aiResult
             }}
           />

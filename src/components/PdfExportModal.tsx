@@ -18,6 +18,9 @@ interface PdfExportModalProps {
     stateOfOrigin: string;
     subjects: { name: string; grade: string }[];
     hasOLevel?: boolean;
+    hasPostUtme?: boolean;
+    olevelPoints?: number;
+    computedScoringSystem?: any;
     aiResult: any;
   };
 }
@@ -53,6 +56,9 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({ isOpen, onClose,
     stateOfOrigin,
     subjects,
     hasOLevel = true,
+    hasPostUtme = true,
+    olevelPoints,
+    computedScoringSystem,
     aiResult
   } = resultData;
 
@@ -178,6 +184,12 @@ const handleDownloadText = () => {
       ? `O-LEVEL (BEST 5) SUBJECTS:\n${subjects.map((s, idx) => `${idx + 1}. ${s.name}: ${s.grade}`).join('\n')}`
       : `O-LEVEL VERIFICATION:\n- Required subjects satisfied\n- Grades not collected because ${targetUni?.name || 'this institution'}'s aggregate calculation does not use individual O'Level grades.`;
 
+    const isFuta = (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure');
+    const jambNum = parseFloat(jambScore || '0') || 0;
+    const examScoresText = hasPostUtme
+      ? `- JAMB UTME Score: ${jambScore || '0'} / 400\n- Post-UTME Score: ${isPostUtmePending ? 'Pending Exam (Estimated 70%)' : `${postUtmeScore || '0'} / 100`}\n- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}`
+      : `- JAMB UTME Score: ${jambScore || '0'} / 400 (${isFuta ? `${(jambNum / 400 * 75).toFixed(2)} pts / 75%` : 'Screening Component'})\n- Screening Mode: Point-Based O'Level Screening (No Post-UTME Exam)\n- O'Level Screening Score: ${olevelPoints !== undefined ? `${olevelPoints} pts` : 'Verified'}\n- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}`;
+
     const textContent = `
 ========================================
 CAMPUSAI.NG - OFFICIAL ADMISSION SCREENING SLIP
@@ -186,10 +198,8 @@ Institution: ${targetUni?.name || 'Not Specified'}
 Course of Study: ${targetCourse || courseSearch || 'Not Specified'}
 Date Generated: ${new Date().toLocaleDateString()}
 ----------------------------------------
-EXAMINATION SCORES:
-- JAMB UTME Score: ${jambScore || '0'} / 400
-- Post-UTME Score: ${isPostUtmePending ? 'Pending Exam (Estimated 70%)' : `${postUtmeScore || '0'} / 100`}
-- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}
+EXAMINATION & SCREENING BREAKDOWN:
+${examScoresText}
 ----------------------------------------
 ${oLevelText}
 ----------------------------------------
@@ -345,14 +355,28 @@ Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculato
               <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 text-center">
                 <span className="text-[9px] font-black uppercase tracking-widest text-blue-600">JAMB UTME (400)</span>
                 <p className="text-2xl font-black text-gray-900 mt-1">{jambScore || '0'}</p>
-                <p className="text-[9px] text-gray-500 mt-0.5">Weight / 8 or %</p>
+                <p className="text-[9px] text-gray-500 mt-0.5">
+                  {!hasPostUtme 
+                    ? ((targetUni?.name || '').toLowerCase().includes('futa') 
+                        ? `75% Weight (${((parseFloat(jambScore || '0') || 0) / 400 * 75).toFixed(2)} pts)` 
+                        : 'UTME Component')
+                    : 'Weight / 8 or %'}
+                </p>
               </div>
               <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 text-center">
-                <span className="text-[9px] font-black uppercase tracking-widest text-purple-600">Post-UTME (100)</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-purple-600">
+                  {hasPostUtme ? 'Post-UTME (100)' : "O'Level Screening"}
+                </span>
                 <p className="text-2xl font-black text-gray-900 mt-1">
-                  {isPostUtmePending ? 'Pending' : (postUtmeScore || '0')}
+                  {hasPostUtme 
+                    ? (isPostUtmePending ? 'Pending' : (postUtmeScore || '0'))
+                    : (olevelPoints !== undefined ? `${olevelPoints}` : 'Screened')}
                 </p>
-                <p className="text-[9px] text-gray-500 mt-0.5">{isPostUtmePending ? 'Estimated 70' : 'Screening Score'}</p>
+                <p className="text-[9px] text-gray-500 mt-0.5">
+                  {hasPostUtme 
+                    ? (isPostUtmePending ? 'Estimated 70' : 'Screening Score')
+                    : ((targetUni?.name || '').toLowerCase().includes('futa') ? '25% Weight (Points)' : 'Screening Points')}
+                </p>
               </div>
               <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-center">
                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">
