@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
 import universityData from '../data/universities';
+import { UNIVERSITIES_DB } from '../data/universityData';
 import { getCourseCutoffInfo, getUniversityCourses, getUniversityScoringSystem, formatStrategyMarkdown, validateMandatorySubjects, validateOlevelRequirements, enforceAdmissionTiers } from '../services/geminiService';
 import {
   getLocalProfile, checkAndIncrementCalculations as checkAndIncrementRequests,
@@ -26,7 +27,7 @@ import {
   deductScholarCredit, FREE_GUEST_LIMIT, FREE_USER_LIMIT,
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
-import { getGlobalScoringSystem, saveGlobalScoringSystem, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
+import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
@@ -1149,6 +1150,17 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [manualHasOLevel, setManualHasOLevel] = useState(true);
   const [manualFormula, setManualFormula] = useState('50:30:20');
 
+  const currentSchoolSlug = useMemo(() => {
+    const path = location.pathname;
+    const match = path.match(/\/([a-zA-Z0-9_-]+)-aggregate-calculator/);
+    return match ? match[1].toLowerCase() : null;
+  }, [location.pathname]);
+
+  const schoolLandingInfo = useMemo(() => {
+    if (!currentSchoolSlug) return null;
+    return SCHOOL_LANDING_DATA[currentSchoolSlug] || null;
+  }, [currentSchoolSlug]);
+
   const computedScoringSystem = useMemo(() => {
     if (manualOverrideActive) {
       let explanation = "Manual Mode: ";
@@ -1170,26 +1182,30 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       };
     }
 
-    if (targetUni) {
-      const uName = (targetUni.name || '').toLowerCase();
-      const uSlug = (targetUni.slug || '').toLowerCase();
-      const isNoPostUtme = 
-        uName.includes('futa') || uName.includes('akure') || 
-        uName.includes('lasu') || uName.includes('lagos state university') || 
-        uName.includes('fuoye') || uName.includes('oye-ekiti') ||
-        uSlug.includes('futa') || uSlug.includes('lasu') || uSlug.includes('fuoye') ||
-        targetUni.category === 'COE' || targetUni.category === 'Polytechnic';
+    const checkText = ((targetUni?.name || '') + ' ' + (targetUni?.slug || '') + ' ' + (initialSchoolName || '') + ' ' + (currentSchoolSlug || '') + ' ' + uniSearch).toLowerCase();
+    const isNoPostUtme = 
+      checkText.includes('futa') || checkText.includes('akure') || 
+      checkText.includes('lasu') || checkText.includes('lagos state university') || 
+      checkText.includes('fuoye') || checkText.includes('oye-ekiti') ||
+      targetUni?.category === 'COE';
 
-      if (isNoPostUtme) {
-        const baseSys = scoringSystem || TOP_INSTITUTION_MAP[uSlug] || Object.entries(TOP_INSTITUTION_MAP).find(([k]) => uName.includes(k))?.[1];
-        return {
-          hasJamb: true,
-          hasPostUtme: false,
-          hasOLevel: baseSys ? baseSys.hasOLevel : true,
-          explanation: baseSys?.explanation || (uName.includes('futa') ? "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%)." : "Point-Based Screening: JAMB + O'Level (No Post-UTME exam)."),
-          formula: baseSys?.formula || (uName.includes('futa') ? "futa_75_25" : "point_based")
-        };
-      }
+    if (isNoPostUtme) {
+      const isFuta = checkText.includes('futa') || checkText.includes('akure');
+      const baseSys = targetUni?.scoringSystem || scoringSystem || TOP_INSTITUTION_MAP[isFuta ? 'futa' : 'lasu'] || Object.entries(TOP_INSTITUTION_MAP).find(([k]) => checkText.includes(k))?.[1];
+      return {
+        hasJamb: true,
+        hasPostUtme: false,
+        hasOLevel: baseSys ? baseSys.hasOLevel : true,
+        explanation: baseSys?.explanation || (isFuta ? "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%)." : "Point-Based Screening: JAMB + O'Level (No Post-UTME exam)."),
+        formula: baseSys?.formula || (isFuta ? "futa_75_25" : "point_based")
+      };
+    }
+
+    if (targetUni?.scoringSystem) {
+      return {
+        ...targetUni.scoringSystem,
+        hasPostUtme: targetUni.scoringSystem.hasPostUtme !== false
+      };
     }
 
     return scoringSystem;
@@ -1286,16 +1302,6 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [bypassCutoffAlert, setBypassCutoffAlert] = useState(false);
   const [usagePercent, setUsagePercent] = useState(0);
   const [activeGuideTab, setActiveGuideTab] = useState<'formula' | 'cutoff' | 'prep'>('formula');
-  const currentSchoolSlug = useMemo(() => {
-    const path = location.pathname;
-    const match = path.match(/\/([a-zA-Z0-9_-]+)-aggregate-calculator/);
-    return match ? match[1].toLowerCase() : null;
-  }, [location.pathname]);
-
-  const schoolLandingInfo = useMemo(() => {
-    if (!currentSchoolSlug) return null;
-    return SCHOOL_LANDING_DATA[currentSchoolSlug] || null;
-  }, [currentSchoolSlug]);
   const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
@@ -1473,7 +1479,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       setUniSearch(found.name);
       setTargetCourse('');
       setCourseSearch('');
-      setAvailableCourses([]);
+      const dbMatch = UNIVERSITIES_DB[found.name] || Object.values(UNIVERSITIES_DB).find(x => x.name.toLowerCase() === found.name.toLowerCase());
+      setAvailableCourses(dbMatch?.courses || []);
+      if (dbMatch?.scoringSystem) {
+        setScoringSystem(dbMatch.scoringSystem);
+      }
 
       // Instantly set scoring system from TOP_INSTITUTION_MAP if available
       const foundSlug = found.slug || (found.name || '').toLowerCase().replace(/\s+/g, '-');
@@ -1658,17 +1668,35 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     return validateMandatorySubjects(courseName, jambList);
   }, [targetCourse, courseSearch, jambSubject1, jambSubject2, jambSubject3]);
 
-  // Fetch scoring system & courses when uni changes
+  // Fetch scoring system & courses when uni changes (Offline-first caching hook)
   useEffect(() => {
     if (!targetUni) return;
     const run = async () => {
       setIsSyncing(true);
       setAvailableCourses([]);
       const slug = targetUni.slug || (targetUni.name || '').toLowerCase().replace(/\s+/g, '-');
+      const localCacheKey = `campusai_formula_${slug}`;
 
       const instantMatch =
         TOP_INSTITUTION_MAP[slug] ||
         Object.entries(TOP_INSTITUTION_MAP).find(([k]) => targetUni.name.toLowerCase().includes(k))?.[1];
+
+      // 1. Check LocalStorage for immediate offline access
+      try {
+        const localData = localStorage.getItem(localCacheKey);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          if (parsed && !instantMatch) {
+            setScoringSystem(parsed as ScoringSystem);
+          }
+          if (parsed?.courses && Array.isArray(parsed.courses)) {
+            setAvailableCourses(parsed.courses);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to read from localStorage:', e);
+      }
+
       if (instantMatch) setScoringSystem(instantMatch);
 
       try {
@@ -1680,10 +1708,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           if (!instantMatch) setScoringSystem(cached as ScoringSystem);
           if (cached.courses && Array.isArray(cached.courses)) {
             setAvailableCourses(cached.courses);
+            localStorage.setItem(localCacheKey, JSON.stringify(cached));
           } else {
             const courses = await getUniversityCourses(targetUni.name);
             setAvailableCourses(courses);
-            await saveGlobalScoringSystem(slug, { ...cached, courses });
+            const enriched = { ...cached, courses };
+            await saveGlobalScoringSystem(slug, enriched);
+            await saveHistoricalCutoff(slug, enriched);
+            localStorage.setItem(localCacheKey, JSON.stringify(enriched));
           }
         } else {
           const [courses, realSystem] = await Promise.all([
@@ -1693,11 +1725,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           setAvailableCourses(courses);
           if (!instantMatch) setScoringSystem(realSystem as ScoringSystem);
           if (realSystem) {
-            await saveGlobalScoringSystem(slug, {
+            const dataToSave = {
               ...(realSystem as ScoringSystem),
               courses,
               updatedAt: { seconds: Math.floor(Date.now() / 1000) },
-            });
+            };
+            await saveGlobalScoringSystem(slug, dataToSave);
+            await saveHistoricalCutoff(slug, dataToSave);
+            localStorage.setItem(localCacheKey, JSON.stringify(dataToSave));
           }
         }
       } catch (e) {
@@ -3235,7 +3270,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             )}
 
             {/* JAMB + Post-UTME scores */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid ${(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               {/* JAMB */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between mb-1.5">

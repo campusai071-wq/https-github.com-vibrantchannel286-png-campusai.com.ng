@@ -1174,6 +1174,65 @@ export const saveGlobalScoringSystem = async (slug: string, data: any) => {
   await setDoc(doc(db, "institutional_logic", slug), data);
 };
 
+export const saveHistoricalCutoff = async (slug: string, data: any) => {
+  if (!db) return;
+  try {
+    await setDoc(doc(db, "historical_cutoffs", slug), data);
+  } catch (err) {
+    console.error("Error saving historical cutoff:", err);
+  }
+};
+
+/**
+ * Purges stale entries from the 'historical_cutoffs' localStorage
+ * if they are older than 30 days, keeping cache size optimized for mobile users.
+ */
+export const purgeStaleHistoricalCutoffsLocalCache = () => {
+  try {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('campusai_formula_')) {
+        try {
+          const item = localStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            let itemTimeMs = 0;
+            if (parsed.updatedAt?.seconds) {
+              itemTimeMs = parsed.updatedAt.seconds * 1000;
+            } else if (parsed.timestamp) {
+              itemTimeMs = parsed.timestamp;
+            }
+
+            // Remove if older than 30 days or missing timestamp
+            if (!itemTimeMs || (now - itemTimeMs > THIRTY_DAYS_MS)) {
+              keysToRemove.push(key);
+            }
+          }
+        } catch (e) {
+          console.warn(`Error parsing local cache item ${key}:`, e);
+          keysToRemove.push(key);
+        }
+      }
+    }
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    if (keysToRemove.length > 0) {
+      console.log(`Purged ${keysToRemove.length} stale historical cutoffs from local storage.`);
+    }
+  } catch (error) {
+    console.error("Error purging stale local cache:", error);
+  }
+};
+
+// Run purge occasionally on load
+if (typeof window !== 'undefined') {
+  setTimeout(purgeStaleHistoricalCutoffsLocalCache, 5000);
+}
+
 /**
  * Global Configuration Persistence
  */

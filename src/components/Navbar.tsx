@@ -29,12 +29,26 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isSyncingNews, setIsSyncingNews] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     getAsuuStrikeStatus().then(status => setAsuuStatus(status?.status || 'Stable'));
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    const handleNewsSync = (e: any) => {
+      setIsSyncingNews(true);
+      const duration = e?.detail?.duration || 3500;
+      setTimeout(() => {
+        setIsSyncingNews(false);
+      }, duration);
+    };
+    window.addEventListener('campusai_news_sync', handleNewsSync);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('campusai_news_sync', handleNewsSync);
+    };
   }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -126,6 +140,21 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               </span>
             </div>
           </div>
+
+          {/* Subtle 'Syncing...' indicator component */}
+          <AnimatePresence>
+            {isSyncingNews && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: -10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: -10 }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 text-[9px] font-black uppercase tracking-wider backdrop-blur-md shadow-[0_0_12px_rgba(34,211,238,0.15)] animate-pulse ml-2"
+              >
+                <Loader2 size={11} className="animate-spin text-cyan-400" />
+                <span>Syncing...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Desktop Search Bar */}
