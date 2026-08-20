@@ -1468,12 +1468,19 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   useEffect(() => {
     const searchKey = initialSchoolName || currentSchoolSlug;
     if (!searchKey) return;
-    const found = universityData.find((u: any) =>
-      u.slug === searchKey.toLowerCase() ||
-      u.name?.toLowerCase() === searchKey.toLowerCase() ||
-      u.name?.toLowerCase().includes(searchKey.toLowerCase()) ||
-      searchKey.toLowerCase().includes(u.name?.toLowerCase())
-    );
+    
+    const cleanStr = (s: string) => s.toLowerCase().replace(/[,.()]/g, '').trim();
+    const cleanSearchKey = cleanStr(searchKey);
+
+    const found = universityData.find((u: any) => {
+      const cleanName = cleanStr(u.name || '');
+      return u.slug === searchKey.toLowerCase() ||
+             (currentSchoolSlug && u.slug === currentSchoolSlug.toLowerCase()) ||
+             cleanName === cleanSearchKey ||
+             cleanName.includes(cleanSearchKey) ||
+             cleanSearchKey.includes(cleanName);
+    });
+
     if (found) {
       setTargetUni(found);
       setUniSearch(found.name);
