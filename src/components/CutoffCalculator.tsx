@@ -1169,8 +1169,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         formula: manualFormula
       };
     }
+
+    if (targetUni) {
+      const uName = (targetUni.name || '').toLowerCase();
+      const uSlug = (targetUni.slug || '').toLowerCase();
+      const isNoPostUtme = 
+        uName.includes('futa') || uName.includes('akure') || 
+        uName.includes('lasu') || uName.includes('lagos state university') || 
+        uName.includes('fuoye') || uName.includes('oye-ekiti') ||
+        uSlug.includes('futa') || uSlug.includes('lasu') || uSlug.includes('fuoye') ||
+        targetUni.category === 'COE' || targetUni.category === 'Polytechnic';
+
+      if (isNoPostUtme) {
+        const baseSys = scoringSystem || TOP_INSTITUTION_MAP[uSlug] || Object.entries(TOP_INSTITUTION_MAP).find(([k]) => uName.includes(k))?.[1];
+        return {
+          hasJamb: true,
+          hasPostUtme: false,
+          hasOLevel: baseSys ? baseSys.hasOLevel : true,
+          explanation: baseSys?.explanation || (uName.includes('futa') ? "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%)." : "Point-Based Screening: JAMB + O'Level (No Post-UTME exam)."),
+          formula: baseSys?.formula || (uName.includes('futa') ? "futa_75_25" : "point_based")
+        };
+      }
+    }
+
     return scoringSystem;
-  }, [manualOverrideActive, scoringSystem, manualHasJamb, manualHasPostUtme, manualHasOLevel, manualFormula]);
+  }, [manualOverrideActive, scoringSystem, targetUni, manualHasJamb, manualHasPostUtme, manualHasOLevel, manualFormula]);
 
   // Synchronize dynamic inputs toggle when manual formula preset selection changes
   useEffect(() => {
@@ -3236,7 +3259,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
 
               {/* Post-UTME */}
-              {(!computedScoringSystem || computedScoringSystem.hasPostUtme) && (
+              {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) && (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between mb-1.5">
                     <label htmlFor="post-utme-score" className="text-[8px] font-black uppercase text-gray-500 tracking-widest ml-1">
