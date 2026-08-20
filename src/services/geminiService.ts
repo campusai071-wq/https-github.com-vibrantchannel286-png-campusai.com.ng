@@ -63,6 +63,7 @@ import { getUniversityFromDB } from "../data/universityData";
 import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
+import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -1982,14 +1983,17 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
-      if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure")) && nCourse.includes("metallurgical")) {
-        manualOverride = {
-          institution: university,
-          course: course,
-          departmentalCutoff: "55.0%",
-          institutionalCutoff: "180",
-          explanation: "FUTA Merit Cutoff (JAMB + O'Level point aggregate system)"
-        };
+      if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
+        const futaCutoff = getFUTACutoffByCourse(course);
+        if (futaCutoff) {
+          manualOverride = {
+            institution: "Federal University of Technology, Akure (FUTA)",
+            course: futaCutoff.programme,
+            departmentalCutoff: `${futaCutoff.cutoff}%`,
+            institutionalCutoff: "180",
+            explanation: `Official FUTA 2026/2027 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+          };
+        }
       }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
@@ -2069,14 +2073,17 @@ export const getCourseCutoffInfo = async (
         };
       }
     }
-    if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure")) && nCourse.includes("metallurgical")) {
-      manualOverride = {
-        institution: university,
-        course: course,
-        departmentalCutoff: "55.0%",
-        institutionalCutoff: "180",
-        explanation: "FUTA Merit Cutoff (JAMB + O'Level point aggregate system)"
-      };
+    if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
+      const futaCutoff = getFUTACutoffByCourse(course);
+      if (futaCutoff) {
+        manualOverride = {
+          institution: "Federal University of Technology, Akure (FUTA)",
+          course: futaCutoff.programme,
+          departmentalCutoff: `${futaCutoff.cutoff}%`,
+          institutionalCutoff: "180",
+          explanation: `Official FUTA 2026/2027 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+        };
+      }
     }
 
     // ─── 3. DETERMINISTIC FOUNDATION EVALUATION ────────────────────────────────
@@ -2345,6 +2352,18 @@ Return JSON:
           departmentalCutoff: `${targetCutoff}%`,
           institutionalCutoff: "200",
           explanation: `Official UI 2025/2026 Cutoff: Merit (${uiCutoff.merit}%), Catchment (${uiCutoff.catchment}%), ELDS (${uiCutoff.elds}%)`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
+      const futaCutoff = getFUTACutoffByCourse(course);
+      if (futaCutoff) {
+        manualOverride = {
+          institution: "Federal University of Technology, Akure (FUTA)",
+          course: futaCutoff.programme,
+          departmentalCutoff: `${futaCutoff.cutoff}%`,
+          institutionalCutoff: "180",
+          explanation: `Official FUTA 2026/2027 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
         };
       }
     }

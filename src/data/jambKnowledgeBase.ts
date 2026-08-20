@@ -412,39 +412,85 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "procedural",
     category: "Institution Admission",
     subcategory: "FUTA Admissions",
-    title: "Federal University of Technology, Akure (FUTA) 2026/2027 Admission Guidelines",
-    summary: "Comprehensive official admission guidelines for FUTA for the 2026/2027 academic session, detailing the 75:25 point-based aggregate system, screening prerequisites, and eligibility criteria.",
+    title: "Federal University of Technology, Akure (FUTA) 2026/2027 Admission Guidelines & Screening",
+    summary: "Official admission guidelines and Post-UTME screening announcement for FUTA for the 2026/2027 academic session. Details eligibility (180+ UTME, 1st choice), ₦2,000 fee, mandatory Physics pass rule, and CBT screening schedule.",
     steps: [
-      "Choose FUTA as your First Choice (Most Preferred) institution in your JAMB UTME application.",
-      "Score the minimum institutional cutoff mark (typically 180 and above depending on the course).",
-      "Ensure O'Level results (WAEC, NECO, GCE) with required credits in Mathematics, English, Physics, Chemistry, and Biology/Agricultural Science are uploaded on JAMB CAPS.",
-      "Register for the FUTA Post-UTME screening online via the official FUTA admission portal (https://www.futa.edu.ng).",
-      "Participate in the FUTA screening process and monitor your aggregate score calculation.",
-      "Accept admission offer promptly on JAMB CAPS once recommended."
+      "Choose FUTA as your First Choice (Most Preferred) institution in your JAMB UTME application (or change via JAMB portal).",
+      "Score a minimum of 180 in the 2026 UTME.",
+      "Ensure O'Level results (WAEC, NECO, GCE) with at least five (5) credit passes including English Language and Mathematics at not more than two (2) sittings are uploaded on JAMB CAPS.",
+      "Verify that you possess at least a pass in Physics (mandatory prerequisite to qualify for admission into ANY programme in FUTA).",
+      "Pay the N2,000 screening fee on the e-Transact platform at any bank and complete the online registration on www.futa.edu.ng.",
+      "Attend the Computer-Based Post-UTME screening at the FUTA Digital Resource Centre, Obanla Campus according to your School's schedule.",
+      "Monitor departmental aggregate ranking and accept admission offer on JAMB CAPS."
     ],
     requirements: [
-      "Minimum JAMB UTME score of 180 (higher for professional courses like Engineering, Computer Science, Architecture, and Nursing/Health Sciences)",
-      "O'Level results in not more than two sittings",
-      "Uploaded O'Level results on JAMB CAPS",
-      "FUTA Post-UTME online registration slip"
+      "Minimum JAMB UTME score of 180",
+      "Minimum five (5) O'Level credit passes in relevant subjects including English Language and Mathematics in not more than 2 sittings",
+      "At least a pass in Physics (compulsory for all FUTA courses)",
+      "Uploaded O'Level results on JAMB CAPS (FUTA will NOT consider candidates with Awaiting Results)",
+      "Printed FUTA Post-UTME Online Registration Form and e-Transact bank payment receipt",
+      "One passport photograph and JAMB UTME Result Slip"
     ],
     eligibility_rules: [
-      "Candidate must have chosen FUTA as First Choice institution.",
-      "O'Level core subjects must match course requirements exactly."
+      "Candidate must have chosen FUTA as First Choice institution (or processed a change of institution on JAMB portal).",
+      "Candidate must be at least 16 years of age.",
+      "Candidates with Awaiting Results (AR) are NOT eligible.",
+      "Financial Management Technology is NOT offered in FUTA (candidates who selected it must change course/institution).",
+      "No cell phones, iPads, wristwatches, or extraneous electronic gadgets allowed in the CBT screening hall."
     ],
     key_facts: [
-      "FUTA uses a 75:25 Point-Based Aggregate System (75% UTME score + 25% O'Level grade points).",
-      "No physical written Post-UTME exam; screening is strictly point-based credential verification using UTME and O'Level grades."
+      "FUTA uses a point-based aggregate system combining UTME (75%) and O'Level grades (25%).",
+      "CBT screening holds at the FUTA Digital Resource Centre, Obanla Campus.",
+      "Screening schedule: Day 1 (SAAT, SET, SEMS, SHHT), Day 2 (SEET), Day 3 (SOC, SOS), Day 4 (Mop-Up / Direct Entry)."
     ],
     important_notes: [
-      "Ensure your email address and phone number are active throughout the admission season.",
-      "Beware of fraudsters demanding cash for admission placement; FUTA admissions are strictly merit and quota-based via JAMB CAPS."
+      "Screening fee is ₦2,000 payable on e-Transact only.",
+      "Candidates who fail to participate in the screening exercise will not be considered for admission."
     ],
-    keywords: ["futa", "federal university of technology akure", "futa admission", "futa cutoff", "futa screening", "75:25 system"],
-    related_topics: ["FUTA Post-UTME Screening", "FUTA Clearances", "JAMB CAPS"],
+    keywords: ["futa", "federal university of technology akure", "futa admission", "futa cutoff", "futa screening", "75:25 system", "futa post utme 2026"],
+    related_topics: ["FUTA Departmental Cutoffs", "FUTA Post-UTME Screening", "FUTA Clearances", "JAMB CAPS"],
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
-    last_verified: "2026-08-10",
+    last_verified: "2026-08-20",
+    version: "2026/2027"
+  },
+  {
+    id: "futa_departmental_cutoffs_2026",
+    organization: "FUTA",
+    page_type: "policy",
+    category: "Institution Cutoffs",
+    subcategory: "Official Departmental Cut-Off Marks",
+    title: "FUTA Official Departmental Aggregate Cut-Off Marks (2026/2027 Session)",
+    summary: "Complete approved departmental aggregate cut-off marks for admission into all undergraduate degree programmes at the Federal University of Technology, Akure (FUTA) for the 2026/2027 academic session.",
+    steps: [],
+    requirements: [
+      "Score minimum 180 in UTME",
+      "Meet or exceed the departmental aggregate score for your chosen course",
+      "5 O'Level credits including English and Maths in max 2 sittings",
+      "Pass in Physics"
+    ],
+    eligibility_rules: [
+      "Candidates must meet the specific aggregate benchmark for their department.",
+      "Admission is ranked strictly by aggregate score under merit and quotas."
+    ],
+    key_facts: [
+      "SEET (Engineering): Electrical & Electronics (74.37), Mechanical (73.75), Civil & Environmental (71.87), Computer Eng (69.62), Agric & Environmental (55.12), Metallurgical & Materials (54.87), Mining (54.75), ICT (49.75), Industrial & Production (47.5).",
+      "SOC (Computing): Computer Science (69.0), Cyber Security (63.75), Software Engineering (63.75), Information Technology (63.75), Information Systems (63.75).",
+      "SET (Environmental): Architecture (72.87), Surveying & Geoinformatics (64.25), Quantity Surveying (57.0), Building (56.62), Industrial Design (53.25), Urban & Regional Planning (52.87), Estate Management (47.5).",
+      "SOS (Sciences): Biochemistry (63.37), Microbiology (63.0), Industrial Mathematics (59.0), Biotechnology (47.5), Biology (47.5), Chemistry (47.5), Physics (47.5), Statistics (47.5).",
+      "SHHT & SBMS (Health / Medical): Medicine & Surgery (62.0), Pharmacy (60.0), Nursing Science (60.0), Human Anatomy (59.5), Human Physiology (57.25), Medical Laboratory Science (47.5), Biomedical Technology (47.5).",
+      "SAAT (Agriculture): Food Science & Tech (58.12), Forestry & Wood Tech (57.5), Animal Production & Health (55.37), Agric Extension (47.5), Agric Economics (47.5), Crop/Soil/Pest (47.5), Ecotourism (47.5), Fisheries (47.5).",
+      "SEMS (Earth Sciences): Applied Geophysics (47.5), Applied Geology (47.5), Marine Science & Tech (47.5), Meteorology (47.5), Remote Sensing & GIS (47.5)."
+    ],
+    important_notes: [
+      "Aggregate is calculated on a 100% scale using FUTA's approved 75:25 formula.",
+      "Departmental cut-off marks are binding for 2026/2027 admission recommendations on JAMB CAPS."
+    ],
+    keywords: ["futa departmental cutoffs", "futa course cut off", "futa aggregate 2026", "futa eee cutoff", "futa csc cutoff", "futa medicine cutoff", "futa architecture cutoff"],
+    related_topics: ["FUTA Admission Guidelines", "FUTA Post-UTME Screening"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-20",
     version: "2026/2027"
   },
   {

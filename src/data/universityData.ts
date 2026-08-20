@@ -134,26 +134,30 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
     name: "Federal University of Technology, Akure",
     founded: "1981",
     motto: "Technology for Self-Reliance",
-    bestKnownFor: "Engineering, Earth Sciences, Computing, and Agricultural Science. One of Nigeria's premier technology universities.",
-    campusVibe: "Academic, highly competitive, and innovation-focused.",
+    bestKnownFor: "Engineering, Computing, Environmental Sciences, Medical Sciences, Earth Sciences, and Agriculture. One of Nigeria's top-ranked technology universities.",
+    campusVibe: "Academic, rigorous, and technology-driven.",
     facultyStudentRatio: "1:28",
     researchOutput: "Very High - Leading in applied scientific research, engineering, and technology incubation.",
-    facilities: ["FUTA Library", "FUTA ICT Center", "University Health Center", "School of Science Park"],
+    facilities: ["FUTA Digital Resource Centre", "FUTA Library", "FUTA ICT Center", "University Health Center", "School of Science Park"],
     scoringSystem: {
       hasJamb: true,
       hasPostUtme: false,
       hasOLevel: true,
-      explanation: "FUTA uses a point-based aggregate system with a 75:25 ratio. UTME score is weighted at 75% and O'Level results make up 25%."
+      explanation: "FUTA uses a point-based aggregate system with a 75:25 ratio. UTME score is weighted at 75% ((JAMB / 400) * 75) and 5 relevant O'Level subject grades make up 25% (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52). Minimum institutional cutoff is 180. Pass in Physics is mandatory for all courses. Awaiting results are not accepted."
     },
     courses: [
-      "Accounting", "Agricultural and Environmental Engineering", "Agricultural and Resource Economics", 
-      "Animal Production and Health", "Applied Geology", "Applied Geophysics", "Architecture", 
-      "Biochemistry", "Biology", "Biotechnology", "Chemistry", "Civil Engineering", 
-      "Computer Engineering", "Computer Science", "Cyber Security", "Electrical and Electronic Engineering", 
-      "Estate Management", "Food Science and Technology", "Industrial and Production Engineering", 
-      "Information Technology", "Mathematical Sciences", "Mechanical Engineering", 
-      "Metallurgical and Materials Engineering", "Meteorology", "Microbiology", "Mining Engineering", 
-      "Physics", "Quantity Surveying", "Software Engineering", "Statistics", "Urban and Regional Planning"
+      "Agricultural Extension and Communication Technology", "Animal Production and Health", "Agricultural & Resource Economics",
+      "Crop, Soil and Pest Management", "Ecotourism and Wildlife Management", "Fisheries and Aquaculture Technology",
+      "Food Science and Technology", "Forestry and Wood Technology", "Agricultural & Environmental Engineering",
+      "Computer Engineering", "Civil & Environmental Engineering", "Electrical & Electronics Engineering",
+      "Information & Communication Technology", "Industrial & Production Engineering", "Mechanical Engineering",
+      "Metallurgical & Materials Engineering", "Mining Engineering", "Applied Geophysics", "Applied Geology",
+      "Marine Science & Technology", "Meteorology", "Remote Sensing & GIS", "Architecture", "Building",
+      "Estate Management", "Industrial Design", "Quantity Surveying", "Surveying & Geoinformatics",
+      "Urban & Regional Planning", "Computer Science", "Information Technology", "Information Systems",
+      "Cyber Security", "Software Engineering", "Biochemistry", "Biology", "Biotechnology", "Chemistry",
+      "Microbiology", "Industrial Mathematics", "Physics", "Statistics", "Pharmacy", "Medical Laboratory Science",
+      "Nursing Science", "Human Anatomy", "Biomedical Technology", "Human Physiology", "Medicine and Surgery"
     ]
   },
   "Ogun State College of Nursing Sciences": {

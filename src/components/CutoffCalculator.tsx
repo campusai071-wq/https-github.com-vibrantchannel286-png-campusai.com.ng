@@ -29,6 +29,7 @@ import {
 } from '../services/userService';
 import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, saveGlobalCalculationRecord, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
+import { FUTA_CUTOFFS_2026_2027, getFUTASchools } from '../data/futaCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import QuotaModal from './QuotaModal';
@@ -734,27 +735,29 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
   },
   futa: {
     fullName: "Federal University of Technology, Akure (FUTA)",
-    formulaDesc: "FUTA calculates its aggregate using a 75:25 Point-Based formula (JAMB and O'Level). There is no written Post-UTME exam!",
+    formulaDesc: "FUTA calculates its aggregate using a 75:25 Point-Based formula (JAMB 75% + O'Level 25%). There is a Computer-Based Post-UTME screening at the Digital Resource Centre, Obanla Campus!",
     formulaSteps: [
       "JAMB Score: Divided by 400 and multiplied by 75 (Max 75 points).",
-      "O'Level Points: Converted to a max of 25 points based on your best 5 subjects (A1=10, B2=9, B3=8, C4=7, C5=6, C6=5 points)."
+      "O'Level Points: Converted to a max of 25 points based on your best 5 subjects (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52; Total / 20 * 25).",
+      "Physics is mandatory for all programmes. Candidates with Awaiting Results are not eligible."
     ],
     cutoffs: [
-      { course: "Computer Science", score: "72.50+" },
-      { course: "Medicine & Surgery", score: "81.20+" },
-      { course: "Electrical & Electronics Engineering", score: "70.80+" },
-      { course: "Mechanical Engineering", score: "69.50+" },
-      { course: "Civil Engineering", score: "67.20+" }
+      { course: "Electrical & Electronics Eng.", score: "74.37%" },
+      { course: "Mechanical Engineering", score: "73.75%" },
+      { course: "Architecture", score: "72.87%" },
+      { course: "Civil & Environmental Eng.", score: "71.87%" },
+      { course: "Computer Engineering", score: "69.62%" },
+      { course: "Computer Science", score: "69.00%" }
     ],
     postUtmeGuide: {
-      format: "Online Screening & Point-Based Computation (No Exam)",
-      subjects: "N/A (Calculated solely based on JAMB and O'Level Grades).",
-      duration: "N/A",
-      fee: "₦2,000 (Screening Registration)",
+      format: "Computer-Based Screening (CBT) at FUTA Digital Resource Centre, Obanla Campus",
+      subjects: "CBT Screening based on UTME Subject Combination & O'Level verification.",
+      duration: "Scheduled by School / Faculty (Day 1: SAAT/SET/SEMS/SHHT, Day 2: SEET, Day 3: SOC/SOS, Day 4: Mop-up)",
+      fee: "₦2,000 (e-Transact platform only)",
       tips: [
-        "Your O'Level grades are extremely important since 25% of the aggregate depends on them.",
-        "Ensure your WAEC/NECO results are correctly uploaded to JAMB CAPS, otherwise you won't be considered.",
-        "Avoid any sitting penalties; FUTA accepts two sittings but single sitting is highly advantageous."
+        "Physics is a mandatory prerequisite for ALL courses in FUTA (at least a pass).",
+        "Your O'Level grades provide 25% of the total aggregate score; higher grades give a major boost.",
+        "Ensure results are uploaded to JAMB CAPS. FUTA does NOT accept Awaiting Results."
       ]
     }
   },
@@ -1352,6 +1355,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isUICutoffsModalOpen, setIsUICutoffsModalOpen] = useState(false);
   const [uiCutoffSearch, setUiCutoffSearch] = useState('');
   const [uiFacultyFilter, setUiFacultyFilter] = useState('ALL');
+
+  // ── FUTA 2026/2027 Cutoffs Explorer State ──
+  const [isFUTACutoffsModalOpen, setIsFUTACutoffsModalOpen] = useState(false);
+  const [futaCutoffSearch, setFutaCutoffSearch] = useState('');
+  const [futaSchoolFilter, setFutaSchoolFilter] = useState('ALL');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -2664,6 +2672,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View All 79 UI Cut-Off Marks (Merit / Catchment / ELDS)
+                        </button>
+                      )}
+                      {currentSchoolSlug === 'futa' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsFUTACutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View All Official FUTA 2026/2027 Cut-Off Marks
                         </button>
                       )}
                     </div>
@@ -6077,6 +6094,244 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsUICutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FUTA 2026/2027 Cutoff Marks Explorer Modal */}
+      <AnimatePresence>
+        {isFUTACutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFUTACutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-gray-950 w-full max-w-5xl rounded-[32px] overflow-hidden shadow-2xl border border-amber-500/20 my-auto z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-white/5 bg-gradient-to-r from-amber-950/40 via-gray-900 to-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                    <GraduationCap size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] font-black uppercase tracking-widest">
+                        Official FUTA Release • 2026/2027
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
+                      Federal University of Technology, Akure (FUTA) Departmental Cut-Off Marks
+                    </h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      Academic Planning & Admissions Unit • Official Approved Aggregate Benchmarks (75:25 Point System)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFUTACutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all self-end sm:self-auto shrink-0 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Filters & Search */}
+              <div className="p-4 sm:p-6 border-b border-white/5 bg-black/40 flex flex-col gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={futaCutoffSearch}
+                      onChange={e => setFutaCutoffSearch(e.target.value)}
+                      placeholder="Search across all FUTA courses (e.g., Electrical, Computer Science, Architecture, Cyber Security, Medicine)..."
+                      className="w-full pl-9 pr-4 py-2.5 bg-gray-900 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                    {futaCutoffSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setFutaCutoffSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 shrink-0">
+                      School:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFutaSchoolFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
+                        futaSchoolFilter === 'ALL'
+                          ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                          : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      All ({FUTA_CUTOFFS_2026_2027.length})
+                    </button>
+                    {getFUTASchools().map(sch => {
+                      const count = FUTA_CUTOFFS_2026_2027.filter(c => c.school === sch).length;
+                      return (
+                        <button
+                          key={sch}
+                          type="button"
+                          onClick={() => setFutaSchoolFilter(sch)}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
+                            futaSchoolFilter === sch
+                              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                              : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {sch.split(' ')[0]} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Key Insights Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5">
+                  <div className="p-2 bg-white/5 rounded-lg border border-white/5 flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Total Courses</span>
+                    <span className="text-xs font-black text-amber-400">{FUTA_CUTOFFS_2026_2027.length}</span>
+                  </div>
+                  <div className="p-2 bg-white/5 rounded-lg border border-white/5 flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">UTME Cut-Off</span>
+                    <span className="text-xs font-black text-emerald-400">180 Minimum</span>
+                  </div>
+                  <div className="p-2 bg-white/5 rounded-lg border border-white/5 flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Top Benchmark</span>
+                    <span className="text-xs font-black text-amber-400">EEE (74.37%)</span>
+                  </div>
+                  <div className="p-2 bg-white/5 rounded-lg border border-white/5 flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Physics Rule</span>
+                    <span className="text-xs font-black text-cyan-400">Mandatory Pass</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Programmes Table / Cards */}
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-2.5">
+                {(() => {
+                  const filtered = FUTA_CUTOFFS_2026_2027.filter(item => {
+                    const matchesSchool = futaSchoolFilter === 'ALL' || item.school === futaSchoolFilter;
+                    const q = futaCutoffSearch.toLowerCase().trim();
+                    const matchesSearch =
+                      !q ||
+                      item.programme.toLowerCase().includes(q) ||
+                      item.code.toLowerCase().includes(q) ||
+                      item.school.toLowerCase().includes(q);
+                    return matchesSchool && matchesSearch;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-12 text-center text-gray-500 text-xs uppercase font-bold tracking-wider">
+                        No FUTA programmes matched your search filters.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {filtered.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 bg-gray-900/70 border border-white/5 hover:border-amber-500/30 rounded-2xl transition-all flex flex-col justify-between gap-3 group"
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] font-black uppercase tracking-widest">
+                                    {item.code}
+                                  </span>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wide truncate max-w-[200px]">
+                                    {item.school}
+                                  </span>
+                                </div>
+                                <h4 className="text-sm font-black text-white group-hover:text-amber-300 transition-colors leading-snug">
+                                  {item.programme}
+                                </h4>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="text-base sm:text-lg font-black text-amber-400 tracking-tight">
+                                  {item.cutoff}%
+                                </span>
+                                <span className="block text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                                  Cut-Off
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Progress bar visual comparison to 100 */}
+                            <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden mt-3">
+                              <div
+                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, Math.max(10, item.cutoff))}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[9px]">
+                            <span className="text-gray-400 font-bold">75% UTME + 25% O'Level</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTargetUni("Federal University of Technology, Akure (FUTA)");
+                                setTargetCourse(item.programme);
+                                setIsFUTACutoffsModalOpen(false);
+                                window.scrollTo({ top: 400, behavior: 'smooth' });
+                              }}
+                              className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-black border border-amber-500/20 rounded-lg font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              Calculate Chance <ArrowRight size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-amber-400" />
+                  <span>FUTA Aggregate = (JAMB / 400 * 75) + (O'Level Points / 20 * 25). Minimum UTME: 180</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://www.futa.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-400 hover:underline flex items-center gap-1"
+                  >
+                    FUTA Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsFUTACutoffsModalOpen(false)}
                     className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all"
                   >
                     Close
