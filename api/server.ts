@@ -1176,21 +1176,24 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
   // 1. Groq
   if (process.env.GROQ_API_KEY) {
-    try {
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const completion = await groq.chat.completions.create({
-        messages: chatMessages as any,
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: maxTokens,
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log(`${tag} Succeeded via Groq.`);
-        return { text, provider: 'groq' };
+    const groqModels = ['llama-3.3-70b-specdec', 'deepseek-r1-distill-llama-70b', 'llama3-70b-8192', 'llama3-8b-8192'];
+    for (const modelName of groqModels) {
+      try {
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const completion = await groq.chat.completions.create({
+          messages: chatMessages as any,
+          model: modelName,
+          max_tokens: Math.min(maxTokens, 4000),
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log(`${tag} Succeeded via Groq (${modelName}).`);
+          return { text, provider: 'groq' };
+        }
+      } catch (e: any) {
+        console.warn(`${tag} Groq (${modelName}) failed:`, e.message || e);
       }
-    } catch (e: any) {
-      console.warn(`${tag} Groq failed:`, e.message || e);
     }
   }
 
@@ -1201,6 +1204,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
       const completion = await openrouter.chat.completions.create({
         messages: chatMessages as any,
         model: 'meta-llama/llama-3.3-70b-instruct',
+        max_tokens: Math.min(maxTokens, 4000),
         ...(jsonMode ? { response_format: { type: "json_object" } } : {})
       });
       const text = completion.choices[0]?.message?.content || "";
