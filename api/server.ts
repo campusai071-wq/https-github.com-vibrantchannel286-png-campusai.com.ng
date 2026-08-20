@@ -2674,7 +2674,7 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
           }
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
-          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.1-8b-instant', max_tokens: 3 });
+          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.3-70b-specdec', max_tokens: 3 });
           if (completion?.choices?.length > 0) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Tavily') {
           const client = new TavilyClient({ apiKey: item.rawKey });
