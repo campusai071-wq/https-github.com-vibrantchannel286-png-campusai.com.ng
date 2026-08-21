@@ -780,6 +780,36 @@ const AppContent: React.FC = () => {
         onOpenSidebar={() => setIsSidebarOpen(true)}
       />
 
+      {/* Global Important Message Banner across all pages */}
+      {(() => {
+        const importantItem = news.find(n => n.isImportant) || news[0];
+        if (!importantItem) return null;
+        return (
+          <div className="pt-20 md:pt-24 px-4 bg-transparent">
+            <div className="container mx-auto max-w-7xl">
+              <div 
+                onClick={() => openArticle(importantItem)}
+                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white p-3.5 md:p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 cursor-pointer hover:opacity-95 transition-all group border border-white/20"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-8 h-8 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center shrink-0 animate-pulse">
+                    <span className="text-white text-xs font-black">📢</span>
+                  </div>
+                  <div className="overflow-hidden">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-200 block">Important Update & Download PDF</span>
+                    <p className="text-xs md:text-sm font-black truncate group-hover:underline">{importantItem.title}</p>
+                  </div>
+                </div>
+                <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-white text-blue-900 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md">
+                  <span>View & Download</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <Suspense fallback={null}>
         <Sidebar
           isOpen={isSidebarOpen}

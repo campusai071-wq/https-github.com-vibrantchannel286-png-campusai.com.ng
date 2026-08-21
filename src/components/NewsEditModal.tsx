@@ -21,7 +21,8 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
     image: '',
     images: [],
     sourceUrl: '',
-    tags: []
+    tags: [],
+    isImportant: false
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
         images: existingImages,
         sourceUrl: news.sourceUrl || '',
         tags: news.tags || [],
+        isImportant: Boolean(news.isImportant)
       });
     }
   }, [news]);
@@ -150,6 +152,23 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between cursor-pointer" onClick={() => setFormData({ ...formData, isImportant: !formData.isImportant })}>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-amber-500" /> Mark as Important Announcement
+                    </p>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-400">
+                      Pins this article to the top of news feeds and highlights it.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.isImportant)}
+                    onChange={e => setFormData({ ...formData, isImportant: e.target.checked })}
+                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                  />
                 </div>
 
                 <ArticleImagesUploader

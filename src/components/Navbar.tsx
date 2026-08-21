@@ -324,12 +324,20 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                   </button>
                </div>
             ) : (
-               <button 
-                onClick={onLoginRequest} 
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer"
-               >
-                 <LogIn size={14} /> Sign In
-               </button>
+               <div className="flex items-center gap-2">
+                 <button 
+                  onClick={onLoginRequest} 
+                  className="px-4 py-2 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-900 dark:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer border border-gray-200 dark:border-gray-800"
+                 >
+                   Log In
+                 </button>
+                 <button 
+                  onClick={onLoginRequest} 
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-950 dark:bg-white text-white dark:text-gray-950 hover:bg-gray-900 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all cursor-pointer"
+                 >
+                   Create Account
+                 </button>
+               </div>
             )}
             
             <button onClick={() => onNavigate('settings')} aria-label="Settings" className="p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
@@ -485,14 +493,22 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                    <ShieldAlert size={20} /> Access Architect Console
                  </button>
                )}
-               {!user && (
-                 <button 
-                   onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
-                   className="mb-4 w-full p-5 bg-blue-600 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl"
-                 >
-                   <LogIn size={20} /> Sign In to CampusAI
-                 </button>
-               )}
+                {!user && (
+                  <div className="mb-4 flex gap-2">
+                    <button 
+                      onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
+                      className="flex-1 p-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-[20px] font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-gray-800 cursor-pointer"
+                    >
+                      Log In
+                    </button>
+                    <button 
+                      onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
+                      className="flex-1 p-4 bg-blue-600 text-white rounded-[20px] font-black text-xs uppercase tracking-widest shadow-xl cursor-pointer"
+                    >
+                      Create Account
+                    </button>
+                  </div>
+                )}
                
                {navItems.map(item => (
                   <button 

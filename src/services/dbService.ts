@@ -324,6 +324,7 @@ export const getEffectiveDateMs = (item: NewsItem, now: number = Date.now()): nu
 
 export const sortNewsBySyncAndDate = (a: NewsItem, b: NewsItem, now: number = Date.now()): number => {
   if (!a || !b) return 0;
+
   // 1. Live news (isLive: true) always before mock news (isLive: false/undefined)
   const aLive = !!a.isLive;
   const bLive = !!b.isLive;

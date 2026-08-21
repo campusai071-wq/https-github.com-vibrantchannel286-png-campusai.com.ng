@@ -272,6 +272,46 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     citationUrl: "https://myschoolgist.com/news/nsuk-post-utme-de-form/",
     eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   },
+  "University of Abuja": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "UNIABUJA 2026/2027 Post-UTME online screening portal is live. Ensure O-Level results are uploaded to JAMB CAPS.",
+    portalLink: "https://portal.uniabuja.edu.ng/",
+    cutoffScore: "180",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/uniabuja-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 180. Candidates must have uploaded O-Level results to CAPS."
+  },
+  "Imo State University": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "IMSU Owerri 2026/2027 Post-UTME online screening form is active for candidates who scored 150+ in UTME.",
+    portalLink: "https://imsu.edu.ng/apply",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/imsu-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 150. First and second choice candidates with change of institution eligible."
+  },
+  "Bauchi State University, Gadau": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "BASU Gadau (Sa'adu Zungur University) 2026/2027 Post-UTME/DE online screening portal is active.",
+    portalLink: "https://basu.edu.ng/apply",
+    cutoffScore: "140",
+    registrationFee: 2000,
+    citationUrl: "https://myschoolgist.com/news/basu-post-utme-form/",
+    eligibilityText: "Minimum JAMB score: 140."
+  },
+  "WAEC & JAMB CAPS Verification": {
+    isOut: true,
+    statusText: "Upload Window Active",
+    details: "2026 WAEC / NECO result upload on JAMB CAPS is mandatory for all 2026/2027 Post-UTME candidates. Ensure result verification is completed before institutional admission screening closes.",
+    portalLink: "https://efacility.jamb.gov.ng/",
+    cutoffScore: "5 Credits",
+    registrationFee: 0,
+    citationUrl: "https://myschoolgist.com/news/jamb-caps-olevel-upload/",
+    eligibilityText: "Mandatory 5 O-Level credit passes including Mathematics and English Language."
+  },
   "Sule Lamido University": {
     isOut: true,
     statusText: "Registration Active",

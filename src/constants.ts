@@ -12,6 +12,104 @@ export const ADMISSION_DATES = {
 
 export const MOCK_NEWS: NewsItem[] = [
   {
+    id: 'waec-gce-2026-second-series-timetable',
+    slug: 'waec-gce-2026-second-series-final-timetable-download-pdf',
+    title: 'WAEC GCE 2026 Second Series Final Timetable Released — Download Official PDF',
+    category: 'WAEC',
+    date: new Date(Date.now() + 864000000).toISOString(),
+    image: '',
+    excerpt: 'The West African Examinations Council (WAEC) has officially released the final timetable for the West African Senior School Certificate Examination (WASSCE) for Private Candidates, 2026 – Second Series. Download the official PDF timetable here.',
+    fullContent: 'The West African Examinations Council (WAEC) has officially released the final timetable for the **West African Senior School Certificate Examination (WASSCE) for Private Candidates, 2026 – Second Series**.\n\n### 📥 Official Document & Download\n<a href="#" onclick="window.print(); return false;" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider">\n  <span>📥 Download / Print Official 2026 WAEC GCE Timetable PDF</span>\n</a>\n\n### Key Examination Dates\n- **Practical Planning Sessions**: Friday, 4th September, 2026 (Foods & Nutrition / Home Management)\n- **Oral & Performance Tests**: Monday, 14th September to Friday, 25th September, 2026\n- **Written Papers Begin**: Tuesday, 22nd September, 2026 (Further Mathematics / Mathematics Elective)\n- **General Mathematics**: Saturday, 3rd October, 2026 (9:30am - 12:00pm Essay, 2:00pm - 3:30pm Objective)\n- **English Language**: Saturday, 17th October, 2026 (9:30am Essay/Obj, 2:00pm Test of Orals)\n- **Chemistry**: Monday, 5th October, 2026\n- **Physics**: Thursday, 15th October, 2026\n- **Biology**: Wednesday, 7th October, 2026\n- **Final Paper**: Wednesday, 28th October, 2026 (Technical Drawing)\n\n### Important Notes for Candidates:\n1. **Difference in Time on Question Paper**: Where the duration indicated on the Question Paper differs from that on the Timetable, the one on the question paper should be followed.\n2. **Question Papers Given Out in Advance**: Visual Art 3 (Paper 3A instructions & Paper 3B question papers) will be given to supervisors and candidates two weeks before the exam date.\n3. **Special Needs**: Candidates with special needs are allowed one and half times the time allotted to other candidates.',
+    sourceUrl: 'https://www.waeconline.org.ng',
+    isImportant: false,
+    createdAt: new Date(Date.now() + 864000000).toISOString(),
+    updatedAt: new Date(Date.now() + 864000000).toISOString()
+  },
+  {
+    id: 'unn-mock-test-2026',
+    slug: 'unn-holds-mock-test-for-post-utme-candidates-2026',
+    title: 'UNN Holds Mock Test for Post-UTME Candidates, 2026',
+    category: 'Federal',
+    date: 'August 22, 2026',
+    image: '',
+    excerpt: 'The University of Nigeria, Nsukka (UNN) has announced mock CBT test schedules for all registered Post-UTME candidates for the 2026/2027 admission exercise.',
+    fullContent: 'The University of Nigeria, Nsukka (UNN) has scheduled its official CBT mock test for all prospective Post-UTME candidates.\n\nCandidates are advised to log into their UNN admission portals to print their mock exam slips, showing the exact time and designated computer laboratory center.',
+    sourceUrl: 'https://unn.edu.ng',
+    isImportant: false
+  },
+  {
+    id: 'imsu-supplementary-2026',
+    slug: 'imsu-begins-supplementary-admission-screening-2026',
+    title: 'IMSU Begins Supplementary Admission Screening, 2026',
+    category: 'State',
+    date: 'August 24, 2026',
+    image: '',
+    excerpt: 'Imo State University (IMSU) has commenced its supplementary admission screening exercise for candidates seeking admission for the 2026/2027 academic session.',
+    fullContent: 'Imo State University (IMSU) has officially announced the commencement of supplementary admission screening.\n\nEligible candidates who scored the minimum aggregate cut-off are required to apply through the school portal.',
+    sourceUrl: 'https://imsu.edu.ng',
+    isImportant: false
+  },
+  {
+    id: 'oau-screening-pass-2026',
+    slug: 'oau-begins-printing-of-post-utme-screening-pass-2026',
+    title: 'OAU Begins Printing of Post-UTME Screening Pass, 2026',
+    category: 'Federal',
+    date: 'August 24, 2026',
+    image: '',
+    excerpt: 'Obafemi Awolowo University (OAU) has announced that candidates can now print their Post-UTME screening exam passes ahead of the CBT screening dates.',
+    fullContent: 'Obafemi Awolowo University (OAU), Ile-Ife has opened the portal for candidates to print their official screening pass for the 2026/2027 Post-UTME exercise.',
+    sourceUrl: 'https://oauife.edu.ng',
+    isImportant: false
+  },
+  {
+    id: 'uniabuja-post-utme-deadline-2026',
+    slug: 'uniabuja-ends-post-utmede-registration-2026',
+    title: 'UNIABUJA Ends Post-UTME/DE Registration, 2026',
+    category: 'Federal',
+    date: 'August 26, 2026',
+    image: '',
+    excerpt: 'The University of Abuja (UNIABUJA) has announced the official closing date for the 2026/2027 Post-UTME and Direct Entry online registration.',
+    fullContent: 'Candidates who are yet to complete their UNIABUJA Post-UTME registration are advised to do so before the final deadline on August 26, 2026.',
+    sourceUrl: 'https://uniabuja.edu.ng',
+    isImportant: false
+  },
+  {
+    id: 'waec-gce-reg-end-2026',
+    slug: 'waec-ends-gce-2026-registration-2nd-series',
+    title: 'WAEC Ends GCE 2026 Registration (2nd Series)',
+    category: 'WAEC',
+    date: 'August 30, 2026',
+    image: '',
+    excerpt: 'The West African Examinations Council (WAEC) has announced the final deadline for the registration of WASSCE for Private Candidates, 2026 – Second Series.',
+    fullContent: 'WAEC has reminded all prospective candidates that online registration for the 2026 Second Series GCE will officially close on August 30, 2026.',
+    sourceUrl: 'https://www.waeconline.org.ng',
+    isImportant: false
+  },
+  {
+    id: 'neco-gce-exam-2026',
+    slug: 'neco-begins-gce-examination-2026',
+    title: 'NECO Begins GCE Examination, 2026',
+    category: 'NECO',
+    date: 'November 25, 2026',
+    image: '',
+    excerpt: 'The National Examinations Council (NECO) has scheduled the commencement of the 2026 Senior School Certificate Examination (SSCE) for External candidates.',
+    fullContent: 'NECO GCE examinations for 2026 will officially commence nationwide on November 25, 2026. Candidates are advised to print their photo cards and timetables.',
+    sourceUrl: 'https://neco.gov.ng',
+    isImportant: false
+  },
+  {
+    id: 'basu-screening-2026',
+    slug: 'basu-ends-physical-screening-for-admitted-candidates-2026',
+    title: 'BASU Ends Physical Screening for Admitted Candidates, 2026',
+    category: 'State',
+    date: 'October 9, 2026',
+    image: '',
+    excerpt: 'Bauchi State University (BASU) has announced the final deadline for the physical clearance and screening exercise for newly admitted students.',
+    fullContent: 'All newly admitted students of Bauchi State University (BASU) are required to complete their physical registration and document verification before October 9, 2026.',
+    sourceUrl: 'https://basu.edu.ng',
+    isImportant: false
+  },
+  {
     id: '19',
     slug: 'ui-releases-official-2025-2026-departmental-cut-off-marks',
     title: 'University of Ibadan (UI) Releases Official 2025/2026 Departmental Cut-Off Marks',
@@ -21,7 +119,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially released the approved departmental aggregate cut-off marks for the 2025/2026 admission exercise across all faculties.',
     fullContent: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially published the approved departmental aggregate cut-off marks for the 2025/2026 undergraduate admission exercise.\n\nThe released document contains merit, catchment, and Educationally Less Developed States (ELDS) cutoff marks across all 13 faculties:\n\nKey Highlights:\n- Medicine and Surgery: 78.875 (Merit & Catchment) / 77.375 (ELDS)\n- Nursing Science: 71.375 (Merit & Catchment) / 67.875 (ELDS)\n- Law: 70.875 (Merit & Catchment) / 67.625 (ELDS)\n- Mechanical Engineering: 70.500 (Merit & Catchment) / 60.125 (ELDS)\n- Electrical and Electronics Engineering: 70.000 (Merit & Catchment) / 58.875 (ELDS)\n- Pharmacy: 69.125 (Merit & Catchment) / 62.875 (ELDS)\n- Dentistry: 68.625 (Merit & Catchment) / 66.750 (ELDS)\n- Accounting: 68.500 (Merit & Catchment) / 66.125 (ELDS)\n- Physiotherapy: 65.125 (Merit & Catchment) / 61.625 (ELDS)\n- Computer Science: 63.500 (Merit & Catchment) / 53.500 (ELDS)\n- Medical Laboratory Science: 63.250 (Merit & Catchment) / 60.250 (ELDS)\n- Civil Engineering: 63.250 (Merit & Catchment) / 57.000 (ELDS)\n- Petroleum Engineering: 62.750 (Merit & Catchment) / 57.125 (ELDS)\n- Communication and Language Arts: 61.000 (Merit & Catchment) / 58.500 (ELDS)\n- Economics: 58.125 (Merit & Catchment) / 53.625 (ELDS)\n- Veterinary Medicine: 57.125 (Merit & Catchment) / 57.125 (ELDS)\n\nCandidates are advised that aggregate scores are computed via: Aggregate = (JAMB / 8) + (Post-UTME / 2).',
     sourceUrl: 'https://admissions.ui.edu.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '18',
@@ -33,7 +131,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'While a universal date has not been set by all, several Nigerian universities have started announcing their specific Post-UTME screening procedures for the 2026/2027 session.',
     fullContent: 'For the 2026/2027 academic session, a number of Nigerian universities have started to release their specific Post-UTME screening requirements and registration procedures. Candidates are strongly advised to check the official websites of their preferred institutions regularly as announcements are being made gradually.\n\nBe cautious of third-party platforms claiming to handle registrations or charging for "guaranteed" admission. Always use official university portals.',
     sourceUrl: 'https://myschool.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '15',
@@ -45,7 +143,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has officially released the results of the 2026 Unified Tertiary Matriculation Examination (UTME), showing a sharp decline in average scores.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has officially announced the release of the 2026 Unified Tertiary Matriculation Examination (UTME) results.\n\nOut of the 1,985,642 candidates who registered and sat for the exam across 750 CBT centres nationwide, only about 24% scored 200 and above, while approximately 76% scored below the 200 mark. This has raised concerns among parents, teachers, and university administrators regarding the high-stakes testing environment and candidate preparation.\n\nJAMB Registrar, Prof. Is-haq Oloyede, stated that the board will not compromise on its standards and warned against fraudulent sites claiming to upgrade scores.\n\nHow to check your results:\n- Send UTME-RESULT to 55019 or 66019 using the phone number registered for the profile.\n- Alternatively, log in to the official JAMB e-facility portal to print your result slip.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '16',
@@ -57,7 +155,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'The Nigerian Education Loan Fund (NELFUND) has successfully disbursed academic fees for over 20,000 undergraduate applicants in several state and federal universities.',
     fullContent: 'The management of the Nigerian Education Loan Fund (NELFUND) has announced the successful clearance and disbursement of administrative and academic tuition fees directly to selected institutions under its first phase.\n\nKey beneficiaries in this round include:\n- University of Lagos (UNILAG) - N1.2 Billion\n- University of Ibadan (UI) - N950 Million\n- Ahmadu Bello University (ABU) - N1.5 Billion\n- University of Nigeria, Nsukka (UNN) - N1.1 Billion\n\nThe Managing Director of NELFUND stated that this direct disbursement covers 100% of institutional charges for student loan applicants. In addition to the tuition support, qualified students will begin receiving their monthly N20,000 upkeep allowances directly into their bank accounts from the end of May 2026.',
     sourceUrl: 'https://nelfund.gov.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '17',
@@ -69,7 +167,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'The Academic Staff Union of Universities (ASUU) has put federal and state branches on high alert for a potential warning strike, citing government indifference to renegotiated welfare packages.',
     fullContent: 'Following an Emergency National Executive Council (NEC) session on May 23, 2026, the Academic Staff Union of Universities (ASUU) has criticized the Federal Government over its continuous delay in implementing the negotiated 2026 Funding and Revitalization Agreement.\n\nThe union has given a final 14-day ultimatum, threatening a 2-week warning strike if their demands are not addressed.\n\nMain demands include:\n- Immediate full settlement of withheld salaries and earned academic allowances (EAA).\n- Total removal of university payroll systems from IPPIS to safeguard university autonomy.\n- Release of revitalization funding to arrest decaying campus infrastructures nationwide.\n\nASUU President urged students and parents to understand that this push is necessary to secure the quality and survival of public education in Nigeria.',
     sourceUrl: 'https://asuu.org.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '5',
@@ -81,7 +179,7 @@ export const MOCK_NEWS: NewsItem[] = [
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has announced that there will be NO extension for the 2026 registration period. ePIN sales end Feb 26th, while final registration closes Feb 28th.',
     fullContent: 'JAMB has officially confirmed that approximately one million candidates have already registered for the ongoing 2026 UTME. The Board has made it clear that the registration timeline remains unchanged to align with the calendars of other examination bodies. \n\nKey Dates to Note:\n- Monday, Jan 26: Registration Commenced\n- Thursday, Feb 26: Sales of ePIN Conclude\n- Saturday, Feb 28: Final Registration Deadline\n\nThe Board expressed concern over the "near absence" of candidates at many accredited CBT centres at this stage and warns that late-minute agitations for extensions will not be entertained. Candidates are also warned to beware of registration cheats and fraudulent tutorial centres posing as CBT agents.',
     sourceUrl: 'https://myschool.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '3',
@@ -92,7 +190,7 @@ export const MOCK_NEWS: NewsItem[] = [
     image: '',
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has scheduled the 2026 Unified Tertiary Matriculation Examination (UTME) registration to commence on January 31, 2026. Candidates are required to generate their profile codes using their NIN.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: true
+    isImportant: false
   },
   {
     id: '1',

@@ -1270,6 +1270,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Analytics computation (memoised inline) ───────────────────────────────────
   let totalCalculations = 0;
+  let registeredCalculations = 0;
+  let guestCalculations = 0;
   let totalArticlesRead = 0;
   let totalReadingMinutes = 0;
   let totalInstalls = 0;
@@ -1297,6 +1299,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     if (act.type === 'calculation' || desc.includes('Calculated aggregate')) {
       totalCalculations++;
+      if (act.userId === 'guest' || act.metadata?.isGuest || act.metadata?.userEmail === '' || act.title?.includes('Guest')) {
+        guestCalculations++;
+      } else {
+        registeredCalculations++;
+      }
       const atIdx  = desc.indexOf(' at ');
       const forIdx = desc.indexOf(' for ');
       if (atIdx !== -1) {
@@ -1328,6 +1335,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
   const activeTodayCount = uniqueActiveToday.size;
   const grandCalculations = Math.max(trafficStats.totalCalculations || 0, totalCalculations || 0);
+  const effectiveGuestCalculations = guestCalculations + Math.max(0, grandCalculations - totalCalculations);
   const todayLagosStr     = getNigerianDateStr();
   const todayLagosMidnight = getNigerianMidnight();
 
@@ -1467,7 +1475,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       { 
                         label: 'Total Calculations', 
                         value: grandCalculations, 
-                        sub: 'Audits delivered to candidates', 
+                        sub: `Registered: ${registeredCalculations} | Guests: ${effectiveGuestCalculations}`, 
                         icon: <Zap size={14} className="text-red-500 dark:text-red-400" />, 
                         color: 'red',
                         action: () => setSelectedUserForPredictions({

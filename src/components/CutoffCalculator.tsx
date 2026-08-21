@@ -2374,6 +2374,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
       const olevelsString = subjects.map(s => `${s.name}: ${s.grade}`).join(', ');
       
+      let finalVerdict = result?.verdict || 'Guest Calculation Audit';
+      let finalProbability = typeof result?.probability === 'number' ? result.probability : 50;
+
       if (result) {
         // Calculate deterministic values for authenticated users
         const isDisqualified = result.probability === 0 || 
@@ -2383,9 +2386,6 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
         const rawCutoff = (result.departmentalCutoff || result.cutoff || '').toString().replace(/[^0-9.]/g, '');
         const parsedCutoffVal = parseFloat(rawCutoff) || (isDisqualified ? 0 : 55);
-
-        let finalVerdict = result.verdict || 'Borderline';
-        let finalProbability = typeof result.probability === 'number' ? result.probability : 50;
 
         if (isDisqualified) {
           finalVerdict = result.verdict || 'Disqualified / Invalid Subject Combination';
@@ -2421,41 +2421,42 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           cutoff_used: result.cutoffValue || result.departmentalCutoff || result.cutoff || '',
           quota: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
         });
-
-        savePredictionRecord({
-          predictionId,
-          userId: user?.uid || 'guest',
-          userEmail: user?.email || '',
-          userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar'),
-          isGuest: !user,
-          university: targetUni.name,
-          course: targetCourse || courseSearch,
-          aggregateScore: parseFloat(aggregateScore.toString()) || 0,
-          jambScore: parseFloat(jambScore) || 0,
-          postUtmeScore: cleanPostUtmeScore,
-          usesPostUtme: effectiveUsesPostUtme,
-          postUtmeNotUsed: !effectiveUsesPostUtme,
-          verdict: finalVerdict,
-          confidence: result.reliability || (isDisqualified ? 'High' : 'Medium'),
-          predictedProbability: finalProbability,
-          departmentalCutoff: result.departmentalCutoff || result.cutoff || (isDisqualified ? 'N/A' : ''),
-          institutionalCutoff: result.institutionalCutoff || '',
-          stateOfOrigin: stateOfOrigin || '',
-          isELDSState: !!isELDSState,
-          isCatchmentState: !!isCatchmentState,
-          cutoffType: result.cutoffType || (result.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
-          cutoffIsOfficial: !!result.cutoffIsOfficial,
-          cutoffSource: result.cutoffSource || '',
-          cutoffYear: result.cutoffYear || '2025/2026',
-          cutoffQuotaUsed: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
-          scoreDiff: typeof result.scoreDiff === 'number' ? result.scoreDiff : (isDisqualified ? 0 : (parseFloat(aggregateScore.toString()) - (parseFloat(result.cutoffValue) || parseFloat(result.departmentalCutoff) || 0))),
-          predictionDate: new Date().toISOString().split('T')[0],
-          detailedStrategy: result.detailedStrategy || '',
-          formulaExplanation: formulaText || '',
-          subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
-          olevelsString: olevelsString || ''
-        }).catch(err => console.error("Error saving global prediction record:", err));
       }
+
+      // Save prediction record for BOTH registered and guest calculations so admin analytics tally matches 100%
+      savePredictionRecord({
+        predictionId,
+        userId: user?.uid || 'guest',
+        userEmail: user?.email || 'guest@campusai.com.ng',
+        userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar'),
+        isGuest: !user,
+        university: targetUni.name,
+        course: targetCourse || courseSearch,
+        aggregateScore: parseFloat(aggregateScore.toString()) || 0,
+        jambScore: parseFloat(jambScore) || 0,
+        postUtmeScore: cleanPostUtmeScore,
+        usesPostUtme: effectiveUsesPostUtme,
+        postUtmeNotUsed: !effectiveUsesPostUtme,
+        verdict: finalVerdict,
+        confidence: result?.reliability || 'Medium',
+        predictedProbability: finalProbability,
+        departmentalCutoff: result?.departmentalCutoff || result?.cutoff || '',
+        institutionalCutoff: result?.institutionalCutoff || '',
+        stateOfOrigin: stateOfOrigin || '',
+        isELDSState: !!isELDSState,
+        isCatchmentState: !!isCatchmentState,
+        cutoffType: result?.cutoffType || (result?.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
+        cutoffIsOfficial: !!result?.cutoffIsOfficial,
+        cutoffSource: result?.cutoffSource || '',
+        cutoffYear: result?.cutoffYear || '2025/2026',
+        cutoffQuotaUsed: result?.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
+        scoreDiff: typeof result?.scoreDiff === 'number' ? result.scoreDiff : 0,
+        predictionDate: new Date().toISOString().split('T')[0],
+        detailedStrategy: result?.detailedStrategy || '',
+        formulaExplanation: formulaText || '',
+        subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
+        olevelsString: olevelsString || ''
+      }).catch(err => console.error("Error saving global prediction record:", err));
 
       // Automatically save this calculation attempt to history with local storage persistence
       const newAttempt: SavedProfile = {
