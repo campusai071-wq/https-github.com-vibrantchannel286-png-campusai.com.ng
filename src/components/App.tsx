@@ -800,9 +800,34 @@ const AppContent: React.FC = () => {
                     <p className="text-xs md:text-sm font-black truncate group-hover:underline">{importantItem.title}</p>
                   </div>
                 </div>
-                <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-white text-blue-900 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md">
-                  <span>View & Download</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                <div className="shrink-0 flex items-center gap-2">
+                  {isAuthorizedAdmin && (
+                    <div className="hidden sm:flex items-center gap-1 bg-black/30 backdrop-blur-md p-1 rounded-xl border border-white/20" onClick={e => e.stopPropagation()}>
+                      <span className="text-[9px] font-black text-amber-300 uppercase px-1.5">Admin:</span>
+                      <select
+                        value={importantItem.id}
+                        onChange={async (e) => {
+                          const selectedId = e.target.value;
+                          if (selectedId) {
+                            const { setImportantBannerArticle } = await import('../services/dbService');
+                            await setImportantBannerArticle(selectedId, news);
+                          }
+                        }}
+                        className="bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg border border-white/20 outline-none cursor-pointer"
+                        title="Select which article to feature on this top banner"
+                      >
+                        {news.map(n => (
+                          <option key={n.id} value={n.id} className="bg-slate-900 text-white text-xs">
+                            {n.isImportant ? "📌 [BANNER] " : ""}{n.title?.substring(0, 45)}...
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 px-4 py-2 bg-white text-blue-900 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md">
+                    <span>View & Download</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
                 </div>
               </div>
             </div>

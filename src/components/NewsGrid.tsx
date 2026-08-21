@@ -273,6 +273,21 @@ export const NewsCard: React.FC<{
 
               {isAdmin && (
                 <div className="flex items-center gap-1 ml-1">
+                  <button 
+                    onClick={async (e) => { 
+                      e.stopPropagation(); 
+                      const { setImportantBannerArticle } = await import('../services/dbService');
+                      await setImportantBannerArticle(news.id);
+                    }} 
+                    className={`p-1 rounded transition-colors ${
+                      news.isImportant 
+                        ? 'text-amber-500 bg-amber-500/20 font-bold' 
+                        : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                    }`} 
+                    title={news.isImportant ? "Featured on Top Banner" : "Pin to Top Banner"}
+                  >
+                    <Flame size={12} className={news.isImportant ? "fill-amber-500 text-amber-500" : ""} />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded" title="Edit Article">
                     <Edit size={12} />
                   </button>

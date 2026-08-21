@@ -979,6 +979,23 @@ export const updateNewsItem = async (id: string, updates: Partial<NewsItem>) => 
   }
 };
 
+export const setImportantBannerArticle = async (targetId: string, currentNewsList: NewsItem[] = []): Promise<boolean> => {
+  try {
+    const list = currentNewsList.length > 0 ? currentNewsList : getPublishedNews();
+    for (const item of list) {
+      const isTarget = (item.id === targetId || item.slug === targetId);
+      if (Boolean(item.isImportant) !== isTarget) {
+        await updateNewsItem(item.id, { isImportant: isTarget });
+      }
+    }
+    window.dispatchEvent(new Event('campusai_news_updated'));
+    return true;
+  } catch (err) {
+    console.error("setImportantBannerArticle error:", err);
+    return false;
+  }
+};
+
 export const updateNewsArticleContent = async (id: string, fullContent: string) => {
   const token = ADMIN_TOKEN;
   const syncLocal = () => {
