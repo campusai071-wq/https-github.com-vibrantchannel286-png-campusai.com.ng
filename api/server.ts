@@ -1065,7 +1065,13 @@ const getSerperKeys = (): string[] => {
 };
 
 const getFirecrawlKeys = (): string[] => robustKeyExtract('fc-');
-const getGeminiKeys = (): string[] => robustKeyExtract('AIzaSy');
+const getGeminiKeys = (): string[] => {
+  const extracted = robustKeyExtract('AIzaSy');
+  if (process.env.GEMINI_API_KEY && !extracted.includes(process.env.GEMINI_API_KEY)) {
+    extracted.unshift(process.env.GEMINI_API_KEY);
+  }
+  return extracted;
+};
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -1176,14 +1182,22 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
   // 1. Groq
   if (process.env.GROQ_API_KEY) {
-    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+    const groqModels = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'llama3-70b-8192',
+      'llama3-8b-8192',
+      'gemma2-9b-it',
+      'deepseek-r1-distill-llama-70b',
+      'qwen-2.5-32b'
+    ];
     for (const modelName of groqModels) {
       try {
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const completion = await groq.chat.completions.create({
           messages: chatMessages as any,
           model: modelName,
-          max_tokens: Math.min(maxTokens, 4000),
+          max_tokens: Math.min(maxTokens, 2048),
           ...(jsonMode ? { response_format: { type: "json_object" } } : {})
         });
         const text = completion.choices[0]?.message?.content || "";
@@ -1199,75 +1213,102 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
   // 2. OpenRouter
   if (process.env.OPENROUTER_API_KEY) {
-    try {
-      const openrouter = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
-      const completion = await openrouter.chat.completions.create({
-        messages: chatMessages as any,
-        model: 'meta-llama/llama-3.3-70b-instruct',
-        max_tokens: Math.min(maxTokens, 4000),
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log(`${tag} Succeeded via OpenRouter.`);
-        return { text, provider: 'openrouter' };
+    const openrouterModels = [
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.1-8b-instruct:free',
+      'qwen/qwen-2.5-72b-instruct:free',
+      'deepseek/deepseek-r1:free',
+      'meta-llama/llama-3.3-70b-instruct'
+    ];
+    for (const modelName of openrouterModels) {
+      try {
+        const openrouter = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
+        // Use token cap to prevent 402 credit overdrafts on non-free or low-balance accounts
+        const safeMaxTokens = modelName.endsWith(':free') ? Math.min(maxTokens, 3000) : Math.min(maxTokens, 1500);
+        const completion = await openrouter.chat.completions.create({
+          messages: chatMessages as any,
+          model: modelName,
+          max_tokens: safeMaxTokens,
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log(`${tag} Succeeded via OpenRouter (${modelName}).`);
+          return { text, provider: 'openrouter' };
+        }
+      } catch (e: any) {
+        console.warn(`${tag} OpenRouter (${modelName}) failed:`, e.message || e);
       }
-    } catch (e: any) {
-      console.warn(`${tag} OpenRouter failed:`, e.message || e);
     }
   }
 
   // 3. Nvidia
   if (process.env.NVIDIA_API_KEY) {
-    try {
-      const nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" });
-      const completion = await nvidia.chat.completions.create({
-        messages: chatMessages as any,
-        model: 'meta/llama-3.3-70b-instruct',
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log(`${tag} Succeeded via Nvidia.`);
-        return { text, provider: 'nvidia' };
+    const nvidiaModels = [
+      'meta/llama-3.3-70b-instruct',
+      'meta/llama-3.1-70b-instruct',
+      'meta/llama-3.1-8b-instruct'
+    ];
+    for (const modelName of nvidiaModels) {
+      try {
+        const nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" });
+        const completion = await nvidia.chat.completions.create({
+          messages: chatMessages as any,
+          model: modelName,
+          max_tokens: Math.min(maxTokens, 2048),
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log(`${tag} Succeeded via Nvidia (${modelName}).`);
+          return { text, provider: 'nvidia' };
+        }
+      } catch (e: any) {
+        console.warn(`${tag} Nvidia (${modelName}) failed:`, e.message || e);
       }
-    } catch (e: any) {
-      console.warn(`${tag} Nvidia failed:`, e.message || e);
     }
   }
 
   // 4. Mistral
   if (process.env.MISTRAL_API_KEY) {
-    try {
-      const mistral = new OpenAI({ apiKey: process.env.MISTRAL_API_KEY, baseURL: "https://api.mistral.ai/v1" });
-      const completion = await mistral.chat.completions.create({
-        messages: chatMessages as any,
-        model: 'mistral-small-latest',
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {})
-      });
-      const text = completion.choices[0]?.message?.content || "";
-      if (text) {
-        console.log(`${tag} Succeeded via Mistral.`);
-        return { text, provider: 'mistral' };
+    const mistralModels = ['mistral-small-latest', 'open-mistral-7b', 'mistral-large-latest'];
+    for (const modelName of mistralModels) {
+      try {
+        const mistral = new OpenAI({ apiKey: process.env.MISTRAL_API_KEY, baseURL: "https://api.mistral.ai/v1" });
+        const completion = await mistral.chat.completions.create({
+          messages: chatMessages as any,
+          model: modelName,
+          max_tokens: Math.min(maxTokens, 2048),
+          ...(jsonMode ? { response_format: { type: "json_object" } } : {})
+        });
+        const text = completion.choices[0]?.message?.content || "";
+        if (text) {
+          console.log(`${tag} Succeeded via Mistral (${modelName}).`);
+          return { text, provider: 'mistral' };
+        }
+      } catch (e: any) {
+        console.warn(`${tag} Mistral (${modelName}) failed:`, e.message || e);
       }
-    } catch (e: any) {
-      console.warn(`${tag} Mistral failed:`, e.message || e);
     }
   }
 
   // 5. Cohere
   if (process.env.COHERE_API_KEY) {
-    try {
-      const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
-      const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${messages.map(m => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
-      const response = await cohere.generate({ prompt: coherePrompt, model: 'command-r-plus' });
-      const text = response.generations[0]?.text || "";
-      if (text) {
-        console.log(`${tag} Succeeded via Cohere.`);
-        return { text, provider: 'cohere' };
+    const cohereModels = ['command-r-plus', 'command-r', 'command'];
+    for (const modelName of cohereModels) {
+      try {
+        const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+        const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${messages.map(m => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
+        const response = await cohere.generate({ prompt: coherePrompt, model: modelName, maxTokens: Math.min(maxTokens, 2048) });
+        const text = response.generations[0]?.text || "";
+        if (text) {
+          console.log(`${tag} Succeeded via Cohere (${modelName}).`);
+          return { text, provider: 'cohere' };
+        }
+      } catch (e: any) {
+        console.warn(`${tag} Cohere (${modelName}) failed:`, e.message || e);
       }
-    } catch (e: any) {
-      console.warn(`${tag} Cohere failed:`, e.message || e);
     }
   }
 
@@ -2674,8 +2715,21 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
           }
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
-          const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: 'llama-3.3-70b-versatile', max_tokens: 3 });
-          if (completion?.choices?.length > 0) status = 'Active'; else error = 'Empty response';
+          const testModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-8b-8192', 'gemma2-9b-it'];
+          let testSuccess = false;
+          for (const tm of testModels) {
+            try {
+              const completion = await groq.chat.completions.create({ messages: [{ role: 'user', content: 'ping' }], model: tm, max_tokens: 3 });
+              if (completion?.choices?.length > 0) {
+                status = 'Active';
+                testSuccess = true;
+                break;
+              }
+            } catch (tmErr: any) {
+              error = tmErr.message || String(tmErr);
+            }
+          }
+          if (!testSuccess && !error) error = 'Empty response';
         } else if (item.type === 'Tavily') {
           const client = new TavilyClient({ apiKey: item.rawKey });
           const response = await client.search({ query: 'ping', max_results: 1 });

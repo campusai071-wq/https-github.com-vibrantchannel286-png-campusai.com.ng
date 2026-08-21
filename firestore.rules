@@ -142,7 +142,7 @@ service cloud.firestore {
       
       allow update: if isOwner(userId) && (
         // Action: User self-update including premium activation
-        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'daily_last_reset', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount', 'lifetime_calculations'])) ||
+        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'daily_last_reset', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount', 'lifetime_calculations', 'daily_chats', 'daily_chat_last_reset'])) ||
         // Action: Admin override
         isAdmin()
       );
@@ -154,6 +154,22 @@ service cloud.firestore {
       match /chatHistory/data {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+
+      match /activities/{activityId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /predictions/{predictionId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /bookmarks/{bookmarkId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /search_history/{historyId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     match /payments/{paymentId} {
@@ -163,7 +179,7 @@ service cloud.firestore {
 
     match /news/{newsId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     match /comments/{commentId} {
@@ -317,6 +333,31 @@ service cloud.firestore {
       allow create: if true;
       allow update: if true;
       allow delete: if isAdmin();
+    }
+
+    match /post_utme_trackers/{trackerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /syllabus_topics/{topicId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /discussions/{threadId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if (isAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId)) ||
+                       (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'likedBy', 'replyCount', 'lastActivityAt']));
+      allow delete: if isAdmin() || isOwner(existing().userId);
+
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+        allow update: if (isAdmin() || isOwner(existing().userId)) || (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'likedBy']));
+        allow delete: if isAdmin() || isOwner(existing().userId);
+      }
     }
   }
 }

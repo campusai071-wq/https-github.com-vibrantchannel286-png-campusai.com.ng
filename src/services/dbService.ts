@@ -36,14 +36,13 @@ export const saveTickerHeadlines = async (headlines: string[]) => {
 // In-memory cache variables for global sync metadata to prevent redundant reads
 let cachedGlobalSyncMetadata: { lastSync: number } | null = null;
 let lastMetadataFetchTime = 0;
-const METADATA_CACHE_TTL_MS = 120000; // 120 seconds cache
+const METADATA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache (was 120s)
 
 export const getGlobalSyncMetadata = async (): Promise<{ lastSync: number }> => {
   if (!db) return { lastSync: 0 };
   
   const now = Date.now();
   if (cachedGlobalSyncMetadata && (now - lastMetadataFetchTime < METADATA_CACHE_TTL_MS)) {
-    console.log("getGlobalSyncMetadata: Returning cached metadata.");
     return cachedGlobalSyncMetadata;
   }
 
@@ -169,7 +168,7 @@ function toMs(val: any): number {
 // In-memory cache variables for cloud news to prevent redundant reads
 let cachedRawNews: NewsItem[] | null = null;
 let lastRawFetchTime = 0;
-const RAW_CACHE_TTL_MS = 60000; // 60 seconds cache
+const RAW_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache (was 60s)
 
 export const clearNewsCache = () => {
   cachedRawNews = null;
@@ -439,14 +438,13 @@ export const getStableNewsKey = (title: string = "", category: string = ""): str
 
 export const getCloudNews = async (includeFuture: boolean = false, includeJunk: boolean = false, category?: string, lastCreatedAt?: any, limitOverride?: number): Promise<NewsItem[]> => {
   const now = Date.now();
-  const effectiveLimit = limitOverride || 250;
+  const effectiveLimit = limitOverride || 50; // Optimized default limit to conserve Firestore Spark tier reads
   const isCacheValid = cachedRawNews && (now - lastRawFetchTime < RAW_CACHE_TTL_MS);
   const cachedLiveCount = cachedRawNews ? cachedRawNews.filter(n => n.isLive).length : 0;
-  const needsMoreThanCached = cachedRawNews && cachedLiveCount < Math.min(effectiveLimit, 50);
+  const needsMoreThanCached = cachedRawNews && cachedLiveCount < Math.min(effectiveLimit, 30);
 
   // Bypass cache if paginating (lastCreatedAt is present) or if we need more articles than cached
   if (cachedRawNews && isCacheValid && !needsMoreThanCached && !lastCreatedAt) {
-    console.log("getCloudNews: Returning cached news list.");
     const processed = filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
     return category ? processed.filter(n => n.category === category) : processed;
   }
@@ -1472,7 +1470,7 @@ export const getAdminNotifications = async (): Promise<AdminNotification[]> => {
 
 let cachedTrafficStats: { pageViews: number; uniqueVisitors: number; totalCalculations: number } | null = null;
 let lastTrafficStatsFetchTime = 0;
-const TRAFFIC_STATS_CACHE_TTL_MS = 60 * 1000; // 60 seconds cache
+const TRAFFIC_STATS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache (was 60s)
 
 export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisitors: number; totalCalculations: number }> => {
   if (!db) return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
@@ -2553,4 +2551,136 @@ export const getPredictionAccuracyStats = async () => {
     return null;
   }
 };
+
+/**
+ * ------------------------------------------------------------------
+ * POST-UTME SCREENING TRACKER SERVICE
+ * ------------------------------------------------------------------
+ */
+export interface PostUtmeTrackerItem {
+  id?: string;
+  institution: string;
+  institutionSlug?: string;
+  formStatus: 'ongoing' | 'upcoming' | 'closed';
+  cutOffMark?: number | string;
+  fee?: string;
+  screeningDate?: string;
+  deadline?: string;
+  portalUrl?: string;
+  instructions?: string;
+  lastUpdated?: string;
+}
+
+export const getPostUtmeTrackers = async (): Promise<PostUtmeTrackerItem[]> => {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(query(collection(db, "post_utme_trackers"), limit(100)));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as PostUtmeTrackerItem));
+  } catch (e) {
+    console.warn("getPostUtmeTrackers failed:", e);
+    return [];
+  }
+};
+
+export const savePostUtmeTracker = async (tracker: PostUtmeTrackerItem): Promise<boolean> => {
+  if (!db) return false;
+  try {
+    const docId = tracker.id || (tracker.institutionSlug || slugify(tracker.institution));
+    await setDoc(doc(db, "post_utme_trackers", docId), {
+      ...tracker,
+      lastUpdated: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  } catch (e) {
+    console.error("savePostUtmeTracker failed:", e);
+    return false;
+  }
+};
+
+/**
+ * ------------------------------------------------------------------
+ * SYLLABUS EXPLORER SERVICE
+ * ------------------------------------------------------------------
+ */
+export interface SyllabusTopicItem {
+  id?: string;
+  subject: string;
+  topic: string;
+  objectives?: string[];
+  keyConcepts?: string[];
+  referenceTexts?: string[];
+  examType?: 'UTME' | 'WAEC' | 'NECO' | 'POST-UTME';
+  frequencyScore?: number;
+}
+
+export const getSyllabusTopics = async (subject: string): Promise<SyllabusTopicItem[]> => {
+  if (!db) return [];
+  try {
+    const q = query(
+      collection(db, "syllabus_topics"),
+      where("subject", "==", subject),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SyllabusTopicItem));
+  } catch (e) {
+    console.warn("getSyllabusTopics failed:", e);
+    return [];
+  }
+};
+
+/**
+ * ------------------------------------------------------------------
+ * COMMUNITY DISCUSSIONS SERVICE
+ * ------------------------------------------------------------------
+ */
+export interface DiscussionThread {
+  id?: string;
+  title: string;
+  content: string;
+  category: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  school?: string;
+  likes?: number;
+  likedBy?: string[];
+  replyCount?: number;
+  createdAt?: string;
+  lastActivityAt?: string;
+}
+
+export const getDiscussions = async (category?: string, maxLimit: number = 30): Promise<DiscussionThread[]> => {
+  if (!db) return [];
+  try {
+    const coll = collection(db, "discussions");
+    const q = category && category !== 'All'
+      ? query(coll, where("category", "==", category), orderBy("createdAt", "desc"), limit(maxLimit))
+      : query(coll, orderBy("createdAt", "desc"), limit(maxLimit));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DiscussionThread));
+  } catch (e) {
+    console.warn("getDiscussions failed:", e);
+    return [];
+  }
+};
+
+export const createDiscussion = async (thread: Omit<DiscussionThread, 'id' | 'createdAt' | 'likes' | 'replyCount'>): Promise<string | null> => {
+  if (!db) return null;
+  try {
+    const docRef = await addDoc(collection(db, "discussions"), {
+      ...thread,
+      likes: 0,
+      likedBy: [],
+      replyCount: 0,
+      createdAt: new Date().toISOString(),
+      lastActivityAt: new Date().toISOString()
+    });
+    return docRef.id;
+  } catch (e) {
+    console.error("createDiscussion failed:", e);
+    return null;
+  }
+};
+
 

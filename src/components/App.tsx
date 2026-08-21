@@ -314,7 +314,7 @@ const AppContent: React.FC = () => {
       }
     };
 
-    const interval = setInterval(checkSync, 180000); // 3 minutes interval
+    const interval = setInterval(checkSync, 600000); // 10 minutes interval (was 3 minutes)
     window.addEventListener('focus', checkSync);
 
     return () => {

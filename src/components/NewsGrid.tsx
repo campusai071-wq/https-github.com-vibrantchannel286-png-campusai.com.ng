@@ -412,7 +412,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     setIsLocalLoading(true);
     try {
       const category = categoryFilter && ['Latest', 'Hot', 'All', 'Bookmarks'].includes(categoryFilter) ? undefined : categoryFilter;
-      const targetLimit = limitOverride || 250;
+      const targetLimit = limitOverride || 50; // Optimized default limit to 50 from 250
       const cloudNews = await getCloudNews(false, false, category, undefined, targetLimit);
       const sorted = [...cloudNews].sort(sortNewsBySyncAndDate);
       setNewsList(sorted);
@@ -455,12 +455,12 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     }
   }, []);
 
-  // Trigger larger cloud fetch when user starts searching to search across records in Firebase
+  // Trigger slightly larger cloud fetch when user starts searching across records
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
       if (!hasFetchedAllForSearch) {
         setHasFetchedAllForSearch(true);
-        loadLocalNews(filter, 500);
+        loadLocalNews(filter, 100);
       }
     } else {
       if (hasFetchedAllForSearch) {
@@ -741,8 +741,8 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     };
     
     const handleNewsUpdate = () => {
-      // If a search is currently active, re-fetch the larger search pool
-      loadLocalNews(filter, searchQueryRef.current.trim().length > 0 ? 1000 : undefined);
+      // If a search is currently active, re-fetch the search pool with a capped limit
+      loadLocalNews(filter, searchQueryRef.current.trim().length > 0 ? 100 : undefined);
     };
 
     window.addEventListener('campusai_news_updated', handleNewsUpdate);

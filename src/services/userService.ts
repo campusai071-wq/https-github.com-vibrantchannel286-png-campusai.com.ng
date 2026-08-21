@@ -1,7 +1,7 @@
 import { UserProfile, UserRole } from '../types';
 import { db, auth } from './firebaseConfig';
 import { stringify } from './utils';
-import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot, where, getAggregateFromServer, sum } from "firebase/firestore";
+import { doc, updateDoc, setDoc, collection, query, orderBy, limit, getDocs, Timestamp, getDoc, getCountFromServer, onSnapshot, where, getAggregateFromServer, sum, addDoc, deleteDoc } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from './firestoreUtils';
 import { validateUserProfile } from '../lib/validation';
 
@@ -518,3 +518,153 @@ export const saveJourneyProgress = async (uid: string, progress: number[]) => {
     try { await updateDoc(doc(db, "users", uid), { journey_progress: progress }); } catch (e) {}
   }
 };
+
+/**
+ * USER ACTIVITIES SUBCOLLECTION (/users/{userId}/activities/{activityId})
+ */
+export const saveUserActivity = async (userId: string, activity: { type: string; title: string; details?: any; timestamp?: string }) => {
+  const payload = {
+    ...activity,
+    userId,
+    createdAt: activity.timestamp || new Date().toISOString()
+  };
+
+  // Local mirror
+  try {
+    const localKey = `campusai_activities_${userId}`;
+    const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+    existing.unshift(payload);
+    localStorage.setItem(localKey, stringify(existing.slice(0, 50)));
+  } catch (e) {}
+
+  if (db && isRealUser(userId)) {
+    try {
+      await addDoc(collection(db, "users", userId, "activities"), payload);
+    } catch (e) {
+      console.warn("Failed to write activity subcollection:", e);
+    }
+  }
+};
+
+export const getUserActivities = async (userId: string, maxLimit: number = 20): Promise<any[]> => {
+  if (!db || !isRealUser(userId)) {
+    try {
+      const localKey = `campusai_activities_${userId}`;
+      return JSON.parse(localStorage.getItem(localKey) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  try {
+    const q = query(
+      collection(db, "users", userId, "activities"),
+      orderBy("createdAt", "desc"),
+      limit(maxLimit)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("Failed to load user activities from cloud:", e);
+    const localKey = `campusai_activities_${userId}`;
+    return JSON.parse(localStorage.getItem(localKey) || '[]');
+  }
+};
+
+/**
+ * USER PREDICTIONS & CALCULATIONS SUBCOLLECTION (/users/{userId}/predictions/{predictionId})
+ */
+export const saveUserPrediction = async (userId: string, prediction: { course: string; institution: string; score: number; aggregate: number; chance: string; details?: any }) => {
+  const payload = {
+    ...prediction,
+    userId,
+    createdAt: new Date().toISOString()
+  };
+
+  // Local storage cache
+  try {
+    const localKey = `campusai_user_predictions_${userId}`;
+    const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
+    existing.unshift(payload);
+    localStorage.setItem(localKey, stringify(existing.slice(0, 30)));
+  } catch (e) {}
+
+  if (db && isRealUser(userId)) {
+    try {
+      await addDoc(collection(db, "users", userId, "predictions"), payload);
+    } catch (e) {
+      console.warn("Failed to persist user prediction:", e);
+    }
+  }
+};
+
+export const getUserPredictions = async (userId: string, maxLimit: number = 20): Promise<any[]> => {
+  if (!db || !isRealUser(userId)) {
+    try {
+      const localKey = `campusai_user_predictions_${userId}`;
+      return JSON.parse(localStorage.getItem(localKey) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  try {
+    const q = query(
+      collection(db, "users", userId, "predictions"),
+      orderBy("createdAt", "desc"),
+      limit(maxLimit)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    const localKey = `campusai_user_predictions_${userId}`;
+    return JSON.parse(localStorage.getItem(localKey) || '[]');
+  }
+};
+
+/**
+ * USER BOOKMARKS SUBCOLLECTION (/users/{userId}/bookmarks/{bookmarkId})
+ */
+export const saveUserBookmark = async (userId: string, bookmark: { id: string; title: string; type: 'news' | 'course' | 'institution'; data?: any }) => {
+  if (!userId) return;
+  const docId = `${bookmark.type}_${bookmark.id}`;
+
+  if (db && isRealUser(userId)) {
+    try {
+      await setDoc(doc(db, "users", userId, "bookmarks", docId), {
+        ...bookmark,
+        userId,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.warn("Failed to save cloud bookmark:", e);
+    }
+  }
+};
+
+export const removeUserBookmark = async (userId: string, bookmarkId: string, type: 'news' | 'course' | 'institution') => {
+  if (!userId) return;
+  const docId = `${type}_${bookmarkId}`;
+
+  if (db && isRealUser(userId)) {
+    try {
+      await deleteDoc(doc(db, "users", userId, "bookmarks", docId));
+    } catch (e) {
+      console.warn("Failed to delete cloud bookmark:", e);
+    }
+  }
+};
+
+export const syncUserBookmarks = async (userId: string, localBookmarkIds: string[]): Promise<string[]> => {
+  if (!db || !isRealUser(userId)) return localBookmarkIds;
+
+  try {
+    const snap = await getDocs(collection(db, "users", userId, "bookmarks"));
+    const cloudIds = snap.docs.map(d => d.data().id || d.id.replace(/^news_/, ''));
+    const union = Array.from(new Set([...localBookmarkIds, ...cloudIds]));
+    return union;
+  } catch (e) {
+    return localBookmarkIds;
+  }
+};
+

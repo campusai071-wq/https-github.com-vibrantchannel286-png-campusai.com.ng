@@ -288,6 +288,22 @@
       "schema": "ChatHistory",
       "description": "User's persistent chat history."
     },
+    "users/{userId}/activities/{activityId}": {
+      "schema": "object",
+      "description": "User activities and history logs."
+    },
+    "users/{userId}/predictions/{predictionId}": {
+      "schema": "object",
+      "description": "User admission chance calculations and predictions."
+    },
+    "users/{userId}/bookmarks/{bookmarkId}": {
+      "schema": "object",
+      "description": "User bookmarked articles and courses."
+    },
+    "users/{userId}/search_history/{historyId}": {
+      "schema": "object",
+      "description": "User search queries and filter history."
+    },
     "news": {
       "schema": "News",
       "description": "University news and admission updates."
@@ -375,6 +391,22 @@
     "admission_articles/{articleId}": {
       "schema": "AdmissionArticle",
       "description": "Knowledge base articles for admission intelligence."
+    },
+    "post_utme_trackers/{trackerId}": {
+      "schema": "object",
+      "description": "Live post-UTME screening forms, deadlines, and requirements per institution."
+    },
+    "syllabus_topics/{topicId}": {
+      "schema": "object",
+      "description": "UTME/O-Level curriculum topics, subtopics, and key focus areas."
+    },
+    "discussions/{threadId}": {
+      "schema": "object",
+      "description": "Community discussion threads and student peer QA."
+    },
+    "discussions/{threadId}/replies/{replyId}": {
+      "schema": "object",
+      "description": "Replies and answers in community discussion threads."
     }
   }
 }
