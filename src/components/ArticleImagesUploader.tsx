@@ -174,7 +174,7 @@ export const ArticleImagesUploader: React.FC<ArticleImagesUploaderProps> = ({
         </div>
       ) : (
         <div className="py-6 border-2 border-dashed border-gray-200 dark:border-gray-700/80 rounded-2xl text-center space-y-1">
-          <p className="text-xs font-bold text-gray-500 dark:text-gray-400">No article pictures uploaded yet.</p>
+          <p className="text-xs font-bold text-gray-500 dark:text-slate-300">No article pictures uploaded yet.</p>
           <p className="text-[10px] text-gray-400">Click <span className="font-bold text-blue-500">"Upload Multiple Pictures"</span> to select photos from your device.</p>
         </div>
       )}

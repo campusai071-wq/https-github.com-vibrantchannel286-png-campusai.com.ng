@@ -253,7 +253,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="px-6 py-3 text-gray-500 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Cancel
             </button>

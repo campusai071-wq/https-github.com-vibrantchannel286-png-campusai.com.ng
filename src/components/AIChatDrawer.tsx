@@ -785,7 +785,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                   <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">
                     Sign In Required
                   </h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-bold leading-relaxed max-w-xs mb-8 uppercase tracking-widest">
+                  <p className="text-gray-500 dark:text-slate-300 text-xs font-bold leading-relaxed max-w-xs mb-8 uppercase tracking-widest">
                     The CampusAI Strategy Advisor is exclusively reserved for authenticated members. Please log in or register to consult the intelligence node.
                   </p>
                   <button
@@ -856,7 +856,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                               className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-blue-500 transition-all text-left group cursor-pointer hover:shadow-md"
                             >
                               <h4 className="text-xs font-extrabold text-gray-900 dark:text-white mb-1 group-hover:text-blue-500">{p.title}</h4>
-                              <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{p.text}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-slate-300 line-clamp-2 leading-relaxed">{p.text}</p>
                             </button>
                           ))}
                         </div>
@@ -896,7 +896,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                             </div>
                             <span className="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400 tracking-wider">CampusAI Search:</span>
                           </div>
-                          <span className="text-gray-500 dark:text-gray-400 select-none animate-pulse">
+                          <span className="text-gray-500 dark:text-slate-300 select-none animate-pulse">
                             {scanSteps[loadingStep]}
                           </span>
                         </div>

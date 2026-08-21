@@ -175,7 +175,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
                   {section.title}
                 </h2>
               </div>
-              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed font-medium pl-14">
+              <p className="text-base md:text-lg text-gray-600 dark:text-slate-300 leading-relaxed font-medium pl-14">
                 {section.text}
               </p>
             </motion.section>

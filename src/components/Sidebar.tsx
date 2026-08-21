@@ -167,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                 aria-label="Close menu sidebar"
               >
                 <X size={20} />
@@ -189,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <h4 className="text-xs font-black truncate max-w-[140px]">
                           {user.displayName || 'Scholar Candidate'}
                         </h4>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate max-w-[140px]">
+                        <p className="text-[10px] text-gray-500 dark:text-slate-300 font-medium truncate max-w-[140px]">
                           {user.email}
                         </p>
                       </div>
@@ -209,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         Candidate Account
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                    <p className="text-[11px] text-gray-500 dark:text-slate-300 leading-relaxed font-medium">
                       Sign in to save your target schools, track aggregate scores, and receive Post-UTME alerts.
                     </p>
                     <button
@@ -297,7 +297,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={cat.type}
                       onClick={() => handleNavClick('universities', { category: cat.type })}
-                      className="w-full px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                     >
                       <div className="flex items-center gap-2.5">
                         {cat.icon}

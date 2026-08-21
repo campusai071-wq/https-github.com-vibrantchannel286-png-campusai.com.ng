@@ -102,7 +102,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
             Post-UTME <span className="text-blue-600 dark:text-cyan-400">Release Tracker</span>
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-xs md:text-sm max-w-xl">
+          <p className="text-gray-500 dark:text-slate-300 font-medium text-xs md:text-sm max-w-xl">
             Real-time verification of active screening forms, upcoming form announcements, and closed registration portals across Nigerian institutions.
           </p>
         </div>
@@ -150,7 +150,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
               statusFilter === 'ALL'
                 ? 'bg-blue-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             All Forms ({stats.total})
@@ -161,7 +161,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
               statusFilter === 'OPEN'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
@@ -173,7 +173,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
               statusFilter === 'NOT_OPEN'
                 ? 'bg-amber-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <Clock size={12} />
@@ -185,7 +185,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
             className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
               statusFilter === 'CLOSED'
                 ? 'bg-rose-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <AlertCircle size={12} />
@@ -230,7 +230,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
                   <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
                     {record.schoolName}
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-1 leading-relaxed line-clamp-2">
+                  <p className="text-[10px] sm:text-[11px] text-gray-500 dark:text-slate-300 font-medium mt-1 leading-relaxed line-clamp-2">
                     {record.details}
                   </p>
                 </div>
@@ -256,7 +256,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
                   </div>
 
                   {record.requirements && (
-                    <div className="pt-2 border-t border-gray-200 dark:border-gray-800/60 text-[10px] sm:text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-normal line-clamp-2">
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-800/60 text-[10px] sm:text-[11px] text-gray-600 dark:text-slate-300 font-medium leading-normal line-clamp-2">
                       <span className="font-bold text-gray-900 dark:text-gray-200">Requirements: </span>
                       {record.requirements}
                     </div>
@@ -300,7 +300,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
           <h4 className="text-base font-black text-gray-900 dark:text-white">
             No Post-UTME forms matching search criteria
           </h4>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-slate-300">
             Try resetting your search filters or searching with institutional acronyms (e.g. UNILAG, UI, OAU).
           </p>
           <button

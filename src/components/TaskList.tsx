@@ -91,7 +91,7 @@ const TaskList: React.FC = () => {
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
-              className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm"
+              className="text-center text-gray-500 dark:text-slate-300 py-8 text-sm"
             >
               No tasks yet. Add one above!
             </motion.div>

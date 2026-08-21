@@ -101,7 +101,7 @@ const ScholarJourney: React.FC<{ role?: UserRole }> = ({ role = 'Pre-Admission' 
             <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-4">
               Your Scholar <span className="text-blue-600 dark:text-cyan-400">Journey</span>
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">
+            <p className="text-gray-500 dark:text-slate-300 font-medium text-lg">
               {role === 'Pre-Admission' ? 'Track your progress from registration to your first day on campus.' : 
                role === 'In-Campus' ? 'Manage your academic milestones and stay on top of your studies.' :
                'Navigate your post-graduation path and career development.'}
@@ -140,7 +140,7 @@ const ScholarJourney: React.FC<{ role?: UserRole }> = ({ role = 'Pre-Admission' 
                     <h4 className={`font-black text-lg ${isDone ? 'text-emerald-700 dark:text-emerald-400 line-through opacity-60' : 'text-gray-900 dark:text-white'}`}>
                       {step.title}
                     </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+                    <p className="text-sm text-gray-500 dark:text-slate-300 font-medium leading-relaxed">
                       {step.description}
                     </p>
                   </div>

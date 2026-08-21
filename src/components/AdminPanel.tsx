@@ -1488,7 +1488,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                             {icon}
                           </div>
                           <p className="text-3xl font-black text-gray-900 dark:text-white">{value}</p>
-                          <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">{sub}</p>
+                          <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">{sub}</p>
                         </div>
                         {action && (
                           <button
@@ -1510,7 +1510,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <Globe size={14} className="text-cyan-500 dark:text-cyan-400" />
                       </div>
                       <p className="text-3xl font-black text-gray-900 dark:text-white">{trafficStats.uniqueVisitors}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">Total distinct scholars reached</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Total distinct scholars reached</p>
                     </div>
                     <div className="p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 dark:border-emerald-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
@@ -1519,7 +1519,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <Eye size={14} className="text-emerald-500 dark:text-emerald-400" />
                       </div>
                       <p className="text-3xl font-black text-gray-900 dark:text-white">{trafficStats.pageViews}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">Total pages loaded and read</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Total pages loaded and read</p>
                     </div>
                     <div className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 dark:border-purple-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
@@ -1528,7 +1528,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <Newspaper size={14} className="text-purple-500 dark:text-purple-400" />
                       </div>
                       <p className="text-3xl font-black text-gray-900 dark:text-white">{totalArticlesRead}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">Total cumulative articles read</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Total cumulative articles read</p>
                     </div>
                     <div className="p-6 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border border-indigo-500/20 dark:border-indigo-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
@@ -1541,7 +1541,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           ? `${Math.floor(totalReadingMinutes / 60)}h ${totalReadingMinutes % 60}m` 
                           : `${totalReadingMinutes}m`}
                       </p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">Cumulative scholar attention span</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Cumulative scholar attention span</p>
                     </div>
                     <div className="p-6 bg-gradient-to-br from-pink-500/10 to-pink-500/5 border border-pink-500/20 dark:border-pink-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
@@ -1550,19 +1550,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <Smartphone size={14} className="text-pink-500 dark:text-pink-400" />
                       </div>
                       <p className="text-3xl font-black text-gray-900 dark:text-white">{totalInstalls}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-2 font-mono uppercase">Total mobile app adoption clicks</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Total mobile app adoption clicks</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 bg-gray-50/50 dark:bg-white/5 border border-gray-150 dark:border-white/5 rounded-3xl space-y-4 animate-fade-in">
-                      <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><span>👍</span> Accuracy Index</h4>
+                      <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5"><span>👍</span> Accuracy Index</h4>
                       <div className="flex items-end justify-between">
                         <div>
                           <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{helpfulRatio}%</p>
                           <p className="text-[8px] text-gray-500 uppercase tracking-widest mt-1">Accuracy acceptance ratio</p>
                         </div>
-                        <div className="text-right text-[10px] font-bold text-gray-600 dark:text-gray-400 space-y-0.5">
+                        <div className="text-right text-[10px] font-bold text-gray-600 dark:text-slate-300 space-y-0.5">
                           <p><span className="text-emerald-600 dark:text-emerald-400 font-bold">👍 {finalHelpful}</span> Helpful</p>
                           <p><span className="text-rose-600 dark:text-rose-400 font-bold">👎 {finalUnhelpful}</span> Not helpful</p>
                         </div>
@@ -1572,13 +1572,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                     </div>
                     <div className="p-6 bg-gray-50/50 dark:bg-white/5 border border-gray-150 dark:border-white/5 rounded-3xl space-y-4 animate-fade-in">
-                      <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1.5"><span>🎓</span> Admission Success Rate</h4>
+                      <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5"><span>🎓</span> Admission Success Rate</h4>
                       <div className="flex items-end justify-between">
                         <div>
                           <p className="text-3xl font-black text-cyan-600 dark:text-cyan-400">{admissionRatio}%</p>
                           <p className="text-[8px] text-gray-500 uppercase tracking-widest mt-1">Gained admission success rate</p>
                         </div>
-                        <div className="text-right text-[10px] font-bold text-gray-600 dark:text-gray-400 space-y-0.5">
+                        <div className="text-right text-[10px] font-bold text-gray-600 dark:text-slate-300 space-y-0.5">
                           <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">🎓 {finalAdmitted}</span> Admitted</p>
                           <p><span className="text-gray-500">⏳ {finalNotAdmitted}</span> In progress</p>
                         </div>
@@ -1595,7 +1595,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       { title: 'Most Searched Courses',      data: topCourses, barColor: 'bg-blue-600' },
                     ].map(({ title, data, barColor }) => (
                       <div key={title} className="p-6 bg-gray-50/50 dark:bg-white/5 border border-gray-150 dark:border-white/5 rounded-3xl space-y-4">
-                        <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-gray-400 uppercase tracking-widest">{title}</h4>
+                        <h4 className="text-[10px] font-mono font-black text-gray-550 dark:text-slate-300 uppercase tracking-widest">{title}</h4>
                         <div className="space-y-2">
                           {data.length === 0 ? (
                             <div className="py-6 text-center text-[10px] text-gray-400 font-mono uppercase tracking-wider">No search activities recorded yet</div>
@@ -2187,7 +2187,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <h4 className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
                             <Sparkles size={14} /> AI News Researcher & Generator
                           </h4>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                          <p className="text-[10px] text-gray-500 dark:text-slate-300">
                             Enter any news story, topic, or keyword you saw. The AI will search the web for recent articles, compile facts, and generate a structured, ready-to-publish blog post.
                           </p>
                         </div>
@@ -2334,7 +2334,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {!item.isLive && <span className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-full">Review Required</span>}
                               </div>
                               <div className="flex items-center gap-2">
-                                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">{item.category} • {item.date}</p>
+                                <p className="text-[10px] text-gray-600 dark:text-slate-300 font-bold uppercase tracking-widest">{item.category} • {item.date}</p>
                                 <button onClick={() => { setEditingDateId(item.id); setEditedDateValue(item.date); }} className="p-1 opacity-0 group-hover:opacity-100 text-blue-500 hover:scale-110 transition-all"><Edit size={10} /></button>
                               </div>
                             </div>
@@ -2409,7 +2409,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setEmailPreviewMode(!emailPreviewMode)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${emailPreviewMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'}`}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${emailPreviewMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-slate-300'}`}
                       >
                         <Eye size={14} /> {emailPreviewMode ? 'Editor Mode' : 'Live HTML Preview'}
                       </button>
@@ -2525,7 +2525,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                       <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl space-y-2">
                         <p className="text-[11px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider">💡 RESEND CONFIG TIP</p>
-                        <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <p className="text-[11px] text-gray-600 dark:text-slate-300 leading-relaxed">
                           For testing, use <code className="bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono text-blue-600">onboarding@resend.dev</code> as your sender. To use your custom domain, verify it at <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="underline text-blue-600 font-bold">resend.com/domains</a>.
                         </p>
                       </div>
@@ -2606,7 +2606,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Users size={14} /> Scholar Directory</h3>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Inspect individual candidate audits, guest runs, and allocate scholar credits</p>
+                      <p className="text-[10px] text-gray-500 dark:text-slate-300 mt-0.5">Inspect individual candidate audits, guest runs, and allocate scholar credits</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
@@ -2634,7 +2634,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <p className="text-sm font-bold text-gray-900 dark:text-white">Anonymous Guest Scholars</p>
                           <span className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-full">Live Audits</span>
                         </div>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                        <p className="text-[10px] text-gray-500 dark:text-slate-300">
                           Aggregate calculations run by prospective candidates prior to registration or sign-in
                         </p>
                       </div>
@@ -2668,7 +2668,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           </div>
                           <div className="text-right flex flex-col items-end gap-1">
                             <p className="text-[9px] font-black text-blue-500 uppercase leading-none">{u.role || 'Scholar'}</p>
-                            <div className="flex flex-col items-end gap-0.5 text-[9px] text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="flex flex-col items-end gap-0.5 text-[9px] text-gray-500 dark:text-slate-300 mt-1">
                               <p className="font-bold">Done: <span className="text-gray-800 dark:text-gray-200 font-extrabold">{u.lifetime_calculations || u.meritUsageCount || 0}</span></p>
                               <p className="font-bold text-[8px]">
                                 Left: <span className={`${u.is_premium ? "text-amber-500" : "text-blue-500"} font-extrabold`}>
@@ -2714,7 +2714,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <h3 className="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
                           <ImageIcon size={18} /> Link Preview Pictures Manager
                         </h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
+                        <p className="text-xs text-gray-600 dark:text-slate-300 mt-1 max-w-2xl">
                           Upload custom preview pictures for all app pages & tool links (Calculators, Dashboard, Login, Syllabus, Post-UTME Hub, Directory, etc.). These pictures are rendered on tool cards and OpenGraph social share cards.
                         </p>
                       </div>
@@ -2830,7 +2830,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                   <h4 className="font-bold text-gray-900 dark:text-white text-sm">
                                     {item.title}
                                   </h4>
-                                  <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400 mt-0.5">
+                                  <div className="text-[10px] font-mono text-gray-500 dark:text-slate-300 mt-0.5">
                                     campusai.com.ng{item.path}
                                   </div>
                                 </div>
@@ -2987,7 +2987,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 </span>
                               </div>
                               <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{f.subject || 'Untitled Feedback'}</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed">{f.content}</p>
+                              <p className="text-xs text-gray-600 dark:text-slate-300 font-medium leading-relaxed">{f.content}</p>
                               <div className="pt-2 flex items-center justify-between border-t border-gray-100 dark:border-gray-800">
                                 <span className="text-[10px] font-bold text-blue-600">{f.email || 'Anonymous'}</span>
                                 <span className="text-[8px] font-black uppercase text-gray-400">{f.status}</span>
@@ -3077,8 +3077,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                   <Trash2 size={12} />
                                 </button>
                               </div>
-                              <p className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase truncate mb-2">{t.role} {t.school ? `• ${t.school}` : ''}</p>
-                              <p className="text-[10px] text-gray-600 dark:text-gray-400 line-clamp-2 italic">"{t.content}"</p>
+                              <p className="text-[9px] text-gray-500 dark:text-slate-300 font-bold uppercase truncate mb-2">{t.role} {t.school ? `• ${t.school}` : ''}</p>
+                              <p className="text-[10px] text-gray-600 dark:text-slate-300 line-clamp-2 italic">"{t.content}"</p>
                               <div className="flex gap-0.5 mt-2">
                                 {[...Array(t.rating)].map((_, i) => <Star key={`${t.id}-star-${i}`} size={8} className="text-amber-400 fill-amber-400" />)}
                               </div>
@@ -3570,7 +3570,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
                                 pred.actualOutcome === 'admitted' ? 'bg-emerald-500 text-white' :
                                 pred.actualOutcome === 'not_admitted' ? 'bg-red-500 text-white' :
-                                'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-slate-300'
                               }`}>
                                 {pred.actualOutcome || 'Pending Outcome'}
                               </span>
@@ -3725,7 +3725,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setPreviewNews(null)}
-                  className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                  className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-slate-300 rounded-2xl hover:scale-105 active:scale-95 transition-all"
                 >
                   <ArrowLeft size={20} />
                 </button>

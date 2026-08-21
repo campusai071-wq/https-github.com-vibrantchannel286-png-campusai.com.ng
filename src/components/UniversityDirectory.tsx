@@ -208,7 +208,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
             <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 md:mb-6 tracking-tight">
               Institutional <span className="text-blue-600 dark:text-cyan-400">Gateways</span>
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium text-base md:text-lg max-w-2xl mx-auto">
+            <p className="text-gray-500 dark:text-slate-300 font-medium text-base md:text-lg max-w-2xl mx-auto">
               Secure, direct access to verified admission portals for over 283 institutions.
             </p>
           </div>
@@ -245,7 +245,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                     className={`px-5 py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border whitespace-nowrap shrink-0 ${
                       activeCategory === cat 
                         ? 'bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-500/25' 
-                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-700'
+                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700'
                     }`}
                   >
                     {cat}
@@ -260,7 +260,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
                     postUtmeFilter === 'ALL'
                       ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900'
+                      : 'text-gray-500 dark:text-slate-300 hover:text-gray-900'
                   }`}
                 >
                   All Statuses
@@ -270,7 +270,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
                     postUtmeFilter === 'OPEN'
                       ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-emerald-500'
+                      : 'text-gray-500 dark:text-slate-300 hover:text-emerald-500'
                   }`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -281,7 +281,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
                     postUtmeFilter === 'NOT_OPEN'
                       ? 'bg-amber-600 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-amber-500'
+                      : 'text-gray-500 dark:text-slate-300 hover:text-amber-500'
                   }`}
                 >
                   <Clock size={10} />
@@ -292,7 +292,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
                     postUtmeFilter === 'CLOSED'
                       ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-rose-500'
+                      : 'text-gray-500 dark:text-slate-300 hover:text-rose-500'
                   }`}
                 >
                   <AlertCircle size={10} />
@@ -356,7 +356,7 @@ const UniversityDirectory: React.FC<UniversityDirectoryProps> = ({ externalHighl
                       {isBioLoading ? (
                         <div className="flex flex-col items-center justify-center py-12 space-y-6 text-center">
                           <Loader2 size={40} className="animate-spin text-blue-600 dark:text-cyan-400" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400 font-bold italic">Consulting Gemini for institutional data...</p>
+                          <p className="text-sm text-gray-500 dark:text-slate-300 font-bold italic">Consulting Gemini for institutional data...</p>
                         </div>
                       ) : uniBio ? (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 md:space-y-10">

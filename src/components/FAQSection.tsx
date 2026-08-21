@@ -60,7 +60,7 @@ const FAQSection: React.FC = () => {
           <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-gray-900 dark:text-white">
             Frequently Asked <br /><span className="text-blue-600 dark:text-cyan-400">Questions</span>
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Everything you need to know about the 2026 academic cycle.</p>
+          <p className="text-gray-500 dark:text-slate-300 font-medium text-lg">Everything you need to know about the 2026 academic cycle.</p>
         </div>
 
         <div className="space-y-4">
@@ -119,7 +119,7 @@ const FAQSection: React.FC = () => {
                     className="px-8 pb-8"
                   >
                     <div className="pt-4 border-t border-blue-100 dark:border-blue-800/50">
-                      <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                      <p className="text-gray-600 dark:text-slate-300 font-medium leading-relaxed">
                         {faq.answer}
                       </p>
                     </div>

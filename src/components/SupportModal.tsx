@@ -97,7 +97,7 @@ const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, onNavigate
                         <h4 className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-widest">{channel.title}</h4>
                         <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${channel.id === 'whatsapp' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>{channel.badge}</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-relaxed max-w-[240px]">{channel.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-300 font-medium leading-relaxed max-w-[240px]">{channel.description}</p>
                     </div>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-all">

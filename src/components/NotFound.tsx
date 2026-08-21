@@ -63,7 +63,7 @@ const NotFound: React.FC<NotFoundProps> = ({ onGoHome }) => {
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-bold leading-relaxed max-w-lg mx-auto">
               E be like say you enter wrong lecture room! 
             </p>
-            <p className="text-gray-500 dark:text-gray-400 font-medium text-sm md:text-base px-6">
+            <p className="text-gray-500 dark:text-slate-300 font-medium text-sm md:text-base px-6">
               Looks like this campus doesn’t exist in our 2026 directory. 
               Maybe the school has relocated to the clouds? ☁️
             </p>

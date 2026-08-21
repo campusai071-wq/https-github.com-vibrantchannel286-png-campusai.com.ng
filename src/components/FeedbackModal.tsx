@@ -83,7 +83,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, user }) 
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Transmission Received</h3>
-                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400">Our architects will review your report shortly.</p>
+                    <p className="text-sm font-bold text-gray-500 dark:text-slate-300">Our architects will review your report shortly.</p>
                   </div>
                 </div>
               ) : (

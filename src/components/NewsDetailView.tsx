@@ -631,7 +631,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     return (
       <div className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen w-full flex flex-col items-center justify-center space-y-4 p-6">
         <Loader2 size={48} className="animate-spin text-blue-600" />
-        <p className="text-sm font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Decrypting Intelligence...</p>
+        <p className="text-sm font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Decrypting Intelligence...</p>
       </div>
     );
   }
@@ -644,7 +644,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         </div>
         <div className="text-center max-w-lg">
           <h2 className="text-2xl font-black dark:text-white uppercase tracking-tight mb-2">Intelligence Not Found</h2>
-          <p className="text-gray-500 dark:text-gray-400 font-bold">The requested report does not exist or has been archived.</p>
+          <p className="text-gray-500 dark:text-slate-300 font-bold">The requested report does not exist or has been archived.</p>
           <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 uppercase font-black tracking-widest">Slug: {slug}</p>
         </div>
 
@@ -778,7 +778,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
         {/* Author / actions row */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 mb-12 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-gray-600 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-gray-600 dark:text-slate-300">
              <Clock size={14} className="shrink-0" />
              <span>Published {getFallbackDateStr(news)}</span>
              <span className="mx-1">•</span>
@@ -893,7 +893,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                   </button>
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-6 py-3 bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+                    className="px-6 py-3 bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-slate-300 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
                   >
                     Cancel
                   </button>
@@ -972,7 +972,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           {expansionError && !isEditing && (
             <div className="mb-8 p-5 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-3xl text-sm space-y-2 font-bold leading-relaxed shadow-lg">
               <p className="flex items-center gap-2">⚠️ {expansionError}</p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-widest leading-normal">
+              <p className="text-[11px] text-gray-500 dark:text-slate-300 uppercase tracking-widest leading-normal">
                 Displaying offline news archives. Core calculation logic is 100% functional.
               </p>
             </div>
@@ -1172,7 +1172,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
               <h3 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">
                 Calculate your <span className="text-blue-600">Admission Aggregate</span>
               </h3>
-              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 max-w-md">
+              <p className="text-sm font-bold text-gray-500 dark:text-slate-300 max-w-md">
                 Based on this {news.category} update, check if your scores are enough to secure your preferred course.
               </p>
             </div>
@@ -1203,7 +1203,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             {!user ? (
               <div onClick={onLoginRequest} className="p-8 bg-gray-50 dark:bg-gray-900 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800 text-center cursor-pointer group hover:border-blue-500 transition-all">
                 <LogIn className="mx-auto mb-4 text-gray-400 group-hover:text-blue-500 transition-colors" size={32} />
-                <p className="font-bold text-gray-600 dark:text-gray-400">Sign in to join the conversation</p>
+                <p className="font-bold text-gray-600 dark:text-slate-300">Sign in to join the conversation</p>
                 <p className="text-[10px] font-black uppercase text-blue-600 mt-2 tracking-widest">Connect Scholar Profile</p>
               </div>
             ) : (

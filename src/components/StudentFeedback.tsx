@@ -68,7 +68,7 @@ const StudentFeedback: React.FC = () => {
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 tracking-tight">
               The <span className="text-blue-600 dark:text-cyan-400">CampusAI</span> Success Stories
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium text-lg max-w-2xl mx-auto">
+            <p className="text-gray-500 dark:text-slate-300 font-medium text-lg max-w-2xl mx-auto">
               Join thousands of students who are using data and AI to secure their future in Nigeria's top institutions.
             </p>
           </div>

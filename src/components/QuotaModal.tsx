@@ -40,7 +40,7 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
               </div>
 
               <h3 className="text-3xl font-black dark:text-white mb-4 leading-tight uppercase tracking-tight">System Analysis <br /><span className="text-orange-600">Limit Reached</span></h3>
-              <p className="text-gray-500 dark:text-gray-400 font-bold mb-10 leading-relaxed uppercase text-[10px] tracking-widest">
+              <p className="text-gray-500 dark:text-slate-300 font-bold mb-10 leading-relaxed uppercase text-[10px] tracking-widest">
                 Your daily free session limit has been reached. <br />
                 Capacity resets automatically every 24 hours.
               </p>
@@ -68,7 +68,7 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 </button>
                 <button 
                   onClick={onClose}
-                  className="w-full py-5 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all"
+                  className="w-full py-5 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-slate-300 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all"
                 >
                   Wait for Reset
                 </button>

@@ -45,7 +45,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
             </div>
 
             {/* Content Body */}
-            <div className="p-8 md:p-14 overflow-y-auto no-scrollbar space-y-10 text-gray-600 dark:text-gray-400">
+            <div className="p-8 md:p-14 overflow-y-auto no-scrollbar space-y-10 text-gray-600 dark:text-slate-300">
               {type === 'terms' ? (
                 <>
                   <div className="p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-800/50 flex gap-4">

@@ -46,7 +46,7 @@ const CookieConsent: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">Cookie Protocol</h4>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+                <p className="text-[11px] text-gray-500 dark:text-slate-300 font-medium leading-relaxed">
                   We use cookies and "Decision Tokens" to synchronize your admission data and provide real-time updates. By accepting, you enable our full AI Strategist engine.
                 </p>
               </div>
@@ -61,7 +61,7 @@ const CookieConsent: React.FC = () => {
               </button>
               <button
                 onClick={handleDecline}
-                className="px-6 py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95"
+                className="px-6 py-3.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-slate-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-95"
               >
                 Essentials Only
               </button>

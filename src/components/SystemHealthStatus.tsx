@@ -75,7 +75,7 @@ export const SystemHealthStatus: React.FC<SystemHealthStatusProps> = ({ token })
           <h3 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white flex items-center gap-2">
             <Activity size={16} className="text-cyan-500 animate-pulse" /> LIVE DIAGNOSTICS & SYSTEM STATUS
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 dark:text-slate-300 mt-1">
             Real-time latency check and functional status verification of external API keys.
           </p>
         </div>
@@ -207,7 +207,7 @@ export const SystemHealthStatus: React.FC<SystemHealthStatusProps> = ({ token })
                             {item.type}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-[10px] text-gray-500 font-bold dark:text-gray-400">
+                        <td className="py-3.5 px-4 font-mono text-[10px] text-gray-500 font-bold dark:text-slate-300">
                           {item.key}
                         </td>
                         <td className="py-3.5 px-4">

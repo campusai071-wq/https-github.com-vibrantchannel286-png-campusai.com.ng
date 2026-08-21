@@ -80,7 +80,7 @@ const StatusPage: React.FC = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-gray-500 dark:text-slate-300 text-[10px] font-bold uppercase tracking-widest">
             Experiencing an issue? <button onClick={() => window.dispatchEvent(new CustomEvent('campusai_open_support'))} className="text-blue-600 hover:underline">Contact Command Desk</button>
           </p>
         </div>

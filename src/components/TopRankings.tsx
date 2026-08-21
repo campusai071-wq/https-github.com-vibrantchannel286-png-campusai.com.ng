@@ -236,7 +236,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
               <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
                 Nigeria's <span className="text-blue-600 dark:text-cyan-400">Elite</span> Institutions
               </h2>
-              <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium text-lg">
+              <p className="mt-4 text-gray-500 dark:text-slate-300 font-medium text-lg">
                 Based on real-time academic evaluation metrics, research citation impact, and graduate employability algorithms analyzed by CampusAI.
               </p>
             </div>
@@ -298,7 +298,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                     
                     <div className="flex flex-col gap-2 w-full">
                       <div className="flex items-center justify-between py-1.5 px-3 sm:py-2 sm:px-3.5 bg-white/70 dark:bg-black/30 rounded-2xl border border-black/5 dark:border-white/10">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Score</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">Score</span>
                         <div className="flex items-center gap-1 font-black text-xs sm:text-sm text-gray-900 dark:text-white">
                           <Zap size={12} className="text-yellow-500 fill-yellow-500" />
                           {uni.overallScore}
@@ -330,7 +330,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                   className="w-full flex items-center justify-between p-3 sm:p-4.5 bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60 rounded-[20px] sm:rounded-[28px] hover:border-blue-500 dark:hover:border-cyan-500 transition-all cursor-pointer group shadow-sm hover:shadow-xl"
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gray-50 dark:bg-gray-900 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 group-hover:bg-blue-600 group-hover:text-white transition-colors text-xs sm:text-sm">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gray-50 dark:bg-gray-900 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-gray-500 dark:text-slate-300 border border-gray-100 dark:border-gray-800 group-hover:bg-blue-600 group-hover:text-white transition-colors text-xs sm:text-sm">
                       #{uni.rank}
                     </div>
                     <div className="text-left">
@@ -424,7 +424,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </h4>
                       <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-cyan-300 font-black text-[10px] rounded-full uppercase">25% Weight</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-slate-300">
                       Evaluates peer-reviewed publications indexed in Scopus and Web of Science, international research grants received, faculty h-index averages, and doctoral candidate graduation rates.
                     </p>
                   </div>
@@ -436,7 +436,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </h4>
                       <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-black text-[10px] rounded-full uppercase">25% Weight</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-slate-300">
                       Tracks corporate recruitment velocity within 12 months post-NYSC, tier-1 tech & banking placement, corporate internship ties, and alumni tech founder density.
                     </p>
                   </div>
@@ -448,7 +448,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </h4>
                       <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-black text-[10px] rounded-full uppercase">20% Weight</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-slate-300">
                       Measures student-to-lecturer density, percentage of academic staff holding PhDs, modern digital laboratory equipment, teaching hospital accreditations, and high-speed campus internet access.
                     </p>
                   </div>
@@ -460,7 +460,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </h4>
                       <span className="px-3 py-1 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-black text-[10px] rounded-full uppercase">15% Weight</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-slate-300">
                       Analyzes historical ASUU/NASU strike interruptions, 4-year completion fidelity, e-learning LMS infrastructure, and semester calendar stability.
                     </p>
                   </div>
@@ -472,7 +472,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                       </h4>
                       <span className="px-3 py-1 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 font-black text-[10px] rounded-full uppercase">15% Weight</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-slate-300">
                       Measures JAMB UTME first-choice applicant volume vs. quota capacity, departmental aggregate cut-off score thresholds, and Post-UTME screening rigor.
                     </p>
                   </div>
@@ -522,7 +522,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                     <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                       {selectedUniModal.name}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{selectedUniModal.location} • VC: {selectedUniModal.viceChancellor}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-300 font-medium">{selectedUniModal.location} • VC: {selectedUniModal.viceChancellor}</p>
                   </div>
                 </div>
 

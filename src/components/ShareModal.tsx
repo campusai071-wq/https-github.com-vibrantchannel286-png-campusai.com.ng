@@ -65,7 +65,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Share CampusAI</h3>
-            <p className="text-gray-500 dark:text-gray-400 font-medium mb-8 leading-relaxed text-sm">
+            <p className="text-gray-500 dark:text-slate-300 font-medium mb-8 leading-relaxed text-sm">
               Help your fellow scholars stay ahead of the 2026 admission curve.
             </p>
 

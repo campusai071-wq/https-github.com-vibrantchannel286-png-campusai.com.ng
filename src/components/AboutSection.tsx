@@ -13,7 +13,7 @@ const AboutSection: React.FC = () => {
           <div className="text-center space-y-6">
             <p className="text-sm font-black text-blue-600 uppercase tracking-[0.2em]">Who We Are</p>
             <h2 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tight">Your Admissions Strategist</h2>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto font-medium">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
               <strong>Campusai.com.ng</strong> is an independent Nigerian student technology platform founded in 2026, created and developed by <strong>Emmanuel "Manny" Iweh</strong>, a metallurgical and materials engineering student at the Federal University of Technology, Akure (FUTA).
             </p>
             <p className="text-sm text-gray-500 max-w-xl mx-auto">
@@ -54,7 +54,7 @@ const AboutSection: React.FC = () => {
               ].map((team) => (
                 <div key={team.title} className="p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2">{team.title}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{team.desc}</p>
+                  <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed">{team.desc}</p>
                 </div>
               ))}
             </div>

@@ -126,7 +126,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             <div className="flex flex-wrap items-center mt-0.5 gap-2">
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[7px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                <span className="text-[7px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">
                   {asuuStatus || 'Active Session'}
                 </span>
               </div>
@@ -214,7 +214,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                             className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors border-b border-gray-50 dark:border-gray-900 last:border-0 group"
                           >
                             <h4 className="text-xs font-black text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-1">{result.title}</h4>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{result.content}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-slate-300 line-clamp-2 leading-relaxed">{result.content}</p>
                           </a>
                         ))}
                       </div>
@@ -398,7 +398,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 </div>
                 <div>
                   <span className="text-xs font-black text-gray-900 dark:text-white block uppercase tracking-wider">Appearance</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{theme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}</span>
+                  <span className="text-[10px] text-gray-500 dark:text-slate-300">{theme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}</span>
                 </div>
               </div>
 

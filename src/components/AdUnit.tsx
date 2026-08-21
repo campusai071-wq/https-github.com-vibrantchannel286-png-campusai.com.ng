@@ -23,7 +23,7 @@ const AdUnit: React.FC<AdUnitProps> = ({ type, className = '' }) => {
     <div className={`relative bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-[32px] flex flex-col items-center justify-center overflow-hidden group shadow-inner ${styles[type]} ${className}`}>
       {/* Google "AdChoices" Icon */}
       <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity bg-white/50 dark:bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
-        <span className="text-[8px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-tighter">AdChoices</span>
+        <span className="text-[8px] font-black text-gray-500 dark:text-slate-300 uppercase tracking-tighter">AdChoices</span>
         <Info size={10} className="text-gray-400" />
       </div>
 

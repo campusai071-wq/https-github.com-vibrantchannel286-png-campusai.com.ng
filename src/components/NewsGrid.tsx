@@ -246,7 +246,7 @@ export const NewsCard: React.FC<{
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-tight transition-all active:scale-90 cursor-pointer ${
                   isLiked
                     ? 'bg-blue-500/15 text-blue-600 dark:text-cyan-400 border border-blue-500/30'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-slate-300 hover:text-blue-600 hover:bg-gray-200'
                 }`}
                 title={isLiked ? "Unlike article" : "Like article"}
               >
@@ -795,7 +795,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
           <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight max-w-xl mx-auto">
             Latest Admissions News & <span className="text-cyan-400">Urgent Alerts</span>
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 font-bold text-xs max-w-md mx-auto leading-relaxed">
+          <p className="text-gray-500 dark:text-slate-300 font-bold text-xs max-w-md mx-auto leading-relaxed">
             Real-time verified reports on JAMB directives, post-UTME updates, tuition agreements, and institutional strikes.
           </p>
         </div>
@@ -897,7 +897,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
             )}
           </div>
 
-          <p className="text-gray-500 dark:text-gray-400 font-bold text-lg mt-6">
+          <p className="text-gray-500 dark:text-slate-300 font-bold text-lg mt-6">
             Investigative reports for the Nigerian scholar journey.
           </p>
         </div>
@@ -957,7 +957,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       {syncError && (
         <div className="mb-8 p-5 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-3xl text-xs space-y-2 font-bold leading-relaxed shadow-lg">
           <p className="flex items-center gap-2">⚠️ {syncError}</p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest leading-normal">
+          <p className="text-[10px] text-gray-500 dark:text-slate-300 uppercase tracking-widest leading-normal">
             Displaying fully detailed offline news archives. Core calculation logic is operating completely locally and stays 100% functional!
           </p>
         </div>
@@ -1014,7 +1014,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-cyan-500">Live Verification Agent Active</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-bold max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-gray-500 dark:text-slate-300 font-bold max-w-sm mx-auto leading-relaxed">
                     Searching official portals for <span className="text-gray-900 dark:text-white">"{searchQuery}"</span>...
                   </p>
                 </div>
@@ -1029,13 +1029,13 @@ const NewsGrid: React.FC<NewsGridProps> = ({
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-sm font-black uppercase tracking-widest text-rose-500">Factcheck Report: Unverified Update</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-bold max-w-lg mx-auto leading-relaxed">{smartSearchResult.reason}</p>
+                  <p className="text-xs text-gray-600 dark:text-slate-300 font-bold max-w-lg mx-auto leading-relaxed">{smartSearchResult.reason}</p>
                 </div>
                 <div className="flex justify-center gap-3">
                   <button onClick={() => { setSearchQuery(''); setSmartSearchResult(null); }} className="px-5 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-2xl text-[9px] font-black uppercase tracking-widest hover:scale-[1.02] transition-transform active:scale-95">
                     Clear Search
                   </button>
-                  <button onClick={() => setSmartSearchResult(null)} className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                  <button onClick={() => setSmartSearchResult(null)} className="px-5 py-3 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-slate-300 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
                     Dismiss
                   </button>
                 </div>
@@ -1087,7 +1087,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       {/* Load more */}
       {(!isLocalLoading && filteredNews.length > 0) && (
         <div className="mt-12 text-center pb-12 flex flex-col items-center justify-center gap-3">
-          <div className="text-xs font-bold text-gray-500 dark:text-gray-400">
+          <div className="text-xs font-bold text-gray-500 dark:text-slate-300">
             Showing <span className="text-blue-600 dark:text-cyan-400 font-black">{Math.min(visibleCount, filteredNews.length)}</span> of <span className="font-black text-gray-900 dark:text-white">{filteredNews.length}</span> reports {totalArchivedCount > filteredNews.length ? `(${totalArchivedCount}+ total in database)` : ''}
           </div>
 

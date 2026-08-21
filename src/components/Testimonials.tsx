@@ -67,7 +67,7 @@ const Testimonials: React.FC = () => {
           <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-4">
             Trusted by Thousands of <span className="text-blue-600">Scholars</span>
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 font-bold max-w-2xl mx-auto">
+          <p className="text-gray-500 dark:text-slate-300 font-bold max-w-2xl mx-auto">
             Join the elite community of students using neural-logic to secure their future in Nigeria's top tertiary institutions.
           </p>
         </div>

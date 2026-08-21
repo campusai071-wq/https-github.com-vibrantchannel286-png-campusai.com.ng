@@ -508,14 +508,14 @@ const ProbabilityGauge: React.FC<{ probability: number }> = ({ probability }) =>
         />
       </div>
       <div className="mt-4 text-center flex flex-col items-center">
-        <p className={`text-4xl font-black ${color}`}>{probability}%</p>
-        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/5 text-[8.5px] font-black uppercase text-gray-400 tracking-wider">
+        <p className={`text-3xl font-black ${color}`}>{probability}% — CampusAI Model Estimate</p>
+        <div className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase text-cyan-400 tracking-wider">
           <Sparkles size={10} className="text-cyan-400" />
-          <span>AI / Model Forecast</span>
+          <span>CampusAI Model Estimate (Not Official Institutional Score)</span>
         </div>
         <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest mt-1">Merit Strength Index</p>
-        <p className="text-[9px] text-gray-400 max-w-[200px] leading-snug mt-1 font-medium">
-          Statistical model estimate based on your score difference vs competitive applicant distribution
+        <p className="text-[9px] text-gray-400 max-w-[220px] leading-snug mt-1 font-medium">
+          Statistical model estimate based on your score difference vs competitive applicant distribution. Not an official university probability.
         </p>
       </div>
     </div>
@@ -1101,7 +1101,24 @@ const SchoolUgcSection: React.FC<SchoolUgcSectionProps> = ({
                           <p className="text-[10px] font-black text-white">{p.userName || "Anonymous Scholar"}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[7.5px] text-gray-500 font-bold uppercase">
-                              {p.createdAt ? new Date(p.createdAt.seconds ? p.createdAt.seconds * 1000 : p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "Recently"}
+                              {p.createdAt ? (
+                                (() => {
+                                  const val = p.createdAt || p.timestamp;
+                                  if (!val) return "Recently";
+                                  const ms = 
+                                    typeof val?.toMillis === 'function' ? val.toMillis() :
+                                    typeof val?.toDate === 'function' ? val.toDate().getTime() :
+                                    typeof val === 'object' ? (val.seconds ? val.seconds * 1000 : val._seconds ? val._seconds * 1000 : 0) :
+                                    typeof val === 'number' ? val :
+                                    new Date(val).getTime();
+                                  if (!ms || isNaN(ms) || ms <= 0) return "Recently";
+                                  try {
+                                    return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                                  } catch {
+                                    return "Recently";
+                                  }
+                                })()
+                              ) : "Recently"}
                             </span>
                           </div>
                         </div>
@@ -4146,14 +4163,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                               <div className="p-3.5 bg-white/[0.02] border border-blue-500/20 rounded-xl flex flex-col justify-between">
                                 <div>
                                   <div className="flex items-center justify-between gap-1 mb-2">
-                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">3. Admission Probability</span>
+                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">3. Probability (CampusAI Model Estimate)</span>
                                     <span className="px-2 py-0.5 bg-blue-500/10 text-cyan-400 border border-blue-500/20 rounded-md font-black text-[8.5px] flex items-center gap-1">
                                       <Sparkles size={10} /> Model Estimate
                                     </span>
                                   </div>
                                   <div className="flex items-baseline gap-2">
-                                    <p className="text-lg font-black text-cyan-400">
-                                      {aiResult.isOffered === false ? 0 : admissionProbability}%
+                                    <p className="text-base font-black text-cyan-400">
+                                      {aiResult.isOffered === false ? 0 : admissionProbability}% — CampusAI Model Estimate
                                     </p>
                                     {(() => {
                                       const cVal = parseFloat(String(aiResult.cutoffValue || aiResult.departmentalCutoff || '0').replace(/[^0-9.]/g, ''));
@@ -4168,11 +4185,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                     })()}
                                   </div>
                                   <p className="text-[9.5px] text-gray-400 mt-1 font-medium leading-tight">
-                                    Statistical model forecast based on score margin vs competitive applicant distribution.
+                                    Statistical model forecast based on score margin vs applicant distribution. Not an official university probability.
                                   </p>
                                 </div>
                                 <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-cyan-400/90 flex items-center gap-1 font-bold">
-                                  <span>Probability: AI/Model Estimate ⚠️</span>
+                                  <span>Probability: CampusAI Model Estimate ⚠️</span>
                                 </div>
                               </div>
                             </div>
@@ -5123,7 +5140,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
                               </button>
                             </div>
-                            <p className="text-[7.5px] text-gray-500 dark:text-gray-400 leading-normal uppercase font-bold tracking-wide px-1">
+                            <p className="text-[7.5px] text-gray-500 dark:text-slate-300 leading-normal uppercase font-bold tracking-wide px-1">
                               ⚠️ Note: Direct carrier SMS and native browser push notifications are often restricted on local mobile networks. Subscribing saves this choice to your secure local offline cache. Whenever new cutoff indices are published, CampusAI highlights visual alert notifications inside your dashboard!
                             </p>
                           </div>

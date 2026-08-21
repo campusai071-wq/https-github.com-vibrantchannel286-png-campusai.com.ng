@@ -194,14 +194,14 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                       <div className="w-5 h-5 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center shrink-0">
                         <Check size={12} strokeWidth={4} />
                       </div>
-                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">{f}</span>
+                      <span className="text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider">{f}</span>
                     </div>
                   )) : (
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center shrink-0">
                         <Check size={12} strokeWidth={4} />
                       </div>
-                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-gray-600 dark:text-slate-300 uppercase tracking-wider">
                         {paymentConfig.type === 'refill' ? `Instant ${paymentConfig.amount === 100 ? '1' : '5'} Extra AI Session${paymentConfig.amount === 100 ? '' : 's'}` : `Full Access to ${paymentConfig.label}`}
                       </span>
                     </div>

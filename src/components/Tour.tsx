@@ -197,7 +197,7 @@ const Tour: React.FC<TourProps> = ({ isOpen, onClose }) => {
             <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               {stepDetails.title}
             </h3>
-            <p className="text-xs md:text-sm font-semibold text-gray-500 dark:text-gray-400">
+            <p className="text-xs md:text-sm font-semibold text-gray-500 dark:text-slate-300">
               {stepDetails.subtitle}
             </p>
           </div>
@@ -215,7 +215,7 @@ const Tour: React.FC<TourProps> = ({ isOpen, onClose }) => {
             <span className="text-xs md:text-sm font-black text-blue-600 dark:text-blue-400">
               Step {currentStep} of {totalSteps}
             </span>
-            <span className="text-xs md:text-sm font-black text-gray-500 dark:text-gray-400">
+            <span className="text-xs md:text-sm font-black text-gray-500 dark:text-slate-300">
               {progressPercentage}%
             </span>
           </div>

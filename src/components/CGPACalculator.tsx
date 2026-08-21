@@ -50,7 +50,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
               <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
                 CGPA <span className="text-purple-600 dark:text-purple-400">Analytics</span> Studio
               </h2>
-              <p className="text-gray-500 dark:text-gray-400 font-medium text-base max-w-xl">
+              <p className="text-gray-500 dark:text-slate-300 font-medium text-base max-w-xl">
                 Official Multi-Semester Academic Grade Diagnostic & Degree Honours Forecaster for Nigerian Tertiary Institutions.
               </p>
             </div>
@@ -162,7 +162,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                   <GraduationCap className="text-purple-600" size={22} />
                   Official NUC Grading Scale & Class Reference
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-slate-300 font-medium mt-0.5">
                   Standard grade point equivalents for Nigerian university transcripts ({scale === 5 ? '5.0 System' : '4.0 System'}).
                 </p>
               </div>
@@ -218,7 +218,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                       {scale === 5 && (
                         <tr>
                           <td className="py-3 text-purple-600 dark:text-purple-400">40% - 44%</td>
-                          <td className="py-3 font-black text-sm text-gray-600 dark:text-gray-400">E</td>
+                          <td className="py-3 font-black text-sm text-gray-600 dark:text-slate-300">E</td>
                           <td className="py-3">1.0</td>
                           <td className="py-3 font-semibold text-gray-500">Pass</td>
                         </tr>
@@ -266,7 +266,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                         <td className="py-3 font-semibold text-purple-600 dark:text-purple-400">Good</td>
                       </tr>
                       <tr>
-                        <td className="py-3 text-gray-600 dark:text-gray-400 font-black">Third Class Honours</td>
+                        <td className="py-3 text-gray-600 dark:text-slate-300 font-black">Third Class Honours</td>
                         <td className="py-3">{scale === 5 ? '1.50 – 2.39' : '1.50 – 1.99'}</td>
                         <td className="py-3 font-semibold text-gray-500">Satisfactory</td>
                       </tr>
@@ -290,7 +290,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                 <Sparkles size={12} /> Upcoming Resumption Release
               </div>
               <h3 className="text-xl font-black text-gray-900 dark:text-white">What's Coming in 2026/2027 Session Activation</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Full feature suite re-enabling upon official school resumption.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-300 font-medium mt-1">Full feature suite re-enabling upon official school resumption.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -299,7 +299,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                   <Calculator size={20} />
                 </div>
                 <h4 className="font-bold text-gray-900 dark:text-white text-sm">Multi-Semester Tracking</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-slate-300 leading-relaxed">
                   Log 100L through 500L course credit units with automatic semester GP & running CGPA updates.
                 </p>
               </div>
@@ -309,7 +309,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                   <Target size={20} />
                 </div>
                 <h4 className="font-bold text-gray-900 dark:text-white text-sm">Goal & Honours Forecaster</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-slate-300 leading-relaxed">
                   Calculate target semester GPA required to achieve First Class or 2.1 Honours graduation targets.
                 </p>
               </div>
@@ -319,7 +319,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                   <Brain size={20} />
                 </div>
                 <h4 className="font-bold text-gray-900 dark:text-white text-sm">AI Recovery Coaching</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-slate-300 leading-relaxed">
                   Get personalized study strategy recommendations and carry-over course clearance paths.
                 </p>
               </div>
@@ -329,7 +329,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                   <FileText size={20} />
                 </div>
                 <h4 className="font-bold text-gray-900 dark:text-white text-sm">Transcript PDF Export</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-slate-300 leading-relaxed">
                   Generate official student transcript summary cards with course codes and credit breakdowns.
                 </p>
               </div>

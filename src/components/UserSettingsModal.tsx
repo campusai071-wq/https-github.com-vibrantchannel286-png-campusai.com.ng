@@ -147,7 +147,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose, 
                  <CloudLightning className="text-emerald-500" size={24} />
                  <h4 className="font-black text-sm dark:text-white uppercase tracking-tight">Connect to Cloud</h4>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+              <p className="text-xs text-gray-600 dark:text-slate-300 font-medium leading-relaxed">
                 You are currently using a guest profile. Sign in to synchronize your admission journey across all your devices.
               </p>
               <button 

@@ -101,7 +101,7 @@ const ToolsGrid: React.FC = () => {
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
             Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">CampusAI</span> Tools
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
+          <p className="text-gray-600 dark:text-slate-300 max-w-2xl mx-auto text-lg">
             Everything you need for your admission journey, neatly organized in one place.
           </p>
         </div>

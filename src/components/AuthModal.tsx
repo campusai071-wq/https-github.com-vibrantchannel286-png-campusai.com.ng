@@ -206,7 +206,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
             <h3 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">
               {mode === 'login' ? 'Scholar Portal' : mode === 'signup' ? 'Join the Fleet' : 'Reset Access'}
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 font-medium mb-8 leading-relaxed text-xs md:text-sm px-4 font-sans">
+            <p className="text-gray-500 dark:text-slate-300 font-medium mb-8 leading-relaxed text-xs md:text-sm px-4 font-sans">
               {mode === 'login' ? 'Authenticate to unlock the 2026 Decision Engine.' : mode === 'signup' ? 'Create your profile to synchronize your journey.' : 'We will dispatch a secure recovery signal to your email.'}
             </p>
 
@@ -233,7 +233,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
                 <p className="text-[11px] font-bold text-blue-700 dark:text-cyan-400 mb-1 flex items-center gap-1.5 font-mono">
                   <Globe size={12} className="animate-pulse" /> PREVIEW IFRAME SYSTEM
                 </p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-normal mb-2.5">
+                <p className="text-[10px] text-gray-500 dark:text-slate-300 leading-normal mb-2.5">
                   Google popups are blocked inside iframes by browsers. For a seamless experience with Google login, open general CampusAI in a new tab.
                 </p>
                 <button

@@ -62,17 +62,22 @@ export interface DetailedCalculationRecord {
   extraData?: any;
 }
 
-const getRecordTimestampMs = (record: any): number => {
-  if (record.createdAt?.toMillis) return record.createdAt.toMillis();
-  if (record.createdAt?.seconds) return record.createdAt.seconds * 1000;
-  if (record.timestamp?.toMillis) return record.timestamp.toMillis();
-  if (record.timestamp?.seconds) return record.timestamp.seconds * 1000;
-  if (typeof record.timestamp === 'number') return record.timestamp;
-  if (record.predictionDate) {
-    const parsed = new Date(record.predictionDate).getTime();
-    if (!isNaN(parsed) && parsed > 0) return parsed;
+const parseTimestampToMs = (val: any): number => {
+  if (!val) return 0;
+  if (typeof val?.toMillis === 'function') return val.toMillis();
+  if (typeof val?.toDate === 'function') return val.toDate().getTime();
+  if (typeof val === 'object') {
+    if (typeof val.seconds === 'number') return val.seconds * 1000;
+    if (typeof val._seconds === 'number') return val._seconds * 1000;
+    if (typeof val.sec === 'number') return val.sec * 1000;
   }
-  return 0;
+  if (typeof val === 'number') return val;
+  const parsed = new Date(val).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const getRecordTimestampMs = (record: any): number => {
+  return parseTimestampToMs(record.createdAt || record.timestamp || record.predictionDate);
 };
 
 const formatDate = (ms: number): string => {
@@ -598,7 +603,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-slate-300 font-mono flex items-center gap-2 mt-0.5">
                 <span>{userEmail || (isGuestMode ? 'Non-authenticated prospective candidate audits' : isAllMode ? 'Live stream of candidate evaluations' : 'No email registered')}</span>
                 {userProfile?.stateOfOrigin && (
                   <span className="hidden sm:inline text-gray-400">• State: {userProfile.stateOfOrigin}</span>
@@ -661,7 +666,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
           <div className="px-6 py-3 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-slate-300 flex items-center gap-1.5">
                   <Brain size={12} className="text-blue-500" />
                   Verdict & Probability Distribution ({stats.total} Total)
                 </span>
@@ -702,7 +707,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-base font-black text-emerald-700 dark:text-emerald-300">{stats.highCount}</span>
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Highly Likely</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300">Highly Likely</span>
                 </div>
               </button>
 
@@ -726,7 +731,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-base font-black text-amber-700 dark:text-amber-300">{stats.borderlineCount}</span>
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Competitive</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300">Competitive</span>
                 </div>
               </button>
 
@@ -750,7 +755,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-base font-black text-rose-700 dark:text-rose-300">{stats.lowCount}</span>
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Risky / Low Chance</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300">Risky / Low Chance</span>
                 </div>
               </button>
 
@@ -774,7 +779,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-base font-black text-red-700 dark:text-red-400">{stats.disqualifiedCount}</span>
-                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">Ineligible (0%)</span>
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300">Ineligible (0%)</span>
                 </div>
               </button>
             </div>
@@ -897,7 +902,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                           </span>
                         ) : null}
                         {item.stateOfOrigin && (
-                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md">
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md">
                             {item.stateOfOrigin}
                             {item.isCatchmentState ? ' (Catchment)' : item.isELDSState ? ' (ELDS)' : ''}
                           </span>
@@ -974,7 +979,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                   <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
                                     <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
                                     {isPostUtmeNotUsed ? (
-                                      <p className="text-[10.5px] font-bold text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                                      <p className="text-[10.5px] font-bold text-gray-500 dark:text-slate-300 mt-1 leading-snug">
                                         Not used in aggregate calculation
                                       </p>
                                     ) : (
@@ -1048,13 +1053,13 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] font-mono text-gray-500 dark:text-gray-400">
+                                <div className="text-[10px] font-mono text-gray-500 dark:text-slate-300">
                                   Quota: <span className="font-bold text-gray-700 dark:text-gray-200">{item.cutoffQuotaUsed || (item.isCatchmentState ? `Catchment (${item.stateOfOrigin || 'State'})` : item.isELDSState ? 'ELDS' : 'National Merit')}</span>
                                 </div>
                               </div>
 
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11px]">
-                                <span className="text-gray-600 dark:text-gray-400">
+                                <span className="text-gray-600 dark:text-slate-300">
                                   Score vs Cutoff Margin:
                                 </span>
                                 {(() => {
@@ -1120,7 +1125,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                               ))}
                             </div>
                           ) : (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 font-mono bg-gray-50 dark:bg-gray-950 p-2.5 rounded-lg">
+                            <p className="text-xs text-gray-600 dark:text-slate-300 font-mono bg-gray-50 dark:bg-gray-950 p-2.5 rounded-lg">
                               {item.olevelsString}
                             </p>
                           )}
