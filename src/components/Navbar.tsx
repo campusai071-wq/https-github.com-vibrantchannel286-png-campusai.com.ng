@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark } from 'lucide-react';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
 import { searchWebRaw, SearchResultItem } from '../services/searchService';
@@ -16,12 +16,13 @@ interface NavbarProps {
   onLoginRequest: () => void;
   onShareRequest: () => void;
   onInviteEarnRequest: () => void;
+  onScholarPackRequest?: () => void;
   theme?: 'light' | 'dark';
   onThemeToggle?: () => void;
   onOpenSidebar?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, theme, onThemeToggle, onOpenSidebar }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [asuuStatus, setAsuuStatus] = useState<string | null>(null);
@@ -304,6 +305,29 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               </div>
             </div>
             
+            {/* ACTIVATE SCHOLAR PACK BUTTON */}
+            {onScholarPackRequest && (
+              <button
+                onClick={onScholarPackRequest}
+                className={`hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md ${
+                  user?.is_premium
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
+                    : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-amber-500/20 hover:scale-105 active:scale-95 border border-amber-300/30'
+                }`}
+                title={user?.is_premium ? "Manage / Refill Scholar Pack" : "Activate Scholar Pack"}
+              >
+                {user?.is_premium ? (
+                  <>
+                    <Zap size={12} className="fill-white" /> Scholar Pack ⚡ Active
+                  </>
+                ) : (
+                  <>
+                    <Crown size={12} className="fill-amber-200 text-amber-100" /> Activate Scholar Pack
+                  </>
+                )}
+              </button>
+            )}
+
             {/* INVITE & EARN */}
             {user && (
                <button onClick={onInviteEarnRequest} aria-label="Invite and Earn" className="p-2.5 rounded-xl transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-pointer">
@@ -313,11 +337,6 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             
             {user ? (
                <div className="flex items-center gap-2">
-                  {user.is_premium && (
-                    <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-blue-600/20">
-                      <Zap size={10} className="fill-white" /> Scholar Pack ⚡ Active
-                    </div>
-                  )}
                   <button onClick={() => onNavigate('settings')} aria-label="User Settings" className="p-2.5 rounded-xl transition-all relative bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
                      <User size={18} />
                      <div className={`absolute -top-1 -right-1 w-3 h-3 border-2 border-white dark:border-gray-950 rounded-full ${user.is_premium ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
@@ -435,6 +454,29 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 </button>
               </div>
             </div>
+
+            {/* Mobile Drawer Activate Scholar Pack Banner */}
+            {onScholarPackRequest && (
+              <div className="mt-3">
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onScholarPackRequest();
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-between font-black text-xs uppercase tracking-wider shadow-lg transition-all cursor-pointer ${
+                    user?.is_premium
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-amber-500/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {user?.is_premium ? <Zap size={16} className="fill-white" /> : <Crown size={16} className="fill-amber-200 text-amber-100" />}
+                    <span>{user?.is_premium ? "Scholar Pack Active" : "Activate Scholar Pack"}</span>
+                  </div>
+                  <span className="text-[10px] bg-white/20 px-2 py-1 rounded-lg">⚡ 2026 Access</span>
+                </button>
+              </div>
+            )}
             
             <div className="mt-8 px-2">
               <form onSubmit={handleSearch} className="relative">

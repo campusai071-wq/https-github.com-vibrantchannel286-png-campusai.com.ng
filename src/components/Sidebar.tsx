@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, 
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -15,6 +15,7 @@ interface SidebarProps {
   user: any;
   onLoginRequest: () => void;
   onInviteEarnRequest: () => void;
+  onScholarPackRequest?: () => void;
   theme?: 'light' | 'dark';
   onThemeToggle?: () => void;
 }
@@ -27,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   user,
   onLoginRequest,
   onInviteEarnRequest,
+  onScholarPackRequest,
   theme,
   onThemeToggle
 }) => {
@@ -224,6 +226,36 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Scholar Pack Banner Card */}
+              {onScholarPackRequest && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onScholarPackRequest();
+                  }}
+                  className={`w-full p-4 rounded-2xl flex items-center justify-between border transition-all cursor-pointer text-left ${
+                    user?.is_premium
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20'
+                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-amber-400/40 shadow-lg shadow-amber-500/20 hover:scale-[1.02]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+                      {user?.is_premium ? <Zap size={20} className="fill-white" /> : <Crown size={20} className="fill-amber-200 text-amber-100" />}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider">
+                        {user?.is_premium ? 'Scholar Pack Active' : 'Activate Scholar Pack'}
+                      </h4>
+                      <p className="text-[10px] text-white/80 font-medium">
+                        {user?.is_premium ? '500 NGN Plan Active • Manage' : 'Unlock Unlimited AI Predictions'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-white/80" />
+                </button>
+              )}
 
               {/* Live Post-UTME Tracking Indicator */}
               <div 

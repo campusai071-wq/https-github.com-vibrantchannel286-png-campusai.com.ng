@@ -777,6 +777,7 @@ const AppContent: React.FC = () => {
         onLoginRequest={() => navigate('/login')}
         onShareRequest={() => setIsShareOpen(true)}
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+        onScholarPackRequest={() => setIsScholarPackOpen(true)}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       />
 
@@ -844,6 +845,7 @@ const AppContent: React.FC = () => {
           user={user}
           onLoginRequest={() => navigate('/login')}
           onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+          onScholarPackRequest={() => setIsScholarPackOpen(true)}
           theme={theme}
           onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
         />
