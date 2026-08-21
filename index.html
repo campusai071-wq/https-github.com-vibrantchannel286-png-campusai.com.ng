@@ -20,6 +20,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Cache-Control" content="max-age=3600, must-revalidate" />
     
+    <!-- Theme Initialization Script to prevent flash of wrong theme -->
+    <script>
+      (function() {
+        try {
+          var storedTheme = localStorage.getItem('campusai_theme');
+          var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- SEO Title & Meta Description -->
     <title data-rh="true">JAMB Aggregate Calculator 2026 | Check Admission - CampusAI</title>
     <meta data-rh="true" name="description" content="Calculate target aggregate scores, estimate tuition costs, and check catchment cutoff quotas on the official 2026 Nigerian higher education portal." />

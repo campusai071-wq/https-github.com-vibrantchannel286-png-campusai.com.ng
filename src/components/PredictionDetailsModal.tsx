@@ -29,6 +29,9 @@ export interface DetailedCalculationRecord {
   aggregateScore: number | string;
   jambScore?: number | string;
   postUtmeScore?: number | string;
+  usesPostUtme?: boolean;
+  hasPostUtme?: boolean;
+  postUtmeNotUsed?: boolean;
   verdict?: string;
   confidence?: string;
   predictedProbability?: number;
@@ -955,12 +958,33 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                 </p>
                               </div>
 
-                              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
-                                <p className="text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
-                                  {item.postUtmeScore ? `${item.postUtmeScore}` : 'Pending / 0'}
-                                </p>
-                              </div>
+                              {(() => {
+                                const normUni = (item.university || '').toLowerCase();
+                                const fExpl = (item.formulaExplanation || '').toLowerCase();
+                                const isPostUtmeNotUsed = 
+                                  item.usesPostUtme === false ||
+                                  item.hasPostUtme === false ||
+                                  item.postUtmeNotUsed === true ||
+                                  normUni.includes('lautech') || normUni.includes('ladoke') ||
+                                  normUni.includes('futa') || normUni.includes('akure') ||
+                                  normUni.includes('lasu') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') ||
+                                  fExpl.includes('80:20') || fExpl.includes('75:25') || fExpl.includes('60:40') || fExpl.includes('lautech') || fExpl.includes('futa') || fExpl.includes('lasu') || fExpl.includes('fuoye') || fExpl.includes('pure_jamb');
+
+                                return (
+                                  <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
+                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
+                                    {isPostUtmeNotUsed ? (
+                                      <p className="text-[10.5px] font-bold text-gray-500 dark:text-gray-400 mt-1 leading-snug">
+                                        Not used in aggregate calculation
+                                      </p>
+                                    ) : (
+                                      <p className="text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
+                                        {item.postUtmeScore ? `${item.postUtmeScore} / 100` : 'Pending / 0'}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
                                 <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">

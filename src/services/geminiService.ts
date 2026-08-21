@@ -64,6 +64,7 @@ import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
+import { getLAUTECHCutoffByCourse } from "../data/lautechCutoffs2025_2026";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -1093,6 +1094,14 @@ const calculateMaxAndTarget = (
     maxPostContrib = 0;
     postContrib = 0;
     hasPost = false;
+  } else if (f.includes('lautech') || normUni.includes('lautech') || normUni.includes('ladoke') || f.includes('80_20') || f.includes('80:20')) {
+    jambContrib = (jamb / 400 * 80);
+    maxJambContrib = 80;
+    olevelContrib = currentOLevelPoints;
+    maxOlevelContrib = 20;
+    maxPostContrib = 0;
+    postContrib = 0;
+    hasPost = false;
   } else if (f.includes('lasu_point_based') || f.includes('lasu_point')) {
     jambContrib = (jamb / 8);
     maxJambContrib = 50;
@@ -1682,6 +1691,8 @@ export const enforceAdmissionTiers = (
     usesPostUtme = false;
   } else if (f.includes('fuoye') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') || normUni.includes('oye ekiti')) {
     usesPostUtme = false;
+  } else if (f.includes('lautech') || normUni.includes('lautech') || normUni.includes('ladoke') || f.includes('80_20') || f.includes('80:20')) {
+    usesPostUtme = false;
   } else if (f.includes('pure_jamb')) {
     usesPostUtme = false;
   }
@@ -1995,6 +2006,18 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
+      if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
+        const lautechCutoff = getLAUTECHCutoffByCourse(course);
+        if (lautechCutoff) {
+          manualOverride = {
+            institution: "Ladoke Akintola University of Technology (LAUTECH)",
+            course: lautechCutoff.programme,
+            departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
+            institutionalCutoff: "170",
+            explanation: `Official LAUTECH 2025/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+          };
+        }
+      }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
@@ -2082,6 +2105,18 @@ export const getCourseCutoffInfo = async (
           departmentalCutoff: `${futaCutoff.cutoff}%`,
           institutionalCutoff: "180",
           explanation: `Official FUTA 2026/2027 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
+      const lautechCutoff = getLAUTECHCutoffByCourse(course);
+      if (lautechCutoff) {
+        manualOverride = {
+          institution: "Ladoke Akintola University of Technology (LAUTECH)",
+          course: lautechCutoff.programme,
+          departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
+          institutionalCutoff: "170",
+          explanation: `Official LAUTECH 2025/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
         };
       }
     }
@@ -2364,6 +2399,18 @@ Return JSON:
           departmentalCutoff: `${futaCutoff.cutoff}%`,
           institutionalCutoff: "180",
           explanation: `Official FUTA 2026/2027 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
+      const lautechCutoff = getLAUTECHCutoffByCourse(course);
+      if (lautechCutoff) {
+        manualOverride = {
+          institution: "Ladoke Akintola University of Technology (LAUTECH)",
+          course: lautechCutoff.programme,
+          departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
+          institutionalCutoff: "170",
+          explanation: `Official LAUTECH 2025/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
         };
       }
     }

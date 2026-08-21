@@ -2070,6 +2070,8 @@ export interface GlobalPredictionRecord {
   aggregateScore: number;
   jambScore: number;
   postUtmeScore: number;
+  usesPostUtme?: boolean;
+  postUtmeNotUsed?: boolean;
   verdict: string;
   confidence: string;
   predictedProbability: number;

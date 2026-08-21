@@ -267,6 +267,32 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
       "Mechanical Engineering", "Microbiology", "Nursing Science", "Pharmacy", "Political Science", 
       "Psychology", "Sociology", "Theatre and Media Arts"
     ]
+  },
+  "Ladoke Akintola University of Technology": {
+    name: "Ladoke Akintola University of Technology",
+    founded: "1990",
+    motto: "Excellence, Integrity and Service",
+    bestKnownFor: "Engineering, Technology, Agriculture, Computing, and Health Sciences. Consistently ranked among the top state universities in Nigeria.",
+    campusVibe: "Energetic, technologically progressive, and academically competitive in Ogbomoso.",
+    facultyStudentRatio: "1:28",
+    researchOutput: "High - Renowned for applied engineering, biomedical technology, and agrarian sciences.",
+    facilities: ["Olusegun Oke Library", "LAUTECH Teaching Hospital (LTH)", "ICT & Innovation Center", "Biotechnology Research Lab"],
+    scoringSystem: {
+      hasJamb: true,
+      hasPostUtme: false,
+      hasOLevel: true,
+      explanation: "LAUTECH (80:20): JAMB UTME score is weighted at 80% ((JAMB / 400) * 80) and 5 relevant O'Level subject grades provide up to 20 points (A1=4.0, B2=3.6, B3=3.2, C4=2.8, C5=2.4, C6=2.0). Post-UTME screening is point-based (no CBT Post-UTME exam)."
+    },
+    courses: [
+      "Medicine and Surgery", "Nursing Science", "Medical Laboratory Science", "Human Anatomy", "Human Physiology",
+      "Computer Science", "Cyber Security", "Information Systems", "Software Engineering",
+      "Mechanical Engineering", "Civil Engineering", "Electrical and Electronic Engineering", "Chemical Engineering",
+      "Computer Engineering", "Agricultural Engineering", "Food Engineering", "Biomedical Engineering",
+      "Accounting", "Business Management", "Economics", "Marketing", "Transport Management",
+      "Agricultural Economics", "Animal Production and Health", "Crop Production and Soil Science",
+      "Architecture", "Building", "Estate Management", "Urban and Regional Planning", "Surveying and Geoinformatics",
+      "Biochemistry", "Microbiology", "Pure and Applied Biology", "Pure and Applied Chemistry", "Pure and Applied Mathematics", "Pure and Applied Physics"
+    ]
   }
 };
 

@@ -30,6 +30,7 @@ import {
 import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, saveGlobalCalculationRecord, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import { FUTA_CUTOFFS_2026_2027, getFUTASchools } from '../data/futaCutoffs2026_2027';
+import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import QuotaModal from './QuotaModal';
@@ -186,6 +187,7 @@ interface CutoffCalculatorProps {
 
 const TOP_INSTITUTION_MAP: Record<string, ScoringSystem> = {
   'futa':     { hasJamb: true, hasPostUtme: false, hasOLevel: true,  explanation: "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%).", formula: "futa_75_25" },
+  'lautech':  { hasJamb: true, hasPostUtme: false, hasOLevel: true,  explanation: "LAUTECH (80:20): JAMB(80%) + O-Level(20%).", formula: "lautech_80_20" },
   'futminna': { hasJamb: true, hasPostUtme: true,  hasOLevel: true,  explanation: "FUTMinna (50:30:20): JAMB(50) + Post-UTME(30) + O-Level(20).", formula: "50:30:20" },
   'unilag':   { hasJamb: true, hasPostUtme: true,  hasOLevel: true,  explanation: "UNILAG (50:30:20): JAMB(50) + Post-UTME(30) + O-Level(20).", formula: "50:30:20" },
   'ui':       { hasJamb: true, hasPostUtme: true,  hasOLevel: false, explanation: "UI (50:50): Average of JAMB and Post-UTME.", formula: "50:50" },
@@ -222,6 +224,10 @@ const calculateAggregateScore = (
   if (formula === 'futa_75_25' || normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure')) || desc.includes('75:25') || desc.includes('75_25')) {
     // FUTA 75:25: JAMB is (JAMB / 400) * 75, O'Level is (Average of 5 grades) * 0.25 = (olevelTotal / 5) * 0.25
     return (jamb / 400 * 75) + ((olevelTotal / 5) * 0.25);
+  }
+  if (formula === 'lautech_80_20' || normalizedUni.includes('lautech') || normalizedUni.includes('ladoke') || desc.includes('80:20') || desc.includes('80_20')) {
+    // LAUTECH 80:20: JAMB (80%) + O'Level points (max 20 points from 5 subjects)
+    return (jamb / 400 * 80) + olevelTotal;
   }
   if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40') || desc.includes('60_40')) {
     return (jamb / 400 * 60) + olevelTotal;
@@ -293,6 +299,17 @@ const getUniversityGradePoints = (uniName: string): {
       gradeMap: map,
       maxPoints: 40,
       styleDesc: "LASU O'Level scale (A1=8, B2=7, B3=6, C4=5, C5=4, C6=3)"
+    };
+  }
+  
+  if (normalized.includes('lautech') || normalized.includes('ladoke')) {
+    const map: Record<OLevelGrade, number> = {
+      'A1': 4.0, 'B2': 3.6, 'B3': 3.2, 'C4': 2.8, 'C5': 2.4, 'C6': 2.0, 'D7': 0, 'E8': 0, 'F9': 0
+    };
+    return {
+      gradeMap: map,
+      maxPoints: 20,
+      styleDesc: "LAUTECH 80:20 O'Level scale (A1=4.0, B2=3.6, B3=3.2, C4=2.8, C5=2.4, C6=2.0, max 20 points from 5 subjects)"
     };
   }
   
@@ -761,6 +778,34 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
       ]
     }
   },
+  lautech: {
+    fullName: "Ladoke Akintola University of Technology (LAUTECH)",
+    formulaDesc: "LAUTECH evaluates candidates using an 80:20 composite scoring system (JAMB 80% + O'Level 20%). The official institutional minimum cutoff mark is 170.",
+    formulaSteps: [
+      "JAMB Score: Multiplied by 0.20 (or JAMB / 400 * 80) for a maximum of 80 points.",
+      "O'Level Points: Maximum of 20 points from 5 relevant subjects (A1=4.0, B2=3.6, B3=3.2, C4=2.8, C5=2.4, C6=2.0).",
+      "Special Requirement: Medicine (MBBS), Nursing Science, and Medical Laboratory Science require all 5 O'Level credits at ONE sitting only."
+    ],
+    cutoffs: [
+      { course: "Medicine and Surgery (MBBS)", score: "240" },
+      { course: "Nursing Science", score: "230" },
+      { course: "Computer Science", score: "200" },
+      { course: "Medical Laboratory Science", score: "210" },
+      { course: "Civil Engineering", score: "190" },
+      { course: "Mechanical Engineering", score: "190" }
+    ],
+    postUtmeGuide: {
+      format: "Online Screening / Point Verification (No Physical Exam)",
+      subjects: "Verification of JAMB score, O'Level grade points, and bio-data on the LAUTECH admissions portal.",
+      duration: "Online Portal Submissions",
+      fee: "₦2,000",
+      tips: [
+        "Medicine & Surgery, Nursing, and Med Lab strictly require 5 O'Level credits in ONE sitting only.",
+        "Ensure all O'Level results are properly uploaded to JAMB CAPS before screening deadline.",
+        "Minimum general UTME score is 170; top professional courses require 200+ to 240+."
+      ]
+    }
+  },
   abu: {
     fullName: "Ahmadu Bello University (ABU)",
     formulaDesc: "ABU calculates aggregate score using a standard 50:50 ratio of JAMB and Post-UTME score.",
@@ -1199,6 +1244,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
     const checkText = ((targetUni?.name || '') + ' ' + (targetUni?.slug || '') + ' ' + (initialSchoolName || '') + ' ' + (currentSchoolSlug || '') + ' ' + uniSearch).toLowerCase();
     const isNoPostUtme = 
+      targetUni?.scoringSystem?.hasPostUtme === false ||
+      scoringSystem?.hasPostUtme === false ||
+      checkText.includes('lautech') || checkText.includes('ladoke') ||
       checkText.includes('futa') || checkText.includes('akure') || 
       checkText.includes('lasu') || checkText.includes('lagos state university') || 
       checkText.includes('fuoye') || checkText.includes('oye-ekiti') ||
@@ -1206,13 +1254,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
     if (isNoPostUtme) {
       const isFuta = checkText.includes('futa') || checkText.includes('akure');
-      const baseSys = targetUni?.scoringSystem || scoringSystem || TOP_INSTITUTION_MAP[isFuta ? 'futa' : 'lasu'] || Object.entries(TOP_INSTITUTION_MAP).find(([k]) => checkText.includes(k))?.[1];
+      const isLautech = checkText.includes('lautech') || checkText.includes('ladoke');
+      const isFuoye = checkText.includes('fuoye') || checkText.includes('oye-ekiti');
+      const baseSys = targetUni?.scoringSystem || scoringSystem || TOP_INSTITUTION_MAP[isFuta ? 'futa' : isLautech ? 'lautech' : isFuoye ? 'fuoye' : 'lasu'] || Object.entries(TOP_INSTITUTION_MAP).find(([k]) => checkText.includes(k))?.[1];
       return {
         hasJamb: true,
         hasPostUtme: false,
         hasOLevel: baseSys ? baseSys.hasOLevel : true,
-        explanation: baseSys?.explanation || (isFuta ? "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%)." : "Point-Based Screening: JAMB + O'Level (No Post-UTME exam)."),
-        formula: baseSys?.formula || (isFuta ? "futa_75_25" : "point_based")
+        explanation: baseSys?.explanation || (isFuta ? "FUTA Point-Based (75:25): JAMB(75%) + O-Level(25%)." : isLautech ? "LAUTECH (80:20): JAMB(80%) + O-Level(20%)." : "Point-Based Screening: JAMB + O'Level (No Post-UTME exam)."),
+        formula: baseSys?.formula || (isFuta ? "futa_75_25" : isLautech ? "lautech_80_20" : isFuoye ? "fuoye" : "point_based")
       };
     }
 
@@ -1360,6 +1410,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isFUTACutoffsModalOpen, setIsFUTACutoffsModalOpen] = useState(false);
   const [futaCutoffSearch, setFutaCutoffSearch] = useState('');
   const [futaSchoolFilter, setFutaSchoolFilter] = useState('ALL');
+
+  // ── LAUTECH 2025/2026 Cutoffs Explorer State ──
+  const [isLAUTECHCutoffsModalOpen, setIsLAUTECHCutoffsModalOpen] = useState(false);
+  const [lautechCutoffSearch, setLautechCutoffSearch] = useState('');
+  const [lautechFacultyFilter, setLautechFacultyFilter] = useState('ALL');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -2246,6 +2301,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     setFeedbackStatus('none');
     setAdmissionStatus('none');
 
+    const effectiveUsesPostUtme = (!computedScoringSystem || computedScoringSystem.hasPostUtme !== false);
+    const cleanPostUtmeScore = effectiveUsesPostUtme
+      ? (isPostUtmePending ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70) : (parseFloat(postUtmeScore) || 0))
+      : 0;
+
     // GA4 Event: calculator_used
     trackCalculatorUsed({
       calculator_type: 'jamb_aggregate',
@@ -2253,7 +2313,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       course: activeCourse,
       aggregate_score: aggregateScore,
       jamb_score: jambScore,
-      post_utme_score: postUtmeScore,
+      post_utme_score: effectiveUsesPostUtme ? postUtmeScore : '0',
       state_of_origin: stateOfOrigin
     });
 
@@ -2277,10 +2337,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 .filter(Boolean)
             )
           ),
-          user?.role, isAR, isPostUtmePending, formulaText,
+          user?.role, isAR, isPostUtmePending && effectiveUsesPostUtme, formulaText,
           stateOfOrigin, isELDSState, isCatchmentState, computedDiscount,
           parseFloat(jambScore) || 0,
-          isPostUtmePending ? (postUtmeScore && !isNaN(parseFloat(postUtmeScore)) ? parseFloat(postUtmeScore) : 70) : (parseFloat(postUtmeScore) || 0)
+          cleanPostUtmeScore
         );
         enrichedResult = { ...result, predictionId };
         setAiResult(enrichedResult);
@@ -2323,9 +2383,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             !!isELDSState,
             !!isCatchmentState,
             isAR,
-            isPostUtmePending,
+            isPostUtmePending && effectiveUsesPostUtme,
             parseFloat(jambScore) || 0,
-            parseFloat(postUtmeScore) || 0,
+            cleanPostUtmeScore,
             formulaText,
             olevelsString
           );
@@ -2355,7 +2415,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           course: targetCourse || courseSearch,
           aggregateScore: parseFloat(aggregateScore.toString()) || 0,
           jambScore: parseFloat(jambScore) || 0,
-          postUtmeScore: parseFloat(postUtmeScore) || 0,
+          postUtmeScore: cleanPostUtmeScore,
+          usesPostUtme: effectiveUsesPostUtme,
+          postUtmeNotUsed: !effectiveUsesPostUtme,
           verdict: finalVerdict,
           confidence: result.reliability || (isDisqualified ? 'High' : 'Medium'),
           predictedProbability: finalProbability,
@@ -2384,11 +2446,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         uniName: targetUni.name,
         courseName: targetCourse || courseSearch,
         jambScore,
-        postUtmeScore,
+        postUtmeScore: effectiveUsesPostUtme ? postUtmeScore : '',
         stateOfOrigin,
         aggregateScore,
         isAR,
-        isPostUtmePending,
+        isPostUtmePending: effectiveUsesPostUtme ? isPostUtmePending : false,
         timestamp: Date.now(),
         aiResult: enrichedResult,
       };
@@ -2681,6 +2743,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View All Official FUTA 2026/2027 Cut-Off Marks
+                        </button>
+                      )}
+                      {currentSchoolSlug === 'lautech' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsLAUTECHCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View All 57 LAUTECH Departmental Cut-Off Marks
                         </button>
                       )}
                     </div>
@@ -3829,11 +3900,19 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             <div className="p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
                               <p className="text-[9px] font-extrabold uppercase tracking-wider text-gray-400">Post-UTME / Screening</p>
                               <p className="text-lg font-black text-white mt-0.5">
-                                {isPostUtmePending ? 'Pending' : (postUtmeScore ? `${postUtmeScore}` : '0')}
-                                <span className="text-xs text-gray-500 font-normal">{isPostUtmePending ? ' (Projected)' : ' / 100'}</span>
+                                {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) ? (
+                                  <>
+                                    {isPostUtmePending ? 'Pending' : (postUtmeScore ? `${postUtmeScore}` : '0')}
+                                    <span className="text-xs text-gray-500 font-normal">{isPostUtmePending ? ' (Projected)' : ' / 100'}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-semibold text-gray-400">Not used</span>
+                                )}
                               </p>
                               <p className="text-[9px] text-gray-400 mt-1 font-medium leading-tight">
-                                {computedScoringSystem?.hasPostUtme ? 'Institutional screening contribution' : 'Point-based screening'}
+                                {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false)
+                                  ? 'Institutional screening contribution'
+                                  : 'Not used in aggregate calculation'}
                               </p>
                             </div>
 
@@ -6332,7 +6411,259 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFUTACutoffsModalOpen(false)}
-                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all"
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ── LAUTECH 2025/2026 Cutoffs Explorer Modal ── */}
+        {isLAUTECHCutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLAUTECHCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-gray-950 w-full max-w-5xl rounded-[32px] overflow-hidden shadow-2xl border border-indigo-500/20 my-auto z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-white/5 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <GraduationCap size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase tracking-widest">
+                        Official LAUTECH Release • 2025/2026
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
+                      Ladoke Akintola University of Technology (LAUTECH) Departmental Cut-Off Marks
+                    </h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      Academic Planning & Admissions Unit • Official Approved UTME & 80:20 Aggregate Benchmarks
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLAUTECHCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all self-end sm:self-auto shrink-0 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Filters & Search */}
+              <div className="p-4 sm:p-6 border-b border-white/5 bg-black/40 flex flex-col gap-3 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={lautechCutoffSearch}
+                      onChange={e => setLautechCutoffSearch(e.target.value)}
+                      placeholder="Search across all 57 LAUTECH courses (e.g., Medicine, Nursing, Computer Science, Civil Eng, Accounting)..."
+                      className="w-full pl-9 pr-4 py-2.5 bg-gray-900 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                    {lautechCutoffSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setLautechCutoffSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 shrink-0">
+                      Faculty:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLautechFacultyFilter('ALL')}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
+                        lautechFacultyFilter === 'ALL'
+                          ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                          : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      All ({LAUTECH_CUTOFFS_2025_2026.length})
+                    </button>
+                    {getLAUTECHFaculties().map(fac => {
+                      const count = LAUTECH_CUTOFFS_2025_2026.filter(c => c.faculty === fac).length;
+                      return (
+                        <button
+                          key={fac}
+                          type="button"
+                          onClick={() => setLautechFacultyFilter(fac)}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
+                            lautechFacultyFilter === fac
+                              ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                              : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {fac} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Formula Highlight Banner */}
+                <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-indigo-300">
+                    <Sparkles size={14} className="shrink-0 text-indigo-400" />
+                    <span className="text-[11px] leading-relaxed">
+                      <strong>LAUTECH 80:20 Scoring Formula:</strong> <code className="bg-black/40 px-1.5 py-0.5 rounded text-indigo-200">Aggregate = (JAMB / 400 * 80) + O'Level Points (max 20)</code>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-gray-400 shrink-0">
+                    <span>Institutional Minimum: <strong className="text-white">170</strong></span>
+                    <span>Total Courses: <span className="text-xs font-black text-indigo-400">{LAUTECH_CUTOFFS_2025_2026.length}</span></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Course List / Cards */}
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[55vh] scrollbar-thin">
+                {(() => {
+                  const filtered = LAUTECH_CUTOFFS_2025_2026.filter(item => {
+                    const matchesSearch =
+                      lautechCutoffSearch === '' ||
+                      item.programme.toLowerCase().includes(lautechCutoffSearch.toLowerCase()) ||
+                      item.faculty.toLowerCase().includes(lautechCutoffSearch.toLowerCase()) ||
+                      item.utmeSubjects.toLowerCase().includes(lautechCutoffSearch.toLowerCase()) ||
+                      item.oLevelRequirements.toLowerCase().includes(lautechCutoffSearch.toLowerCase());
+                    const matchesFaculty =
+                      lautechFacultyFilter === 'ALL' || item.faculty === lautechFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="py-12 text-center text-gray-500">
+                        <AlertCircle size={32} className="mx-auto mb-2 opacity-50 text-indigo-400" />
+                        <p className="text-xs font-bold uppercase tracking-wider">No matching LAUTECH courses found</p>
+                        <p className="text-[10px] mt-1 text-gray-600">Try adjusting your search query or faculty filter</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {filtered.map(item => {
+                        const isOneSitting =
+                          item.notes?.toLowerCase().includes('one sitting') ||
+                          item.oLevelRequirements.toLowerCase().includes('one sitting') ||
+                          item.oLevelRequirements.toLowerCase().includes('1 sitting') ||
+                          ['Medicine and Surgery (MBBS)', 'Nursing Science', 'Medical Laboratory Science'].includes(item.programme);
+
+                        return (
+                          <div
+                            key={item.programme}
+                            className="p-4 bg-gray-900/70 hover:bg-gray-900 border border-white/5 hover:border-indigo-500/30 rounded-2xl transition-all duration-200 flex flex-col justify-between gap-3 group"
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="px-2 py-0.5 rounded bg-white/5 text-gray-400 text-[8px] font-black uppercase tracking-wider">
+                                      {item.faculty}
+                                    </span>
+                                    {isOneSitting && (
+                                      <span className="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] font-black uppercase tracking-wider">
+                                        1 Sitting Only
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors leading-snug">
+                                    {item.programme}
+                                  </h4>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="text-base sm:text-lg font-black text-indigo-400 tracking-tight">
+                                    {item.utmeCutoff}
+                                  </span>
+                                  <span className="block text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                                    UTME Cut-Off
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* UTME & OLevel Requirements */}
+                              <div className="mt-2 space-y-1.5 text-[10px]">
+                                <div className="p-2 bg-black/40 rounded-lg border border-white/5">
+                                  <span className="text-gray-400 font-bold block mb-0.5 uppercase text-[8px] tracking-wider text-indigo-300">
+                                    UTME Subjects:
+                                  </span>
+                                  <span className="text-gray-300">{item.utmeSubjects}</span>
+                                </div>
+                                <div className="p-2 bg-black/40 rounded-lg border border-white/5">
+                                  <span className="text-gray-400 font-bold block mb-0.5 uppercase text-[8px] tracking-wider text-purple-300">
+                                    O'Level Requirements:
+                                  </span>
+                                  <span className="text-gray-300">{item.oLevelRequirements}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[9px]">
+                              <span className="text-gray-400 font-bold">80% JAMB + 20% O'Level</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTargetUni("Ladoke Akintola University of Technology (LAUTECH)");
+                                  setTargetCourse(item.programme);
+                                  setCourseSearch(item.programme);
+                                  setIsLAUTECHCutoffsModalOpen(false);
+                                  window.scrollTo({ top: 400, behavior: 'smooth' });
+                                }}
+                                className="px-3 py-1 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 rounded-lg font-black uppercase tracking-wider text-[8px] transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                Calculate Chance <ArrowRight size={10} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-indigo-400" />
+                  <span>LAUTECH Aggregate = (JAMB / 400 * 80) + O'Level Points (max 20). Institutional Cutoff: 170</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://www.lautech.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:underline flex items-center gap-1"
+                  >
+                    LAUTECH Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsLAUTECHCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
                   >
                     Close
                   </button>

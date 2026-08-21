@@ -97,21 +97,17 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 w-full z-[100] transition-all duration-500 ease-in-out ${
+    <nav className={`fixed top-0 left-0 right-0 w-full z-[100] transition-all duration-300 ease-in-out ${
       isScrolled 
-        ? 'bg-white/70 dark:bg-gray-950/70 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm py-3' 
-        : 'bg-gray-950 py-6 text-white'
+        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm py-3' 
+        : 'bg-white/95 dark:bg-gray-950/95 py-4 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
     }`}>
       <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
         <div className="flex items-center gap-3.5">
           {onOpenSidebar && (
             <button
               onClick={onOpenSidebar}
-              className={`p-2.5 rounded-xl transition-all ${
-                isScrolled 
-                  ? 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800' 
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
+              className="p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-800 cursor-pointer"
               title="Open Navigation Menu"
               aria-label="Open Navigation Menu"
             >
@@ -120,22 +116,22 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
           )}
 
           <div className="flex flex-col items-start cursor-pointer group" onClick={() => { onNavigate('home'); setIsMobileMenuOpen(false); }}>
-            <span className={`text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 transition-colors ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}>
+            <span className="text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 text-gray-950 dark:text-white transition-colors">
               Campus
-              <span className="inline-flex items-center justify-center mx-0.5 text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-                <Brain size={22} className="fill-cyan-400/20 text-cyan-400 stroke-[2.5]" />
+              <span className="inline-flex items-center justify-center mx-0.5 text-cyan-500 dark:text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                <Brain size={22} className="fill-cyan-500/20 text-cyan-500 dark:text-cyan-400 stroke-[2.5]" />
               </span>
-              AI<span className="text-cyan-400 font-extrabold">.ng</span>
+              AI<span className="text-cyan-600 dark:text-cyan-400 font-extrabold">.ng</span>
             </span>
             <div className="flex flex-wrap items-center mt-0.5 gap-2">
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>
+                <span className="text-[7px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
                   {asuuStatus || 'Active Session'}
                 </span>
               </div>
-              <span className={`text-[7px] font-black uppercase tracking-widest opacity-40 ${isScrolled ? 'text-gray-400' : 'text-white/50'}`}>•</span>
-              <span className={`text-[7px] font-black uppercase tracking-widest ${isScrolled ? 'text-blue-600 dark:text-cyan-400' : 'text-cyan-300'}`}>
+              <span className="text-[7px] font-black uppercase tracking-widest text-gray-300 dark:text-gray-600">•</span>
+              <span className="text-[7px] font-black uppercase tracking-widest text-cyan-700 dark:text-cyan-300 font-bold">
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
@@ -148,9 +144,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 initial={{ opacity: 0, scale: 0.9, x: -10 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.9, x: -10 }}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 text-[9px] font-black uppercase tracking-wider backdrop-blur-md shadow-[0_0_12px_rgba(34,211,238,0.15)] animate-pulse ml-2"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-600 dark:text-cyan-400 text-[9px] font-black uppercase tracking-wider backdrop-blur-md shadow-[0_0_12px_rgba(34,211,238,0.15)] animate-pulse ml-2"
               >
-                <Loader2 size={11} className="animate-spin text-cyan-400" />
+                <Loader2 size={11} className="animate-spin text-cyan-500 dark:text-cyan-400" />
                 <span>Syncing...</span>
               </motion.div>
             )}
@@ -160,7 +156,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
         {/* Desktop Search Bar */}
         <div className="hidden lg:flex flex-1 max-w-[200px] xl:max-w-md mx-4 xl:mx-8 relative">
           <form onSubmit={handleSearch} className="w-full relative group">
-            <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${isScrolled ? 'text-gray-400 group-focus-within:text-blue-500' : 'text-white/40 group-focus-within:text-cyan-400'}`}>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 group-focus-within:text-cyan-600 dark:group-focus-within:text-cyan-400 transition-colors">
               <Search size={14} />
             </div>
             <input
@@ -168,20 +164,16 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-9 pr-8 py-1.5 text-[10px] font-bold rounded-xl border transition-all outline-none ${
-                isScrolled 
-                  ? 'bg-gray-100 dark:bg-gray-900 border-transparent focus:border-blue-500 text-gray-900 dark:text-white' 
-                  : 'bg-white/10 border-white/10 focus:border-cyan-400 text-white placeholder:text-white/30'
-              }`}
+              className="w-full pl-9 pr-8 py-1.5 text-[10px] font-bold rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 focus:border-cyan-500 dark:focus:border-cyan-400 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all outline-none"
             />
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
               {searchQuery && (
                 <button 
                   type="button" 
                   onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors"
+                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
                 >
-                  <X size={12} className={isScrolled ? 'text-gray-400' : 'text-white/40'} />
+                  <X size={12} className="text-gray-400 dark:text-gray-500" />
                 </button>
               )}
               {isSearching && <Loader2 size={12} className="animate-spin text-cyan-500" />}
@@ -201,7 +193,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 >
                   <div className="p-4 flex justify-between items-center border-b border-gray-50 dark:border-gray-900">
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Search Results</span>
-                    <button onClick={() => setShowSearchResults(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                    <button onClick={() => setShowSearchResults(false)} className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
                       <X size={14} />
                     </button>
                   </div>
@@ -244,10 +236,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex items-center space-x-2 font-black text-[10px] uppercase tracking-widest hover:text-cyan-400 transition-all ${
+              className={`flex items-center space-x-1.5 font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer ${
                 currentPage === item.id 
-                  ? 'text-cyan-500' 
-                  : (isScrolled ? 'text-gray-600 dark:text-gray-300' : 'text-white/90 hover:text-white')
+                  ? 'text-cyan-600 dark:text-cyan-400 font-extrabold' 
+                  : 'text-gray-700 hover:text-cyan-600 dark:text-gray-300 dark:hover:text-cyan-400'
               }`}
             >
               <span>{item.icon}</span>
@@ -260,7 +252,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             {isAuthorizedAdmin && (
                <button 
                  onClick={() => onNavigate('admin')} 
-                 className={`p-2.5 rounded-xl transition-all bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse`}
+                 className="p-2.5 rounded-xl transition-all bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse cursor-pointer"
                  title="Open Architect Console"
                  aria-label="Open Architect Console"
                >
@@ -268,13 +260,53 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                </button>
             )}
 
-            <button onClick={onThemeToggle} aria-label="Toggle theme" className={`p-2.5 rounded-xl transition-all ${isScrolled ? 'bg-gray-100 text-gray-600 dark:bg-gray-900' : 'bg-white/10 text-white'}`}>
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            {/* GLOBAL HIGH-CRAFT THEME TOGGLE SWITCH */}
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => onThemeToggle?.()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onThemeToggle?.(); } }}
+              aria-label={`Current theme is ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              className="relative flex items-center p-1 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-inner hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer select-none"
+            >
+              {/* Animated active backdrop slider */}
+              <motion.div
+                layout
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className={`absolute top-1 bottom-1 w-7 rounded-xl shadow-xs ${
+                  theme === 'dark'
+                    ? 'left-[calc(100%-32px)] bg-gray-800 border border-cyan-500/30 shadow-cyan-500/10'
+                    : 'left-1 bg-white border border-amber-400/30 shadow-amber-500/10'
+                }`}
+              />
+
+              {/* Sun (Light Mode) */}
+              <div 
+                className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
+                  theme === 'light' 
+                    ? 'text-amber-500' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Sun size={15} className={`transition-transform duration-300 ${theme === 'light' ? 'rotate-0 scale-110 fill-amber-400/25 stroke-[2.5]' : '-rotate-45 scale-90'}`} />
+              </div>
+
+              {/* Moon (Dark Mode) */}
+              <div 
+                className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
+                  theme === 'dark' 
+                    ? 'text-cyan-300' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Moon size={15} className={`transition-transform duration-300 ${theme === 'dark' ? 'rotate-0 scale-110 fill-cyan-400/25 stroke-[2.5]' : 'rotate-45 scale-90'}`} />
+              </div>
+            </div>
             
             {/* INVITE & EARN */}
             {user && (
-               <button onClick={onInviteEarnRequest} aria-label="Invite and Earn" className={`p-2.5 rounded-xl transition-all ${isScrolled ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-emerald-500/20 text-emerald-300'}`}>
+               <button onClick={onInviteEarnRequest} aria-label="Invite and Earn" className="p-2.5 rounded-xl transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-pointer">
                  <Gift size={18} />
                </button>
             )}
@@ -286,7 +318,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                       <Zap size={10} className="fill-white" /> Scholar Pack ⚡ Active
                     </div>
                   )}
-                  <button onClick={() => onNavigate('settings')} aria-label="User Settings" className={`p-2.5 rounded-xl transition-all relative ${isScrolled ? 'bg-gray-100 dark:bg-gray-900' : 'bg-white/10 text-white'}`}>
+                  <button onClick={() => onNavigate('settings')} aria-label="User Settings" className="p-2.5 rounded-xl transition-all relative bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
                      <User size={18} />
                      <div className={`absolute -top-1 -right-1 w-3 h-3 border-2 border-white dark:border-gray-950 rounded-full ${user.is_premium ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
                   </button>
@@ -294,31 +326,45 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             ) : (
                <button 
                 onClick={onLoginRequest} 
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all cursor-pointer"
                >
                  <LogIn size={14} /> Sign In
                </button>
             )}
             
-            <button onClick={() => onNavigate('settings')} aria-label="Settings" className={`p-2.5 rounded-xl transition-all ${isScrolled ? 'bg-gray-100 dark:bg-gray-900' : 'bg-white/10 text-white'}`}>
+            <button onClick={() => onNavigate('settings')} aria-label="Settings" className="p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
               <Settings size={18} />
             </button>
           </div>
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile Toggle Bar with Direct Theme Switcher */}
         <div className="lg:hidden flex items-center gap-2">
+          {/* Direct Mobile Theme Switcher */}
+          <button 
+            onClick={() => onThemeToggle?.()} 
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              theme === 'dark'
+                ? 'bg-gray-900 border-gray-800 text-cyan-300'
+                : 'bg-gray-100 border-gray-200 text-amber-500'
+            }`}
+          >
+            {theme === 'dark' ? <Moon size={18} className="fill-cyan-400/20 stroke-[2.5]" /> : <Sun size={18} className="fill-amber-400/20 stroke-[2.5]" />}
+          </button>
+
           {isAuthorizedAdmin && (
-             <button onClick={() => onNavigate('admin')} className="p-2 bg-red-600 text-white rounded-lg">
+             <button onClick={() => onNavigate('admin')} className="p-2 bg-red-600 text-white rounded-xl cursor-pointer">
                <ShieldAlert size={18} />
              </button>
           )}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className={`p-2 rounded-lg ${isScrolled ? 'text-gray-900 dark:text-white' : 'text-white'}`}
+            className={`p-2 rounded-xl transition-all cursor-pointer ${isScrolled ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900' : (theme === 'dark' ? 'text-white bg-white/10' : 'text-gray-900 bg-gray-100')}`}
             aria-label="Toggle mobile menu"
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
@@ -330,14 +376,56 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             initial={{ opacity: 0, x: '100%' }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: '100%' }} 
             className="lg:hidden fixed inset-0 z-[150] bg-white dark:bg-gray-950 flex flex-col p-6 overflow-y-auto"
           >
-            <div className="mt-6 flex justify-between items-center px-2">
+            <div className="mt-4 flex justify-between items-center px-2">
                <div className="flex flex-col">
-                 <span className="text-xl font-black tracking-tighter dark:text-white">Campus<span className="text-cyan-400">AI</span></span>
+                 <span className="text-xl font-black tracking-tighter text-gray-950 dark:text-white flex items-center gap-1">
+                   Campus<span className="text-cyan-500 dark:text-cyan-400">AI</span>.ng
+                 </span>
                  {user?.is_premium && (
                    <span className="text-[8px] font-black uppercase tracking-widest text-blue-500">Scholar Pack ⚡ Active</span>
                  )}
                </div>
-               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 dark:text-white"><X size={24} /></button>
+               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-800 dark:text-white rounded-xl bg-gray-100 dark:bg-gray-900 cursor-pointer">
+                 <X size={20} />
+               </button>
+            </div>
+
+            {/* Mobile Drawer Theme Selector Card */}
+            <div className="mt-6 p-4 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl ${theme === 'dark' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-amber-500/10 text-amber-500'}`}>
+                  {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 dark:text-white block uppercase tracking-wider">Appearance</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{theme === 'dark' ? 'Dark Mode Active' : 'Light Mode Active'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'light') onThemeToggle?.(); }}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-amber-500 text-black shadow-xs'
+                      : 'text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Sun size={12} /> Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (theme !== 'dark') onThemeToggle?.(); }}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-cyan-500 text-black shadow-xs'
+                      : 'text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Moon size={12} /> Dark
+                </button>
+              </div>
             </div>
             
             <div className="mt-8 px-2">

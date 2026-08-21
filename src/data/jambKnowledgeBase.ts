@@ -606,6 +606,131 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     version: "2026/2027"
   },
   {
+    id: "lautech_post_utme_screening_2025_2026",
+    organization: "LAUTECH",
+    page_type: "procedural",
+    category: "Institution Admission",
+    subcategory: "LAUTECH Admissions",
+    title: "Ladoke Akintola University of Technology (LAUTECH) Post-UTME Screening & Direct Entry Notice",
+    summary: "Official admission notice for Ladoke Akintola University of Technology (LAUTECH), Ogbomoso for the 2025/2026 academic session. Details eligibility criteria (170+ UTME, 1st choice, age 16+), application portal, 80:20 scoring ratio, fees, and Direct Entry interview schedule.",
+    steps: [
+      "Choose LAUTECH as your first-choice institution in the UTME or Direct Entry (DE) application.",
+      "Score a minimum of 170 in the UTME (check specific departmental cut-offs for competitive courses like Medicine: 280, Nursing: 260, MLS: 240, Computer Science: 230).",
+      "Upload O'Level results to JAMB CAPS before the stipulated deadline (20th August). Candidates with awaiting results may register but must upload results to CAPS before the deadline.",
+      "Ensure you are at least 16 years old by 30th September.",
+      "Visit the official university admission portal: https://apply.lautech.edu.ng.",
+      "Pay non-refundable registration fee of ₦2,000.00 and portal access fee of ₦3,000.00 (Total: ₦5,000.00) using an Interswitch-enabled debit card.",
+      "Carefully fill and submit the online application form with a clear passport photograph on white background in JPEG format (max 20KB).",
+      "Direct Entry candidates must forward transcripts to The Registrar at least 1 week before screening and attend the Oral and Written Interview on 25th-26th August at The Hall, LAUTECH Campus, Ogbomoso.",
+      "Monitor admission recommendation and accept offer on JAMB CAPS within 3 weeks of uploading."
+    ],
+    requirements: [
+      "Minimum UTME score of 170 (higher for professional programmes)",
+      "Five (5) O'Level credit passes in relevant subjects at not more than two (2) sittings in WAEC, NECO, or NABTEB",
+      "Strict Requirement for Medicine, Nursing, and Medical Laboratory Science: 5 relevant credit passes at ONE SITTING ONLY",
+      "Uploaded O'Level results on JAMB CAPS",
+      "Digital passport photograph on white background in JPEG format (maximum 20KB)",
+      "Direct Entry: University Degree (min 2:2), Upper Credit ND, RNS, NCE (min Merit), Lower Credit HND, or JUPEB with 5 O'Level credits"
+    ],
+    eligibility_rules: [
+      "Candidate must have chosen LAUTECH as First Choice institution.",
+      "Candidate must be at least 16 years of age by 30th September.",
+      "Any inconsistency in names, state of origin, or age on documents may result in disqualification.",
+      "Admission offered on JAMB CAPS not accepted within 3 weeks will be forfeited/withdrawn.",
+      "Direct Entry candidates must attend the physical oral and written interview at The Hall, LAUTECH Ogbomoso."
+    ],
+    key_facts: [
+      "LAUTECH aggregate scoring formula is 80% UTME score and 20% O'Level grades (80:20 formula).",
+      "Application portal: https://apply.lautech.edu.ng",
+      "Application fees: ₦2,000 registration fee + ₦3,000 portal access fee = ₦5,000 total.",
+      "Enquiries: registrar@lautech.edu.ng, admissions@lautech.edu.ng"
+    ],
+    important_notes: [
+      "Beware of fraudsters; LAUTECH admissions are strictly merit and credential-based via apply.lautech.edu.ng and JAMB CAPS.",
+      "Candidates who provide false information will have their admission withdrawn and may be prosecuted."
+    ],
+    keywords: ["lautech", "ladoke akintola university of technology", "lautech post utme", "lautech screening", "lautech cutoff", "ogbomoso", "80:20 formula", "lautech de interview"],
+    related_topics: ["LAUTECH Departmental Cutoffs", "LAUTECH 80:20 Aggregate System", "JAMB CAPS"],
+    official_source: "https://apply.lautech.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-20",
+    version: "2025/2026"
+  },
+  {
+    id: "lautech_departmental_cutoffs_2025_2026",
+    organization: "LAUTECH",
+    page_type: "policy",
+    category: "Institution Cutoffs",
+    subcategory: "Official Departmental Cut-Off Marks",
+    title: "LAUTECH Official Departmental Programme Cut-Off Marks (57 Programmes)",
+    summary: "Complete approved UTME cut-off marks, O'Level credit requirements, and UTME subject combinations for all 57 undergraduate degree programmes at Ladoke Akintola University of Technology (LAUTECH), Ogbomoso.",
+    steps: [],
+    requirements: [
+      "Minimum UTME general score of 170",
+      "Meet or exceed specific course UTME cut-off mark",
+      "5 relevant O'Level credits (Medicine, Nursing, MLS require one sitting only)"
+    ],
+    eligibility_rules: [
+      "Candidates must meet the specific UTME cut-off mark and subject combination for their chosen programme.",
+      "Admission is ranked strictly by 80% UTME + 20% O'Level aggregate."
+    ],
+    key_facts: [
+      "Health / Clinical Sciences: Medicine (280, 1 sitting), Nursing (260, 1 sitting), Medical Laboratory Science (240, 1 sitting), Nutrition and Dietetics (220), Physiology (200), Anatomy (180).",
+      "Engineering & Tech: Civil Eng (220), Electronic & Electrical Eng (220), Mechanical Eng (220), Computer Eng (200), Chemical Eng (180), Agricultural Eng (170), Food Eng (170).",
+      "Computing & Informatics: Computer Science (230), Cyber Security Science (210), Information System (200).",
+      "Environmental Sciences: Architecture (220), Surveying & Geoinformatics (200), Building (170), Estate Management (170), Urban and Regional Planning (170).",
+      "Pure & Applied Sciences: Biochemistry (210), Science Laboratory Technology (200), Pure & Applied Biology (180), Earth Science (170), Pure & Applied Chemistry (170), Pure & Applied Maths (170), Pure & Applied Physics (170), Statistics (170).",
+      "Management & Social Sciences: Accounting (200), Mass Communication (220), Business Administration (180), Economics (180), Marketing (180), Political Science (180), Sociology (180), Hospitality & Tourism (180), Psychology (170), Transport Management (170).",
+      "Arts & Humanities: English & Literary Studies (200), Theatre Arts (190), Fine & Applied Arts (170), History (170), Library & Info Science (170), Linguistics (170), Philosophy (170).",
+      "Agricultural Sciences: Food Science (200), Consumer & Home Economics (180), Agricultural Economics (170), Agric Extension (170), Animal Nutrition (170), Animal Production (170), Crop & Environmental (170), Crop Production (170), Fisheries & Aquaculture (170), Forest Resources (170), Wildlife & Ecotourism (170)."
+    ],
+    important_notes: [
+      "Medicine, Nursing, and Medical Laboratory Science strictly mandate 5 credit passes at ONE SITTING ONLY.",
+      "Candidates with Awaiting Results must upload on JAMB CAPS before 20th August."
+    ],
+    keywords: ["lautech cut off marks", "lautech medicine cutoff", "lautech nursing cutoff", "lautech computer science cutoff", "lautech engineering cutoff", "lautech departmental cutoffs"],
+    related_topics: ["LAUTECH Post-UTME Screening", "LAUTECH 80:20 Scoring System"],
+    official_source: "https://apply.lautech.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-20",
+    version: "2025/2026"
+  },
+  {
+    id: "lautech_80_20_scoring_system",
+    organization: "LAUTECH",
+    page_type: "procedural",
+    category: "Institution Screening",
+    subcategory: "Aggregate Calculation Formula",
+    title: "LAUTECH 80:20 Aggregate Scoring Formula & Computation Guide",
+    summary: "Comprehensive guide to how LAUTECH calculates its aggregate admission score based on 80% UTME score and 20% O'Level grades.",
+    steps: [
+      "Step 1 (UTME 80% Component): Divide your UTME score by 400 and multiply by 80. Formula: (UTME Score / 400) * 80.",
+      "Step 2 (O'Level 20% Component): Calculate points from your 5 core relevant O'Level subjects. Grades are assigned points (A1=8, B2=7, B3=6, C4=5, C5=4, C6=3; or 100% grade scale converted to 20%). Formula: (Total O'Level Points / Maximum Points) * 20.",
+      "Step 3 (Final Aggregate): Sum the UTME component + O'Level component for your composite aggregate score out of 100%."
+    ],
+    requirements: [
+      "JAMB UTME Result Slip with minimum 170 overall score",
+      "5 relevant O'Level credit passes (uploaded on JAMB CAPS)"
+    ],
+    eligibility_rules: [
+      "Medicine, Nursing, and MLS strictly evaluate O'Level results from one sitting only.",
+      "Minimum UTME score varies by programme (up to 280 for Medicine)."
+    ],
+    key_facts: [
+      "80% of aggregate comes from UTME score, making JAMB performance heavily decisive in LAUTECH admissions.",
+      "20% of aggregate is awarded based on O'Level grade quality in 5 compulsory subjects."
+    ],
+    important_notes: [
+      "Ensure all 5 required subjects are verified and match the exact programme specifications."
+    ],
+    keywords: ["lautech aggregate formula", "80:20 scoring system", "lautech screening points", "lautech calculation"],
+    related_topics: ["LAUTECH Post-UTME Screening", "LAUTECH Departmental Cutoffs"],
+    official_source: "https://apply.lautech.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-20",
+    version: "2025/2026"
+  },
+  {
     id: "jamb_policy_meeting_cutoffs_2026",
     organization: "JAMB / Federal Ministry of Education",
     page_type: "policy",
