@@ -6,7 +6,7 @@ import { ShieldCheck, Activity, Globe, Calculator, Newspaper, Brain, CheckCircle
 const StatusPage: React.FC = () => {
   const [isChatUnderMaintenance, setIsChatUnderMaintenance] = useState<boolean>(() => {
     const saved = localStorage.getItem('campusai_chat_maintenance');
-    return saved !== null ? saved === 'true' : false;
+    return saved !== null ? saved === 'true' : true;
   });
 
   useEffect(() => {
@@ -37,19 +37,21 @@ const StatusPage: React.FC = () => {
     { name: 'Authentication System', status: 'Online', icon: <ShieldCheck size={20} />, uptime: '99.9%', isMaintenance: false },
   ];
 
+  const hasMaintenance = services.some(s => s.isMaintenance);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 py-24">
       <SEO title="System Status" description="Real-time status and uptime for CampusAI Nigeria admission strategist nodes and calculator services." />
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex items-center gap-4 mb-12">
-          <div className="w-16 h-16 bg-emerald-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-emerald-500/20">
-            <Activity size={32} />
+          <div className={`w-16 h-16 ${hasMaintenance ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-600 shadow-emerald-500/20'} rounded-[24px] flex items-center justify-center text-white shadow-2xl`}>
+            {hasMaintenance ? <Wrench size={32} /> : <Activity size={32} />}
           </div>
           <div>
             <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">System Status</h1>
-            <div className="flex items-center gap-2 text-emerald-500 font-bold text-xs uppercase tracking-widest mt-1">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              All Systems Operational
+            <div className={`flex items-center gap-2 ${hasMaintenance ? 'text-amber-500' : 'text-emerald-500'} font-bold text-xs uppercase tracking-widest mt-1`}>
+              <div className={`w-2 h-2 ${hasMaintenance ? 'bg-amber-500' : 'bg-emerald-500'} rounded-full animate-pulse`}></div>
+              {hasMaintenance ? 'Partial Maintenance' : 'All Systems Operational'}
             </div>
           </div>
         </div>
