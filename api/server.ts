@@ -987,7 +987,7 @@ const robustKeyExtract = (prefix?: string): string[] => {
     const raw = envValue;
 
     const geminiRegex = /(AIzaSy[A-Za-z0-9_-]{33}|AQ\.[A-Za-z0-9_-]+)/g;
-    const tavilyRegex = /(tvly-[A-Za-z0-9]{32})/g;
+    const tavilyRegex = /(tvly-[A-Za-z0-9_-]{15,})/g;
     const firecrawlRegex = /(fc-[A-Za-z0-9_-]{32,})/g;
     const hexRegex = /\b([a-f0-9]{32,64})\b/gi;
 
@@ -1030,7 +1030,19 @@ const robustKeyExtract = (prefix?: string): string[] => {
   });
 };
 
-const getTavilyKeys = (): string[] => robustKeyExtract('tvly-');
+const getTavilyKeys = (): string[] => {
+  const keys: string[] = [];
+  Object.entries(process.env).forEach(([envKey, envValue]) => {
+    if (envValue && typeof envValue === 'string') {
+      const trimmed = envValue.trim();
+      if (trimmed.startsWith('tvly-')) {
+        keys.push(trimmed);
+      }
+    }
+  });
+  const robust = robustKeyExtract('tvly-');
+  return [...new Set([...keys, ...robust])];
+};
 
 const getSerperKeys = (): string[] => {
   const explicitKeys: string[] = [];
@@ -1039,29 +1051,17 @@ const getSerperKeys = (): string[] => {
       const trimmed = envValue.trim();
       const lowerKey = envKey.toLowerCase();
       if (lowerKey.includes('serper') || lowerKey.includes('serp_api') || lowerKey.includes('serpapi')) {
-        const hexMatch = trimmed.match(/\b([a-f0-9]{32,64})\b/i);
+        const hexMatch = trimmed.match(/([a-f0-9]{32,64})/i);
         if (hexMatch) {
           explicitKeys.push(hexMatch[1]);
-        } else if (trimmed.length >= 30) {
+        } else if (trimmed.length >= 20) {
           explicitKeys.push(trimmed);
         }
       }
     }
   });
 
-  if (explicitKeys.length > 0) return [...new Set(explicitKeys)];
-
-  const allPossible = robustKeyExtract();
-  const firecrawlKeys = getFirecrawlKeys();
-  const geminiKeys = getGeminiKeys();
-
-  return allPossible.filter(k => {
-    if (k.startsWith('AIzaSy') || k.startsWith('AQ.') || k.startsWith('tvly-') || k.startsWith('fc-')) return false;
-    if (k.length < 30 || !/^[a-f0-9]+$/i.test(k)) return false;
-    for (const fc of firecrawlKeys) { if (fc.includes(k)) return false; }
-    for (const gem of geminiKeys) { if (gem.includes(k)) return false; }
-    return true;
-  });
+  return [...new Set(explicitKeys)];
 };
 
 const getFirecrawlKeys = (): string[] => robustKeyExtract('fc-');
@@ -1175,21 +1175,122 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
   const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-flash-latest', label = '' } = opts;
   const tag = label ? `[AI Fallback:${label}]` : '[AI Fallback]';
 
+  const promptText = messages.map(m => m.content).join('\n') || "Hello";
+
   const chatMessages = [
     ...(systemInstruction ? [{ role: 'system' as const, content: systemInstruction }] : []),
     ...messages
   ];
 
-  // 1. Groq
+  // 1. Primary AI Engine: Gemini (Native Google AI Studio SDK)
+  if (Date.now() >= geminiBlockedUntil) {
+    const rawPool = getGeminiKeys();
+    const now = Date.now();
+    const keysPool = rawPool.filter(k => {
+      const bl = blacklistedKeys.get(k);
+      if (!bl) return true;
+      if (bl.until < now) { blacklistedKeys.delete(k); return true; }
+      return false;
+    });
+    const finalPool = keysPool.length > 0 ? keysPool : rawPool;
+
+    const candidateModels = Array.from(new Set([
+      geminiModel,
+      'gemini-3.6-flash',
+      'gemini-2.5-flash',
+      'gemini-3.1-pro-preview',
+      'gemini-flash-latest'
+    ]));
+
+    for (const activeKey of finalPool) {
+      const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
+      let keyFailedToQuotaOrAuth = false;
+
+      for (const mName of candidateModels) {
+        if (keyFailedToQuotaOrAuth) break;
+        try {
+          const gemini = createGeminiClient(activeKey);
+          let text = "";
+
+          if (gemini.type === 'AIP') {
+            const config: any = {};
+            if (systemInstruction) config.systemInstruction = systemInstruction;
+            if (jsonMode) config.responseMimeType = "application/json";
+            const formattedContents = messages.length > 0
+              ? messages.map(m => ({
+                  role: m.role === 'assistant' ? 'model' : 'user',
+                  parts: [{ text: m.content }]
+                }))
+              : (promptText || "Hello");
+
+            const result = await fetchWithTimeout(
+              (gemini.client as GoogleGenAI).models.generateContent({
+                model: mName,
+                contents: formattedContents,
+                config
+              }),
+              30000,
+              "Gemini AIP timeout"
+            );
+            text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          } else {
+            const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({
+              model: mName,
+              systemInstruction
+            });
+            const formattedContents = messages.length > 0
+              ? messages.map(m => ({
+                  role: m.role === 'assistant' ? 'model' : 'user',
+                  parts: [{ text: m.content }]
+                }))
+              : [{ role: 'user', parts: [{ text: promptText || "Hello" }] }];
+
+            const genResult = await fetchWithTimeout(
+              model.generateContent({
+                contents: formattedContents,
+                generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
+              }),
+              30000,
+              "Gemini SDK timeout"
+            );
+            const response = await genResult.response;
+            text = response.text();
+          }
+
+          if (text && !isGibberishResponse(text)) {
+            consecutiveGeminiFailures = 0;
+            console.log(`${tag} Succeeded via Gemini model ${mName} (${maskedKey}).`);
+            return { text, provider: 'gemini' };
+          }
+        } catch (error: any) {
+          const errorMsg = error.message || error.response?.data?.error?.message || String(error);
+          const isQuota = /quota|429|exhausted|rate.?limit/i.test(errorMsg);
+          const isAuth = /401|403|permission|invalid.?api.?key|unauthorized/i.test(errorMsg);
+          const is503 = /503|high demand|UNAVAILABLE/i.test(errorMsg);
+
+          if (isQuota) {
+            blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
+            keyFailedToQuotaOrAuth = true;
+          } else if (isAuth) {
+            blacklistedKeys.set(activeKey, { reason: "auth_failed", until: Date.now() + 3600000 });
+            keyFailedToQuotaOrAuth = true;
+          } else if (is503) {
+            console.debug(`${tag} Gemini model ${mName} temporarily high demand (503) on key ${maskedKey}, switching model...`);
+          } else {
+            console.debug(`${tag} Gemini key ${maskedKey} model ${mName} note: ${errorMsg}`);
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Secondary Engine: Groq
   if (process.env.GROQ_API_KEY) {
     const groqModels = [
       'llama-3.3-70b-versatile',
       'llama-3.1-8b-instant',
-      'llama3-70b-8192',
-      'llama3-8b-8192',
-      'gemma2-9b-it',
-      'deepseek-r1-distill-llama-70b',
-      'qwen-2.5-32b'
+      'llama-3.2-11b-vision-preview',
+      'mixtral-8x7b-32768'
     ];
     for (const modelName of groqModels) {
       try {
@@ -1206,26 +1307,23 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           return { text, provider: 'groq' };
         }
       } catch (e: any) {
-        console.warn(`${tag} Groq (${modelName}) failed:`, e.message || e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Groq (${modelName}) skipped:`, e.message || e);
       }
     }
   }
 
-  // 2. OpenRouter
+  // 3. Tertiary Engine: OpenRouter
   if (process.env.OPENROUTER_API_KEY) {
     const openrouterModels = [
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'google/gemini-2.0-flash-exp:free',
-      'meta-llama/llama-3.1-8b-instruct:free',
-      'qwen/qwen-2.5-72b-instruct:free',
-      'deepseek/deepseek-r1:free',
-      'meta-llama/llama-3.3-70b-instruct'
+      'meta-llama/llama-3.3-70b-instruct',
+      'google/gemini-2.5-flash',
+      'deepseek/deepseek-r1',
+      'qwen/qwen-2.5-72b-instruct'
     ];
     for (const modelName of openrouterModels) {
       try {
         const openrouter = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
-        // Use token cap to prevent 402 credit overdrafts on non-free or low-balance accounts
-        const safeMaxTokens = modelName.endsWith(':free') ? Math.min(maxTokens, 3000) : Math.min(maxTokens, 1500);
+        const safeMaxTokens = Math.min(maxTokens, 2048);
         const completion = await openrouter.chat.completions.create({
           messages: chatMessages as any,
           model: modelName,
@@ -1238,12 +1336,12 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           return { text, provider: 'openrouter' };
         }
       } catch (e: any) {
-        console.warn(`${tag} OpenRouter (${modelName}) failed:`, e.message || e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} OpenRouter (${modelName}) skipped:`, e.message || e);
       }
     }
   }
 
-  // 3. Nvidia
+  // 4. Nvidia
   if (process.env.NVIDIA_API_KEY) {
     const nvidiaModels = [
       'meta/llama-3.3-70b-instruct',
@@ -1265,12 +1363,12 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           return { text, provider: 'nvidia' };
         }
       } catch (e: any) {
-        console.warn(`${tag} Nvidia (${modelName}) failed:`, e.message || e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Nvidia (${modelName}) skipped:`, e.message || e);
       }
     }
   }
 
-  // 4. Mistral
+  // 5. Mistral
   if (process.env.MISTRAL_API_KEY) {
     const mistralModels = ['mistral-small-latest', 'open-mistral-7b', 'mistral-large-latest'];
     for (const modelName of mistralModels) {
@@ -1288,12 +1386,12 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           return { text, provider: 'mistral' };
         }
       } catch (e: any) {
-        console.warn(`${tag} Mistral (${modelName}) failed:`, e.message || e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Mistral (${modelName}) skipped:`, e.message || e);
       }
     }
   }
 
-  // 5. Cohere
+  // 6. Cohere
   if (process.env.COHERE_API_KEY) {
     const cohereModels = ['command-r-plus', 'command-r', 'command'];
     for (const modelName of cohereModels) {
@@ -1307,92 +1405,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           return { text, provider: 'cohere' };
         }
       } catch (e: any) {
-        console.warn(`${tag} Cohere (${modelName}) failed:`, e.message || e);
-      }
-    }
-  }
-
-  // 6. Gemini — LAST resort, as requested, until the key issue is diagnosed.
-  if (Date.now() < geminiBlockedUntil) {
-    console.warn(`${tag} Skipping Gemini: circuit breaker open after ${consecutiveGeminiFailures} consecutive failures.`);
-    return null;
-  }
-
-  const rawPool = getGeminiKeys();
-  const now = Date.now();
-  const keysPool = rawPool.filter(k => {
-    const bl = blacklistedKeys.get(k);
-    if (!bl) return true;
-    if (bl.until < now) { blacklistedKeys.delete(k); return true; }
-    return false;
-  });
-  const finalPool = keysPool.length > 0 ? keysPool : rawPool;
-
-  if (finalPool.length === 0) {
-    console.warn(`${tag} No Gemini keys available at all.`);
-  }
-
-  for (const activeKey of finalPool) {
-    const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
-    try {
-      const gemini = createGeminiClient(activeKey);
-      let text = "";
-
-      if (gemini.type === 'AIP') {
-        const config: any = {};
-        if (systemInstruction) config.systemInstruction = systemInstruction;
-        if (jsonMode) config.responseMimeType = "application/json";
-        const result = await fetchWithTimeout(
-          (gemini.client as GoogleGenAI).models.generateContent({
-            model: geminiModel,
-            contents: messages.map(m => m.content).join('\n\n'),
-            config
-          }),
-          30000,
-          "Gemini AIP timeout"
-        );
-        text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      } else {
-        const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({
-          model: geminiModel,
-          systemInstruction
-        });
-        const genResult = await fetchWithTimeout(
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: messages.map(m => m.content).join('\n\n') }] }],
-            generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
-          }),
-          30000,
-          "Gemini SDK timeout"
-        );
-        const response = await genResult.response;
-        text = response.text();
-      }
-
-      if (!text) {
-        console.warn(`${tag} Gemini key ${maskedKey} returned empty text.`);
-        continue;
-      }
-
-      if (isGibberishResponse(text)) {
-        console.warn(`${tag} Gemini key ${maskedKey} returned gibberish, skipping.`);
-        continue;
-      }
-
-      consecutiveGeminiFailures = 0;
-      console.log(`${tag} Succeeded via Gemini (${maskedKey}).`);
-      return { text, provider: 'gemini' };
-    } catch (error: any) {
-      // This is the part that used to be invisible: log the real reason
-      // this specific key/call failed.
-      const errorMsg = error.message || error.response?.data?.error?.message || String(error);
-      console.warn(`${tag} Gemini key ${maskedKey} failed: ${errorMsg}`);
-      const isQuota = /quota|429|exhausted|rate.?limit/i.test(errorMsg);
-      const isAuth = /401|403|permission|invalid.?api.?key|unauthorized/i.test(errorMsg);
-      if (isQuota) {
-        blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
-      } else if (isAuth) {
-        blacklistedKeys.set(activeKey, { reason: "auth_failed", until: Date.now() + 3600000 });
+        if (process.env.DEBUG_AI) console.debug(`${tag} Cohere (${modelName}) skipped:`, e.message || e);
       }
     }
   }
@@ -1401,7 +1414,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
   if (consecutiveGeminiFailures >= MAX_CONSECUTIVE_FAILURES) {
     geminiBlockedUntil = Date.now() + FAIL_BLOCK_DURATION_MS;
   }
-  console.error(`${tag} All Gemini keys failed too. No provider succeeded.`);
+  console.error(`${tag} All AI model providers failed.`);
   return null;
 }
 
@@ -1633,7 +1646,18 @@ app.post("/api/gemini", async (req: any, res: any) => {
   const messages: { role: 'user' | 'assistant'; content: string }[] = [];
   let systemInstruction: string | undefined;
 
-  if (params?.systemInstruction) systemInstruction = params.systemInstruction || params.config?.systemInstruction;
+  let rawSystemInstruction = params?.systemInstruction || params?.config?.systemInstruction;
+  if (typeof rawSystemInstruction === "string") {
+    systemInstruction = rawSystemInstruction;
+  } else if (rawSystemInstruction?.parts) {
+    if (Array.isArray(rawSystemInstruction.parts)) {
+      systemInstruction = rawSystemInstruction.parts.map((p: any) => typeof p === 'string' ? p : (p?.text || '')).join('\n');
+    } else if (typeof rawSystemInstruction.parts === 'string') {
+      systemInstruction = rawSystemInstruction.parts;
+    }
+  } else if (rawSystemInstruction?.text) {
+    systemInstruction = rawSystemInstruction.text;
+  }
 
   if (params && params.contents) {
     if (typeof params.contents === "string") {
@@ -2715,7 +2739,7 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
           }
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
-          const testModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-8b-8192', 'gemma2-9b-it'];
+          const testModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama-3.2-11b-vision-preview', 'mixtral-8x7b-32768'];
           let testSuccess = false;
           for (const tm of testModels) {
             try {

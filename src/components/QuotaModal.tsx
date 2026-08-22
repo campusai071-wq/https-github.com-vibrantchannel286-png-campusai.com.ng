@@ -80,7 +80,7 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Scholar Pack Benefit</p>
-                  <p className="text-xs font-bold dark:text-white">Unlocks 5 calculations and 5 daily chats.</p>
+                  <p className="text-xs font-bold dark:text-white">Unlocks 5 calculations and 10 daily chats for 2 days.</p>
                 </div>
               </div>
             </div>

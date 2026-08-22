@@ -28,12 +28,21 @@ export const getChatLimits = (profile: UserProfile): { maxChats: number, remaini
   const dailyChatsUsed = profile.daily_chat_last_reset === today ? (profile.daily_chats || 0) : 0;
   
   const isRegistered = isRealUser(profile.uid);
+  const isScholarPackActive = Boolean(
+    profile.is_premium || 
+    (profile.scholarCredits || 0) > 0 || 
+    isPremiumChatLimitActive(profile.premium_activated_at)
+  );
   
-  // Base daily chat limit: 5 for signed-in users, 0 for guests
-  let maxChats = isRegistered ? 5 : 0;
-  
-  if (profile.is_premium || (profile.scholarCredits || 0) > 0) {
-    maxChats = 25;
+  // Base daily chat limit:
+  // - Scholar Pack active: 10 daily chats (10/day for 2 days)
+  // - Registered free: 5 daily chats
+  // - Guest: 1 trial chat
+  let maxChats = 5;
+  if (isScholarPackActive) {
+    maxChats = 10;
+  } else if (!isRegistered) {
+    maxChats = 1;
   }
   
   const remainingChats = Math.max(0, maxChats - dailyChatsUsed);
@@ -128,10 +137,13 @@ export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> 
         uid: uid,
       };
 
-      // Ensure we don't accidentally wipe progress if local is ahead for same user
+      // Ensure we don't accidentally wipe progress or premium state if local is ahead for same user
       if (isSameUser) {
         const finalCalculations = Math.max(local.lifetime_calculations || 0, cloud.lifetime_calculations || 0);
         merged.lifetime_calculations = finalCalculations;
+        merged.is_premium = Boolean(local.is_premium || cloud.is_premium);
+        merged.scholarCredits = Math.max(local.scholarCredits || 0, cloud.scholarCredits || 0);
+        merged.premium_activated_at = local.premium_activated_at || cloud.premium_activated_at;
       }
 
       const validation = validateUserProfile(merged);
@@ -152,9 +164,10 @@ export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> 
         displayName: auth.currentUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar',
         photoURL: auth.currentUser?.photoURL || '',
         role: (baseLocal.role as UserRole) || 'Pre-Admission',
-        is_premium: false,
+        is_premium: Boolean(baseLocal.is_premium),
         daily_requests: 0,
-        scholarCredits: 0,
+        scholarCredits: baseLocal.scholarCredits || 0,
+        premium_activated_at: baseLocal.premium_activated_at,
         meritUsageCount: 0,
         last_active: new Date().toISOString()
       };
@@ -262,10 +275,15 @@ export const subscribeToUserProfile = (uid: string, callback: (profile: UserProf
   getDoc(doc(db, "users", uid)).then((snapshot: any) => {
     if (snapshot.exists()) {
       const cloudData = snapshot.data();
+      const local = getLocalProfile();
       
       const merged: UserProfile = {
+        ...local,
         ...cloudData,
         uid: uid,
+        is_premium: Boolean(local.is_premium || cloudData.is_premium),
+        scholarCredits: Math.max(local.scholarCredits || 0, cloudData.scholarCredits || 0),
+        premium_activated_at: local.premium_activated_at || cloudData.premium_activated_at,
       };
       
       localStorage.setItem(QUOTA_KEY, stringify(merged));
@@ -303,6 +321,8 @@ export const updateUserProfile = async (data: Partial<UserProfile>, uid?: string
       handleFirestoreError(e, OperationType.UPDATE, `users/${targetUid}`);
     }
   }
+
+  window.dispatchEvent(new CustomEvent('campusai_quota_updated', { detail: finalProfile }));
   return finalProfile;
 };
 

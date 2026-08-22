@@ -1,17 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import SEO from './SEO';
-import { ShieldCheck, Activity, Globe, Calculator, Newspaper, Brain, CheckCircle2, Clock, Smartphone } from 'lucide-react';
-
-const services = [
-  { name: 'Platform Website', status: 'Online', icon: <Globe size={20} />, uptime: '99.9%' },
-  { name: 'Aggregate Calculator', status: 'Online', icon: <Calculator size={20} />, uptime: '100%' },
-  { name: 'News Feed Sync', status: 'Online', icon: <Newspaper size={20} />, uptime: '98.5%' },
-  { name: 'AI Assistant Core', status: 'Online', icon: <Brain size={20} />, uptime: '99.9%' },
-  { name: 'Authentication System', status: 'Online', icon: <ShieldCheck size={20} />, uptime: '99.9%' },
-];
+import { ShieldCheck, Activity, Globe, Calculator, Newspaper, Brain, CheckCircle2, Clock, Smartphone, Wrench } from 'lucide-react';
 
 const StatusPage: React.FC = () => {
+  const [isChatUnderMaintenance, setIsChatUnderMaintenance] = useState<boolean>(() => {
+    const saved = localStorage.getItem('campusai_chat_maintenance');
+    return saved !== null ? saved === 'true' : false;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('campusai_chat_maintenance');
+      if (saved !== null) setIsChatUnderMaintenance(saved === 'true');
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('campusai_config_updated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('campusai_config_updated', handleStorageChange);
+    };
+  }, []);
+
+  const services = [
+    { name: 'Platform Website', status: 'Online', icon: <Globe size={20} />, uptime: '99.9%', isMaintenance: false },
+    { name: 'Aggregate Calculator', status: 'Online', icon: <Calculator size={20} />, uptime: '100%', isMaintenance: false },
+    { name: 'News Feed Sync', status: 'Online', icon: <Newspaper size={20} />, uptime: '98.5%', isMaintenance: false },
+    { 
+      name: 'AI Assistant Core', 
+      status: isChatUnderMaintenance ? 'Maintenance' : 'Online', 
+      icon: <Brain size={20} />, 
+      uptime: isChatUnderMaintenance ? 'Offline' : '99.9%',
+      isMaintenance: isChatUnderMaintenance
+    },
+    { name: 'Authentication System', status: 'Online', icon: <ShieldCheck size={20} />, uptime: '99.9%', isMaintenance: false },
+  ];
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 py-24">
       <SEO title="System Status" description="Real-time status and uptime for CampusAI Nigeria admission strategist nodes and calculator services." />
@@ -50,8 +75,14 @@ const StatusPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">{service.status}</span>
-                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <span className={`${service.isMaintenance ? 'text-amber-500' : 'text-emerald-500'} font-black text-[10px] uppercase tracking-widest`}>
+                    {service.status}
+                  </span>
+                  {service.isMaintenance ? (
+                    <Wrench size={20} className="text-amber-500 animate-pulse" />
+                  ) : (
+                    <CheckCircle2 size={20} className="text-emerald-500" />
+                  )}
                 </div>
               </div>
             ))}

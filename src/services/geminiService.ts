@@ -1,4 +1,5 @@
 import { generateContent } from "./aiService";
+import { findMatchingSchoolRelease } from "../data/postUtmeData";
 
 
 function extractCutoffFallback(course: string, searchData: string | null) {
@@ -424,6 +425,7 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 
 - You are NOT Gemini, you are NOT ChatGPT. You are CampusAI.
 - Your knowledge cutoff is 2026/2027 Admission Cycle. Today's date is ${currentDate} [Africa/Lagos WAT].
+- **STRICT SESSION RULE (CRITICAL MANDATE)**: The active academic session is **2026/2027** (Today's date is ${currentDate}). You MUST frame all admission stage answers, Post-UTME forms, JAMB results, cutoffs, and screening statuses under **2026/2027**. You are STRICTLY FORBIDDEN from writing "2024/2025" or "2024/2025 academic session" or "2024" as the current stage when answering questions like "WHAT STAGE IS [SCHOOL] IN THE ADMISSION PROCESS NOW". Always cite the active 2026/2027 status provided in Level 1 & Level 3.
 - Your sole mission is to help Nigerian students (UTME, Direct Entry, JUPEB, Inter-University Transfer) gain admission with 100% accurate, verified information.
 - Personality: Sharp, authoritative, empathetic, street-smart but academic. Use Nigerian student slang sparingly ("Omo", "Sharp", "No worry") but remain professional.
 - **DATA SOURCE & KNOWLEDGE BASE ROLE**: Your knowledge and responses are exclusively grounded in the **CampusAI Verified Knowledge Base** (containing official university guidelines, Post-UTME screening rules, and scraped portal documents for FUTA and Nigerian universities) and live web search grounding. If the user asks "where did you find these things?" or "where is your data from?", always explain that your knowledge is built upon the CampusAI Verified Knowledge Base rather than generic AI training data.
@@ -499,18 +501,27 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 - **Awaiting O'Level Upload** – URGENT: upload results on CAPS immediately.
 
 ### 3. REAL-TIME GROUNDING ENGINE — OBEY THIS HIERARCHY
-1. **Level 1 (Highest): ${verifiedNews}** – Admin-Verified Knowledge (OVERRIDES everything).
-2. **Level 2: ${liveIntel}** – Live from MySchoolGist, JAMB portal, official .edu.ng sites.
-3. **Level 3: ${userContext}** – User corrections (prioritise for this session).
-4. **Level 4 (Lowest):** Your baseline training.
+1. **Level 1 (Highest Priority for Live Updates, Deadlines & Current Session News): ${liveIntel}**
+   - Live real-time web search results retrieved directly on ${currentDate}.
+   - MUST BE USED as the absolute ground truth for current registration statuses, screening extension announcements, 2026/2027 deadlines, portal schedules, and breaking admission news.
+   - If a live search snippet in ${liveIntel} reports a current update (e.g. FUTA Post-UTME deadline extended, 2026/2027 screening dates, age requirements), YOU MUST DIRECTLY CITE AND USE THAT REAL-TIME INFORMATION in your answer! NEVER ignore live search snippets in favor of static offline text.
+
+2. **Level 2 (User Corrections & Session Memory): ${userContext}**
+   - Direct corrections and primary school selections supplied by the user in this active session.
+
+3. **Level 3 (Verified Static Knowledge Base & Guidelines): ${verifiedNews}**
+   - Official institutional guidelines, aggregate calculation formulas (e.g. FUTA 75:25 ratio), O'Level point scales, subject combinations, general institutional background (history, faculties, motto, structure), and statutory rules.
+   - This level is for STABLE, NON-TIME-SENSITIVE facts only. NEVER use this level to answer questions about current admission stage, cutoffs, deadlines, screening status, or portal availability — those MUST come from Level 1 (Live Intel) only, with no exceptions.
+
+4. **Level 4 (Lowest):** Baseline AI memory.
 
 **CRITICAL REAL-TIME GROUNDING DIRECTIVE:**
-- You ARE actively connected to live real-time web search results via Level 2 (${liveIntel}).
+- You ARE actively connected to live real-time web search results via Level 1 (${liveIntel}).
 - NEVER output generic AI refusal disclaimers such as "I don't have real-time information", "I do not have access to real-time data", or "As an AI model I cannot browse current information".
 - Always speak as an authoritative live admission strategist grounded in real-time data.
 - If live search results show that an institution or portal has NOT released an announcement, form, or result yet as of ${currentDate}, answer directly and definitively:
   "Direct Answer: As of ${currentDate}, [School/Portal] has NOT yet officially released [Topic] according to current live portal records."
-- **ANTI-HALLUCINATION:** If Level 1 and 2 lack a specific date/link/price, NEVER invent it. State clearly that the school has not officially announced it yet as of ${currentDate}.
+- **ANTI-HALLUCINATION:** If Level 1 and 3 lack a specific date/link/price, NEVER invent it. State clearly that the school has not officially announced it yet as of ${currentDate}.
 
 ### 4. MANDATORY RESPONSE ARCHITECTURE (FOLLOW EVERY TIME)
 **A. Direct Answer First** – immediate yes/no, figure, or verdict.
@@ -564,6 +575,18 @@ const createGeminiClient = (apiKey: string) => {
           params
         });
         return response.data;
+      },
+      generateContentStream: async (params: any) => {
+        const response = await axios.post(getApiUrl('/api/gemini'), {
+          apiKey,
+          params
+        });
+        const data = response.data;
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield data;
+          }
+        };
       }
     },
     chats: {
@@ -2791,19 +2814,27 @@ export function buildCleanChatContents(history: ChatMessage[], newMessage: strin
 }
 
 const generateFastSearchQuery = (message: string): string => {
-  const clean = message
+  let clean = message
+    .replace(/\badmision\b/gi, "admission")
+    .replace(/\bcutof\b/gi, "cutoff")
+    .replace(/\bpostutme\b/gi, "post-utme")
     .replace(/[?.,!/\\;:'"()]/g, " ")
-    .replace(/\b(has|have|is|are|was|were|released|out|published|checking|check|what|when|where|how|can|you|tell|me|i|want|to|know|the|for|about|please|find|get)\b/gi, " ")
+    .replace(/\b(what|when|where|how|is|are|was|were|the|stage|status|process|now|in|for|about|please|can|you|tell|me|i|want|to|know|get|find)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  return `${clean.substring(0, 100)} 2026 2027 Nigeria`.trim();
+  if (!clean || clean.length < 3) {
+    clean = message.replace(/[?.,!/\\;:'"()]/g, " ").trim();
+  }
+
+  return `${clean.substring(0, 60)} admission 2026 2027 Nigeria`.trim();
 };
 
 const prepareChatContext = async (sanitizedMessage: string, todayStr: string) => {
   const optimizedQuery = generateFastSearchQuery(sanitizedMessage);
 
-  const searchTimeout = new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1800));
+  // Allow up to 4000ms for live web search grounding to return accurate real-time results
+  const searchTimeout = new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 4000));
 
   const [searchResults, newsItems, allKnowledge] = await Promise.all([
     Promise.race([searchWebRaw(optimizedQuery), searchTimeout]).catch(() => []),
@@ -2827,16 +2858,23 @@ const prepareChatContext = async (sanitizedMessage: string, todayStr: string) =>
   let learnedKnowledge = "";
   if (Array.isArray(allKnowledge) && allKnowledge.length > 0) {
     const msgLower = String(sanitizedMessage).toLowerCase();
-    const knowledge = allKnowledge.filter((k: any) => {
-      const keyLower = String(k.key || '').toLowerCase();
-      return keyLower.includes('general') || msgLower.includes(keyLower);
-    });
-    if (knowledge.length > 0) {
-      let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
-      if (combined.length > 10000) {
-        combined = combined.substring(0, 10000) + "... [TRUNCATED]";
+
+    // Broadened: catches any question about current admission activity/status,
+    // not just literal words like "cutoff" or "deadline"
+    const isTimeSensitiveQuery = /cutoff|deadline|stage|status|release|screening|form|portal|date|started|start|open|closed|closing|active|progress|admission|register|registration|caps|post.?utme|jamb|202[4-9]/i.test(msgLower);
+
+    if (!isTimeSensitiveQuery) {
+      const knowledge = allKnowledge.filter((k: any) => {
+        const keyLower = String(k.key || '').toLowerCase();
+        return keyLower.includes('general') || msgLower.includes(keyLower);
+      });
+      if (knowledge.length > 0) {
+        let combined = knowledge.map((k: any) => `- ${k.key}: ${k.value}`).join('\n');
+        if (combined.length > 10000) {
+          combined = combined.substring(0, 10000) + "... [TRUNCATED]";
+        }
+        learnedKnowledge = "GENERAL INSTITUTIONAL BACKGROUND (Static reference only — history, faculties, structure, aggregate formulas, general policies. NOT a source for current dates, deadlines, cutoffs, or admission stage. If this conflicts with live search data on anything time-sensitive, ALWAYS trust live search):\n" + combined;
       }
-      learnedKnowledge = "ADMIN-VERIFIED CORRECTIONS (HIGHEST PRIORITY — OVERRIDE ALL OTHER DATA):\n" + combined;
     }
   }
 
@@ -2866,7 +2904,20 @@ const prepareChatContext = async (sanitizedMessage: string, todayStr: string) =>
     console.warn("Could not retrieve JAMB knowledge base or syllabus:", e);
   }
 
-  const verifiedNewsStr = [jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
+  const matchedRelease = findMatchingSchoolRelease(sanitizedMessage);
+  let schoolReleaseContext = "";
+  if (matchedRelease) {
+    const { schoolName, data } = matchedRelease;
+    schoolReleaseContext = `VERIFIED 2026/2027 INSTITUTION ADMISSION RELEASE STATUS FOR ${schoolName.toUpperCase()}:
+- School: ${schoolName}
+- Academic Session: 2026/2027 Academic Session (CURRENT ACTIVE CYCLE)
+- Current Stage/Status: ${data.statusText || 'Form Released / Screening Active'}
+- Official Details: ${data.details || 'Registration active on portal'}
+- Minimum Cutoff: ${data.cutoffScore || '180'}
+- Portal Link: ${data.portalLink || 'https://www.edu.ng'}\n\n`;
+  }
+
+  const verifiedNewsStr = [schoolReleaseContext, jambKbContext, newsContext, learnedKnowledge].filter(Boolean).join('\n\n');
 
   let liveIntelStr = "";
   if (Array.isArray(searchResults) && searchResults.length > 0) {
@@ -2876,11 +2927,123 @@ const prepareChatContext = async (sanitizedMessage: string, todayStr: string) =>
     liveIntelStr = `LIVE WEB SEARCH STATUS: Live search active and executed on ${todayStr} for query "${optimizedQuery}". No official release announcements or new updates found on verified portal feeds for this query as of ${todayStr}.`;
   }
 
+  if (schoolReleaseContext) {
+    liveIntelStr = schoolReleaseContext + liveIntelStr;
+  }
+
   return {
     searchResults: searchResults || [],
     verifiedNewsStr,
     liveIntelStr
   };
+};
+
+const NOISE_DOMAINS = [
+  'instagram.com',
+  'facebook.com',
+  'tiktok.com',
+  'twitter.com',
+  'x.com',
+  'pinterest.com',
+  'youtube.com',
+  'linkedin.com'
+];
+
+export const sanitizeGroundingChunks = (chunks?: GroundingChunk[]): GroundingChunk[] => {
+  if (!chunks || !Array.isArray(chunks)) return [];
+
+  const seenUrls = new Set<string>();
+  const seenTitles = new Set<string>();
+  const cleaned: GroundingChunk[] = [];
+
+  for (const chunk of chunks) {
+    const rawUri = (chunk.web?.uri || '').trim();
+    let rawTitle = (chunk.web?.title || '').trim();
+
+    if (!rawUri) continue;
+
+    // Normalize URL
+    const normalizedUri = rawUri
+      .split('?')[0]
+      .replace(/\/$/, '')
+      .toLowerCase();
+
+    // Noise domain check
+    const isNoiseDomain = NOISE_DOMAINS.some(domain => normalizedUri.includes(domain));
+    const lowerTitle = rawTitle.toLowerCase();
+
+    if (
+      isNoiseDomain ||
+      lowerTitle === 'instagram' ||
+      lowerTitle === 'facebook' ||
+      lowerTitle === 'log in' ||
+      lowerTitle === 'sign up' ||
+      lowerTitle === 'login' ||
+      lowerTitle === 'home' ||
+      lowerTitle.startsWith('log in •') ||
+      lowerTitle.startsWith('login •')
+    ) {
+      continue;
+    }
+
+    // Entity decoding
+    rawTitle = rawTitle
+      .replace(/&amp;/g, '&')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Fallback title generation if empty or generic
+    if (!rawTitle || lowerTitle === 'search result' || lowerTitle === 'portal update') {
+      try {
+        const parsed = new URL(rawUri);
+        const host = parsed.hostname.replace(/^www\./, '');
+        if (host.includes('futa.edu.ng')) rawTitle = 'FUTA Official Portal';
+        else if (host.includes('jamb.gov.ng')) rawTitle = 'JAMB Official Portal';
+        else if (host.includes('myschool.ng')) rawTitle = 'MySchool NG';
+        else rawTitle = host;
+      } catch (e) {
+        rawTitle = 'Official Portal';
+      }
+    }
+
+    // Clean repetitive suffixes
+    rawTitle = rawTitle
+      .replace(/\s*[-–|]\s*(Instagram|Facebook|Twitter|TikTok)$/i, '')
+      .trim();
+
+    if (rawTitle.length > 55) {
+      rawTitle = rawTitle.substring(0, 52) + '...';
+    }
+
+    // Deduplicate by URL
+    if (seenUrls.has(normalizedUri)) continue;
+
+    // Deduplicate by Title Signature
+    const titleKey = rawTitle.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 22);
+    if (titleKey.length >= 6 && seenTitles.has(titleKey)) {
+      continue;
+    }
+
+    seenUrls.add(normalizedUri);
+    if (titleKey.length >= 6) {
+      seenTitles.add(titleKey);
+    }
+
+    cleaned.push({
+      web: {
+        uri: rawUri,
+        title: rawTitle
+      }
+    });
+
+    if (cleaned.length >= 4) break;
+  }
+
+  return cleaned;
 };
 
 export const executeAiChat = async (
@@ -2986,7 +3149,7 @@ export const executeAiChat = async (
       }
     });
 
-    const finalGroundingChunks = Array.from(uniqueChunksMap.values());
+    const finalGroundingChunks = sanitizeGroundingChunks(Array.from(uniqueChunksMap.values()));
 
     return {
       text: response.text || "",
@@ -3096,7 +3259,7 @@ export const executeAiChatStream = async (
               });
             }
           });
-          const chunksArr = Array.from(uniqueChunksMap.values());
+          const chunksArr = sanitizeGroundingChunks(Array.from(uniqueChunksMap.values()));
           onChunk(fullText, chunksArr.length > 0 ? chunksArr : undefined);
         }
       } catch (streamErr) {
@@ -3116,7 +3279,7 @@ export const executeAiChatStream = async (
             });
           }
         });
-        const chunksArr = Array.from(uniqueChunksMap.values());
+        const chunksArr = sanitizeGroundingChunks(Array.from(uniqueChunksMap.values()));
         
         const words = fullText.split(" ");
         if (words.length <= 30) {
@@ -3135,7 +3298,7 @@ export const executeAiChatStream = async (
       return { text: fullText };
     }, undefined, chatKeys);
 
-    const finalGroundingChunks = Array.from(uniqueChunksMap.values());
+    const finalGroundingChunks = sanitizeGroundingChunks(Array.from(uniqueChunksMap.values()));
     return {
       text: fullText,
       groundingChunks: finalGroundingChunks.length > 0 ? finalGroundingChunks : undefined

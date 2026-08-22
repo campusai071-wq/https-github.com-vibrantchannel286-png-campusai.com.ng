@@ -4,9 +4,9 @@ import {
   X, Send, Brain, Sparkles, Loader2, ArrowUpRight, ArrowDown,
   ShieldCheck, Zap, Trash2, Paperclip, FileText,
   Copy, Check, ThumbsUp, ThumbsDown, RotateCcw,
-  Share2, Volume2, VolumeX, ExternalLink, MessageSquare, Download
+  Share2, Volume2, VolumeX, ExternalLink, MessageSquare, Download, Wrench, ShieldAlert
 } from 'lucide-react';
-import { executeAiChat, executeAiChatStream } from '../services/geminiService';
+import { executeAiChat, executeAiChatStream, sanitizeGroundingChunks } from '../services/geminiService';
 import { checkAndIncrementChats, getLocalProfile, isRealUser, getChatLimits } from '../services/userService';
 import { ChatMessage } from '../types';
 import QuotaModal from './QuotaModal';
@@ -55,26 +55,32 @@ const ChatMessageItem = React.memo(({
         </div>
 
         {/* Grounding sources */}
-        {msg.groundingChunks && msg.groundingChunks.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-800/20 space-y-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-              <Sparkles size={10} className="text-cyan-500" /> Grounded Insights & Sources
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {msg.groundingChunks.map((chunk, cIdx) => (
-                <a
-                  key={cIdx}
-                  href={chunk.web?.uri}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-black text-gray-750 dark:text-gray-300 hover:text-blue-500 dark:hover:text-cyan-400 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm font-bold text-[10px] transition-colors"
-                >
-                  {chunk.web?.title || "Portal Update"} <ArrowUpRight size={12} />
-                </a>
-              ))}
+        {(() => {
+          const displayChunks = sanitizeGroundingChunks(msg.groundingChunks);
+          if (displayChunks.length === 0) return null;
+          return (
+            <div className="mt-4 pt-3 border-t border-gray-200/50 dark:border-gray-800/20 space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                <Sparkles size={10} className="text-cyan-500" /> Grounded Insights & Sources
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {displayChunks.map((chunk, cIdx) => (
+                  <a
+                    key={cIdx}
+                    href={chunk.web?.uri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-black text-gray-750 dark:text-gray-300 hover:text-blue-500 dark:hover:text-cyan-400 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm font-bold text-[10px] transition-colors max-w-[240px]"
+                    title={chunk.web?.title}
+                  >
+                    <span className="truncate">{chunk.web?.title || "Portal Update"}</span>
+                    <ArrowUpRight size={12} className="shrink-0" />
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Gemini Prototype Action Toolbar for Model Messages */}
@@ -168,6 +174,26 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
   useEffect(() => {
     if (propIsOpen !== undefined) setIsOpen(propIsOpen);
   }, [propIsOpen]);
+
+  const [isUnderMaintenance, setIsUnderMaintenance] = useState<boolean>(() => {
+    const saved = localStorage.getItem('campusai_chat_maintenance');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      const saved = localStorage.getItem('campusai_chat_maintenance');
+      if (saved !== null) {
+        setIsUnderMaintenance(saved === 'true');
+      }
+    };
+    window.addEventListener('storage', handleConfigChange);
+    window.addEventListener('campusai_config_updated', handleConfigChange);
+    return () => {
+      window.removeEventListener('storage', handleConfigChange);
+      window.removeEventListener('campusai_config_updated', handleConfigChange);
+    };
+  }, []);
   const [input, setInput] = useState('');
   const [profile, setProfile] = useState(() => getLocalProfile());
   const [isLoading, setIsLoading] = useState(false);
@@ -686,17 +712,32 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
     <>
       {/* ── Floating Chat Button ── */}
       <div className="fixed bottom-24 left-4 md:left-8 md:bottom-8 z-[150] group">
-        <span className="absolute inset-0 bg-blue-600 rounded-full blur group-hover:scale-125 transition-all duration-500 animate-ping opacity-25" />
+        <span className={`absolute inset-0 rounded-full blur group-hover:scale-125 transition-all duration-500 animate-ping opacity-25 ${
+          isUnderMaintenance ? 'bg-amber-500' : 'bg-blue-600'
+        }`} />
         <button
           id="campusai-floating-chat-bubble"
           onClick={() => setIsOpen(true)}
-          className="relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer border border-blue-500/20"
-          title="Consult CampusAI"
+          className={`relative text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer border ${
+            isUnderMaintenance 
+              ? 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 border-amber-400/30' 
+              : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border-blue-500/20'
+          }`}
+          title={isUnderMaintenance ? "CampusAI Chat (Under Maintenance)" : "Consult CampusAI"}
         >
-          <Brain size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+          {isUnderMaintenance ? (
+            <Wrench size={22} className="text-amber-200 animate-pulse" />
+          ) : (
+            <Brain size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+          )}
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 font-black uppercase text-[10px] tracking-widest transition-all duration-300">
-            Ask AI
+            {isUnderMaintenance ? 'Maintenance' : 'Ask AI'}
           </span>
+          {isUnderMaintenance && (
+            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-amber-400 text-black font-black text-[8px] rounded-full uppercase border border-white shadow-md">
+              🛠️
+            </span>
+          )}
         </button>
       </div>
 
@@ -729,14 +770,22 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                       <Sparkles size={14} className="text-cyan-500" />
                     </h3>
                     <div className="flex flex-col gap-1.5 mt-1">
-                      <div className="flex items-center gap-1.5 text-[8px] font-black tracking-widest text-emerald-500 uppercase">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                        Search Grounding Active • {remainingChats} / {maxChats} Chats
+                      <div className={`flex items-center gap-1.5 text-[8px] font-black tracking-widest uppercase ${
+                        isUnderMaintenance ? 'text-amber-500' : 'text-emerald-500'
+                      }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                          isUnderMaintenance ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`} />
+                        {isUnderMaintenance 
+                          ? '🛠️ System Maintenance in Progress' 
+                          : `Search Grounding Active • ${remainingChats} / ${maxChats} Chats`}
                       </div>
                       <div className="w-24 bg-gray-200 dark:bg-gray-800 h-1 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${remainingChats <= 1 ? 'bg-amber-500' : 'bg-blue-600'}`}
-                          style={{ width: `${maxChats > 0 ? (remainingChats / maxChats) * 100 : 0}%` }}
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isUnderMaintenance ? 'bg-amber-500' : remainingChats <= 1 ? 'bg-amber-500' : 'bg-blue-600'
+                          }`}
+                          style={{ width: isUnderMaintenance ? '100%' : `${maxChats > 0 ? (remainingChats / maxChats) * 100 : 0}%` }}
                         />
                       </div>
                     </div>
@@ -749,7 +798,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                       <Zap size={10} className="fill-white" /> Advisor Premium
                     </span>
                   )}
-                  {messages.length > 1 && (
+                  {!isUnderMaintenance && messages.length > 1 && (
                     <>
                       <button
                         onClick={handleExportChat}
@@ -776,8 +825,45 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                 </div>
               </div>
 
-              {/* Auth wall vs chat */}
-              {!user || !isRealUser(user?.uid) ? (
+              {/* Maintenance Mode Screen vs Auth Wall vs Active Chat */}
+              {isUnderMaintenance ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-amber-50/60 via-white to-orange-50/40 dark:from-amber-950/30 dark:via-gray-950 dark:to-gray-950 space-y-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xl">
+                      <Wrench size={38} className="animate-bounce" />
+                    </div>
+                    <span className="absolute -bottom-2 -right-2 px-2.5 py-1 bg-amber-500 text-black font-black text-[9px] uppercase tracking-widest rounded-full shadow-md">
+                      2026 Sync
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-w-sm">
+                    <span className="px-3 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-500/30">
+                      🛠️ Scheduled Maintenance
+                    </span>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                      AI Advisor Under Upgrade
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
+                      CampusAI Chat engines are currently undergoing database upgrades for 2026/2027 departmental cutoff calculations and JAMB CAPS guidelines. Chat will be back online shortly!
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-2xl text-[11px] text-amber-900 dark:text-amber-300 font-bold space-y-1.5 text-left w-full max-w-sm shadow-sm">
+                    <p className="flex items-center gap-2">
+                      <ShieldAlert size={16} className="shrink-0 text-amber-500" />
+                      All Cutoff Calculators, News Hub & Admission Tools remain 100% active.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleClose}
+                    className="w-full max-w-sm py-4 bg-gray-900 hover:bg-black dark:bg-gray-100 dark:hover:bg-white text-white dark:text-gray-900 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl cursor-pointer"
+                  >
+                    Close & Explore News Hub
+                  </button>
+                </div>
+              ) : !user || !isRealUser(user?.uid) ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-gray-950">
                   <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-blue-500/10">
                     <ShieldCheck size={32} />

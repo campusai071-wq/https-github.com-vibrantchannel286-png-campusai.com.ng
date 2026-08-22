@@ -5,7 +5,7 @@ import {
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown, AlertTriangle, XCircle
+  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -366,6 +366,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [developerPhoto, setDeveloperPhoto] = useState('');
   const [featureKeys, setFeatureKeys] = useState<Record<string, string>>({});
   const [flutterwaveKey, setFlutterwaveKey] = useState('');
+  const [isChatUnderMaintenance, setIsChatUnderMaintenance] = useState<boolean>(true);
+  const [showImportantBanner, setShowImportantBanner] = useState<boolean>(true);
   const [socialFacebook, setSocialFacebook]   = useState('');
   const [socialTwitter, setSocialTwitter]     = useState('');
   const [socialInstagram, setSocialInstagram] = useState('');
@@ -802,6 +804,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       if (config.calcKeyPref)    setCalcKeyPref(config.calcKeyPref);
       if (config.developerPhoto) setDeveloperPhoto(config.developerPhoto);
       if (config.featureKeys)    setFeatureKeys(config.featureKeys);
+      if (config.isChatUnderMaintenance !== undefined) setIsChatUnderMaintenance(Boolean(config.isChatUnderMaintenance));
+      else setIsChatUnderMaintenance(true);
+      if (config.showImportantBanner !== undefined) setShowImportantBanner(Boolean(config.showImportantBanner));
+      else setShowImportantBanner(true);
       if (config.socialLinks) {
         setSocialFacebook(config.socialLinks.facebook   || '');
         setSocialTwitter(config.socialLinks.twitter     || '');
@@ -1225,7 +1231,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       youtube: socialYoutube, tiktok: socialTiktok,
       nairaland: socialNairaland, whatsapp: socialWhatsapp,
     };
-    await saveGlobalConfig({ geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys, socialLinks });
+    await saveGlobalConfig({ 
+      geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys, socialLinks,
+      isChatUnderMaintenance, showImportantBanner
+    });
     try {
       localStorage.setItem('campusai_social_links', JSON.stringify(socialLinks));
       if (geminiKey)      localStorage.setItem('campusai_gemini_key',   geminiKey);
@@ -1234,7 +1243,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       if (newsKeyPref)    localStorage.setItem('campusai_news_key_pref', newsKeyPref);
       if (calcKeyPref)    localStorage.setItem('campusai_calc_key_pref', calcKeyPref);
       if (developerPhoto) localStorage.setItem('campusai_developer_photo', developerPhoto);
+      localStorage.setItem('campusai_chat_maintenance', isChatUnderMaintenance ? 'true' : 'false');
+      localStorage.setItem('campusai_show_important_banner', showImportantBanner ? 'true' : 'false');
       window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('campusai_config_updated'));
     } catch {}
     alert('Config saved and applied.');
   };
@@ -1634,6 +1646,140 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* ── INFRASTRUCTURE TAB ── */}
               {activeTab === 'infrastructure' && (
                 <div className="space-y-8 text-left">
+                  {/* System Feature Switches & Maintenance Control */}
+                  <div className="p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl space-y-6 text-white border border-indigo-500/30 shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-indigo-500/30 pb-4">
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                          <Wrench size={18} className="text-amber-400 animate-spin" style={{ animationDuration: '8s' }} />
+                          System Feature Controls & Maintenance Modes
+                        </h3>
+                        <p className="text-[11px] text-indigo-200/80 mt-1">
+                          Toggle core platform modules on or off for instant maintenance control.
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 bg-indigo-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-widest rounded-xl border border-indigo-500/30">
+                        Live Controls
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* AI Chat Maintenance Mode Toggle */}
+                      <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                        isChatUnderMaintenance 
+                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-100 shadow-lg shadow-amber-950/50' 
+                          : 'bg-slate-800/60 border-slate-700 text-slate-200'
+                      }`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                              <Brain size={16} className={isChatUnderMaintenance ? "text-amber-400 animate-pulse" : "text-blue-400"} />
+                              AI Chatbot Maintenance
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                              isChatUnderMaintenance 
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            }`}>
+                              {isChatUnderMaintenance ? '🛠️ Under Maintenance' : '⚡ Active'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-300 leading-relaxed">
+                            {isChatUnderMaintenance 
+                              ? 'AI Chat is currently in Maintenance Mode. Users will see a maintenance upgrade screen in the chat drawer.' 
+                              : 'AI Chat is ONLINE and serving 2026/2027 admission queries.'}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            const nextState = !isChatUnderMaintenance;
+                            setIsChatUnderMaintenance(nextState);
+                            await saveGlobalConfig({ 
+                              geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys,
+                              isChatUnderMaintenance: nextState, showImportantBanner
+                            });
+                            localStorage.setItem('campusai_chat_maintenance', nextState ? 'true' : 'false');
+                            window.dispatchEvent(new Event('storage'));
+                            window.dispatchEvent(new Event('campusai_config_updated'));
+                          }}
+                          className={`w-full py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            isChatUnderMaintenance 
+                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950' 
+                              : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-950'
+                          }`}
+                        >
+                          {isChatUnderMaintenance ? (
+                            <>
+                              <ToggleRight size={18} /> Turn ON AI Chat (End Maintenance)
+                            </>
+                          ) : (
+                            <>
+                              <ToggleLeft size={18} /> Put AI Chat Under Maintenance
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Important Update Banner Toggle */}
+                      <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                        showImportantBanner 
+                          ? 'bg-blue-950/40 border-blue-500/50 text-blue-100 shadow-lg shadow-blue-950/50' 
+                          : 'bg-slate-800/60 border-slate-700 text-slate-200'
+                      }`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                              <Megaphone size={16} className={showImportantBanner ? "text-cyan-400" : "text-gray-500"} />
+                              Top Important Update Banner
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                              showImportantBanner 
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                                : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            }`}>
+                              {showImportantBanner ? '📌 Banner Visible' : '🚫 Banner Hidden'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-300 leading-relaxed">
+                            {showImportantBanner 
+                              ? 'Top banner is VISIBLE on all pages featuring pinned news updates.' 
+                              : 'Top banner is HIDDEN across the entire platform.'}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            const nextState = !showImportantBanner;
+                            setShowImportantBanner(nextState);
+                            await saveGlobalConfig({ 
+                              geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys,
+                              isChatUnderMaintenance, showImportantBanner: nextState
+                            });
+                            localStorage.setItem('campusai_show_important_banner', nextState ? 'true' : 'false');
+                            window.dispatchEvent(new Event('storage'));
+                            window.dispatchEvent(new Event('campusai_config_updated'));
+                          }}
+                          className={`w-full py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            showImportantBanner 
+                              ? 'bg-rose-600 hover:bg-rose-500 text-white' 
+                              : 'bg-blue-600 hover:bg-blue-500 text-white'
+                          }`}
+                        >
+                          {showImportantBanner ? (
+                            <>
+                              <EyeOff size={18} /> Turn OFF / Hide Top Banner
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={18} /> Enable / Show Top Banner
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6 border border-gray-100 dark:border-gray-800">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Key size={14} /> API Core Nodes & Developer Identity</h3>
                     <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-3">

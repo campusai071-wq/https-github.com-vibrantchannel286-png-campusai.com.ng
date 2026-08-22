@@ -40,8 +40,9 @@ export const searchWebRaw = async (query: string, usePostUtmeKey = false): Promi
     const results = response.data.results;
     if (!results || !Array.isArray(results)) return [];
 
-    // Limit to top 4 search results
-    const limitedResults = results.slice(0, 4);
+    // Live online web grounding must only use actual web search results (filter out local DB matches)
+    const webOnly = results.filter((r: any) => !r.isLocal);
+    const limitedResults = (webOnly.length > 0 ? webOnly : results).slice(0, 4);
 
     return limitedResults.map((r: any) => {
       let content = (r.content || r.snippet || "").trim();

@@ -248,8 +248,24 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                     Instant activation upon confirmation.
                   </p>
 
-                  <div className="pt-6 mt-6 border-t border-gray-100 dark:border-gray-800 text-center">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Payment Issues?</p>
+                  <div className="pt-6 mt-6 border-t border-gray-100 dark:border-gray-800 text-center space-y-2">
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        const currentCredits = user?.scholarCredits || 0;
+                        await updateUserProfile({ 
+                          is_premium: true, 
+                          scholarCredits: Math.max(currentCredits + 5, 5),
+                          premium_activated_at: new Date().toISOString()
+                        }, user?.uid);
+                        alert("Scholar Pack Restored! You now have 10 Daily Chats and 5 Premium AI Calculation Sessions active.");
+                        onClose();
+                      }}
+                      className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline block mx-auto"
+                    >
+                      Already Paid? Click Here to Restore Access ⚡
+                    </button>
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Payment Issues?</p>
                     <button 
                       onClick={() => window.open(`https://wa.me/2349169760634?text=Payment Issue. UID: ${user?.uid}`, '_blank')}
                       className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"

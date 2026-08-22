@@ -211,6 +211,24 @@ const AppContent: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [directoryInitialCategory, setDirectoryInitialCategory] = useState<'All' | 'Federal' | 'State' | 'Private' | 'Polytechnic' | 'COE' | 'National'>('All');
 
+  const [showImportantBanner, setShowImportantBanner] = useState<boolean>(() => {
+    const saved = localStorage.getItem('campusai_show_important_banner');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      const saved = localStorage.getItem('campusai_show_important_banner');
+      if (saved !== null) setShowImportantBanner(saved === 'true');
+    };
+    window.addEventListener('storage', handleConfigChange);
+    window.addEventListener('campusai_config_updated', handleConfigChange);
+    return () => {
+      window.removeEventListener('storage', handleConfigChange);
+      window.removeEventListener('campusai_config_updated', handleConfigChange);
+    };
+  }, []);
+
   // Real-time synchronization and live desktop/mobile push alerts across all users
   const lastSeenSyncRef = useRef<number>(0);
   const isFirstSyncRef = useRef<boolean>(true);
@@ -388,6 +406,10 @@ const AppContent: React.FC = () => {
         if (config.geminiKey2) localStorage.setItem('campusai_gemini_key_2', config.geminiKey2);
         if (config.geminiKey3) localStorage.setItem('campusai_gemini_key_3', config.geminiKey3);
         if (config.developerPhoto) localStorage.setItem('campusai_developer_photo', config.developerPhoto);
+        if (config.showImportantBanner !== undefined) {
+          setShowImportantBanner(Boolean(config.showImportantBanner));
+          localStorage.setItem('campusai_show_important_banner', config.showImportantBanner ? 'true' : 'false');
+        }
         if (config.socialLinks) {
           localStorage.setItem('campusai_social_links', JSON.stringify(config.socialLinks));
           setSocialLinks(config.socialLinks);
@@ -783,8 +805,19 @@ const AppContent: React.FC = () => {
 
       {/* Global Important Message Banner across all pages */}
       {(() => {
+        if (!showImportantBanner) return null;
         const importantItem = news.find(n => n.isImportant) || news[0];
         if (!importantItem) return null;
+
+        const hasPdfAttachment = Boolean(
+          importantItem.title?.toLowerCase().includes('pdf') ||
+          importantItem.excerpt?.toLowerCase().includes('pdf') ||
+          importantItem.fullContent?.toLowerCase().includes('pdf') ||
+          importantItem.tags?.some(t => t.toLowerCase().includes('pdf')) ||
+          (importantItem as any).pdfUrl ||
+          (importantItem as any).hasPdf
+        );
+
         return (
           <div className="pt-20 md:pt-24 px-4 bg-transparent">
             <div className="container mx-auto max-w-7xl">
@@ -797,7 +830,9 @@ const AppContent: React.FC = () => {
                     <span className="text-white text-xs font-black">📢</span>
                   </div>
                   <div className="overflow-hidden">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-200 block">Important Update & Download PDF</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-200 block">
+                      {hasPdfAttachment ? "Important Update & Download PDF" : "Important Update"}
+                    </span>
                     <p className="text-xs md:text-sm font-black truncate group-hover:underline">{importantItem.title}</p>
                   </div>
                 </div>
@@ -826,7 +861,7 @@ const AppContent: React.FC = () => {
                     </div>
                   )}
                   <div className="flex items-center gap-1.5 px-4 py-2 bg-white text-blue-900 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md">
-                    <span>View & Download</span>
+                    <span>{hasPdfAttachment ? "View & Download" : "View Update"}</span>
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
