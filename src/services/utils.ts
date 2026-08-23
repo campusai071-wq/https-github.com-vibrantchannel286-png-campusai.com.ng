@@ -52,7 +52,14 @@ export const slugify = (text: string) => {
 
 export const cleanObject = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') return obj;
+  
+  // Preserve Date objects, Firestore Timestamps (duck-typing via toDate), and FieldValues
+  if (obj instanceof Date || typeof obj.toDate === 'function' || obj.constructor?.name === 'FieldValue' || obj.constructor?.name === 'Timestamp') {
+    return obj;
+  }
+
   if (Array.isArray(obj)) return obj.map(cleanObject).filter(v => v !== undefined);
+  
   const clean: any = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
