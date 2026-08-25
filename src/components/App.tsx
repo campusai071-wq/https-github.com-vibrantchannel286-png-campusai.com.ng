@@ -15,6 +15,7 @@ import TopRankings from './TopRankings';
 import Sidebar from './Sidebar';
 import NewsDetailView from './NewsDetailView';
 import ToolsGrid from './ToolsGrid';
+import HowItWorks from './HowItWorks';
 
 // Code-split heavy secondary views & modals for faster initial load
 const PolicySection = lazyWithRetry(() => import('./PolicySection'));
@@ -1175,6 +1176,8 @@ const AppContent: React.FC = () => {
                   <Suspense fallback={<div className="h-40 flex items-center justify-center text-blue-500">Loading tools...</div>}>
                     <ToolsGrid />
                   </Suspense>
+
+                  <HowItWorks />
 
                   
                   <div className="container mx-auto px-4 md:px-8 mt-20 max-w-lg">
