@@ -2588,6 +2588,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     }
   };
 
+  const [showOLevelInfoModal, setShowOLevelInfoModal] = useState(false);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -3496,7 +3498,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             {(!computedScoringSystem || computedScoringSystem.hasOLevel) && (
               <div id="olevel-subject-list" className="space-y-2.5 pt-2.5 border-t border-white/5">
                 <div className="flex justify-between items-center px-0.5">
-                  <label className="text-[8px] font-black uppercase text-gray-500 tracking-widest">O-Level (Best 5)</label>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[8px] font-black uppercase text-gray-500 tracking-widest">O-Level (Best 5)</label>
+                    <button type="button" onClick={() => setShowOLevelInfoModal(true)} className="text-gray-400 hover:text-cyan-400 transition-colors" title="How O-Level grades are scored">
+                      <Info size={12} />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <div className="flex gap-1 bg-black/40 p-0.5 rounded-md">
                       <button onClick={() => setSittings(1)} className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase transition-all ${sittings === 1 ? 'bg-cyan-500 text-black' : 'text-gray-500'}`}>1 Sit</button>
@@ -6731,6 +6738,82 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           />
         </Suspense>
       )}
+
+      <AnimatePresence>
+        {showOLevelInfoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-gray-900 border border-gray-800 rounded-3xl p-6 max-w-md w-full shadow-2xl overflow-hidden relative"
+            >
+              <button
+                onClick={() => setShowOLevelInfoModal(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
+                <Info size={20} className="text-cyan-400" />
+                O'Level Grading Systems
+              </h3>
+              
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar text-sm text-gray-300">
+                <p>
+                  Different institutions use different point systems to evaluate your O'Level grades (WAEC, NECO, NABTEB). We automatically apply the correct scale based on the institution you select.
+                </p>
+                
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-950 border border-white/5 rounded-xl">
+                    <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-emerald-400">Standard 50-Point Scale</h4>
+                    <p className="text-xs mb-2">Used by UI, OAU, UNILORIN, UNILAG, etc. (often scaled down).</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <span>A1 = 10 pts</span>
+                      <span>B2 = 9 pts</span>
+                      <span>B3 = 8 pts</span>
+                      <span>C4 = 7 pts</span>
+                      <span>C5 = 6 pts</span>
+                      <span>C6 = 5 pts</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-gray-950 border border-white/5 rounded-xl">
+                    <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-cyan-400">UNILAG / UNILORIN (Scaled)</h4>
+                    <p className="text-xs mb-2">Grades are proportionally scaled down (Max 20 pts for 5 subjects).</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <span>A1 = 4.0 pts</span>
+                      <span>B2 = 3.6 pts</span>
+                      <span>B3 = 3.2 pts</span>
+                      <span>C4 = 2.8 pts</span>
+                      <span>C5 = 2.4 pts</span>
+                      <span>C6 = 2.0 pts</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-gray-950 border border-white/5 rounded-xl">
+                    <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-indigo-400">FUTA / Point-Based Scales</h4>
+                    <p className="text-xs mb-2">Some tech schools (like FUTA) use wider ranges which are then percentage-weighted.</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <span>A1 = 80 pts</span>
+                      <span>B2 = 72 pts</span>
+                      <span>B3 = 67 pts</span>
+                      <span>C4 = 62 pts</span>
+                      <span>C5 = 57 pts</span>
+                      <span>C6 = 52 pts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

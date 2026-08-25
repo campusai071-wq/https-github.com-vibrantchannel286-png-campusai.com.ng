@@ -2350,9 +2350,7 @@ Return JSON:
         parsed.cutoffValue = cutoffVal;
         parsed.cutoffIsOfficial = true;
         parsed.cutoffType = "official_departmental_cutoff";
-        parsed.cutoffSource = (manualOverride.institution.includes("UI") || manualOverride.institution.includes("Ibadan"))
-          ? "Official University of Ibadan (UI) 2025/2026 Cut-Off Release"
-          : "Verified Administrative System Ground Truth";
+        parsed.cutoffSource = manualOverride.explanation || "Verified Administrative System Ground Truth";
         parsed.cutoffConfidence = "high";
         parsed.reliability = "high";
       } else {
