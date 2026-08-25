@@ -2191,10 +2191,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     setTimeout(() => handleLaunchAuditInternal(false, true), 55);
   };
 
+  const resolveInstitution = (input: any) => {
+    if (!input) return null;
+    if (typeof input === 'object' && input.name) return input;
+    const searchStr = typeof input === 'string' ? input : (input.name || String(input));
+    const found = universityData.find((u: any) => 
+      u.name.toLowerCase() === searchStr.toLowerCase() || 
+      u.name.toLowerCase().includes(searchStr.toLowerCase()) || 
+      searchStr.toLowerCase().includes(u.name.toLowerCase()) ||
+      u.slug === searchStr.toLowerCase().replace(/\s+/g, '-')
+    );
+    return found || { name: searchStr, slug: searchStr.toLowerCase().replace(/\s+/g, '-') };
+  };
+
   const handleLaunchAudit = async () => { await handleLaunchAuditInternal(false, false); };
 
   const handleLaunchAuditInternal = async (forceBypass = false, forceBypassAccreditation = false, overrideUni?: any, overrideCourse?: string) => {
-    const activeUni = overrideUni || targetUni;
+    let rawUni = overrideUni || targetUni;
+    if (!rawUni && uniSearch) {
+      rawUni = uniSearch;
+    }
+    const activeUni = resolveInstitution(rawUni);
+    if (activeUni && !targetUni) {
+      setTargetUni(activeUni);
+      if (activeUni.name && !uniSearch) setUniSearch(activeUni.name);
+    }
     const activeCourse = overrideCourse || targetCourse || courseSearch;
 
     const errors: string[] = [];
@@ -6401,7 +6422,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                setTargetUni("Federal University of Technology, Akure (FUTA)");
+                                const uObj = resolveInstitution("Federal University of Technology, Akure (FUTA)");
+                                setTargetUni(uObj);
+                                setUniSearch(uObj.name);
                                 setTargetCourse(item.programme);
                                 setIsFUTACutoffsModalOpen(false);
                                 window.scrollTo({ top: 400, behavior: 'smooth' });
