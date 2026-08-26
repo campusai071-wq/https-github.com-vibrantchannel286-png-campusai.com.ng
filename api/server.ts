@@ -2620,6 +2620,9 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const staticPages = [
       ["/", "1.0", "daily"],
+      ["/jamb-caps", "0.98", "daily"],
+      ["/caps", "0.95", "daily"],
+      ["/caps-portal", "0.95", "daily"],
       ["/admissions", "0.95", "daily"],
       ["/syllabus", "0.95", "daily"],
       ["/admission-checklist", "0.95", "daily"],
