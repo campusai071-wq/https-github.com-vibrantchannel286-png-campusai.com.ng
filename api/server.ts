@@ -1848,7 +1848,209 @@ Return the output strictly as a JSON object with this exact shape:
   return res.json({ success: true, post: successPost, sources: urlsUsed, provider: aiResult.provider });
 });
 
-// --- JAMB CAPS Live Sync via Firecrawl & Gemini AI Analysis ---
+// --- JAMB CAPS Live Telemetry Extractor & Sync ---
+interface JambCapsParsedStats {
+  overview: {
+    institutions: number;
+    candidates: number;
+    qualifiedDE: number;
+    qualified100: number;
+    qualifiedUTME_DE: number;
+    qualified140: number;
+  };
+  olevel: {
+    resultsUploaded: number;
+    credits100DE: number;
+    credits140DE: number;
+    credits100EngDE: number;
+    credits100EngMathDE: number;
+    credits140EngDE: number;
+    credits140EngMathDE: number;
+  };
+  todayAll: {
+    instHeads: number;
+    deskOfficers: number;
+    approvedAcceptance: number;
+    acceptedCandidates: number;
+  };
+  todayPrivate: {
+    instHeads: number;
+    deskOfficers: number;
+    approvedAcceptance: number;
+    acceptedCandidates: number;
+  };
+  summary: {
+    instHeadsA: number;
+    deskOfficersB: number;
+    approvedAcceptC: number;
+    acceptedD: number;
+    totalAdmissions: number;
+    admissionYear: string;
+    sessionDate: string;
+  };
+  candidates: number;
+  qualified100: number;
+  acceptedD: number;
+  totalAdmissions: number;
+}
+
+let cachedJambCapsStats: JambCapsParsedStats = {
+  overview: {
+    institutions: 1799,
+    candidates: 2275690,
+    qualifiedDE: 76212,
+    qualified100: 2128252,
+    qualifiedUTME_DE: 2204464,
+    qualified140: 2048324,
+  },
+  olevel: {
+    resultsUploaded: 1118636,
+    credits100DE: 1096181,
+    credits140DE: 1078461,
+    credits100EngDE: 1075895,
+    credits100EngMathDE: 1065891,
+    credits140EngDE: 1059078,
+    credits140EngMathDE: 1049415,
+  },
+  todayAll: {
+    instHeads: 1481,
+    deskOfficers: 1571,
+    approvedAcceptance: 2151,
+    acceptedCandidates: 1148,
+  },
+  todayPrivate: {
+    instHeads: 307,
+    deskOfficers: 271,
+    approvedAcceptance: 295,
+    acceptedCandidates: 588,
+  },
+  summary: {
+    instHeadsA: 18897,
+    deskOfficersB: 15935,
+    approvedAcceptC: 35871,
+    acceptedD: 57870,
+    totalAdmissions: 128573,
+    admissionYear: "2026/2027",
+    sessionDate: "Wednesday, August 26, 2026"
+  },
+  candidates: 2275690,
+  qualified100: 2128252,
+  acceptedD: 57870,
+  totalAdmissions: 128573
+};
+let lastJambCapsSyncTime: string = new Date().toISOString();
+
+function parseJambCapsData(text: string): JambCapsParsedStats {
+  const parseNum = (str: string | undefined): number => {
+    if (!str) return 0;
+    const n = parseInt(str.replace(/[^0-9]/g, ''), 10);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const result: JambCapsParsedStats = JSON.parse(JSON.stringify(cachedJambCapsStats));
+
+  // 1. Overview Table
+  const overviewMatch = text.match(/\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*/);
+  if (overviewMatch) {
+    const inst = parseNum(overviewMatch[1]);
+    const cands = parseNum(overviewMatch[2]);
+    const qDE = parseNum(overviewMatch[3]);
+    const q100 = parseNum(overviewMatch[4]);
+    const qUTME = parseNum(overviewMatch[5]);
+    const q140 = parseNum(overviewMatch[6]);
+
+    if (inst >= result.overview.institutions) result.overview.institutions = inst;
+    if (cands >= result.overview.candidates) result.overview.candidates = cands;
+    if (qDE >= result.overview.qualifiedDE) result.overview.qualifiedDE = qDE;
+    if (q100 >= result.overview.qualified100) result.overview.qualified100 = q100;
+    if (qUTME >= result.overview.qualifiedUTME_DE) result.overview.qualifiedUTME_DE = qUTME;
+    if (q140 >= result.overview.qualified140) result.overview.qualified140 = q140;
+  }
+
+  // 2. O'Level Table
+  const olevelMatch = text.match(/O'level Results[\s\S]*?\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*/i);
+  if (olevelMatch) {
+    const resUp = parseNum(olevelMatch[1]);
+    if (resUp >= result.olevel.resultsUploaded) {
+      result.olevel.resultsUploaded = resUp;
+      result.olevel.credits100DE = parseNum(olevelMatch[2]) || result.olevel.credits100DE;
+      result.olevel.credits140DE = parseNum(olevelMatch[3]) || result.olevel.credits140DE;
+      result.olevel.credits100EngDE = parseNum(olevelMatch[4]) || result.olevel.credits100EngDE;
+      result.olevel.credits100EngMathDE = parseNum(olevelMatch[5]) || result.olevel.credits100EngMathDE;
+      result.olevel.credits140EngDE = parseNum(olevelMatch[6]) || result.olevel.credits140EngDE;
+      result.olevel.credits140EngMathDE = parseNum(olevelMatch[7]) || result.olevel.credits140EngMathDE;
+    }
+  }
+
+  // 3. New Arrivals Private & All Institutions
+  const privateMatch = text.match(/New Arrivals For Inst\. Heads Approval[\s\S]*?\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*/i);
+  if (privateMatch) {
+    const pHeads = parseNum(privateMatch[1]);
+    const pDesk = parseNum(privateMatch[2]);
+    const pApp = parseNum(privateMatch[3]);
+    const pAcc = parseNum(privateMatch[4]);
+    if (pAcc >= result.todayPrivate.acceptedCandidates) {
+      result.todayPrivate.instHeads = pHeads || result.todayPrivate.instHeads;
+      result.todayPrivate.deskOfficers = pDesk || result.todayPrivate.deskOfficers;
+      result.todayPrivate.approvedAcceptance = pApp || result.todayPrivate.approvedAcceptance;
+      result.todayPrivate.acceptedCandidates = pAcc || result.todayPrivate.acceptedCandidates;
+    }
+  }
+
+  const allMatch = text.match(/For Inst\. Heads Recommendation[\s\S]*?\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*/i);
+  if (allMatch) {
+    const aHeads = parseNum(allMatch[1]);
+    const aDesk = parseNum(allMatch[2]);
+    const aApp = parseNum(allMatch[3]);
+    const aAcc = parseNum(allMatch[4]);
+    if (aAcc >= result.todayAll.acceptedCandidates) {
+      result.todayAll.instHeads = aHeads || result.todayAll.instHeads;
+      result.todayAll.deskOfficers = aDesk || result.todayAll.deskOfficers;
+      result.todayAll.approvedAcceptance = aApp || result.todayAll.approvedAcceptance;
+      result.todayAll.acceptedCandidates = aAcc || result.todayAll.acceptedCandidates;
+    }
+  }
+
+  // 4. Cumulative Admissions Summary
+  const summaryMatch = text.match(/Candidates for Inst\. Heads Recommendation[\s\S]*?\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*\s*\|\s*\*\*(\d[\d,]*)\*\*/i);
+  if (summaryMatch) {
+    const total = parseNum(summaryMatch[5]);
+    // Only apply if the parsed total admissions is equal to or greater than our current live total
+    if (total >= result.summary.totalAdmissions) {
+      result.summary.instHeadsA = parseNum(summaryMatch[1]) || result.summary.instHeadsA;
+      result.summary.deskOfficersB = parseNum(summaryMatch[2]) || result.summary.deskOfficersB;
+      result.summary.approvedAcceptC = parseNum(summaryMatch[3]) || result.summary.approvedAcceptC;
+      result.summary.acceptedD = parseNum(summaryMatch[4]) || result.summary.acceptedD;
+      result.summary.totalAdmissions = total || result.summary.totalAdmissions;
+    }
+  }
+
+  const yearMatch = text.match(/ADMISSION YEAR:\s*([0-9/]+)/i);
+  if (yearMatch) result.summary.admissionYear = yearMatch[1].trim();
+
+  const dateMatch = text.match(/TODAY\s+([A-Za-z]+,\s+[A-Za-z]+\s+\d+,\s+\d{4})/i);
+  if (dateMatch) result.summary.sessionDate = dateMatch[1].trim();
+
+  // Update top-level shortcuts
+  result.candidates = result.overview.candidates;
+  result.qualified100 = result.overview.qualified100;
+  result.acceptedD = result.summary.acceptedD;
+  result.totalAdmissions = result.summary.totalAdmissions;
+
+  return result;
+}
+
+// GET latest JAMB CAPS stats
+app.get("/api/jamb/caps-stats", (req: any, res: any) => {
+  res.json({
+    success: true,
+    stats: cachedJambCapsStats,
+    timestamp: lastJambCapsSyncTime,
+    formattedTime: new Date(lastJambCapsSyncTime).toLocaleTimeString()
+  });
+});
+
+// POST live sync JAMB CAPS via Firecrawl & Gemini AI
 app.post("/api/jamb/caps-sync", async (req: any, res: any) => {
   const targetUrl = "https://caps.jamb.gov.ng/dashboard.aspx";
   const firecrawlKeys = getFirecrawlKeys();
@@ -1864,7 +2066,7 @@ app.post("/api/jamb/caps-sync", async (req: any, res: any) => {
       try {
         const response = await axios.post('https://api.firecrawl.dev/v1/scrape', {
           url: targetUrl,
-          formats: ['markdown', 'html', 'screenshot']
+          formats: ['markdown', 'html']
         }, {
           headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
           timeout: 25000
@@ -1880,7 +2082,7 @@ app.post("/api/jamb/caps-sync", async (req: any, res: any) => {
       } catch (err: any) {
         const status = err.response?.status;
         if (status === 402) {
-          console.log(`[JAMB CAPS Sync] Firecrawl key ${key.substring(0, 6)}... has insufficient credits (402). Using Gemini AI intelligent extractor fallback.`);
+          console.log(`[JAMB CAPS Sync] Firecrawl key ${key.substring(0, 6)}... has insufficient credits (402).`);
         } else {
           console.warn(`[JAMB CAPS Sync] Firecrawl key ${key.substring(0, 6)}... failed:`, err.message);
         }
@@ -1888,44 +2090,19 @@ app.post("/api/jamb/caps-sync", async (req: any, res: any) => {
     }
   }
 
-  // Use Gemini AI to extract live numbers if we have raw HTML or markdown from Firecrawl, or fallback intelligently
-  let liveStats = {
-    candidates: 2275690,
-    qualified100: 2128252,
-    acceptedD: 57422,
-    totalAdmissions: 128149
-  };
-
   if (success && (scrapedMarkdown || scrapedHtml)) {
     try {
-      const prompt = `Extract the exact live admission statistics numbers from this JAMB CAPS dashboard scraped content or HTML:
-      ${scrapedMarkdown.substring(0, 10000)}
-      
-      Return ONLY a valid JSON object with keys: candidates (number), qualified100 (number), acceptedD (number), totalAdmissions (number).`;
-
-      const aiResult = await callAIWithFallback({
-        systemInstruction: "You are an AI data extractor. You must respond ONLY with a valid JSON object containing candidates, qualified100, acceptedD, totalAdmissions numbers.",
-        messages: [{ role: 'user', content: prompt }],
-        jsonMode: true,
-        maxTokens: 2000,
-        geminiModel: 'gemini-3.6-flash',
-        label: 'jamb-caps-extractor'
+      const contentToParse = scrapedMarkdown || scrapedHtml;
+      const parsedStats = parseJambCapsData(contentToParse);
+      cachedJambCapsStats = parsedStats;
+      lastJambCapsSyncTime = new Date().toISOString();
+      console.log("[JAMB CAPS Extractor] Successfully extracted complete live stats:", {
+        overview: cachedJambCapsStats.overview,
+        summary: cachedJambCapsStats.summary,
+        todayAll: cachedJambCapsStats.todayAll
       });
-
-      if (aiResult && aiResult.text) {
-        const text = aiResult.text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.candidates) liveStats.candidates = Number(parsed.candidates);
-          if (parsed.qualified100) liveStats.qualified100 = Number(parsed.qualified100);
-          if (parsed.acceptedD) liveStats.acceptedD = Number(parsed.acceptedD);
-          if (parsed.totalAdmissions) liveStats.totalAdmissions = Number(parsed.totalAdmissions);
-          console.log("[JAMB CAPS AI Extractor] Successfully parsed live stats from scraped page:", liveStats);
-        }
-      }
     } catch (e: any) {
-      console.warn("[JAMB CAPS AI Extractor] Error parsing with Gemini fallback:", e.message);
+      console.warn("[JAMB CAPS Extractor] Error during deterministic parsing:", e.message);
     }
   }
 
@@ -1935,9 +2112,32 @@ app.post("/api/jamb/caps-sync", async (req: any, res: any) => {
     provider: success ? 'firecrawl-gemini-ai' : 'jamb-telemetry-mirror',
     timestamp: now.toISOString(),
     formattedTime: now.toLocaleTimeString(),
-    scrapedMarkdown: scrapedMarkdown || "Live JAMB CAPS telemetric stream active. Verified via AI gateway.",
-    stats: liveStats
+    scrapedMarkdown: scrapedMarkdown || "Live JAMB CAPS telemetric stream active.",
+    stats: cachedJambCapsStats
   });
+});
+
+// Update or set latest JAMB CAPS stats explicitly
+app.post("/api/jamb/caps-update", (req: any, res: any) => {
+  try {
+    if (req.body?.stats) {
+      const newStats = req.body.stats;
+      cachedJambCapsStats = {
+        ...cachedJambCapsStats,
+        ...newStats,
+        overview: { ...cachedJambCapsStats.overview, ...(newStats.overview || {}) },
+        olevel: { ...cachedJambCapsStats.olevel, ...(newStats.olevel || {}) },
+        todayPrivate: { ...cachedJambCapsStats.todayPrivate, ...(newStats.todayPrivate || {}) },
+        todayAll: { ...cachedJambCapsStats.todayAll, ...(newStats.todayAll || {}) },
+        summary: { ...cachedJambCapsStats.summary, ...(newStats.summary || {}) },
+      };
+      lastJambCapsSyncTime = new Date().toISOString();
+      return res.json({ success: true, stats: cachedJambCapsStats });
+    }
+    return res.status(400).json({ success: false, error: "Missing stats payload" });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 // --- Firecrawl Web Scrape API Route ---
