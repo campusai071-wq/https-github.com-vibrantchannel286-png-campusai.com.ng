@@ -1898,13 +1898,13 @@ let cachedJambCapsStats: JambCapsParsedStats = {
   overview: {
     institutions: 1799,
     candidates: 2275690,
-    qualifiedDE: 76212,
-    qualified100: 2128252,
+    qualifiedDE: 76224,
+    qualified100: 2128240,
     qualifiedUTME_DE: 2204464,
-    qualified140: 2048324,
+    qualified140: 2048314,
   },
   olevel: {
-    resultsUploaded: 1118636,
+    resultsUploaded: 1121092,
     credits100DE: 1096181,
     credits140DE: 1078461,
     credits100EngDE: 1075895,
@@ -1913,30 +1913,30 @@ let cachedJambCapsStats: JambCapsParsedStats = {
     credits140EngMathDE: 1049415,
   },
   todayAll: {
-    instHeads: 1481,
-    deskOfficers: 1571,
-    approvedAcceptance: 2151,
-    acceptedCandidates: 1148,
+    instHeads: 3133,
+    deskOfficers: 2204,
+    approvedAcceptance: 2611,
+    acceptedCandidates: 2249,
   },
   todayPrivate: {
-    instHeads: 307,
-    deskOfficers: 271,
-    approvedAcceptance: 295,
-    acceptedCandidates: 588,
+    instHeads: 670,
+    deskOfficers: 352,
+    approvedAcceptance: 542,
+    acceptedCandidates: 1088,
   },
   summary: {
-    instHeadsA: 18897,
-    deskOfficersB: 15935,
-    approvedAcceptC: 35871,
-    acceptedD: 57870,
-    totalAdmissions: 128573,
+    instHeadsA: 20236,
+    deskOfficersB: 15916,
+    approvedAcceptC: 35404,
+    acceptedD: 58973,
+    totalAdmissions: 130529,
     admissionYear: "2026/2027",
     sessionDate: "Wednesday, August 26, 2026"
   },
   candidates: 2275690,
-  qualified100: 2128252,
-  acceptedD: 57870,
-  totalAdmissions: 128573
+  qualified100: 2128240,
+  acceptedD: 58973,
+  totalAdmissions: 130529
 };
 let lastJambCapsSyncTime: string = new Date().toISOString();
 
@@ -2195,7 +2195,7 @@ app.post("/api/firecrawl/scrape", requireAdminToken as any, async (req: any, res
 // header or a `?secret=` query param (configure whichever your Firecrawl
 // monitor supports) — set FIRECRAWL_WEBHOOK_SECRET when you configure the
 // monitor in Firecrawl's dashboard and use the same value there.
-app.post("/api/webhooks/firecrawl", async (req: any, res: any) => {
+app.post(["/api/webhooks/firecrawl", "/api/webhooks/fire"], async (req: any, res: any) => {
   const suppliedSecret = String(
     req.headers['x-webhook-secret'] ||
     req.headers['x-firecrawl-secret'] ||
@@ -2237,6 +2237,25 @@ app.post("/api/webhooks/firecrawl", async (req: any, res: any) => {
     if (!markdown && payload?.data) {
       markdown = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data, null, 2);
       url = payload?.url || "Unknown URL";
+    }
+
+    // Special Auto-Sync for JAMB CAPS telemetry monitor:
+    if (url.includes('caps.jamb.gov.ng') || markdown.includes('CENTRAL ADMISSIONS PROCESSING SYSTEM') || markdown.includes('Candidates for Inst. Heads Recommendation')) {
+      console.log("[API Webhook] JAMB CAPS telemetry webhook detected! Updating live CAPS cache...");
+      const parsedStats = parseJambCapsData(markdown);
+      cachedJambCapsStats = parsedStats;
+      lastJambCapsSyncTime = new Date().toISOString();
+
+      if (adminDb) {
+        await adminDb.collection("admin_notifications").add({
+          type: "webhook_success",
+          title: "JAMB CAPS Telemetry Auto-Updated via Firecrawl Monitor",
+          message: `Live telemetry synced: ${parsedStats.summary.totalAdmissions.toLocaleString()} Total Admissions, ${parsedStats.summary.acceptedD.toLocaleString()} Accepted, ${parsedStats.overview.institutions} Institutions.`,
+          timestamp: new Date().toISOString(),
+          sourceUrl: url
+        });
+      }
+      console.log(`[API Webhook] JAMB CAPS telemetry updated: ${parsedStats.summary.totalAdmissions} admissions`);
     }
 
     if (!markdown) {

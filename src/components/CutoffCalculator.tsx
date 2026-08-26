@@ -206,6 +206,39 @@ const TOP_INSTITUTION_MAP: Record<string, ScoringSystem> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const getSuggestedJambSubjects = (courseName: string): [string, string, string] | null => {
+  if (!courseName) return null;
+  const c = courseName.toLowerCase().trim();
+  if (['medicine', 'mbbs', 'dentistry', 'nursing', 'pharmacy', 'medical lab', 'radiography', 'physiotherapy', 'anatomy', 'physiology', 'veterinary'].some(k => c.includes(k))) {
+    return ['Physics', 'Chemistry', 'Biology'];
+  }
+  if (c.includes('engineer')) {
+    return ['Mathematics', 'Physics', 'Chemistry'];
+  }
+  if (['computer science', 'cyber', 'software engineer', 'data science', 'information technology', 'software'].some(k => c.includes(k))) {
+    return ['Mathematics', 'Physics', 'Chemistry'];
+  }
+  if (c.includes('law') || c.includes('jurisprudence')) {
+    return ['Literature-in-English', 'Government', 'Christian Religious Studies (CRS)'];
+  }
+  if (['accounting', 'accountancy', 'finance', 'banking', 'business admin', 'business management', 'marketing'].some(k => c.includes(k))) {
+    return ['Mathematics', 'Economics', 'Government'];
+  }
+  if (c.includes('economics') && !c.includes('home economics')) {
+    return ['Mathematics', 'Economics', 'Government'];
+  }
+  if (['mass comm', 'communication', 'journalism', 'media'].some(k => c.includes(k))) {
+    return ['Literature-in-English', 'Government', 'Economics'];
+  }
+  if (['microbiology', 'biochemistry', 'botany', 'zoology', 'biology'].some(k => c.includes(k))) {
+    return ['Biology', 'Chemistry', 'Physics'];
+  }
+  if (['geology', 'physics', 'geophysics'].some(k => c.includes(k))) {
+    return ['Mathematics', 'Physics', 'Chemistry'];
+  }
+  return null;
+};
+
 const calculateAggregateScore = (
   jamb: number,
   post: number,
@@ -1325,6 +1358,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [examBoard2, setExamBoard2] = useState('NECO (SSCE)');
   const [isAR, setIsAR] = useState(false);
   const [isPostUtmePending, setIsPostUtmePending] = useState(false);
+  const [showQuickGuide, setShowQuickGuide] = useState(true);
   const [isDirectEntry, setIsDirectEntry] = useState(false);
   const [deQualification, setDeQualification] = useState('JUPEB / IJMB');
   const [dePoints, setDePoints] = useState('12');
@@ -3098,6 +3132,66 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
             )}
 
+            {/* Quick 3-Step Guide for New Users & Visitors */}
+            <div className="p-3.5 sm:p-4 bg-gradient-to-br from-indigo-950/40 via-gray-950 to-cyan-950/30 border border-cyan-500/20 rounded-2xl relative overflow-hidden">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-sm shrink-0 border border-cyan-500/30">
+                    💡
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase text-white tracking-wider flex items-center gap-1.5">
+                      How to Calculate Your Aggregate in 3 Simple Steps
+                    </h4>
+                    <p className="text-[8px] text-gray-400 font-medium">
+                      Works for candidates who have already written Post-UTME screening AND candidates who haven't written yet.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickGuide(!showQuickGuide)}
+                  className="text-[7.5px] font-black uppercase tracking-wider text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 px-2.5 py-1 rounded-lg transition-all shrink-0 cursor-pointer"
+                >
+                  {showQuickGuide ? 'Hide Guide' : 'Show Guide'}
+                </button>
+              </div>
+
+              {showQuickGuide && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3 pt-3 border-t border-white/5">
+                  <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[8px] font-black text-cyan-400 uppercase">
+                      <span className="w-4 h-4 rounded-full bg-cyan-500/20 flex items-center justify-center text-[8px] font-bold">1</span>
+                      Choose School & Course
+                    </div>
+                    <p className="text-[7.5px] text-gray-300 leading-snug">
+                      Select your target institution (e.g. <strong>OAU, UNILAG, UI</strong>) and desired course of study.
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 bg-black/40 rounded-xl border border-cyan-500/30 bg-cyan-950/20 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[8px] font-black text-cyan-300 uppercase">
+                      <span className="w-4 h-4 rounded-full bg-cyan-500/30 flex items-center justify-center text-[8px] font-bold">2</span>
+                      JAMB Score & Post-UTME Status
+                    </div>
+                    <p className="text-[7.5px] text-gray-300 leading-snug">
+                      Enter your UTME score. If you haven't sat for your screening exam yet, click <strong>"Haven't written yet (Pending Exam)"</strong> to simulate target scores!
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[8px] font-black text-emerald-400 uppercase">
+                      <span className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[8px] font-bold">3</span>
+                      O'Levels & Statutory Quota
+                    </div>
+                    <p className="text-[7.5px] text-gray-300 leading-snug">
+                      Select your 5 O'Level grades & State of Origin, then click <strong>Calculate</strong> to see Merit, Catchment & ELDS tiers.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Institution / Course / State row */}
             <div className={`grid grid-cols-1 ${schoolLandingInfo ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-3.5`}>
               {/* University search */}
@@ -3171,12 +3265,42 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           .filter(c => c.toLowerCase().includes(courseSearch.toLowerCase()))
                           .slice(0, 15)
                           .map(c => (
-                            <button key={c} onClick={() => { setTargetCourse(c); setCourseSearch(c); setIsCourseDropdownOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-white/5 font-bold border-b border-white/5 last:border-0 text-[10px] break-words text-white">
+                            <button
+                              key={c}
+                              onClick={() => {
+                                setTargetCourse(c);
+                                setCourseSearch(c);
+                                setIsCourseDropdownOpen(false);
+                                if (!jambSubject1 && !jambSubject2 && !jambSubject3) {
+                                  const suggested = getSuggestedJambSubjects(c);
+                                  if (suggested) {
+                                    setJambSubject1(suggested[0]);
+                                    setJambSubject2(suggested[1]);
+                                    setJambSubject3(suggested[2]);
+                                  }
+                                }
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-white/5 font-bold border-b border-white/5 last:border-0 text-[10px] break-words text-white cursor-pointer"
+                            >
                               {c}
                             </button>
                           ))}
                         {availableCourses.filter(c => c.toLowerCase().includes(courseSearch.toLowerCase())).length === 0 && courseSearch.length > 0 && (
-                          <button onClick={() => { setTargetCourse(courseSearch); setIsCourseDropdownOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-white/5 font-bold border-b border-white/5 last:border-0 text-[10px] text-cyan-400 italic">
+                          <button
+                            onClick={() => {
+                              setTargetCourse(courseSearch);
+                              setIsCourseDropdownOpen(false);
+                              if (!jambSubject1 && !jambSubject2 && !jambSubject3) {
+                                const suggested = getSuggestedJambSubjects(courseSearch);
+                                if (suggested) {
+                                  setJambSubject1(suggested[0]);
+                                  setJambSubject2(suggested[1]);
+                                  setJambSubject3(suggested[2]);
+                                }
+                              }
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-white/5 font-bold border-b border-white/5 last:border-0 text-[10px] text-cyan-400 italic cursor-pointer"
+                          >
                             Use custom: "{courseSearch}"
                           </button>
                         )}
@@ -3295,10 +3419,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
               {manualOverrideActive ? (
                 <div className="pt-2.5 space-y-3">
-                  <div className="flex items-start gap-2 text-[9px] text-amber-400/90 leading-normal font-semibold animate-pulse">
+                  <div className="flex items-start gap-2 text-[9px] text-amber-400/90 leading-normal font-semibold">
                     <span className="text-xs">⚠️</span>
                     <p>
-                      <strong>Manual Override Active:</strong> Choose a formula template or toggle inputs below. This overrides the database preset.
+                      <strong>Manual Override Active:</strong> Choose a formula template or toggle inputs below. Note: Standard universities (OAU 50:40:10, UNILAG 50:30:20, UI 50:50, etc.) are already calibrated automatically. If you haven't written Post-UTME yet, use <strong>"Haven't written yet (Pending Exam)"</strong> below instead of turning off Post-UTME here.
                     </p>
                   </div>
 
@@ -3439,17 +3563,94 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
             )}
 
+            {/* Post-UTME Status Banner & Switcher (When school requires Post-UTME) */}
+            {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) && (
+              <div className="p-3.5 bg-gradient-to-r from-blue-950/40 via-cyan-950/30 to-indigo-950/40 border border-cyan-500/25 rounded-2xl space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📝</span>
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-wider text-cyan-300">
+                        Post-UTME Screening Exam Status
+                      </p>
+                      <p className="text-[7.5px] text-gray-400 font-medium">
+                        Have you written the university screening exam yet?
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center bg-black/70 p-1 rounded-xl border border-white/10 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsPostUtmePending(false)}
+                      className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                        !isPostUtmePending
+                          ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.5)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Check size={10} /> I have my score
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPostUtmePending(true);
+                        if (!postUtmeScore) setPostUtmeScore('70');
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isPostUtmePending
+                          ? 'bg-cyan-400 text-black font-black shadow-[0_0_15px_rgba(34,211,238,0.7)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Clock size={10} /> Haven't written yet (Pending Exam)
+                    </button>
+                  </div>
+                </div>
+
+                {isPostUtmePending && (
+                  <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl space-y-2 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[8px] font-bold text-cyan-200 flex items-center gap-1.5">
+                        <Sparkles size={11} className="text-cyan-400 shrink-0" />
+                        <span><strong>Simulation Mode Active:</strong> Simulating admission chances with a target score of <span className="text-cyan-300 font-black underline">{postUtmeScore || '70'}/100</span>.</span>
+                      </p>
+                      <span className="text-[7px] font-black uppercase bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full shrink-0">
+                        Target Simulation
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider">Quick test target score:</span>
+                      {['55', '60', '65', '70', '75', '80', '85', '90'].map(pts => (
+                        <button
+                          key={pts}
+                          type="button"
+                          onClick={() => setPostUtmeScore(pts)}
+                          className={`px-2.5 py-1 rounded-lg text-[8px] font-black transition-all cursor-pointer ${
+                            postUtmeScore === pts
+                              ? 'bg-cyan-400 text-black shadow-md font-black scale-105'
+                              : 'bg-black/40 text-gray-300 hover:bg-cyan-500/20 hover:text-white border border-white/5'
+                          }`}
+                        >
+                          {pts}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* JAMB + Post-UTME scores */}
             <div className={`grid ${(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               {/* JAMB */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="jamb-score" className="text-[8px] font-black uppercase text-gray-500 tracking-widest ml-1">
-                    {targetUni?.category === 'COE' ? 'Registration No. (Optional)' : 'JAMB Score (400)'}
+                  <label htmlFor="jamb-score" className="text-[8px] font-black uppercase text-gray-400 tracking-widest ml-1">
+                    {targetUni?.category === 'COE' ? 'Registration No. (Optional)' : 'JAMB UTME Score (400)'}
                   </label>
                   <button
                     onClick={() => setIsAR(!isAR)}
-                    className={`px-2 py-0.5 rounded text-[7px] font-black uppercase transition-all flex items-center gap-1 ${isAR ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-white/5 text-gray-500 border border-white/5'}`}
+                    className={`px-2 py-0.5 rounded text-[7px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer ${isAR ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-white/5 text-gray-500 border border-white/5'}`}
                   >
                     {isAR ? <Check size={8} /> : <Plus size={8} />} Awaiting Result
                   </button>
@@ -3457,9 +3658,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 <input
                   id="jamb-score" name="jamb-score"
                   type={targetUni?.category === 'COE' ? "text" : "number"}
-                  placeholder={targetUni?.category === 'COE' ? "JAMB Reg No" : "400"}
+                  placeholder={targetUni?.category === 'COE' ? "JAMB Reg No" : "e.g. 270"}
                   value={jambScore} onChange={e => setJambScore(e.target.value)}
-                  className="w-full p-3 bg-black/40 border border-white/5 rounded-xl font-black text-lg text-center outline-none focus:border-blue-500"
+                  className="w-full p-3 bg-black/40 border border-white/5 rounded-xl font-black text-lg text-center outline-none focus:border-blue-500 text-white"
                 />
               </div>
 
@@ -3467,25 +3668,47 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) && (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="post-utme-score" className="text-[8px] font-black uppercase text-gray-500 tracking-widest ml-1">
-                      {isPostUtmePending ? 'Target Post-UTME (70)' : 'Post-UTME (100)'}
+                    <label htmlFor="post-utme-score" className="text-[8px] font-black uppercase text-gray-400 tracking-widest ml-1">
+                      {isPostUtmePending ? 'Simulated Target Post-UTME (Max 100)' : 'Post-UTME Score (Max 100)'}
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsPostUtmePending(!isPostUtmePending)}
-                      className={`px-2 py-0.5 rounded text-[7px] font-black uppercase transition-all flex items-center gap-1 ${isPostUtmePending ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-500 border border-white/5'}`}
-                    >
-                      {isPostUtmePending ? <Check size={8} /> : <Plus size={8} />} Pending Exam
-                    </button>
+                    <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${isPostUtmePending ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'}`}>
+                      {isPostUtmePending ? 'Pending Mode' : 'Written'}
+                    </span>
                   </div>
                   <input
-                    id="post-utme-score" name="post-utme-score" type="number" placeholder={isPostUtmePending ? "70" : "100"}
+                    id="post-utme-score" name="post-utme-score" type="number" placeholder={isPostUtmePending ? "70" : "e.g. 74"}
                     value={postUtmeScore} onChange={e => setPostUtmeScore(e.target.value)}
-                    className={`w-full p-3 bg-black/40 border rounded-xl font-black text-lg text-center outline-none transition-all ${isPostUtmePending ? 'border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]' : 'border-white/5 text-white focus:border-blue-500'}`}
+                    className={`w-full p-3 bg-black/40 border rounded-xl font-black text-lg text-center outline-none transition-all ${isPostUtmePending ? 'border-cyan-500/60 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)] focus:border-cyan-400' : 'border-white/5 text-white focus:border-blue-500'}`}
                   />
                 </div>
               )}
             </div>
+
+            {/* Quick Auto-fill button for JAMB subjects if not selected yet */}
+            {(targetCourse || courseSearch) && (!jambSubject1 || !jambSubject2 || !jambSubject3) && (
+              <div className="flex items-center justify-between p-2.5 bg-cyan-950/30 border border-cyan-500/20 rounded-xl">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-cyan-400 shrink-0" />
+                  <span className="text-[8px] text-gray-300 font-bold">
+                    Need help with UTME subjects for <strong className="text-cyan-300">{targetCourse || courseSearch}</strong>?
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const suggested = getSuggestedJambSubjects(targetCourse || courseSearch);
+                    if (suggested) {
+                      setJambSubject1(suggested[0]);
+                      setJambSubject2(suggested[1]);
+                      setJambSubject3(suggested[2]);
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[7.5px] uppercase tracking-wider rounded-lg shadow-sm transition-all cursor-pointer shrink-0"
+                >
+                  ⚡ Auto-Fill Required Subjects
+                </button>
+              </div>
+            )}
 
             {/* JAMB Subjects */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -5761,21 +5984,31 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <button
                     onClick={() => {
-                        setIsC6AlertOpen(false);
-                        handleLaunchAuditInternal(false, true);
+                      setSubjects(prev => prev.map((s, i) => ({ ...s, grade: (i === 0 || i === 1 ? 'A1' : 'B3') as OLevelGrade })));
+                      setIsC6AlertOpen(false);
+                      setTimeout(() => handleLaunchAuditInternal(false, true), 100);
                     }}
-                    className="w-full py-4 bg-gradient-to-r from-red-600 to-red-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-lg shadow-red-500/20 hover:scale-[1.02] transition-transform"
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black uppercase tracking-wider text-[10px] rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    Yes, Proceed Anyway
+                    ✨ Auto-Fill Competitive Grades (A1s & B3s) & Calculate
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsC6AlertOpen(false);
+                      handleLaunchAuditInternal(false, true);
+                    }}
+                    className="w-full py-3 bg-white/10 hover:bg-white/15 text-white font-black uppercase tracking-wider text-[10px] rounded-2xl transition-all cursor-pointer"
+                  >
+                    Yes, Keep All C6 Grades & Calculate
                   </button>
                   <button
                     onClick={() => setIsC6AlertOpen(false)}
-                    className="w-full py-4 bg-gray-800 text-gray-300 font-bold uppercase tracking-widest text-xs rounded-2xl hover:bg-gray-700 transition-colors"
+                    className="w-full py-2 bg-transparent hover:bg-white/5 text-gray-400 font-bold uppercase tracking-wider text-[9px] rounded-xl transition-colors cursor-pointer"
                   >
-                    No, Edit Grades
+                    Cancel, I will edit grades manually
                   </button>
                 </div>
               </div>
@@ -5800,8 +6033,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight leading-tight">Incomplete <span className="text-red-500">Trial Data</span></h3>
                 <p className="text-gray-400 font-bold mb-6 text-[10px] tracking-widest uppercase">Required Admission Inputs Missing</p>
                 
-                <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10 mb-8 text-left max-h-[180px] overflow-y-auto no-scrollbar space-y-2">
-                  <p className="text-[10px] font-black uppercase text-red-400 tracking-wider mb-2">Please resolve the following fields to save calculation trial:</p>
+                <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10 mb-4 text-left max-h-[180px] overflow-y-auto no-scrollbar space-y-2">
+                  <p className="text-[10px] font-black uppercase text-red-400 tracking-wider mb-2">Please resolve the following fields to complete your calculation:</p>
                   {validationAlert.errors.map((err, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-[10px] font-bold text-gray-300 leading-normal uppercase tracking-tight">
                       <span className="text-red-500 mt-0.5 shrink-0">•</span>
@@ -5809,6 +6042,65 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     </div>
                   ))}
                 </div>
+
+                {/* 1-Click Fix for Post-UTME pending / not written yet */}
+                {validationAlert.errors.some(e => e.toLowerCase().includes('post-utme')) && (
+                  <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl mb-4 text-left">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Clock size={12} className="text-cyan-400" />
+                      <p className="text-[9.5px] font-black uppercase text-cyan-300">
+                        Haven't written Post-UTME screening yet?
+                      </p>
+                    </div>
+                    <p className="text-[8px] text-gray-300 leading-snug mb-2.5">
+                      You can simulate your admission chances using a target screening score (e.g. 70/100):
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPostUtmePending(true);
+                        setPostUtmeScore('70');
+                        setValidationAlert({ isOpen: false, errors: [] });
+                        setTimeout(() => {
+                          handleLaunchAuditInternal();
+                        }, 150);
+                      }}
+                      className="w-full py-2.5 px-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Sparkles size={12} /> Auto-Simulate (70% Target) & Calculate Now
+                    </button>
+                  </div>
+                )}
+
+                {/* 1-Click Fix for Missing JAMB subjects */}
+                {validationAlert.errors.some(e => e.toLowerCase().includes('jamb utme subject')) && (
+                  <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl mb-4 text-left">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Sparkles size={12} className="text-blue-400" />
+                      <p className="text-[9.5px] font-black uppercase text-blue-300">
+                        Missing JAMB Subject combination?
+                      </p>
+                    </div>
+                    <p className="text-[8px] text-gray-300 leading-snug mb-2.5">
+                      Auto-fill standard UTME subject electives for <strong className="text-white">{targetCourse || courseSearch || 'your course'}</strong>:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const suggested = getSuggestedJambSubjects(targetCourse || courseSearch);
+                        if (suggested) {
+                          setJambSubject1(suggested[0]);
+                          setJambSubject2(suggested[1]);
+                          setJambSubject3(suggested[2]);
+                        }
+                        setValidationAlert({ isOpen: false, errors: [] });
+                      }}
+                      className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Check size={12} /> Auto-Fill Required JAMB Subjects
+                    </button>
+                  </div>
+                )}
 
                 <button
                   onClick={() => setValidationAlert({ isOpen: false, errors: [] })}
