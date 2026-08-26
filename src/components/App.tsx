@@ -454,6 +454,7 @@ const AppContent: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
       if (firebaseUser) {
         const { getLocalProfile } = await import('../services/userService');
+        const { identifyUser } = await import('../services/analytics');
         const localProfile = getLocalProfile();
         if (localProfile && localProfile.uid === firebaseUser.uid) {
            setUser({ ...firebaseUser, ...localProfile });
@@ -464,9 +465,13 @@ const AppContent: React.FC = () => {
         
         try {
           const profile = await initializeUserProfile(firebaseUser);
-          setUser({ ...firebaseUser, ...profile });
+          const fullUser = { ...firebaseUser, ...profile };
+          setUser(fullUser);
+          identifyUser(fullUser);
           subscribeToUserProfile(firebaseUser.uid, (updatedProfile) => {
-             setUser((curr: any) => curr ? { ...curr, ...updatedProfile } : null);
+             const updatedUser = { ...firebaseUser, ...updatedProfile };
+             setUser(updatedUser);
+             identifyUser(updatedUser);
           });
         } catch (e) {
           console.error("Profile init error:", e);

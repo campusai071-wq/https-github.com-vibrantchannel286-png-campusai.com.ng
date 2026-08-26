@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, X, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useStandalone } from '../hooks/useStandalone';
+import { clarityConsent } from '../services/analytics';
 
 const CookieConsent: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -11,7 +12,9 @@ const CookieConsent: React.FC = () => {
   useEffect(() => {
     if (isStandalone) return;
     const consent = localStorage.getItem('campusai_cookie_consent');
-    if (!consent) {
+    if (consent === 'true') {
+      clarityConsent();
+    } else if (!consent) {
       const timer = setTimeout(() => setIsVisible(true), 2000);
       return () => clearTimeout(timer);
     }
@@ -21,6 +24,7 @@ const CookieConsent: React.FC = () => {
 
   const handleAccept = () => {
     localStorage.setItem('campusai_cookie_consent', 'true');
+    clarityConsent();
     setIsVisible(false);
   };
 
