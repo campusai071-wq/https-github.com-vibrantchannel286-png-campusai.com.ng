@@ -2382,7 +2382,6 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const guestUsage = parseInt(localStorage.getItem('guest_merit_usage') || '0');
     const authUsage  = user?.meritUsageCount || 0;
     const hasCredits = (user?.scholarCredits || 0) > 0;
-    if (!user && guestUsage >= FREE_GUEST_LIMIT) { onLoginRequest(); return; }
 
     setIsAnalysisLoading(true);
     setAiResult(null);
@@ -4115,7 +4114,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         {/* ── RIGHT PANEL ── */}
         <div className="w-full">
           <AnimatePresence mode="wait">
-            {showResults && (aiResult || isAnalysisLoading) ? (
+            {showResults ? (
               <motion.div key="results" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col space-y-8">
 
                 {/* Main result card */}
@@ -4154,9 +4153,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                         <CalculationAnimation />
                         <span className="text-sm font-bold text-gray-400 animate-pulse font-mono uppercase tracking-wider">Analyzing Admission Chances...</span>
                      </div>
-                  ) : aiResult ? (
-                    !user ? (
-                      /* GUEST VIEW: Aggregate Math Summary + High-Converting Sign-In Gate */
+                  ) : !user ? (
+                    /* GUEST VIEW: Aggregate Math Summary + High-Converting Sign-In Gate */
                       <div className="space-y-6 mt-4">
                         {/* Formula & Calculation Breakdown Card */}
                         <div className="p-5 bg-black/40 rounded-2xl border border-white/10 text-left space-y-4 shadow-xl">
@@ -4237,10 +4235,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
                             <div>
                               <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                                Unlock Your Full 2026 Admission Analysis
+                                Get Full Admission Analysis & Strategy
                               </h3>
                               <p className="text-xs md:text-sm text-gray-300 mt-2 leading-relaxed">
-                                Your aggregate score of <strong className="text-emerald-400">{aggregateScore}%</strong> is computed! Sign in to reveal your official cut-off benchmark, admission probability rating, and custom AI strategy report:
+                                Your aggregate score of <strong className="text-emerald-400">{aggregateScore}%</strong> has been calculated! To get your full admission analysis, official departmental cut-off benchmarks, and AI admission strategy, log in below:
                               </p>
                             </div>
 
@@ -4301,7 +4299,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 onClick={onLoginRequest}
                                 className="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-black text-xs md:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-blue-500/25 active:scale-[0.98] transition-all cursor-pointer"
                               >
-                                <LogIn size={18} /> Sign In to View Full Analysis (100% Free)
+                                <LogIn size={18} /> Log In to Get Full Analysis (100% Free)
                               </button>
 
                               <p className="text-center text-[10px] text-gray-400 font-medium flex items-center justify-center gap-1.5">
@@ -4329,7 +4327,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           </div>
                         </div>
                       </div>
-                    ) : (() => {
+                    ) : aiResult ? (() => {
                       let chanceLevel = '🔴 Unlikely';
                       let chanceColor = 'text-red-500';
                       let chanceBg = 'bg-red-500/10 border-red-500/20';
@@ -4493,14 +4491,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                             <Upload size={16} /> Upload Additional Documents
                           </button>
                         </div>
-                      </>
-                    );
-                  })()
-                ) : null}
 
-                {user && aiResult && (
-                  <>
-                    {/* Evidence Panel */}
+                        {/* Evidence Panel */}
                       {aiResult.evidencePanel && Array.isArray(aiResult.evidencePanel) && aiResult.evidencePanel.filter((e: any) => e && (e.value || e.type || e.sourceUrl)).length > 0 && (
                         <div className="mt-6 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
                           <details className="group" open>
@@ -5603,7 +5595,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       </div>
                     )}
                     </>
-                  )}
+                  );
+                })() : null}
                 </div>
 
                 {user && aiResult && (
