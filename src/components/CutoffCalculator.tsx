@@ -1602,6 +1602,16 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     }
   }, [initialSchoolName, currentSchoolSlug]);
 
+  // Auto-sync targetUni whenever uniSearch has text
+  useEffect(() => {
+    if (uniSearch && uniSearch.trim().length > 0) {
+      const resolved = resolveInstitution(uniSearch);
+      if (resolved && (!targetUni || targetUni.name !== resolved.name)) {
+        setTargetUni(resolved);
+      }
+    }
+  }, [uniSearch]);
+
   // Load saved profiles & calculation attempts with local storage persistence
   useEffect(() => {
     // 1. Instantly load local storage attempts for immediate offline display
@@ -2211,10 +2221,17 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!rawUni && uniSearch) {
       rawUni = uniSearch;
     }
-    const activeUni = resolveInstitution(rawUni);
-    if (activeUni && !targetUni) {
-      setTargetUni(activeUni);
-      if (activeUni.name && !uniSearch) setUniSearch(activeUni.name);
+    let activeUni = resolveInstitution(rawUni);
+    if (!activeUni && uniSearch) {
+      activeUni = { name: uniSearch, slug: uniSearch.toLowerCase().replace(/\s+/g, '-') };
+    }
+    if (activeUni) {
+      if (!targetUni || targetUni.name !== activeUni.name) {
+        setTargetUni(activeUni);
+      }
+      if (activeUni.name && uniSearch !== activeUni.name) {
+        setUniSearch(activeUni.name);
+      }
     }
     const activeCourse = overrideCourse || targetCourse || courseSearch;
 

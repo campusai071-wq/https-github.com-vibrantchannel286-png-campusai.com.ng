@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, 
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -74,6 +74,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Landmark size={18} />,
       badge: '283+ Schools',
       badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-cyan-400 border border-blue-500/20'
+    },
+    {
+      id: 'jamb-caps',
+      name: 'JAMB CAPS Portal',
+      icon: <BarChart3 size={18} />,
+      badge: 'Live Telemetry',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
     },
     {
       id: 'calculator',

@@ -19,7 +19,7 @@ const replacement = `  // 2. Try Gemini for Search Grounding (Primary)
     try {
       const ai = new GoogleGenAI({ apiKey });
       const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: \`Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "\${query}"\`,
         config: {
           tools: [{ googleSearch: {} }]

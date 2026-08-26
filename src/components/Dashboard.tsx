@@ -7,6 +7,7 @@ import PolicySection from './PolicySection';
 import RecentActivity from './RecentActivity';
 import FAQSection from './FAQSection';
 import PostUtmeTrackerSection from './PostUtmeTrackerSection';
+import { JambCapsLiveTracker } from './JambCapsLiveTracker';
 import { FileCheck, ArrowRight } from 'lucide-react';
 
 import { motion } from 'framer-motion';
@@ -76,6 +77,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
       <div className="container mx-auto px-4 md:px-8 mb-16 mt-16 max-w-6xl space-y-12">
         {user && <RecentActivity userId={user?.uid || null} />}
         
+        {/* JAMB CAPS Live Admission Statistics Tracker */}
+        <JambCapsLiveTracker 
+          onSelectSchool={(schoolName) => {
+            navigate('/universities', { state: { search: schoolName } });
+            window.scrollTo(0, 0);
+          }}
+        />
+
         {/* Live Post-UTME Release Tracker Section directly on Dashboard */}
         <PostUtmeTrackerSection 
           compact={true}

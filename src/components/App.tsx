@@ -45,6 +45,7 @@ const FeedbackModal = lazyWithRetry(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazyWithRetry(() => import('./AdmissionChecklistPage'));
 const SyllabusExplorer = lazyWithRetry(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazyWithRetry(() => import('./AdmissionsExplorer'));
+const JambCapsLiveTrackerPage = lazyWithRetry(() => import('./JambCapsLiveTrackerPage'));
 const CGPACalculator = lazy(() => import('./CGPACalculator'));
 import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
@@ -634,6 +635,8 @@ const AppContent: React.FC = () => {
       setCurrentPage('terms');
     } else if (path.includes('cookie')) {
       setCurrentPage('cookies');
+    } else if (path.startsWith('/jamb-caps') || path.startsWith('/caps')) {
+      setCurrentPage('jamb-caps');
     } else {
       setCurrentPage('home');
     }
@@ -730,6 +733,10 @@ const AppContent: React.FC = () => {
     } else if (p === 'checklist' || p === 'admission-checklist') {
       setCurrentPage('checklist');
       navigate('/admission-checklist');
+      window.scrollTo(0, 0);
+    } else if (p === 'jamb-caps' || p === 'caps' || p === 'caps-portal') {
+      setCurrentPage('jamb-caps');
+      navigate('/jamb-caps');
       window.scrollTo(0, 0);
     } else if (p === 'news' || p === 'jamb') {
       setCurrentPage('news');
@@ -1317,6 +1324,10 @@ const AppContent: React.FC = () => {
               <AdmissionChecklistPage />
             </>
           } />
+
+          <Route path="/jamb-caps" element={<JambCapsLiveTrackerPage />} />
+          <Route path="/caps" element={<JambCapsLiveTrackerPage />} />
+          <Route path="/caps-portal" element={<JambCapsLiveTrackerPage />} />
           <Route path="/terms" element={<><SEO title="Terms of Service" canonical="/terms" /><LegalSection type="terms" /></>} />
           <Route path="/terms-of-service" element={<><SEO title="Terms of Service" canonical="/terms" /><LegalSection type="terms" /></>} />
           <Route path="/privacy" element={<><SEO title="Privacy Policy" canonical="/privacy" /><LegalSection type="privacy" /></>} />

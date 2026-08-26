@@ -12,38 +12,118 @@ interface FAQItem {
 const faqs: FAQItem[] = [
   {
     category: 'Admission',
-    question: "How can I calculate my 2026 university aggregate score?",
-    answer: "To calculate your aggregate score for the 2026 admission cycle, use the CampusAI.ng predictive engine. Our system automatically applies the latest August 2026 institutional formulas for Nigerian universities—including the 50/50 JAMB-to-Post-UTME ratio, O’Level point grading, and ELDS (Educationally Less Developed States) quota criteria—while ensuring your results comply with the current 150-score national minimum threshold. You can also use our Custom Formula Mode to manually define your own aggregate percentage ratio if your institution's formula isn't listed."
+    question: "How do I generate a profile code?",
+    answer: "Kindly send the acronym NIN, then a space, followed by your 11-digit National Identification Number to 55019 or 66019 in the format below: NIN 00123456789. Note: There should be a space between the word NIN and your 11-digit NIN."
   },
   {
     category: 'Admission',
-    question: "What is the JAMB 2026 Registration Deadline?",
-    answer: "The JAMB 2026 registration officially ends on February 28, 2026. The Board has explicitly stated there will be NO EXTENSION. Ensure you have your profile code and ePIN before the deadline."
+    question: "How old should I be for me to be eligible?",
+    answer: "Only candidates who will be 16 years old by 30th September, 2025/2026, are eligible to apply. Candidates who would be less than 16 years old can only apply for trial mock examination. However, exceptional students who are below 16 can apply and be considered provided they score 80% in the UTME, SSCE and Post-UTME and the exceptional candidates' examination."
   },
   {
     category: 'Admission',
-    question: "How is the 50:30:20 aggregate calculated?",
-    answer: "This is common for schools like UNILAG. JAMB (400) is scaled to 50%, Post-UTME (100) to 30%, and O-Level (5 subjects) to 20%. Our Aggregate Calculator handles this automatically for supported schools."
+    question: "Can I pay cash for the application documents?",
+    answer: "To safeguard candidates from unnecessary exploitation, the Board has maintained its cashless registration regime for the UTME/DE application and other services."
   },
   {
-    category: 'Academic',
-    question: "How does the CGPA Predictor work?",
-    answer: "The predictor uses your current GPA and target grades to calculate the exact performance needed in future semesters to reach your goal. It's a logic-driven tool for academic planning."
+    category: 'Admission',
+    question: "How much is the application documents?",
+    answer: "For the UTME/DE application, there are four application options: 1. UTME with Mock: N8,700; 2. UTME without Mock: N7,200; 3. Direct Entry (DE): N5,700; 4. Trial-Testing Mock Examination for underage candidates: N3,500."
+  },
+  {
+    category: 'Admission',
+    question: "When would the sale of application documents commence?",
+    answer: "Monday, 3rd February to Saturday, 8th March."
+  },
+  {
+    category: 'Admission',
+    question: "When would the sale of Direct Entry application documents commence?",
+    answer: "Saturday, 8th March and end by Monday, 7th April."
+  },
+  {
+    category: 'Admission',
+    question: "How do I know the right subject combinations to suit my choice of course/programme?",
+    answer: "The IBASS Eligibility Checker provides candidates with the list of available programmes in each tertiary institution as well as UTME subject combinations for each course. It is crucial for all candidates to verify requirements prior to application."
+  },
+  {
+    category: 'Admission',
+    question: "What are the necessary documents to bring to register for DE?",
+    answer: "At the point of registration, all DE candidates must provide: a) Registration/Matriculation Number of previous school attended where qualification was obtained; b) Course(s); c) Awarding Institution; and d) Year of graduation."
+  },
+  {
+    category: 'Admission',
+    question: "Can I register more than once?",
+    answer: "Candidates are not permitted to register more than once. In the event of any error during registration, candidates are to seek correction from the Board and not obtain a fresh application document."
   },
   {
     category: 'Technical',
-    question: "Is my data secure on CampusAI?",
-    answer: "Yes. We use Firebase's secure infrastructure and encrypted local storage. Your academic records and chat history are private and protected by industry-standard security protocols."
+    question: "Can I go to any CBT centre or cybercafé to register?",
+    answer: "Registration can only be done at JAMB-approved Computer-Based Testing Centres across the country."
   },
   {
     category: 'General',
-    question: "What are 'Intelligence Nodes'?",
-    answer: "Intelligence Nodes are our AI-powered features. Each node (Chat, News, Calculator) uses specific neural models synchronized with the 2026 Nigerian academic database."
+    question: "Can I use the same mobile number (SIM) as my sister/brother/parent?",
+    answer: "No two candidates can use the same mobile number for registration. Every candidate is required to use a unique phone number (SIM) for registration as this remains your unique identifier for present and future services. It must not be lost, and if lost, must be retrieved immediately."
   },
   {
     category: 'General',
-    question: "How do I get real-time admission alerts?",
-    answer: "You can join our verified WhatsApp Updates Channel for instant notifications on JAMB releases, school updates, and urgent alerts. Look for the 'Join Channel' banner on your dashboard."
+    question: "What is a 'Keep My Number' feature?",
+    answer: "This feature is a special service by Telcos that keeps the SIM active even if unused for an initial period of 3 years, renewable afterwards. Contact your telecommunication provider for more info."
+  },
+  {
+    category: 'Admission',
+    question: "What do I do after getting my profile code?",
+    answer: "Present the profile code at the point of vending e-PIN for the application document (Banks, MMOs, MFBs, USSD). Present the Profile code and e-PIN at any JAMB accredited CBT Centre for registration."
+  },
+  {
+    category: 'Technical',
+    question: "My fingers can’t be read by the scanner what do I do?",
+    answer: "Candidates with biometric abnormality can only register and sit the examination at the JAMB National Headquarters, Abuja on the last day of the national examination calendar. The Board facilitates travel expenses for concerned candidates."
+  },
+  {
+    category: 'General',
+    question: "How do I retrieve a lost profile code / e-PIN?",
+    answer: "To retrieve a lost Profile Code, send the word RESEND from the same mobile number to 55019 or 66019. To reset password, send PASSWORD [email address] to 55019 or 66019. If e-PIN is lost, send UTMEPIN to 55019 or 66019."
+  },
+  {
+    category: 'Admission',
+    question: "I generated a profile code last year but wasn't admitted, will it still be active?",
+    answer: "Kindly refresh the profile code by sending RESEND to either 55019 or 66019 to reactivate the code for new registration."
+  },
+  {
+    category: 'Admission',
+    question: "Can foreign candidates purchase application documents?",
+    answer: "The Board conducts registration and UTME in Abidjan, Accra, Banjul, Beau, Cotonou, Jeddah, Johannesburg, and London ($50 fee or equivalent). Complete application documents downloaded from JAMB website."
+  },
+  {
+    category: 'General',
+    question: "I want to distribute free application documents to prospective applicants, is this possible?",
+    answer: "Any philanthropist wishing to distribute free application documents should contact the Board on +2348027641663 or e-mail fabian.benjamin@jamb.gov.ng for special offer."
+  },
+  {
+    category: 'Admission',
+    question: "After getting my e-PIN what do I do?",
+    answer: "Proceed to any JAMB-accredited CBT centre to complete registration. Present Profile code and e-PIN. Biometrics (all 10 fingers) and photograph will be captured. Ensure details tally with NIN before confirming."
+  },
+  {
+    category: 'Admission',
+    question: "What should a candidate provide at the point of registration?",
+    answer: "i. Choice of institutions and programmes; ii. Valid functional email; iii. Qualification with grades and dates if not awaiting results; iv. Upload relevant certificates; v. Upload pin for automatic O/L and/or A/L grade upload; vi. UTME subjects and exam towns."
+  },
+  {
+    category: 'Admission',
+    question: "I have awaiting result can I still register?",
+    answer: "Candidates awaiting results should supply (upload) results online on the JAMB portal as soon as available. No recommendation from any institution will be considered without uploading results."
+  },
+  {
+    category: 'General',
+    question: "Are there provisions for People with Disabilities?",
+    answer: "Yes. Provisions have been made for candidates with disabilities who indicate their disability at registration. They are assigned to JAMB Equal Opportunity Group (JEOG) centres for special attention."
+  },
+  {
+    category: 'Technical',
+    question: "Can I give anyone my profile code or log in details?",
+    answer: "Candidates are advised to keep security details (registration numbers, passwords, ATM card numbers, email, e-PINs) strictly private and confidential. No centre is allowed to request or accept a candidate's password."
   }
 ];
 
