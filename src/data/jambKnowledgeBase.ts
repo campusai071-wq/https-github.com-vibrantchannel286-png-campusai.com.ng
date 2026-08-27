@@ -1038,6 +1038,39 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     version: "2026"
   },
   {
+    id: "abu_zaria_academic_programmes_list",
+    organization: "Ahmadu Bello University (ABU), Zaria",
+    page_type: "policy",
+    category: "Institution Rules",
+    subcategory: "Programmes",
+    title: "Ahmadu Bello University (ABU) Full List of Academic Programmes",
+    summary: "Complete official directory of all 989 academic programmes offered by Ahmadu Bello University (ABU) across all faculties, including Doctorate, M.Phil, Academic Masters, Professional Masters, Postgraduate Diploma, and Undergraduate degrees.",
+    requirements: [
+      "Varies by programme. Candidates must verify specific requirements via the ABU portal."
+    ],
+    eligibility_rules: [
+      "Total Programmes: 989",
+      "Doctorate (Ph.D): 224 programmes",
+      "Master of Philosophy (M.Phil): 129 programmes",
+      "Academic Masters: 257 programmes",
+      "Professional Masters: 42 programmes",
+      "Postgraduate Diploma: 89 programmes",
+      "Undergraduate: 114 programmes",
+      "Others (e.g. Advanced Diploma): 134 programmes"
+    ],
+    key_facts: [
+      "Total Active Programmes: 989",
+      "Portal URL: https://programmes.abu.edu.ng/programmes_list.php",
+      "Faculties include: Agriculture, Arts, Basic Clinical Sciences, Education, Engineering, Law, Medicine, Social Sciences, Veterinary Medicine, etc."
+    ],
+    keywords: ["abu zaria programmes", "ahmadu bello university courses", "abu postgraduate", "abu undergraduate", "programmes.abu.edu.ng"],
+    related_topics: ["University Cut-off Marks", "Post-UTME Release Hub"],
+    official_source: "https://programmes.abu.edu.ng/programmes_list.php",
+    source_type: "Official University Directory",
+    last_verified: "2026-08-27",
+    version: "2026"
+  },
+  {
     id: "jamb_ibass_eligibility_checker_system",
     organization: "JAMB / IBASS",
     page_type: "procedural",

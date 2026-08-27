@@ -168,10 +168,13 @@ export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): P
         is_premium: Boolean(baseLocal.is_premium),
         daily_requests: 0,
         scholarCredits: baseLocal.scholarCredits || 0,
-        premium_activated_at: baseLocal.premium_activated_at,
         meritUsageCount: 0,
+        lifetime_calculations: baseLocal.lifetime_calculations || 0,
         last_active: new Date().toISOString()
       };
+      if (baseLocal.premium_activated_at) {
+        newProfile.premium_activated_at = baseLocal.premium_activated_at;
+      }
       await setDoc(userRef, newProfile).catch(e => handleFirestoreError(e, OperationType.CREATE, `users/${uid}`));
       localStorage.setItem(QUOTA_KEY, stringify(newProfile));
       return newProfile;
