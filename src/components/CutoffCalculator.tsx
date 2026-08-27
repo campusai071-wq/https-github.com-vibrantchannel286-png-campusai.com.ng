@@ -2376,10 +2376,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         state_of_origin: stateOfOrigin,
       });
     }
-    const { allowed } = user ? await checkCalculationsLimit(user.uid) : { allowed: true };
-    if (!allowed) { setIsQuotaModalOpen(true); return; }
-
     const guestUsage = parseInt(localStorage.getItem('guest_merit_usage') || '0');
+    if (user) {
+      const { allowed } = await checkCalculationsLimit(user.uid);
+      if (!allowed) { setIsQuotaModalOpen(true); return; }
+    }
+
     const authUsage  = user?.meritUsageCount || 0;
     const hasCredits = (user?.scholarCredits || 0) > 0;
 
@@ -5843,6 +5845,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         isOpen={isQuotaModalOpen}
         onClose={() => setIsQuotaModalOpen(false)}
         onUpgrade={() => { setIsQuotaModalOpen(false); window.dispatchEvent(new CustomEvent('campusai_open_payment')); }}
+        isGuest={!user}
+        onLoginRequest={() => { setIsQuotaModalOpen(false); onLoginRequest(); }}
       />
 
       <AnimatePresence>

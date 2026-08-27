@@ -118,7 +118,7 @@ export const getLocalProfile = (): UserProfile => {
 /**
  * CLOUD SYNCHRONIZATION ENGINE
  */
-export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> => {
+export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): Promise<UserProfile> => {
   const local = getLocalProfile();
   const isSameUser = local.uid === uid;
 
@@ -157,12 +157,13 @@ export const syncAndValidateProfile = async (uid: string): Promise<UserProfile> 
     } else {
       // Create new user in cloud
       const baseLocal: Partial<UserProfile> = isSameUser ? local : {};
+      const fallbackUser = firebaseUser || auth.currentUser;
       const newProfile: UserProfile = {
         ...baseLocal,
         uid: uid,
-        email: auth.currentUser?.email || '',
-        displayName: auth.currentUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar',
-        photoURL: auth.currentUser?.photoURL || '',
+        email: fallbackUser?.email || '',
+        displayName: fallbackUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar',
+        photoURL: fallbackUser?.photoURL || '',
         role: (baseLocal.role as UserRole) || 'Pre-Admission',
         is_premium: Boolean(baseLocal.is_premium),
         daily_requests: 0,
@@ -238,7 +239,11 @@ export const trackReferral = async (referrerUid: string, invitedUid: string) => 
 
 export const initializeUserProfile = async (user?: any, role?: UserRole): Promise<UserProfile> => {
   if (user && isRealUser(user.uid)) {
-    return await syncAndValidateProfile(user.uid);
+    if (role) {
+      const local = getLocalProfile();
+      localStorage.setItem(QUOTA_KEY, stringify({ ...local, role }));
+    }
+    return await syncAndValidateProfile(user.uid, user);
   }
   return getLocalProfile();
 };
@@ -484,7 +489,7 @@ export const incrementCalculations = async (uid: string): Promise<{ current: num
 export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
   if (!db) return [];
   try {
-    const q = query(collection(db, "users"), orderBy("last_active", "desc"), limit(50));
+    const q = query(collection(db, "users"), orderBy("last_active", "desc"), limit(200));
     const snap = await getDocs(q);
     const users = snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
     

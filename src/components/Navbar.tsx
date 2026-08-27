@@ -353,9 +353,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                  </button>
                  <button 
                   onClick={onLoginRequest} 
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-950 dark:bg-white text-white dark:text-gray-950 hover:bg-gray-900 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer border border-blue-400/20"
                  >
-                   Create Account
+                   Get Started
                  </button>
                </div>
             )}
@@ -546,9 +546,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                     </button>
                     <button 
                       onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
-                      className="flex-1 p-4 bg-blue-600 text-white rounded-[20px] font-black text-xs uppercase tracking-widest shadow-xl cursor-pointer"
+                      className="flex-1 p-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/25 cursor-pointer border border-blue-400/20"
                     >
-                      Create Account
+                      Get Started
                     </button>
                   </div>
                 )}

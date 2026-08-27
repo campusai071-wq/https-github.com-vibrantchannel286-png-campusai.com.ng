@@ -107,7 +107,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
       }
 
       if (auth) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        await initializeUserProfile(userCred.user);
         onSuccess(email);
         onClose();
       } else {
@@ -157,6 +158,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
           await trackReferral(referralCode, userCred.user.uid);
           localStorage.removeItem('campusai_referral_code');
         }
+        
+        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined);
         
         onSuccess('google-auth-user');
         onClose();

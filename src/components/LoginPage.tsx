@@ -137,7 +137,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
       }
 
       if (auth) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        await initializeUserProfile(userCred.user);
         handleAuthDone(email);
       } else {
         const mockDB = JSON.parse(localStorage.getItem('campusai_mock_db') || '{}');
@@ -192,6 +193,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
           await trackReferral(referralCode, userCred.user.uid);
           localStorage.removeItem('campusai_referral_code');
         }
+
+        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined);
 
         handleAuthDone(userCred.user?.email || 'google-user');
       } else {

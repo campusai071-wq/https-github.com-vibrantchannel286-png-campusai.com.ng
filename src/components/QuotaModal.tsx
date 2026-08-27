@@ -8,9 +8,11 @@ interface QuotaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpgrade: () => void;
+  isGuest?: boolean;
+  onLoginRequest?: () => void;
 }
 
-const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) => {
+const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade, isGuest, onLoginRequest }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -35,54 +37,73 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade }) =
             </button>
 
             <div className="p-10 md:p-12 text-center relative z-10">
-              <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl">
-                <Zap size={40} className="animate-pulse" />
+              <div className={`w-20 h-20 ${isGuest ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600'} rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-xl`}>
+                {isGuest ? <ShieldCheck size={40} className="animate-pulse" /> : <Zap size={40} className="animate-pulse" />}
               </div>
 
-              <h3 className="text-3xl font-black dark:text-white mb-4 leading-tight uppercase tracking-tight">System Analysis <br /><span className="text-orange-600">Limit Reached</span></h3>
+              <h3 className="text-3xl font-black dark:text-white mb-4 leading-tight uppercase tracking-tight">
+                {isGuest ? 'Guest Trial' : 'System Analysis'} <br />
+                <span className={isGuest ? 'text-blue-600' : 'text-orange-600'}>Limit Reached</span>
+              </h3>
               <p className="text-gray-500 dark:text-slate-300 font-bold mb-10 leading-relaxed uppercase text-[10px] tracking-widest">
-                Your daily free session limit has been reached. <br />
-                Capacity resets automatically every 24 hours.
+                {isGuest 
+                  ? <>You have used your free guest calculation. <br />Create a free account to unlock more.</>
+                  : <>Your daily free session limit has been reached. <br />Capacity resets automatically every 24 hours.</>
+                }
               </p>
 
               <div className="space-y-4">
-                <button 
-                  onClick={() => {
-                    trackPremiumClick({ placement: 'quota_modal_full_pack', target_plan: 'Scholar Pack 2026' });
-                    onUpgrade();
-                  }}
-                  className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                >
-                  <Crown size={18} /> Activate Scholar Pack
-                </button>
+                {isGuest ? (
+                  <button 
+                    onClick={onLoginRequest}
+                    className="w-full py-5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition-all border border-blue-400/20"
+                  >
+                    Create Free Account <ArrowRight size={18} />
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => {
+                        trackPremiumClick({ placement: 'quota_modal_full_pack', target_plan: 'Scholar Pack 2026' });
+                        onUpgrade();
+                      }}
+                      className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                    >
+                      <Crown size={18} /> Activate Scholar Pack
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        trackPremiumClick({ placement: 'quota_modal_refill', target_plan: '1 Extra AI Session' });
+                        const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '1 Extra AI Session' } });
+                        window.dispatchEvent(event);
+                      }}
+                      className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                    >
+                      <Zap size={18} /> Buy 1 Extra Session — ₦100
+                    </button>
+                  </>
+                )}
                 
-                <button 
-                  onClick={() => {
-                    trackPremiumClick({ placement: 'quota_modal_refill', target_plan: '1 Extra AI Session' });
-                    const event = new CustomEvent('campusai_open_payment', { detail: { type: 'refill', amount: 100, label: '1 Extra AI Session' } });
-                    window.dispatchEvent(event);
-                  }}
-                  className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-                >
-                  <Zap size={18} /> Buy 1 Extra Session — ₦100
-                </button>
                 <button 
                   onClick={onClose}
                   className="w-full py-5 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-slate-300 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-800 transition-all"
                 >
-                  Wait for Reset
+                  {isGuest ? 'Close' : 'Wait for Reset'}
                 </button>
               </div>
 
-              <div className="mt-10 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-[32px] border border-blue-100 dark:border-blue-800 flex items-center gap-4 text-left">
-                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                  <Sparkles size={20} />
+              {!isGuest && (
+                <div className="mt-10 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-[32px] border border-blue-100 dark:border-blue-800 flex items-center gap-4 text-left">
+                  <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Scholar Pack Benefit</p>
+                    <p className="text-xs font-bold dark:text-white">Unlocks 5 calculations and 10 daily chats for 2 days.</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Scholar Pack Benefit</p>
-                  <p className="text-xs font-bold dark:text-white">Unlocks 5 calculations and 10 daily chats for 2 days.</p>
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
         </div>

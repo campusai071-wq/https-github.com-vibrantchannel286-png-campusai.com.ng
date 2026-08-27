@@ -57,13 +57,13 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
   overview: {
     institutions: 1799,
     candidates: 2275690,
-    qualifiedDE: 76224,
-    qualified100: 2128240,
+    qualifiedDE: 76403,
+    qualified100: 2128061,
     qualifiedUTME_DE: 2204464,
-    qualified140: 2048314,
+    qualified140: 2048135,
   },
   olevel: {
-    resultsUploaded: 1121092,
+    resultsUploaded: 1126292,
     credits100DE: 1096181,
     credits140DE: 1078461,
     credits100EngDE: 1075895,
@@ -72,30 +72,30 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     credits140EngMathDE: 1049415,
   },
   todayAll: {
-    instHeads: 3133,
-    deskOfficers: 2204,
-    approvedAcceptance: 2611,
-    acceptedCandidates: 2249,
+    instHeads: 314,
+    deskOfficers: 1705,
+    approvedAcceptance: 195,
+    acceptedCandidates: 468,
   },
   todayPrivate: {
-    instHeads: 670,
-    deskOfficers: 352,
-    approvedAcceptance: 542,
-    acceptedCandidates: 1088,
+    instHeads: 89,
+    deskOfficers: 682,
+    approvedAcceptance: 184,
+    acceptedCandidates: 192,
   },
   summary: {
-    instHeadsA: 20236,
-    deskOfficersB: 15916,
-    approvedAcceptC: 35404,
-    acceptedD: 58973,
-    totalAdmissions: 130529,
+    instHeadsA: 19035,
+    deskOfficersB: 18464,
+    approvedAcceptC: 34660,
+    acceptedD: 61095,
+    totalAdmissions: 133254,
     admissionYear: "2026/2027",
-    sessionDate: "Wednesday, August 26, 2026"
+    sessionDate: "Thursday, August 27, 2026"
   },
   candidates: 2275690,
-  qualified100: 2128240,
-  acceptedD: 58973,
-  totalAdmissions: 130529
+  qualified100: 2128061,
+  acceptedD: 61095,
+  totalAdmissions: 133254
 };
 
 function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsStatsState>): JambCapsStatsState {
