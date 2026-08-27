@@ -4817,6 +4817,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                               <p className="text-[9.5px] text-gray-400 leading-relaxed mt-0.5 font-semibold">
                                 Ensure your SSCE (WAEC/NECO/NABTEB) results are fully uploaded on JAMB CAPS. If not uploaded, JAMB will completely exclude you from the automated admission ranking pools. You can check your status at any registered JAMB CBT center.
                               </p>
+                              <a 
+                                href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="inline-flex items-center gap-1.5 mt-2 text-[9.5px] text-emerald-400 hover:text-emerald-300 font-bold transition-colors bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20"
+                              >
+                                Generate Verification Code <ExternalLink size={10} />
+                              </a>
                             </div>
                           )}
                           <div className="pt-2 border-t border-white/5">

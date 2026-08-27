@@ -157,7 +157,7 @@ export const DEFAULT_ADMISSION_ARTICLES: AdmissionArticle[] = [
     title: 'JAMB 2026 Official Policy Guidelines & Minimum Cutoff Benchmarks',
     category: 'Policy & Guidelines',
     summary: 'Official breakdown of the 2026 JAMB policy meeting conclusions regarding minimum UTME score thresholds for Universities, Polytechnics, and Colleges of Education.',
-    content: '### Key Policy Takeaways\n\n1. **University Cut-off Minimum**: 140 score baseline for Federal and State universities, though individual competitive courses maintain higher thresholds (e.g. 200+ for Medicine & Law).\n2. **Polytechnic Baseline**: Minimum 100-120 JAMB score.\n3. **O-Level Verification**: Uploading 5 O-Level credit passes on JAMB CAPS is mandatory prior to admission consideration.',
+    content: "### Key Policy Takeaways\n\n1. **University Cut-off Minimum**: 140 score baseline for Federal and State universities, though individual competitive courses maintain higher thresholds (e.g. 200+ for Medicine & Law).\n2. **Polytechnic Baseline**: Minimum 100-120 JAMB score.\n3. **O-Level Verification**: Uploading 5 O-Level credit passes on JAMB CAPS is mandatory prior to admission consideration. You can [buy your O'Level verification code here](https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA).",
     last_verified: null,
     next_review: null,
     version: 1,

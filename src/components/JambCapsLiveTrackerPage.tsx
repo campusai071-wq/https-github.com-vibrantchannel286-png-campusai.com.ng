@@ -10,13 +10,13 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
   overview: {
     institutions: 1799,
     candidates: 2275690,
-    qualifiedDE: 76224,
-    qualified100: 2128240,
+    qualifiedDE: 76403,
+    qualified100: 2128061,
     qualifiedUTME_DE: 2204464,
-    qualified140: 2048314,
+    qualified140: 2048135,
   },
   olevel: {
-    resultsUploaded: 1121092,
+    resultsUploaded: 1126292,
     credits100DE: 1096181,
     credits140DE: 1078461,
     credits100EngDE: 1075895,
@@ -25,30 +25,30 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     credits140EngMathDE: 1049415,
   },
   todayAll: {
-    instHeads: 3133,
-    deskOfficers: 2204,
-    approvedAcceptance: 2611,
-    acceptedCandidates: 2249,
+    instHeads: 314,
+    deskOfficers: 1705,
+    approvedAcceptance: 195,
+    acceptedCandidates: 468,
   },
   todayPrivate: {
-    instHeads: 670,
-    deskOfficers: 352,
-    approvedAcceptance: 542,
-    acceptedCandidates: 1088,
+    instHeads: 89,
+    deskOfficers: 682,
+    approvedAcceptance: 184,
+    acceptedCandidates: 192,
   },
   summary: {
-    instHeadsA: 20236,
-    deskOfficersB: 15916,
-    approvedAcceptC: 35404,
-    acceptedD: 58973,
-    totalAdmissions: 130529,
+    instHeadsA: 19035,
+    deskOfficersB: 18464,
+    approvedAcceptC: 34660,
+    acceptedD: 61095,
+    totalAdmissions: 133254,
     admissionYear: "2026/2027",
-    sessionDate: "Wednesday, August 26, 2026"
+    sessionDate: "Thursday, August 27, 2026"
   },
   candidates: 2275690,
-  qualified100: 2128240,
-  acceptedD: 58973,
-  totalAdmissions: 130529
+  qualified100: 2128061,
+  acceptedD: 61095,
+  totalAdmissions: 133254
 };
 
 function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsStatsState>): JambCapsStatsState {
@@ -343,10 +343,22 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
         {activeTab === 'olevel' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-[28px] shadow-sm">
-              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">Candidates' O'Level Statistics (UTME & DE)</h3>
-              <p className="text-xs text-gray-500 mb-6">
-                Comprehensive tracking of uploaded WAEC, NECO, and NABTEB results validated across the Central Admissions Processing System.
-              </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">Candidates' O'Level Statistics (UTME & DE)</h3>
+                  <p className="text-xs text-gray-500">
+                    Comprehensive tracking of uploaded WAEC, NECO, and NABTEB results validated across the Central Admissions Processing System.
+                  </p>
+                </div>
+                <a 
+                  href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-sm font-bold rounded-xl border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors whitespace-nowrap shadow-sm"
+                >
+                  Generate Verification Code <ExternalLink size={16} />
+                </a>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[

@@ -40,7 +40,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             {subtitle || "Nigeria's most accurate AI admission strategist. Real-time aggregate calculation and merit probability mapping for your success."}
           </p>
           
-          <div className="flex justify-start gap-4">
+          <div className="flex flex-col sm:flex-row justify-start gap-4">
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -49,6 +49,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             >
               Launch Calculator
             </motion.button>
+            <motion.a 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 font-black py-4 px-8 rounded-2xl transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+            >
+              Generate Verification Code
+            </motion.a>
           </div>
         </div>
         

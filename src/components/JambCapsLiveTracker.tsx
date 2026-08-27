@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp } from 'lucide-react';
+import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -353,13 +353,23 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
       {/* Tab Content 2: O'Level Statistics */}
       {activeTab === 'olevel' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 mb-4">
-            <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-              Candidates' O'Level Statistics (UTME & DE)
-            </h4>
-            <p className="text-xs text-gray-500">
-              Breakdown of uploaded O'Level results and credit pass combinations required for institutional screening.
-            </p>
+          <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                Candidates' O'Level Statistics (UTME & DE)
+              </h4>
+              <p className="text-xs text-gray-500">
+                Breakdown of uploaded O'Level results and credit pass combinations required for institutional screening.
+              </p>
+            </div>
+            <a 
+              href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors whitespace-nowrap"
+            >
+              Generate Verification Code <ExternalLink size={12} />
+            </a>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
