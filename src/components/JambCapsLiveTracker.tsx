@@ -84,13 +84,13 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     acceptedCandidates: 192,
   },
   summary: {
-    instHeadsA: 19035,
-    deskOfficersB: 18464,
-    approvedAcceptC: 34660,
+    instHeadsA: 20236,
+    deskOfficersB: 15916,
+    approvedAcceptC: 35404,
     acceptedD: 61095,
     totalAdmissions: 133254,
     admissionYear: "2026/2027",
-    sessionDate: "Thursday, August 27, 2026"
+    sessionDate: "Friday, August 28, 2026"
   },
   candidates: 2275690,
   qualified100: 2128061,
@@ -156,7 +156,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [stats, setStats] = useState<JambCapsStatsState>(() => {
     try {
-      const saved = localStorage.getItem('campusai_jamb_caps_stats_v3');
+      const saved = localStorage.getItem('campusai_jamb_caps_stats_v4');
       if (saved) {
         return mergeCapsStats(DEFAULT_JAMB_CAPS_STATS, JSON.parse(saved));
       }
@@ -166,6 +166,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
 
   // Auto-fetch latest server telemetry on mount
   useEffect(() => {
+    localStorage.removeItem('campusai_jamb_caps_stats_v3');
     let isMounted = true;
     axios.get('/api/jamb/caps-stats')
       .then(res => {

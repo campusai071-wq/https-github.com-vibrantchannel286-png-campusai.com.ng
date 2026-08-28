@@ -1200,28 +1200,16 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
   // 1. Primary AI Engine: Gemini (Native Google AI Studio SDK)
   if (Date.now() >= geminiBlockedUntil) {
-    const rawPool = getGeminiKeys();
-    const now = Date.now();
-    const keysPool = rawPool.filter(k => {
-      const bl = blacklistedKeys.get(k);
-      if (!bl) return true;
-      if (bl.until < now) { blacklistedKeys.delete(k); return true; }
-      return false;
-    });
-    const finalPool = keysPool.length > 0 ? keysPool : rawPool;
-
-    const candidateModels = Array.from(new Set([
-      geminiModel,
-      'gemini-3.6-flash',
-      'gemini-3.1-pro-preview'
-    ]));
-
-    for (const activeKey of finalPool) {
+    const activeKey = process.env.GEMINI_API_KEY;
+    if (activeKey) {
       const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
-      let keyFailedToQuotaOrAuth = false;
+      const candidateModels = Array.from(new Set([
+        geminiModel,
+        'gemini-3.6-flash',
+        'gemini-3.1-pro-preview'
+      ]));
 
       for (const mName of candidateModels) {
-        if (keyFailedToQuotaOrAuth) break;
         try {
           const gemini = createGeminiClient(activeKey);
           let text = "";
@@ -1278,23 +1266,11 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           }
         } catch (error: any) {
           const errorMsg = error.message || error.response?.data?.error?.message || String(error);
-          const isQuota = /quota|429|exhausted|rate.?limit/i.test(errorMsg);
-          const isAuth = /401|403|permission|invalid.?api.?key|unauthorized/i.test(errorMsg);
-          const is503 = /503|high demand|UNAVAILABLE/i.test(errorMsg);
-
-          if (isQuota) {
-            blacklistedKeys.set(activeKey, { reason: "quota_exhausted", until: Date.now() + 60000 });
-            keyFailedToQuotaOrAuth = true;
-          } else if (isAuth) {
-            blacklistedKeys.set(activeKey, { reason: "auth_failed", until: Date.now() + 3600000 });
-            keyFailedToQuotaOrAuth = true;
-          } else if (is503) {
-            console.debug(`${tag} Gemini model ${mName} temporarily high demand (503) on key ${maskedKey}, switching model...`);
-          } else {
-            console.debug(`${tag} Gemini key ${maskedKey} model ${mName} note: ${errorMsg}`);
-          }
+          console.debug(`${tag} Gemini model ${mName} failed: ${errorMsg}`);
         }
       }
+    } else {
+      console.warn(`${tag} GEMINI_API_KEY is not set.`);
     }
   }
 
@@ -1640,10 +1616,14 @@ const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
   try {
     return JSON.parse(cleanText);
   } catch (e) {
-    console.error("[Safe JSON Parse] Failed to parse JSON:", e);
+    console.warn("[Safe JSON Parse] Failed to parse JSON, attempting repair...");
+    
+    // Attempt to extract the JSON object/array from the text if parsing failed
     const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (match) {
-      try { return JSON.parse(match[0]); } catch (e2) { console.error("[Safe JSON Parse] Secondary parse failed:", e2); }
+      try { return JSON.parse(match[0]); } catch (e2) { 
+        console.error("[Safe JSON Parse] Secondary parse failed:", e2); 
+      }
     }
     return fallback;
   }

@@ -1071,6 +1071,61 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     version: "2026"
   },
   {
+    id: "unilag_statistics_overview",
+    organization: "University of Lagos (UNILAG)",
+    page_type: "informational",
+    category: "Institutional Data",
+    subcategory: "Statistics",
+    title: "University of Lagos (UNILAG) 2024 Financial & Student Statistics",
+    summary: "Overview of UNILAG 2024 financial performance (Personnel, Overhead, Capital, Endowment, TETFund) and student registration statistics for 2023/2024 and 2024/2025 sessions.",
+    requirements: [],
+    eligibility_rules: [
+      "2023/2024 Total Registered Students: 33,779",
+      "2024/2025 Total Registered Students: 35,068"
+    ],
+    key_facts: [
+      "2024 Personnel Costs: ₦17,605,648,287.00",
+      "2024 Overhead Costs: ₦276,488,015.00",
+      "2024 Capital Expenditure: ₦1,474,320,707.00",
+      "2024 Endowment Fund: ₦4,438,093,099.08",
+      "2024 TETFund Allocation: ₦1,656,944,930.00"
+    ],
+    keywords: ["unilag statistics", "unilag financial overview 2024", "unilag student population", "university of lagos data"],
+    related_topics: ["University Cut-off Marks"],
+    official_source: "https://unilag.edu.ng/unilag-statistics/",
+    source_type: "Official University Website",
+    last_verified: "2026-08-27",
+    version: "2024"
+  },
+  {
+    id: "unilag_student_portal_hub",
+    organization: "University of Lagos (UNILAG)",
+    page_type: "informational",
+    category: "Institution Portals",
+    subcategory: "Student Resources",
+    title: "UNILAG Student Portal Hub & Essential Academic Resources",
+    summary: "Centralized access portal for UNILAG students including student portal login, LMS (LagOnline), Library services, student records, NELFUND application, and official academic timetables/calendars.",
+    requirements: [],
+    eligibility_rules: [],
+    key_facts: [
+      "Student Portal Login: http://studentportal.unilag.edu.ng/",
+      "Learning Management System (LagOnline): https://vlearn.unilag.edu.ng/",
+      "Library Access: https://library.unilag.edu.ng/",
+      "Records Portal: https://records.unilag.edu.ng/",
+      "NELFUND Student Loan: https://portal.nelf.gov.ng/auth/login"
+    ],
+    important_notes: [
+      "The student portal is the primary hub for course registration, exam timetable access, and academic profile management.",
+      "Check the portal regularly for updated academic calendars and exam schedules."
+    ],
+    keywords: ["unilag student portal", "lagonline", "unilag lms", "unilag library", "unilag records", "unilag student login"],
+    related_topics: ["University of Lagos (UNILAG) 2024 Financial & Student Statistics", "University Cut-off Marks"],
+    official_source: "https://unilag.edu.ng/student-portal/",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-27",
+    version: "2026"
+  },
+  {
     id: "jamb_ibass_eligibility_checker_system",
     organization: "JAMB / IBASS",
     page_type: "procedural",
@@ -1199,6 +1254,84 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official University Portal",
     last_verified: "2026-08-19",
     version: "2026"
+  },
+  {
+    id: "oau_student_portal_guide",
+    organization: "Obafemi Awolowo University (OAU)",
+    page_type: "procedural",
+    category: "Institution Portals",
+    subcategory: "Course Registration",
+    title: "OAU Student Portal Login & Course Registration Guide",
+    summary: "Step-by-step guide for OAU students on portal login, changing passwords, accessing the student dashboard, and submitting course registration forms.",
+    steps: [
+      "1. Login to the Portal: Enter your Matriculation Number as both Username and Password, then click Login.",
+      "2. Change Your Password: Create a new password meeting criteria (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character).",
+      "3. Access Your Dashboard: Redirected to dashboard after password change.",
+      "4. Navigate to Course Registration: Click 'Course Registration' under Quick Actions or via side menu 'Course Management'.",
+      "5. Add Courses: Click 'Add' button. Note: School fees must be paid to access this page.",
+      "6. Submit Courses: Scroll to bottom, click 'Submit Added Courses Form', and wait for approval."
+    ],
+    keywords: ["oau portal", "oau registration", "student portal", "course registration", "eportal"],
+    official_source: "https://eportal2.oauife.edu.ng/",
+    source_type: "Official Institution Guide",
+    last_verified: "2026-08-28",
+    version: "2026"
+  },
+  {
+    id: "yabatech_admissions_2026_2027",
+    organization: "Yaba College of Technology (YABATECH)",
+    page_type: "informational",
+    category: "Institution Admission",
+    subcategory: "Yabatech Admissions",
+    title: "Yaba College of Technology (YABATECH) Admissions 2026/2027",
+    summary: "Admission information for Yaba College of Technology (YABATECH) 2026/2027 Academic Session, covering ND (PT/ODFeL), PGD, and HND (FT/PT/ODFeL) programmes.",
+    requirements: [
+      "ND: Minimum age 16 years as at October 31st, 2026.",
+      "HND: ND in same discipline with minimum LOWER CREDIT from an NBTE accredited institution.",
+      "HND: One year post-ND Industrial Attachment work experience.",
+      "SSCE entry requirements as per JAMB Brochure."
+    ],
+    key_facts: [
+      "Application fee: ₦25,000 (ND and HND).",
+      "Application deadline: Six (6) weeks from date of publication.",
+      "Help line: +234 703 743 1055.",
+      "Application email: admissions@yabatech.edu.ng."
+    ],
+    keywords: ["yabatech", "yaba college of technology", "yabatech admission 2026", "nd programmes", "hnd programmes", "pgd admission"],
+    official_source: "https://www.yabatech.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-08-28",
+    version: "2026/2027"
+  },
+  {
+    id: "jamb_caps_statistics_august_2026",
+    organization: "JAMB",
+    page_type: "informational",
+    category: "Admissions",
+    subcategory: "CAPS Statistics",
+    title: "JAMB CAPS Admission Statistics (As of August 28, 2026)",
+    summary: "Comprehensive JAMB CAPS admission statistics for the 2026/2027 academic year, including candidate qualification metrics, O'Level statistics, new arrival processing data, and overall admission summaries as of August 28, 2026.",
+    requirements: [],
+    eligibility_rules: [],
+    key_facts: [
+      "Admission Year: 2026/2027",
+      "As of: Friday, August 28, 2026",
+      "Total Institutions: 1,800",
+      "Total Candidates: 2,275,690",
+      "Qualified for Admission (140+): 2,047,984",
+      "Admissions Summary (Total Processed): 143,752 (Approved+Accepted+Recommended+Desk Officer)",
+      "Approved for Candidates Acceptance: 36,973",
+      "Accepted Admissions: 63,758"
+    ],
+    important_notes: [
+      "Data represents cumulative figures for the 2026/2027 admission exercise."
+    ],
+    keywords: ["jamb caps", "caps statistics 2026", "admission statistics 2026/2027", "jamb 2026 admissions"],
+    related_topics: ["JAMB CAPS", "Admission Status"],
+    official_source: "https://caps.jamb.gov.ng/dashboard.aspx",
+    source_type: "Official Government Dashboard",
+    last_verified: "2026-08-28",
+    version: "2026/2027"
   }
 ];
 
