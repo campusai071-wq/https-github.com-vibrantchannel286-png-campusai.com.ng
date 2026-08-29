@@ -84,18 +84,18 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     acceptedCandidates: 192,
   },
   summary: {
-    instHeadsA: 20236,
-    deskOfficersB: 15916,
-    approvedAcceptC: 35404,
-    acceptedD: 61095,
-    totalAdmissions: 133254,
+    instHeadsA: 26333,
+    deskOfficersB: 19366,
+    approvedAcceptC: 37803,
+    acceptedD: 65926,
+    totalAdmissions: 149428,
     admissionYear: "2026/2027",
-    sessionDate: "Friday, August 28, 2026"
+    sessionDate: "Saturday, August 29, 2026"
   },
   candidates: 2275690,
-  qualified100: 2128061,
-  acceptedD: 61095,
-  totalAdmissions: 133254
+  qualified100: 2127837,
+  acceptedD: 65926,
+  totalAdmissions: 149428
 };
 
 function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsStatsState>): JambCapsStatsState {
