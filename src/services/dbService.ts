@@ -446,17 +446,14 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
 
   // Bypass cache if paginating (lastCreatedAt is present) or if we need more articles than cached
   if (cachedRawNews && isCacheValid && !needsMoreThanCached && !lastCreatedAt) {
-    console.log("getCloudNews: Cache hit!");
     const processed = filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
     return category ? processed.filter(n => n.category === category) : processed;
   }
-  console.log("getCloudNews: Cache miss (or invalid). Fetching from Firestore/Proxy...");
 
   // Direct client-side Firestore fetch using standard Firebase SDK
   if (db) {
     try {
       const fetchLimit = effectiveLimit;
-      console.log(`getCloudNews: Querying Firestore 'news' collection from server (limit: ${fetchLimit})...`);
       const newsRef = collection(db, "news");
       const constraints: any[] = [orderBy('createdAt', 'desc'), limit(fetchLimit)];
       
@@ -474,7 +471,6 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       try {
         // ALWAYS try getDocsFromServer FIRST to avoid stale local IndexedDB snapshots in browser
         querySnapshot = await getDocs(q);
-        console.log(`getCloudNews: Firestore server fetch successful. Found ${querySnapshot.size} documents.`);
       } catch (fetchError: any) {
         console.warn("getCloudNews: Server fetch failed, trying local cache snapshot fallback...", fetchError?.message || fetchError);
         querySnapshot = await getDocs(q);
@@ -490,8 +486,6 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
           category: normalizeCategory(data.category || 'National', data.title || '')
         });
       });
-
-      console.log(`getCloudNews: Successfully retrieved ${cloudNews.length} items from Firestore.`);
 
       if (cloudNews.length > 0) {
         const localPublished = getPublishedNews();
@@ -526,7 +520,6 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
   // Proxy Fallback if direct db failed
   const apiUrl = getApiUrl('/api/fstore-query');
   try {
-    console.log(`getCloudNews: Attempting proxy fallback fetch (limit: ${effectiveLimit})...`);
     const fetchLimit = effectiveLimit;
     const payload: any = { 
         collectionName: 'news',
@@ -618,7 +611,6 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
   let bookmarkedIds: string[] = readBookmarkIds();
 
   const liveItemsCount = items.filter(item => item.isLive).length;
-  console.log(`[DEBUG filterAndSortNews] Input count: ${items.length}, Live count: ${liveItemsCount}`);
 
   const sorted = items
     .filter(item => {
@@ -642,11 +634,9 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
       const contentLower = (item.fullContent || "").toLowerCase();
 
       if (titleLower.includes("raw data") || titleLower.includes("curation failed") || titleLower.includes("dictionary.com") || titleLower.includes("definition & meaning")) {
-        if (item.isLive) console.log(`[DEBUG filterAndSortNews] Rejected live item as junk (title): ${item.title}`);
         return false;
       }
       if (excerptLower.includes("curation failed") || contentLower.includes("curation failed")) {
-        if (item.isLive) console.log(`[DEBUG filterAndSortNews] Rejected live item as junk (content/excerpt): ${item.title}`);
         return false;
       }
 
@@ -667,9 +657,6 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
     
     // Check if we already have this exact ID, exact slug, or identical title
     if (seenIds.has(item.id) || (slug && seenSlugs.has(slug)) || (normTitle && seenTitles.has(normTitle))) {
-      if (item.isLive) {
-        console.log(`[DEBUG filterAndSortNews] Dropped exact duplicate item: ${item.title}`);
-      }
       continue;
     }
     
@@ -679,7 +666,6 @@ const filterAndSortNews = (items: NewsItem[], includeFuture: boolean, now: numbe
     deduplicated.push(item);
   }
 
-  console.log(`[DEBUG filterAndSortNews] Output count: ${deduplicated.length}, Live count in output: ${deduplicated.filter(item => item.isLive).length}`);
   return deduplicated;
 };
 

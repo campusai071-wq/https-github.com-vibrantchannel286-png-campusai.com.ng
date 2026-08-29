@@ -20,6 +20,7 @@ import SimpleCalculator from './SimpleCalculator';
 import CalculationStats from './CalculationStats';
 
 // Code-split heavy secondary views & modals for faster initial load
+const CbtSimulator = lazyWithRetry(() => import('./CbtSimulator'));
 const PolicySection = lazyWithRetry(() => import('./PolicySection'));
 const FAQSection = lazyWithRetry(() => import('./FAQSection'));
 const Testimonials = lazyWithRetry(() => import('./Testimonials'));
@@ -712,6 +713,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('calculator');
       navigate('/calculator');
       window.scrollTo(0, 0);
+    } else if (p === 'cbt-simulator') {
+      setCurrentPage('cbt-simulator');
+      navigate('/cbt-simulator');
+      window.scrollTo(0, 0);
     } else if (p === 'cgpa' || p === 'cgpa-calculator') {
       setCurrentPage('cgpa');
       navigate('/cgpa-calculator');
@@ -944,6 +949,11 @@ const AppContent: React.FC = () => {
           } />
 
           <Route path="/admin/stats" element={<CalculationStats />} />
+          <Route path="/cbt-simulator" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <CbtSimulator />
+            </div>
+          } />
           
           <Route path="/calculator" element={
             <div className="pt-24 min-h-screen bg-gray-950">

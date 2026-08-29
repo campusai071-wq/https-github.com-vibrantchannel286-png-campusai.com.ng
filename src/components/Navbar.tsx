@@ -74,6 +74,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
     { name: 'Portals', icon: <Landmark size={18} />, id: 'universities' },
     { name: 'CAPS Portal', icon: <BarChart3 size={18} />, id: 'jamb-caps' },
     { name: 'Syllabus', icon: <BookOpen size={18} />, id: 'syllabus' },
+    { name: 'CBT Simulator', icon: <Activity size={18} />, id: 'cbt-simulator' },
     { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },
     { name: 'CGPA Studio', icon: <Calculator size={18} />, id: 'cgpa-calculator' },
     { name: 'Result Slip', icon: <ShieldCheck size={18} />, id: 'result-slip' },

@@ -12,6 +12,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onNavigate
   const tabs = [
     { id: 'home', icon: <Home size={20} />, label: 'Home' },
     { id: 'admissions', icon: <GraduationCap size={20} />, label: 'KB' },
+    { id: 'cbt-simulator', icon: <FileText size={20} />, label: 'CBT' },
     { id: 'calculator', icon: <Calculator size={20} />, label: 'Calc' },
     { id: 'news', icon: <Newspaper size={20} />, label: 'News' },
     { id: 'settings', icon: <User size={20} />, label: 'Profile' },

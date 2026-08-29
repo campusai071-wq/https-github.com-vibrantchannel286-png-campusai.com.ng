@@ -550,6 +550,32 @@ app.post("/api/ibass/institutions", async (req: any, res: any) => {
   }
 });
 
+// ALOC CBT Simulator Proxy
+app.post("/api/aloc/questions", async (req: any, res: any) => {
+  try {
+    if (!process.env.ALOC_API_KEY) {
+      return res.status(500).json({ success: false, error: "ALOC_API_KEY is not configured" });
+    }
+    
+    // Proxy request to ALOC
+    const response = await axios.post("https://dev.aloc.com.ng/api/v1/questions", req.body, {
+      headers: {
+        "x-api-key": process.env.ALOC_API_KEY,
+        "Content-Type": "application/json"
+      },
+      timeout: 15000
+    });
+    
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error("[ALOC Proxy Error]:", err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data || err.message
+    });
+  }
+});
+
 app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => {
   try {
     const { id } = req.params;
