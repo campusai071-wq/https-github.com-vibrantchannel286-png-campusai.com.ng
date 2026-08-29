@@ -1613,18 +1613,25 @@ How can I help guide your academic journey today?`;
 const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
   if (!text) return fallback;
   let cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+  
+  // Try standard JSON.parse
   try {
     return JSON.parse(cleanText);
   } catch (e) {
     console.warn("[Safe JSON Parse] Failed to parse JSON, attempting repair...");
     
-    // Attempt to extract the JSON object/array from the text if parsing failed
+    // Attempt to extract the JSON object/array from the text
     const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (match) {
-      try { return JSON.parse(match[0]); } catch (e2) { 
+      try { 
+        return JSON.parse(match[0]); 
+      } catch (e2) { 
         console.error("[Safe JSON Parse] Secondary parse failed:", e2); 
       }
     }
+    
+    // Last resort: log raw text to diagnose what AI sent
+    console.error("[Safe JSON Parse] Final parse failed. Raw AI response:", cleanText.substring(0, 500));
     return fallback;
   }
 };

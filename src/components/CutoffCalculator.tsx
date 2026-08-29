@@ -2336,7 +2336,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         return;
       }
 
-      const olevelVal = validateOlevelRequirements(activeCourse, subjects);
+      const olevelVal = validateOlevelRequirements(activeCourse, subjects, activeUni?.name);
       if (!olevelVal.valid) {
         setSubjectDisqualificationAlert({
           isOpen: true,
@@ -4361,7 +4361,20 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                {chanceLevel}
                             </div>
                             
-                            <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
+                            {/* Transfer / Change of Course Awareness */}
+                          {(admissionProbability < 50 || aiResult.isOffered === false) && (
+                            <div className="w-full mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-3">
+                              <Info size={20} className="text-blue-400 shrink-0 mt-0.5" />
+                              <div className="text-left">
+                                <h4 className="text-xs font-black text-blue-100 uppercase tracking-wider mb-1">Information on Transfers/Change of Course</h4>
+                                <p className="text-[10px] text-blue-200/80 leading-relaxed">
+                                  Please note that admission is not guaranteed based on cutoff scores alone. Many universities have policies regarding <strong>change of course</strong> or <strong>transfers</strong> into related programs that have remaining availability if a student does not meet the primary cutoff. We recommend checking the university's official admissions portal or contacting the admissions office directly to inquire about their specific policies for your program of interest.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
                           </div>
 
                           {/* 3-Pillar Verification & Model Audit Matrix */}

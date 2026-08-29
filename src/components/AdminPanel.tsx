@@ -37,6 +37,7 @@ import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../servic
 import NewsDetailView from './NewsDetailView';
 import { ADMIN_TOKEN } from '../lib/adminAuth';
 import PredictionDetailsModal from './PredictionDetailsModal';
+import CalculationStats from './CalculationStats';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats'
   >('analytics');
 
   useEffect(() => {
@@ -1407,12 +1408,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab}
+                  {tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -1438,6 +1439,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       >
                         {analyticsLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                         Reload Data
+                      </button>
+                      <button
+                        onClick={() => window.location.href = '/admin/stats'}
+                        className="px-3 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 rounded-full text-[9px] font-black uppercase flex items-center gap-1 transition-all"
+                      >
+                        <Activity size={10} />
+                        View Calc Stats
                       </button>
 
                       {!showResetConfirm ? (
@@ -3245,7 +3253,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               )}
 
-              {/* ── NOTIFICATIONS TAB ── */}
+              {activeTab === 'stats' && <CalculationStats />}
               {activeTab === 'notifications' && (
                 <div className="space-y-8">
                   <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6">

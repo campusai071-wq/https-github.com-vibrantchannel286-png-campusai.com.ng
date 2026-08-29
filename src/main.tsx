@@ -9,9 +9,6 @@ import { inject } from '@vercel/analytics';
 // Initialize Vercel Analytics
 inject();
 
-// DEBUG: Print all environment variables
-console.log("[DEBUG] All available environment variables:", import.meta.env);
-
 // Global Error Handler
 window.onerror = function(message, source, lineno, colno, error) {
   console.error("Global Error:", message, source, lineno, colno, error);

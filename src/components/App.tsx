@@ -16,6 +16,8 @@ import Sidebar from './Sidebar';
 import NewsDetailView from './NewsDetailView';
 import ToolsGrid from './ToolsGrid';
 import HowItWorks from './HowItWorks';
+import SimpleCalculator from './SimpleCalculator';
+import CalculationStats from './CalculationStats';
 
 // Code-split heavy secondary views & modals for faster initial load
 const PolicySection = lazyWithRetry(() => import('./PolicySection'));
@@ -935,6 +937,14 @@ const AppContent: React.FC = () => {
             </>
           } />
 
+          <Route path="/calculator-simple" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <SimpleCalculator />
+            </div>
+          } />
+
+          <Route path="/admin/stats" element={<CalculationStats />} />
+          
           <Route path="/calculator" element={
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
@@ -950,6 +960,9 @@ const AppContent: React.FC = () => {
                 initialSchoolName={selectedSchoolForChances}
                 onClearInitialSchool={() => setSelectedSchoolForChances('')}
               />
+              <div className="flex justify-center mt-4">
+                  <a href="/calculator-simple" className="text-sm text-blue-400 hover:underline">Use Normal Calculator</a>
+                </div>
             </div>
           } />
 

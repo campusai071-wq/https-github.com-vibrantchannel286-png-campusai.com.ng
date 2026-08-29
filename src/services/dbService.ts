@@ -446,9 +446,11 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
 
   // Bypass cache if paginating (lastCreatedAt is present) or if we need more articles than cached
   if (cachedRawNews && isCacheValid && !needsMoreThanCached && !lastCreatedAt) {
+    console.log("getCloudNews: Cache hit!");
     const processed = filterAndSortNews(cachedRawNews, includeFuture, now, includeJunk);
     return category ? processed.filter(n => n.category === category) : processed;
   }
+  console.log("getCloudNews: Cache miss (or invalid). Fetching from Firestore/Proxy...");
 
   // Direct client-side Firestore fetch using standard Firebase SDK
   if (db) {

@@ -272,6 +272,11 @@ service cloud.firestore {
       allow write: if true; // Tracking traffic requires any visitor to update stats
     }
 
+    match /calculation_stats/{date} {
+      allow read: if true;
+      allow write: if true; // Tracking traffic requires any visitor to update stats
+    }
+
     match /cached_university_courses/{institutionId} {
       allow read: if true;
       allow write: if true; // Caching course lists can be done by visitors

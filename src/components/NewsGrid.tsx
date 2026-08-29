@@ -749,7 +749,13 @@ const NewsGrid: React.FC<NewsGridProps> = ({
 
   // Fast category filter load & event listeners
   useEffect(() => {
-    loadLocalNews(filter);
+    let ignore = false;
+    
+    loadLocalNews(filter).then(() => {
+        if (!ignore) {
+          // Success
+        }
+    });
 
     const handleBookmarksUpdate = () => {
       setBookmarks(readBookmarks());
@@ -763,6 +769,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     window.addEventListener('campusai_news_updated', handleNewsUpdate);
     window.addEventListener('campusai_bookmarks_updated', handleBookmarksUpdate);
     return () => {
+      ignore = true;
       window.removeEventListener('campusai_news_updated', handleNewsUpdate);
       window.removeEventListener('campusai_bookmarks_updated', handleBookmarksUpdate);
     };

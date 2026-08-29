@@ -1413,7 +1413,8 @@ export const validateMandatorySubjects = (
 
 export const validateOlevelRequirements = (
   courseName: string,
-  subjects: { name: string; grade: string }[]
+  subjects: { name: string; grade: string }[],
+  universityName?: string
 ): { valid: boolean; reason: string } => {
   if (!courseName || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
     return { valid: true, reason: "Candidate meets O'Level entry requirements." };
@@ -1483,6 +1484,21 @@ export const validateOlevelRequirements = (
   if (isEngineering) {
     const phyGrade = getGrade('phy');
     const chemGrade = getGrade('chem');
+
+    // LASU specific check
+    if (universityName === 'Lagos State University') {
+      const mathGrade = getGrade('math');
+      const bioGrade = getGrade('bio');
+      const agricGrade = getGrade('agric'); // Sometimes one science subject can be agric
+
+      const credits = subjects.filter(s => !isFail(s.grade)).length;
+      if (credits < 6) {
+        return {
+          valid: false,
+          reason: `Lagos State University (LASU) requires Six (6) O'Level Credits for Engineering courses. You have entered ${credits} credit(s).`
+        };
+      }
+    }
 
     const failingDefs: string[] = [];
     if (!phyGrade || isFail(phyGrade)) failingDefs.push(`Physics (${phyGrade || 'missing'})`);
