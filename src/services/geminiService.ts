@@ -571,14 +571,12 @@ const createGeminiClient = (apiKey: string) => {
     models: {
       generateContent: async (params: any) => {
         const response = await axios.post(getApiUrl('/api/gemini'), {
-          apiKey,
           params
         });
         return response.data;
       },
       generateContentStream: async (params: any) => {
         const response = await axios.post(getApiUrl('/api/gemini'), {
-          apiKey,
           params
         });
         const data = response.data;
@@ -601,7 +599,6 @@ const createGeminiClient = (apiKey: string) => {
               config: chatParams.config
             };
             const response = await axios.post(getApiUrl('/api/gemini'), {
-              apiKey,
               params
             });
             return response.data;
