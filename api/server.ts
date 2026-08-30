@@ -15,7 +15,7 @@ import { TavilyClient } from "tavily";
 import { initializeApp as initClientApp, getApps as getClientApps } from "firebase/app";
 import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
 import { initializeApp as initAdminApp, applicationDefault } from "firebase-admin/app";
-import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "firebase-admin/firestore";
+import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from "firebase-admin/firestore";
 import { injectSEO as seoInject } from "./seo.js";
 import { handleOgImageRequest } from "./ogImage.js";
 import { handleArticleImageRequest } from "./articleImage.js";
@@ -813,8 +813,20 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
 app.post("/api/aloc/explain", async (req: any, res: any) => {
   try {
     const { questionId, depth, questionText, correctAnswer, subject } = req.body;
+    
+    // Check cache first
+    if (adminDb && questionId && !String(questionId).startsWith('fallback-')) {
+      const cacheSnap = await adminDb.collection('ai_cache').doc(questionId).get();
+      if (cacheSnap.exists) {
+        return res.json({ success: true, data: cacheSnap.data().response, source: "cache" });
+      }
+    }
+
     const apiKey = getAlocApiKey();
     const baseUrl = getAlocBaseUrl();
+
+    let aiData: any = null;
+    let source = "unknown";
 
     if (questionId && !String(questionId).startsWith('fallback-')) {
       try {
@@ -831,18 +843,20 @@ app.post("/api/aloc/explain", async (req: any, res: any) => {
           }
         );
         if (response.data && response.data.data) {
-          return res.json({ success: true, data: response.data.data, source: "aloc_station" });
+          aiData = response.data.data;
+          source = "aloc_station";
         }
       } catch (e: any) {
         console.warn("[ALOC Explain Error]:", e.response?.data || e.message);
       }
     }
 
-    // Gemini explanation fallback
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-    if (geminiKey) {
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-      const prompt = `Provide a comprehensive step-by-step explanation and solution for this exam question:
+    if (!aiData) {
+      // Gemini explanation fallback
+      const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (geminiKey) {
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        const prompt = `Provide a comprehensive step-by-step explanation and solution for this exam question:
 Question: ${questionText || 'Exam Question'}
 Subject: ${subject || 'General'}
 Correct Answer: ${correctAnswer || 'Specified Answer'}
@@ -855,25 +869,34 @@ Format response as JSON with this structure:
   "commonMistakes": [{"mistake": "...", "whyWrong": "..."}]
 }`;
 
-      const aiRes = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: {
-          temperature: 0.4,
-          responseMimeType: "application/json"
-        }
-      });
-      const parsed = JSON.parse(aiRes.text || '{}');
-      return res.json({ success: true, data: parsed, source: "ai_fallback" });
+        const aiRes = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: prompt,
+          config: {
+            temperature: 0.4,
+            responseMimeType: "application/json"
+          }
+        });
+        aiData = JSON.parse(aiRes.text || '{}');
+        source = "ai_fallback";
+      } else {
+        aiData = {
+          explanation: `The correct option is ${correctAnswer?.toUpperCase()}. Review standard textbook formulas for ${subject}.`,
+          steps: [`Confirm option ${correctAnswer?.toUpperCase()} based on syllabus guidelines.`]
+        };
+        source = "static_fallback";
+      }
     }
 
-    return res.json({
-      success: true,
-      data: {
-        explanation: `The correct option is ${correctAnswer?.toUpperCase()}. Review standard textbook formulas for ${subject}.`,
-        steps: [`Confirm option ${correctAnswer?.toUpperCase()} based on syllabus guidelines.`]
-      }
-    });
+    // Save to cache
+    if (adminDb && questionId && !String(questionId).startsWith('fallback-') && aiData) {
+      await adminDb.collection('ai_cache').doc(questionId).set({
+        response: aiData,
+        createdAt: AdminTimestamp.now()
+      });
+    }
+
+    return res.json({ success: true, data: aiData, source });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
