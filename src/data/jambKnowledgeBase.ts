@@ -412,8 +412,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "procedural",
     category: "Institution Admission",
     subcategory: "FUTA Admissions",
-    title: "Federal University of Technology, Akure (FUTA) 2026/2027 Admission Guidelines & Screening",
-    summary: "Official admission guidelines and Post-UTME screening announcement for FUTA for the 2026/2027 academic session. Details eligibility (180+ UTME, 1st choice), ₦2,000 fee, mandatory Physics pass rule, and CBT screening schedule.",
+    title: "Federal University of Technology, Akure (FUTA) 2024/2026 Admission Guidelines & Screening",
+    summary: "Official admission guidelines and Post-UTME screening announcement for FUTA for the 2024/2026 academic session. Details eligibility (180+ UTME, 1st choice), ₦2,000 fee, mandatory Physics pass rule, and CBT screening schedule.",
     steps: [
       "Choose FUTA as your First Choice (Most Preferred) institution in your JAMB UTME application (or change via JAMB portal).",
       "Score a minimum of 180 in the 2026 UTME.",
@@ -452,7 +452,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-20",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "futa_departmental_cutoffs_2026",
@@ -460,8 +460,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "policy",
     category: "Institution Cutoffs",
     subcategory: "Official Departmental Cut-Off Marks",
-    title: "FUTA Official Departmental Aggregate Cut-Off Marks (2026/2027 Session)",
-    summary: "Complete approved departmental aggregate cut-off marks for admission into all undergraduate degree programmes at the Federal University of Technology, Akure (FUTA) for the 2026/2027 academic session.",
+    title: "FUTA Official Departmental Aggregate Cut-Off Marks (2024/2026 Session)",
+    summary: "Complete approved departmental aggregate cut-off marks for admission into all undergraduate degree programmes at the Federal University of Technology, Akure (FUTA) for the 2024/2026 academic session.",
     steps: [],
     requirements: [
       "Score minimum 180 in UTME",
@@ -484,14 +484,14 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     ],
     important_notes: [
       "Aggregate is calculated on a 100% scale using FUTA's approved 75:25 formula.",
-      "Departmental cut-off marks are binding for 2026/2027 admission recommendations on JAMB CAPS."
+      "Departmental cut-off marks are binding for 2024/2026 admission recommendations on JAMB CAPS."
     ],
     keywords: ["futa departmental cutoffs", "futa course cut off", "futa aggregate 2026", "futa eee cutoff", "futa csc cutoff", "futa medicine cutoff", "futa architecture cutoff"],
     related_topics: ["FUTA Admission Guidelines", "FUTA Post-UTME Screening"],
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-20",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "futa_post_utme_screening",
@@ -529,7 +529,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-10",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "futa_clearance_and_registration",
@@ -538,7 +538,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     category: "Registration",
     subcategory: "Fresh Students Clearance",
     title: "FUTA Fresh Students Physical & Online Clearance Procedures",
-    summary: "Step-by-step clearance and documentation guide for candidates offered provisional admission into FUTA for the 2026/2027 academic session.",
+    summary: "Step-by-step clearance and documentation guide for candidates offered provisional admission into FUTA for the 2024/2026 academic session.",
     steps: [
       "Log in to the FUTA undergraduate portal using your JAMB registration number to accept the admission and print the FUTA Admission Letter.",
       "Pay the prescribed Acceptance Fee via the online payment platform (Remita / FUTA portal).",
@@ -573,7 +573,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-10",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "futa_schools_and_faculties",
@@ -603,7 +603,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-10",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "lautech_post_utme_screening_2025_2026",
@@ -612,7 +612,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     category: "Institution Admission",
     subcategory: "LAUTECH Admissions",
     title: "Ladoke Akintola University of Technology (LAUTECH) Post-UTME Screening & Direct Entry Notice",
-    summary: "Official admission notice for Ladoke Akintola University of Technology (LAUTECH), Ogbomoso for the 2025/2026 academic session. Details eligibility criteria (170+ UTME, 1st choice, age 16+), application portal, 80:20 scoring ratio, fees, and Direct Entry interview schedule.",
+    summary: "Official admission notice for Ladoke Akintola University of Technology (LAUTECH), Ogbomoso for the 2024/2026 academic session. Details eligibility criteria (170+ UTME, 1st choice, age 16+), application portal, 80:20 scoring ratio, fees, and Direct Entry interview schedule.",
     steps: [
       "Choose LAUTECH as your first-choice institution in the UTME or Direct Entry (DE) application.",
       "Score a minimum of 170 in the UTME (check specific departmental cut-offs for competitive courses like Medicine: 280, Nursing: 260, MLS: 240, Computer Science: 230).",
@@ -654,7 +654,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://apply.lautech.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-20",
-    version: "2025/2026"
+    version: "2024/2026"
   },
   {
     id: "lautech_departmental_cutoffs_2025_2026",
@@ -693,7 +693,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://apply.lautech.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-20",
-    version: "2025/2026"
+    version: "2024/2026"
   },
   {
     id: "lautech_80_20_scoring_system",
@@ -728,7 +728,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://apply.lautech.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-20",
-    version: "2025/2026"
+    version: "2024/2026"
   },
   {
     id: "jamb_policy_meeting_cutoffs_2026",
@@ -774,8 +774,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "procedural",
     category: "Admissions",
     subcategory: "Irregular Admission Condonement",
-    title: "Disclosure & Condonement of Irregularly/Illegally Admitted Candidates (2024/25 & 2025/26 Intakes)",
-    summary: "Official ministerial approval granted by the Honourable Minister of Education for condonement of candidates illegally admitted into Colleges of Education without JAMB for 2024/2025 and 2025/2026 academic sessions (Ref: JAMB/ADMS/DO/208/V.I).",
+    title: "Disclosure & Condonement of Irregularly/Illegally Admitted Candidates (2024/25 & 2025/27 Intakes)",
+    summary: "Official ministerial approval granted by the Honourable Minister of Education for condonement of candidates illegally admitted into Colleges of Education without JAMB for 2025/2025 and 2024/2026 academic sessions (Ref: JAMB/ADMS/DO/208/V.I).",
     steps: [
       "1. Obtain O'Level Result Verification Code from the relevant examination body website (WAEC: https://buyresultsverificationcode.waeconline.org.ng — ₦1,500 for 1 sitting, ₦2,000 for 2 sittings across exam bodies).",
       "2. Approach any accredited CBT Center, Professional Registration Centre (PRC), or Institutional Professional Registration Centre (IPRC) with your O'Level Result Verification Code.",
@@ -790,7 +790,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
       "Official endorsement by College Provost / Institution Registrar"
     ],
     eligibility_rules: [
-      "Applies strictly to 2024/2025 and 2025/2026 academic intakes. Does NOT apply to 2026 intakes.",
+      "Applies strictly to 2025/2025 and 2024/2026 academic intakes. Does NOT apply to 2026 intakes.",
       "Candidates with Awaiting Results (AR) status are NOT eligible for condonement.",
       "All institution submissions must reach JAMB on or before June 30, 2026. False declarations or omissions will not be condoned."
     ],
@@ -815,8 +815,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "policy",
     category: "Registration & Admissions",
     subcategory: "NCE & ND Agric Guidelines",
-    title: "2026/2027 NCE & ND Non-Technology Agric Registration Guidelines",
-    summary: "Official JAMB Registrar Advisory governing NCE mode registration, ND Non-Technology Agric Related Programmes, and complete abolition of 100/200 Level degree admissions in Colleges of Education starting 2026/2027 session.",
+    title: "2024/2026 NCE & ND Non-Technology Agric Registration Guidelines",
+    summary: "Official JAMB Registrar Advisory governing NCE mode registration, ND Non-Technology Agric Related Programmes, and complete abolition of 100/200 Level degree admissions in Colleges of Education starting 2024/2026 session.",
     steps: [
       "1. Obtain O'Level Result Verification Code from examination body website (WAEC: https://buyresultsverificationcode.waeconline.org.ng — ₦1,500 for 1 sitting, ₦2,000 for 2 sittings).",
       "2. Send NIN to 55019 or 66019 to obtain a JAMB Profile Code.",
@@ -831,8 +831,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
       "Passport photograph & biometric capture"
     ],
     eligibility_rules: [
-      "NO 100 or 200 Level degree admissions allowed in any College of Education from 2026/2027 session — ALL entrants must be through NCE.",
-      "NO admissions into affiliated degree programmes in any College of Education from 2026/2027 session.",
+      "NO 100 or 200 Level degree admissions allowed in any College of Education from 2024/2026 session — ALL entrants must be through NCE.",
+      "NO admissions into affiliated degree programmes in any College of Education from 2024/2026 session.",
       "Candidate can be processed for ONLY ONE mode of entry at a time (choosing NCE suspends ongoing UTME/DE process)."
     ],
     key_facts: [
@@ -970,7 +970,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.jamb.gov.ng/img/2025Advisories/PROFILED_EMAIL_SERVICE1.pdf",
     source_type: "Official Implementation Guide",
     last_verified: "2026-08-11",
-    version: "2025/2026"
+    version: "2024/2026"
   },
   {
     id: "jamb_minimum_admissible_age_16_years_policy",
@@ -986,12 +986,12 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
       "3. Candidates who meet departmental standards but were previously restricted due to age can now be considered."
     ],
     requirements: [
-      "Candidate must attain at least 16 years of age by 31st December 2024 (or 31st August 2025 for institutions whose 2024/2025 session extends through July 2025).",
+      "Candidate must attain at least 16 years of age by 31st December 2024 (or 31st August 2025 for institutions whose 2025/2025 session extends through July 2025).",
       "Full compliance with institution departmental and screening criteria."
     ],
     eligibility_rules: [
       "Sacrosanct baseline: Candidate cannot be admitted below 16 years of age.",
-      "Institutions whose 2024/2025 admission cycle extends through July 2025 are allowed to admit candidates who turn 16 by August 31, 2025.",
+      "Institutions whose 2025/2025 admission cycle extends through July 2025 are allowed to admit candidates who turn 16 by August 31, 2025.",
       "Institutions desiring to strictly enforce 16 years within the 2024 calendar year (by Dec 31, 2024) are completely free to do so."
     ],
     key_facts: [
@@ -1007,7 +1007,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.jamb.gov.ng/img/2024Advisories/PROFILED_EMAIL_SERVICE1.pdf",
     source_type: "Official Circular",
     last_verified: "2026-08-11",
-    version: "2024/2025"
+    version: "2025/2025"
   },
   {
     id: "jamb_registrar_prof_segun_aina",
@@ -1077,11 +1077,11 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     category: "Institutional Data",
     subcategory: "Statistics",
     title: "University of Lagos (UNILAG) 2024 Financial & Student Statistics",
-    summary: "Overview of UNILAG 2024 financial performance (Personnel, Overhead, Capital, Endowment, TETFund) and student registration statistics for 2023/2024 and 2024/2025 sessions.",
+    summary: "Overview of UNILAG 2024 financial performance (Personnel, Overhead, Capital, Endowment, TETFund) and student registration statistics for 2023/2024 and 2025/2025 sessions.",
     requirements: [],
     eligibility_rules: [
       "2023/2024 Total Registered Students: 33,779",
-      "2024/2025 Total Registered Students: 35,068"
+      "2025/2025 Total Registered Students: 35,068"
     ],
     key_facts: [
       "2024 Personnel Costs: ₦17,605,648,287.00",
@@ -1172,8 +1172,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "policy",
     category: "Post-UTME",
     subcategory: "Screening & Cut-off Marks",
-    title: "FUOYE 2026/2027 UPASE Screening Official Step-by-Step Application Guide",
-    summary: "Complete official candidate guide for the Federal University Oye-Ekiti (FOUYE) 2026/2027 University Pre-Admission Screening Exercise (UPASE), covering portal login, personal detail updates, requirement checks, Remita fee payment (₦2,000 screening + ₦2,500 COP), document uploads, and clearance statuses.",
+    title: "FUOYE 2024/2026 UPASE Screening Official Step-by-Step Application Guide",
+    summary: "Complete official candidate guide for the Federal University Oye-Ekiti (FOUYE) 2024/2026 University Pre-Admission Screening Exercise (UPASE), covering portal login, personal detail updates, requirement checks, Remita fee payment (₦2,000 screening + ₦2,500 COP), document uploads, and clearance statuses.",
     steps: [
       "1. Access Portal: Visit https://putme.fuoye.edu.ng/utme/ and review requirements/cut-off marks.",
       "2. Login: Use your JAMB Registration Number as username and any registered name as password. (Candidates who recently changed institution should wait 3-4 working days or contact call centre).",
@@ -1190,7 +1190,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     ],
     eligibility_rules: [
       "FUOYE conducts online point screening (JAMB UTME score 60% + O'Level score 30% + Sitting Bonus 10%). No written post-UTME exam.",
-      "Department of Law: FUOYE will NOT admit candidates into the Department of Law for the 2026/2027 academic session. Candidates must change to other available programmes.",
+      "Department of Law: FUOYE will NOT admit candidates into the Department of Law for the 2024/2026 academic session. Candidates must change to other available programmes.",
       "Awaiting Result (AR) candidates may apply but submission requires O'Level result upload.",
       "Deadline: August 28, 2026."
     ],
@@ -1218,8 +1218,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "policy",
     category: "Post-UTME",
     subcategory: "Screening & Cut-off Marks",
-    title: "FUTES-IYIN 2026/2027 Post-UTME Screening Guidelines & Cut-Off Marks",
-    summary: "Official guidelines, department cut-off marks, fees (₦2,000 screening + ₦3,000 portal access), Direct Entry requirements, and faculty programs for Federal University of Technology and Environmental Sciences, Iyin-Ekiti (FUTES-IYIN) 2026/2027 admission exercise.",
+    title: "FUTES-IYIN 2024/2026 Post-UTME Screening Guidelines & Cut-Off Marks",
+    summary: "Official guidelines, department cut-off marks, fees (₦2,000 screening + ₦3,000 portal access), Direct Entry requirements, and faculty programs for Federal University of Technology and Environmental Sciences, Iyin-Ekiti (FUTES-IYIN) 2024/2026 admission exercise.",
     steps: [
       "Visit the FUTES-IYIN Admission portal at https://portal.futes.edu.ng/apply",
       "Sign up with a valid email address to receive an activation token (unactivated accounts deleted after 48 hours).",
@@ -1283,8 +1283,8 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     page_type: "informational",
     category: "Institution Admission",
     subcategory: "Yabatech Admissions",
-    title: "Yaba College of Technology (YABATECH) Admissions 2026/2027",
-    summary: "Admission information for Yaba College of Technology (YABATECH) 2026/2027 Academic Session, covering ND (PT/ODFeL), PGD, and HND (FT/PT/ODFeL) programmes.",
+    title: "Yaba College of Technology (YABATECH) Admissions 2024/2026",
+    summary: "Admission information for Yaba College of Technology (YABATECH) 2024/2026 Academic Session, covering ND (PT/ODFeL), PGD, and HND (FT/PT/ODFeL) programmes.",
     requirements: [
       "ND: Minimum age 16 years as at October 31st, 2026.",
       "HND: ND in same discipline with minimum LOWER CREDIT from an NBTE accredited institution.",
@@ -1301,7 +1301,7 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     official_source: "https://www.yabatech.edu.ng",
     source_type: "Official Institution Portal",
     last_verified: "2026-08-28",
-    version: "2026/2027"
+    version: "2024/2026"
   },
   {
     id: "jamb_caps_statistics_august_2026",
@@ -1310,11 +1310,11 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     category: "Admissions",
     subcategory: "CAPS Statistics",
     title: "JAMB CAPS Admission Statistics (As of August 28, 2026)",
-    summary: "Comprehensive JAMB CAPS admission statistics for the 2026/2027 academic year, including candidate qualification metrics, O'Level statistics, new arrival processing data, and overall admission summaries as of August 28, 2026.",
+    summary: "Comprehensive JAMB CAPS admission statistics for the 2024/2026 academic year, including candidate qualification metrics, O'Level statistics, new arrival processing data, and overall admission summaries as of August 28, 2026.",
     requirements: [],
     eligibility_rules: [],
     key_facts: [
-      "Admission Year: 2026/2027",
+      "Admission Year: 2024/2026",
       "As of: Friday, August 28, 2026",
       "Total Institutions: 1,800",
       "Total Candidates: 2,275,690",
@@ -1324,14 +1324,14 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
       "Accepted Admissions: 63,758"
     ],
     important_notes: [
-      "Data represents cumulative figures for the 2026/2027 admission exercise."
+      "Data represents cumulative figures for the 2024/2026 admission exercise."
     ],
-    keywords: ["jamb caps", "caps statistics 2026", "admission statistics 2026/2027", "jamb 2026 admissions"],
+    keywords: ["jamb caps", "caps statistics 2026", "admission statistics 2024/2026", "jamb 2026 admissions"],
     related_topics: ["JAMB CAPS", "Admission Status"],
     official_source: "https://caps.jamb.gov.ng/dashboard.aspx",
     source_type: "Official Government Dashboard",
     last_verified: "2026-08-28",
-    version: "2026/2027"
+    version: "2024/2026"
   }
 ];
 

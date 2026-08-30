@@ -43,7 +43,7 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/20 font-bold">
                   <Clock size={12} />
-                  Paused for 2026/2027 Resumption
+                  Paused for 2025/2026 Resumption
                 </div>
               </div>
 
@@ -283,13 +283,13 @@ const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* UPCOMING 2026/2027 FEATURES PREVIEW */}
+          {/* UPCOMING 2025/2026 FEATURES PREVIEW */}
           <div className="p-8 rounded-[32px] bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 shadow-sm space-y-6">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[10px] font-black uppercase tracking-wider mb-2">
                 <Sparkles size={12} /> Upcoming Resumption Release
               </div>
-              <h3 className="text-xl font-black text-gray-900 dark:text-white">What's Coming in 2026/2027 Session Activation</h3>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white">What's Coming in 2025/2026 Session Activation</h3>
               <p className="text-xs text-gray-500 dark:text-slate-300 font-medium mt-1">Full feature suite re-enabling upon official school resumption.</p>
             </div>
 

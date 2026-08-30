@@ -119,7 +119,7 @@ export const SyllabusExplorer: React.FC<SyllabusExplorerProps> = ({ onAskAI, onC
             UTME Master Syllabus Explorer
           </h2>
           <p className="text-slate-400 text-xs md:text-sm mt-1">
-            Official examination syllabus, topic objectives & recommended textbooks verified for 2026/2027 JAMB Candidates.
+            Official examination syllabus, topic objectives & recommended textbooks verified for 2025/2026 JAMB Candidates.
           </p>
         </div>
 
@@ -263,7 +263,7 @@ export const SyllabusExplorer: React.FC<SyllabusExplorerProps> = ({ onAskAI, onC
                     <span className="bg-cyan-500 text-slate-950 font-black text-[11px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                       {activeSyllabus.category}
                     </span>
-                    <span className="text-slate-400 text-xs">2026/2027 JAMB Official Edition</span>
+                    <span className="text-slate-400 text-xs">2025/2026 JAMB Official Edition</span>
                   </div>
                   <h3 className="text-2xl font-extrabold text-white mt-1">{activeSyllabus.subject} Syllabus</h3>
                 </div>

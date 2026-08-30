@@ -225,7 +225,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
     <div className="min-h-screen bg-gray-950 text-white flex flex-col justify-between pt-20 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       <SEO 
         title={mode === 'signup' ? 'Create Scholar Account | CampusAI' : mode === 'reset' ? 'Reset Password | CampusAI' : 'Sign In | CampusAI Scholar Portal'}
-        description="Authenticate your CampusAI account to save university aggregate calculations, access real-time 2026/2027 Post-UTME screening alerts, and track your admission chances."
+        description="Authenticate your CampusAI account to save university aggregate calculations, access real-time 2025/2026 Post-UTME screening alerts, and track your admission chances."
         canonical={mode === 'signup' ? '/signup' : '/login'}
       />
 
@@ -263,7 +263,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
           </h1>
 
           <p className="text-sm text-gray-400 leading-relaxed">
-            Synchronize your scores, monitor university cutoffs, and get personalized AI recommendations for the 2026/2027 admission cycle.
+            Synchronize your scores, monitor university cutoffs, and get personalized AI recommendations for the 2025/2026 admission cycle.
           </p>
 
           <div className="space-y-4 pt-2">

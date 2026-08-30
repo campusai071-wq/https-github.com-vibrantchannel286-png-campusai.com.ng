@@ -172,7 +172,7 @@ export const getUniversityCourses = async (university: string) => {
 };
 
 export const getUniversityFees = async (university: string) => {
-  const prompt = `Provide estimated 2026/2027 tuition and acceptance fees for ${university}. Return ONLY a JSON object: {"tuition": "string", "acceptance": "string", "other": "string", "total": "string"}`;
+  const prompt = `Provide estimated 2025/2026 tuition and acceptance fees for ${university}. Return ONLY a JSON object: {"tuition": "string", "acceptance": "string", "other": "string", "total": "string"}`;
   try {
     const response = await callOllama([{ role: "user", content: prompt }], true);
     return JSON.parse(response);

@@ -8,6 +8,7 @@ import RecentActivity from './RecentActivity';
 import FAQSection from './FAQSection';
 import PostUtmeTrackerSection from './PostUtmeTrackerSection';
 import { JambCapsLiveTracker } from './JambCapsLiveTracker';
+import Jamb2027Tracker from './Jamb2027Tracker';
 import { FileCheck, ArrowRight } from 'lucide-react';
 
 import { motion } from 'framer-motion';
@@ -77,6 +78,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
       <div className="container mx-auto px-4 md:px-8 mb-16 mt-16 max-w-6xl space-y-12">
         {user && <RecentActivity userId={user?.uid || null} />}
         
+        {/* JAMB 2027 Countdown Tracker */}
+        <Jamb2027Tracker />
+        
         {/* JAMB CAPS Live Admission Statistics Tracker */}
         <JambCapsLiveTracker 
           onSelectSchool={(schoolName) => {
@@ -102,7 +106,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
         <div className="bg-gradient-to-r from-blue-900/40 via-indigo-950/40 to-gray-900/40 border border-blue-500/20 rounded-[28px] p-6 md:p-8 text-left relative overflow-hidden shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-[10px] uppercase tracking-wider">
-              <FileCheck size={14} /> 2026/2027 Clearance Hub
+              <FileCheck size={14} /> 2025/2026 Clearance Hub
             </div>
             <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
               Post-Admission Clearance & Document Checklist

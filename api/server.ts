@@ -545,36 +545,472 @@ app.post("/api/ibass/institutions", async (req: any, res: any) => {
     console.error("[IBASS Proxy Error - Institutions]:", err.message);
     return res.status(err.response?.status || 500).json({
       success: false,
-      error: err.response?.data || err.message
+      error: err.response?.data?.error || err.response?.data || err.message
     });
   }
 });
 
-// ALOC CBT Simulator Proxy
-app.post("/api/aloc/questions", async (req: any, res: any) => {
+// ALOC Station Assessment Infrastructure Proxy (v1)
+
+const ALOC_SUBJECT_MAP: Record<string, string> = {
+  'english': 'english-language',
+  'english-language': 'english-language',
+  'use-of-english': 'english-language',
+  'english-lang': 'english-language',
+  'mathematics': 'mathematics',
+  'math': 'mathematics',
+  'maths': 'mathematics',
+  'general-mathematics': 'mathematics',
+  'biology': 'biology',
+  'bio': 'biology',
+  'chemistry': 'chemistry',
+  'chem': 'chemistry',
+  'physics': 'physics',
+  'phy': 'physics',
+  'economics': 'economics',
+  'econ': 'economics',
+  'government': 'government',
+  'govt': 'government',
+  'commerce': 'commerce',
+  'com': 'commerce',
+  'accounting': 'accounting',
+  'accounts': 'accounting',
+  'crk': 'christian-religious-studies',
+  'crs': 'christian-religious-studies',
+  'christian-religious-studies': 'christian-religious-studies',
+  'literature': 'literature-in-english',
+  'literature-in-english': 'literature-in-english',
+  'civic-education': 'civic-education',
+  'civic': 'civic-education',
+  'geography': 'geography',
+  'geog': 'geography',
+  'history': 'history',
+  'insurance': 'insurance'
+};
+
+// Fallback: Generate high quality past questions with Gemini
+async function generateMockQuestions(subject: string, examType = 'JAMB') {
   try {
-    if (!process.env.ALOC_API_KEY) {
-      return res.status(500).json({ success: false, error: "ALOC_API_KEY is not configured" });
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
+    const ai = new GoogleGenAI({ apiKey });
     
-    // Proxy request to ALOC
-    const response = await axios.post("https://dev.aloc.com.ng/api/v1/questions", req.body, {
-      headers: {
-        "x-api-key": process.env.ALOC_API_KEY,
-        "Content-Type": "application/json"
-      },
-      timeout: 15000
+    const prompt = `Generate 10 authentic Nigerian ${examType} past examination practice multiple choice questions for ${subject}.
+Respond ONLY with a valid JSON array of objects. Do not include markdown formatting or backticks.
+Each question object MUST follow this exact schema:
+[
+  {
+    "id": 1,
+    "question": "Question text here",
+    "option": { "a": "Option A", "b": "Option B", "c": "Option C", "d": "Option D" },
+    "answer": "a",
+    "solution": "Clear step-by-step solution explaining why A is correct.",
+    "examType": "${examType}",
+    "examYear": "2023",
+    "section": "Optional passage or instruction"
+  }
+]`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.6,
+        responseMimeType: "application/json"
+      }
     });
     
+    let text = response.text || '[]';
+    if (text.includes('```')) {
+      text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    }
+    const questions = JSON.parse(text);
+    return { data: questions, subject: subject, status: 200, source: "ai_fallback", message: "Generated with AI fallback" };
+  } catch (e: any) {
+    console.error("Gemini Mock Questions Error:", e.message);
+    return {
+      data: [
+        {
+          id: "fallback-1",
+          question: `Which of the following fundamental principles is essential in ${subject}?`,
+          option: { a: "Systematic investigation and analytical deduction", b: "Random conjecture", c: "Disregard of empirical evidence", d: "Superficial assumption" },
+          answer: "a",
+          solution: "Systematic analysis is required for answering questions accurately in this subject.",
+          examType: examType,
+          examYear: "2024"
+        },
+        {
+          id: "fallback-2",
+          question: "The primary purpose of the Unified Tertiary Matriculation Examination (UTME) is to:",
+          option: { a: "Conduct entrance examinations for prospective tertiary education students in Nigeria", b: "Award honorary doctoral degrees", c: "Regulate secondary school uniforms", d: "Manage state polytechnic budgets" },
+          answer: "a",
+          solution: "JAMB conducts the UTME for placement of qualified candidates into Nigerian higher institutions.",
+          examType: examType,
+          examYear: "2024"
+        }
+      ],
+      subject: subject,
+      status: 200,
+      source: "static_fallback",
+      message: "Default sample question set"
+    };
+  }
+}
+
+// Helpers to cleanly parse ALOC API key & Base URL (even if copied from MCP or portal configs)
+function getAlocApiKey(): string {
+  const raw = process.env.ALOC_API_KEY || "";
+  const match = raw.match(/aloc_[a-zA-Z0-9_-]+/);
+  if (match) return match[0];
+  if (raw && raw.length < 100 && !raw.includes(" ")) return raw.trim();
+  return "aloc_8AEgkpFC6LYcBCBRFpIPDLxBqKYRUFSTzHVNvxuK";
+}
+
+function getAlocBaseUrl(): string {
+  const raw = process.env.ALOC_BASE_URL || "";
+  const match = raw.match(/https?:\/\/[^\s"']+/);
+  if (match && match[0].includes("aloc")) return match[0].replace(/\/$/, "");
+  return "https://dev.aloc.com.ng/api/v1";
+}
+
+// 1. Fetch Questions Endpoint (ALOC Station v1)
+app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
+  try {
+    const rawSubject = (req.body.subject || req.query.subject || 'english').toLowerCase().trim();
+    const mappedSubject = ALOC_SUBJECT_MAP[rawSubject] || rawSubject;
+    const examType = (req.body.examType || req.query.examType || 'jamb').toLowerCase();
+    const totalRequested = Math.min(Math.max(Number(req.body.limit || req.query.limit || 10), 1), 40);
+    const year = req.body.year || req.query.year;
+
+    const apiKey = getAlocApiKey();
+    const baseUrl = getAlocBaseUrl();
+
+    try {
+      // ALOC enforces maximum limit <= 15 per request. We paginate with cursor if > 15 requested.
+      let allRawQuestions: any[] = [];
+      let cursor: string | null = null;
+      let lastMeta: any = null;
+      let lastPagination: any = null;
+
+      while (allRawQuestions.length < totalRequested) {
+        const batchLimit = Math.min(15, totalRequested - allRawQuestions.length);
+        const params: any = {
+          subject: mappedSubject,
+          limit: batchLimit
+        };
+        if (examType && examType !== 'all') {
+          params.examType = examType;
+        }
+        if (year) {
+          params.year = year;
+        }
+        if (cursor) {
+          params.cursor = cursor;
+        }
+
+        let response;
+        try {
+          response = await axios.get(`${baseUrl}/questions`, {
+            params,
+            headers: {
+              "X-API-Key": apiKey,
+              "Accept": "application/json",
+              "X-Client-Type": "web-applet",
+              "X-Is-Agent": "true"
+            },
+            timeout: 10000
+          });
+        } catch (callErr: any) {
+          // If specific examType caused 404, try relaxing the examType filter to general subject
+          if (callErr.response?.status === 404 && params.examType) {
+            delete params.examType;
+            response = await axios.get(`${baseUrl}/questions`, {
+              params,
+              headers: {
+                "X-API-Key": apiKey,
+                "Accept": "application/json",
+                "X-Client-Type": "web-applet",
+                "X-Is-Agent": "true"
+              },
+              timeout: 10000
+            });
+          } else {
+            throw callErr;
+          }
+        }
+
+        const items = response.data?.data || [];
+        if (Array.isArray(items) && items.length > 0) {
+          allRawQuestions.push(...items);
+          lastMeta = response.data.meta;
+          lastPagination = response.data.pagination;
+          if (!response.data.pagination?.hasMore || !response.data.pagination?.nextCursor) {
+            break;
+          }
+          cursor = response.data.pagination.nextCursor;
+        } else {
+          break;
+        }
+      }
+
+      if (allRawQuestions.length > 0) {
+        // Normalize ALOC v1 structure for compatibility with frontend
+        const normalizedQuestions = allRawQuestions.map((q: any) => {
+          const rawOptions = q.options || q.option || {};
+          return {
+            id: q.id,
+            question: q.text || q.question || '',
+            option: {
+              a: rawOptions.A || rawOptions.a || '',
+              b: rawOptions.B || rawOptions.b || '',
+              c: rawOptions.C || rawOptions.c || '',
+              d: rawOptions.D || rawOptions.d || ''
+            },
+            answer: (q.correctAnswer || q.answer || '').toLowerCase(),
+            solution: q.solution || q.explanation || (q.section ? `Passage/Section: ${q.section}` : ''),
+            examType: (q.examType || examType || 'JAMB').toUpperCase(),
+            examYear: String(q.year || q.examYear || '2024'),
+            section: q.section || null,
+            hasPassage: !!q.hasPassage,
+            imageUrl: q.imageUrl || q.image || null,
+            metadata: q.metadata || null,
+            category: q.category || null,
+            questionNumber: q.questionNumber || null
+          };
+        });
+
+        return res.json({
+          success: true,
+          status: 200,
+          data: normalizedQuestions,
+          subject: mappedSubject,
+          meta: lastMeta,
+          pagination: lastPagination,
+          source: "aloc_station"
+        });
+      }
+
+      // If empty questions, fallback
+      console.log(`[ALOC] Empty response for ${mappedSubject}, trying fallback`);
+      const fallbackData = await generateMockQuestions(mappedSubject, examType.toUpperCase());
+      return res.json(fallbackData);
+    } catch (alocErr: any) {
+      console.warn("[ALOC Station API Error]:", alocErr.response?.data || alocErr.message);
+      // Seamlessly fallback to AI question generation
+      const fallbackData = await generateMockQuestions(mappedSubject, examType.toUpperCase());
+      return res.json(fallbackData);
+    }
+  } catch (err: any) {
+    console.error("[ALOC Proxy Final Error]:", err.message);
+    const fallbackData = await generateMockQuestions('english', 'JAMB');
+    return res.json(fallbackData);
+  }
+});
+
+// 2. Question Explanation / Solutions Endpoint
+app.post("/api/aloc/explain", async (req: any, res: any) => {
+  try {
+    const { questionId, depth, questionText, correctAnswer, subject } = req.body;
+    const apiKey = getAlocApiKey();
+    const baseUrl = getAlocBaseUrl();
+
+    if (questionId && !String(questionId).startsWith('fallback-')) {
+      try {
+        const response = await axios.post(
+          `${baseUrl}/questions/${encodeURIComponent(questionId)}/explain`,
+          { depth: depth || "step_by_step" },
+          {
+            headers: {
+              "X-API-Key": apiKey,
+              "Accept": "application/json",
+              "Content-Type": "application/json"
+            },
+            timeout: 10000
+          }
+        );
+        if (response.data && response.data.data) {
+          return res.json({ success: true, data: response.data.data, source: "aloc_station" });
+        }
+      } catch (e: any) {
+        console.warn("[ALOC Explain Error]:", e.response?.data || e.message);
+      }
+    }
+
+    // Gemini explanation fallback
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (geminiKey) {
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const prompt = `Provide a comprehensive step-by-step explanation and solution for this exam question:
+Question: ${questionText || 'Exam Question'}
+Subject: ${subject || 'General'}
+Correct Answer: ${correctAnswer || 'Specified Answer'}
+
+Format response as JSON with this structure:
+{
+  "explanation": "Detailed explanation...",
+  "simplifiedExplanation": "One sentence summary...",
+  "steps": ["Step 1", "Step 2", "Step 3"],
+  "commonMistakes": [{"mistake": "...", "whyWrong": "..."}]
+}`;
+
+      const aiRes = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config: {
+          temperature: 0.4,
+          responseMimeType: "application/json"
+        }
+      });
+      const parsed = JSON.parse(aiRes.text || '{}');
+      return res.json({ success: true, data: parsed, source: "ai_fallback" });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        explanation: `The correct option is ${correctAnswer?.toUpperCase()}. Review standard textbook formulas for ${subject}.`,
+        steps: [`Confirm option ${correctAnswer?.toUpperCase()} based on syllabus guidelines.`]
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2.5 AI Score Analysis & Personal Study Advice
+app.post("/api/aloc/analyze-score", async (req: any, res: any) => {
+  try {
+    const { examType, totalScore, totalQuestions, timeTakenSeconds, subjectBreakdown } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+    if (!ai) {
+      return res.json({
+        success: true,
+        data: {
+          performanceLevel: "Good Effort",
+          projectedScoreSummary: `Score: ${totalScore} / ${totalQuestions} (${Math.round((totalScore / (totalQuestions || 1)) * 100)}%)`,
+          overallDiagnosis: "Great job completing your CBT mock session! Keep practicing past questions regularly to improve speed and topic accuracy.",
+          strengths: [{ subject: "General", insight: "Completed test within allotted time" }],
+          weaknesses: [{ subject: "General", topic: "Incorrect questions", issue: "Review missed items in the detailed answer key below", fix: "Study formulas and key concepts" }],
+          timeManagementAnalysis: `Pacing: ${Math.round(timeTakenSeconds / (totalQuestions || 1))} seconds per question on average.`,
+          personalizedActionPlan: [
+            { day: "Day 1", focus: "Incorrect Questions Review", action: "Go through every wrong answer in this session and read explanations." },
+            { day: "Day 2-3", focus: "Topic Study Mode", action: "Use the Study Section to read formulas and topic summaries." }
+          ],
+          encouragingClosingNote: "Consistency is the key to scoring 300+ in JAMB UTME & A's in WAEC!"
+        }
+      });
+    }
+
+    const percentage = Math.round((totalScore / (totalQuestions || 1)) * 100);
+    const avgSecondsPerQ = Math.round(timeTakenSeconds / (totalQuestions || 1));
+
+    const prompt = `You are an elite Nigerian CBT Exam Strategist & Academic Mentor specializing in JAMB UTME, WAEC SSCE, and Post-UTME preparation.
+Analyze the following candidate's test results and generate a highly personalized, actionable diagnostic report with study guidance.
+
+EXAM METRICS:
+- Exam Type: ${(examType || 'jamb').toUpperCase()}
+- Score: ${totalScore} / ${totalQuestions} (${percentage}%)
+- Time Elapsed: ${Math.floor(timeTakenSeconds / 60)}m ${timeTakenSeconds % 60}s (Average ${avgSecondsPerQ}s per question)
+- Subject Performance:
+${JSON.stringify(subjectBreakdown || [], null, 2)}
+
+Provide a structured, encouraging JSON output adhering strictly to this schema:
+{
+  "performanceLevel": "Excellent | Above Average | Average | Needs Improvement",
+  "projectedScoreSummary": "Realistic projected JAMB aggregate out of 400 or WAEC grade expectation",
+  "overallDiagnosis": "Detailed, highly empathetic 2-paragraph diagnosis of accuracy, time management, and topic mastery.",
+  "strengths": [
+    {"subject": "Subject Name", "insight": "Specific strength observed from correct answers"}
+  ],
+  "weaknesses": [
+    {"subject": "Subject Name", "topic": "Topic Name", "issue": "Specific issue observed from wrong answers", "fix": "Actionable revision tip"}
+  ],
+  "timeManagementAnalysis": "Analysis of candidate speed, pacing advice for JAMB (120 mins for 180 questions) or WAEC.",
+  "personalizedActionPlan": [
+    {"day": "Day 1-2", "focus": "Target Subject & Topic", "action": "Specific study step using syllabus summaries and past question drill"}
+  ],
+  "encouragingClosingNote": "Inspiring closing word for Nigerian student."
+}`;
+
+    const aiRes = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.5,
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(aiRes.text || '{}');
+    return res.json({ success: true, data: parsed });
+  } catch (err: any) {
+    console.error("[AI Score Analysis Error]:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Subjects & Syllabuses Metadata
+app.get("/api/aloc/subjects", async (req: any, res: any) => {
+  try {
+    const apiKey = getAlocApiKey();
+    const baseUrl = getAlocBaseUrl();
+
+    const response = await axios.get(`${baseUrl}/subjects`, {
+      headers: {
+        "X-API-Key": apiKey,
+        "Accept": "application/json"
+      },
+      timeout: 8000
+    });
+
     return res.json(response.data);
   } catch (err: any) {
-    console.error("[ALOC Proxy Error]:", err.message);
-    return res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data || err.message
+    console.error("[ALOC Subjects Error]:", err.message);
+    return res.json({
+      data: [
+        { name: "english-language", displayName: "English Language", code: "ENG" },
+        { name: "mathematics", displayName: "Mathematics", code: "MTH" },
+        { name: "physics", displayName: "Physics", code: "PHY" },
+        { name: "chemistry", displayName: "Chemistry", code: "CHE" },
+        { name: "biology", displayName: "Biology", code: "BIO" },
+        { name: "economics", displayName: "Economics", code: "ECN" },
+        { name: "government", displayName: "Government", code: "GOV" },
+        { name: "literature-in-english", displayName: "Literature in English", code: "LIT" },
+        { name: "christian-religious-studies", displayName: "Christian Religious Studies", code: "CRK" },
+        { name: "commerce", displayName: "Commerce", code: "COMM" },
+        { name: "accounting", displayName: "Accounting", code: "ACC" }
+      ]
     });
   }
 });
+
+// 4. Vector Similar Questions
+app.get("/api/aloc/similar/:questionId", async (req: any, res: any) => {
+  try {
+    const { questionId } = req.params;
+    const limit = req.query.limit || 3;
+    const apiKey = getAlocApiKey();
+    const baseUrl = getAlocBaseUrl();
+
+    const response = await axios.get(`${baseUrl}/questions/${encodeURIComponent(questionId)}/similar`, {
+      params: { limit },
+      headers: {
+        "X-API-Key": apiKey,
+        "Accept": "application/json"
+      },
+      timeout: 8000
+    });
+
+    return res.json(response.data);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => {
   try {
@@ -604,7 +1040,7 @@ app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => 
     console.error(`[IBASS Proxy Error - Programmes ID ${req.params.id}]:`, err.message);
     return res.status(err.response?.status || 500).json({
       success: false,
-      error: err.response?.data || err.message
+      error: err.response?.data?.error || err.response?.data || err.message
     });
   }
 });

@@ -42,7 +42,7 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     approvedAcceptC: 34660,
     acceptedD: 61095,
     totalAdmissions: 133254,
-    admissionYear: "2026/2027",
+    admissionYear: "2025/2026",
     sessionDate: "Thursday, August 27, 2026"
   },
   candidates: 2275690,
@@ -91,7 +91,7 @@ function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsS
       approvedAcceptC: incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 35404,
       acceptedD: Math.max(current.summary?.acceptedD || 58973, incoming.summary?.acceptedD || 0),
       totalAdmissions: Math.max(current.summary?.totalAdmissions || 130529, incoming.summary?.totalAdmissions || 0),
-      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2026/2027",
+      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2025/2026",
       sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Wednesday, August 26, 2026",
     }
   };
@@ -190,7 +190,7 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-24 md:pt-32 pb-24 text-gray-900 dark:text-white">
       <SEO 
-        title="JAMB CAPS Live Admission Statistics & Telemetry Portal 2026/2027" 
+        title="JAMB CAPS Live Admission Statistics & Telemetry Portal 2025/2026" 
         description="Real-time official JAMB Central Admissions Processing System (CAPS) telemetry dashboard. Track candidate pools, O'Level verification metrics, institutional quotas, and live admission approvals." 
         canonical="/jamb-caps"
       />
@@ -207,7 +207,7 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
             </button>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider mb-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Official JAMB CAPS Live Feed • {summary.admissionYear || '2026/2027'} Session
+              Official JAMB CAPS Live Feed • {summary.admissionYear || '2025/2026'} Session
             </div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tight flex items-center gap-3">
               Central Admissions Processing System (CAPS) Portal
@@ -429,7 +429,7 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
               <div>
                 <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">Cumulative Admissions' Summary (A + B + C + D)</h3>
                 <p className="text-xs text-gray-500">
-                  Total cumulative admission breakdown across all stages of processing for the current academic session ({summary.admissionYear || '2026/2027'}).
+                  Total cumulative admission breakdown across all stages of processing for the current academic session ({summary.admissionYear || '2025/2026'}).
                 </p>
               </div>
 

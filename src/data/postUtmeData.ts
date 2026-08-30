@@ -20,7 +20,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Jos": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIJOS 2026/2027 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.",
+    details: "UNIJOS 2025/2026 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.",
     portalLink: "https://portal.unijos.edu.ng",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -30,7 +30,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Nigeria, Nsukka": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNN 2026/2027 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered for admission.",
+    details: "UNN 2025/2026 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered for admission.",
     portalLink: "https://unnportal.unn.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -40,7 +40,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Benin": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIBEN 2026/2027 Post-UTME portal is open for registration. Strict application deadline applies. Screening of O-Level upload on CAPS is mandatory.",
+    details: "UNIBEN 2025/2026 Post-UTME portal is open for registration. Strict application deadline applies. Screening of O-Level upload on CAPS is mandatory.",
     portalLink: "https://unibenportal.com/#application",
     cutoffScore: "200",
     registrationFee: 2000,
@@ -50,7 +50,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Ibadan": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UI 2026/2027 Post-UTME form sales and registration are active on the admissions portal. Check subject compatibility before registering.",
+    details: "UI 2025/2026 Post-UTME form sales and registration are active on the admissions portal. Check subject compatibility before registering.",
     portalLink: "https://admissions.ui.edu.ng/#/",
     cutoffScore: "200",
     registrationFee: 5000,
@@ -60,7 +60,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Obafemi Awolowo University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OAU 2026/2027 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.",
+    details: "OAU 2025/2026 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.",
     portalLink: "https://eportal2.oauife.edu.ng/ug/admissions",
     cutoffScore: "200",
     registrationFee: 2000,
@@ -70,7 +70,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Ilorin": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNILORIN 2026/2027 Post-UTME registration portal is active for first-choice candidates meeting score requirements.",
+    details: "UNILORIN 2025/2026 Post-UTME registration portal is active for first-choice candidates meeting score requirements.",
     portalLink: "https://admissions.unilorin.edu.ng/",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -80,7 +80,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Bayero University, Kano": {
     isOut: true,
     statusText: "Registration Active",
-    details: "BUK 2026/2027 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.",
+    details: "BUK 2025/2026 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.",
     portalLink: "https://buk.edu.ng/",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -90,7 +90,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ahmadu Bello University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ABU Zaria 2026/2027 Post-UTME screening form is out on the portal. Online registration is active.",
+    details: "ABU Zaria 2025/2026 Post-UTME screening form is out on the portal. Online registration is active.",
     portalLink: "https://portal.abu.edu.ng/forms",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -100,7 +100,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Port Harcourt": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIPORT 2026/2027 Post-UTME registration link is live. Ensure O'Level details are properly uploaded.",
+    details: "UNIPORT 2025/2026 Post-UTME registration link is live. Ensure O'Level details are properly uploaded.",
     portalLink: "https://utmedetails.uniport.edu.ng/welcome_utme.php",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -110,7 +110,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Technology, Akure": {
     isOut: true,
     statusText: "Form Released (Point-Based)",
-    details: "FUTA 2026/2027 Point-Based screening registrations are active. Deadline: Friday, 31 July 2026.",
+    details: "FUTA 2025/2026 Point-Based screening registrations are active. Deadline: Friday, 31 July 2026.",
     portalLink: "https://www.futa.edu.ng/",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -120,7 +120,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Lagos": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNILAG 2026/2027 Post-UTME screening portal is active on the applications site.",
+    details: "UNILAG 2025/2026 Post-UTME screening portal is active on the applications site.",
     portalLink: "https://applications.unilag.edu.ng/home",
     cutoffScore: "200",
     registrationFee: 2000,
@@ -130,7 +130,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Technology, Owerri": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTO 2026/2027 screening forms are out and active on the undergraduate portal.",
+    details: "FUTO 2025/2026 screening forms are out and active on the undergraduate portal.",
     portalLink: "https://portal.futo.edu.ng/#undergraduate",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -140,7 +140,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Osun State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIOSUN 2026/2027 Post-UTME screening application portal is active.",
+    details: "UNIOSUN 2025/2026 Post-UTME screening application portal is active.",
     portalLink: "https://admissions.uniosun.edu.ng/",
     cutoffScore: "160",
     registrationFee: 3000,
@@ -150,7 +150,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Olabisi Onabanjo University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OOU 2026/2027 Post-UTME & DE screening forms are out. Registration deadline: Friday, 22 July 2026.",
+    details: "OOU 2025/2026 Post-UTME & DE screening forms are out. Registration deadline: Friday, 22 July 2026.",
     portalLink: "https://putme.oouagoiwoye.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -160,7 +160,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Lagos State University": {
     isOut: true,
     statusText: "Form Released",
-    details: "LASU 2026/2027 admission screening portal is active for first choice applicants.",
+    details: "LASU 2025/2026 admission screening portal is active for first choice applicants.",
     portalLink: "https://services.lidc.lasu.edu.ng/admissionscreening/",
     cutoffScore: "195",
     registrationFee: 2000,
@@ -170,7 +170,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ekiti State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "EKSU 2026/2027 Post-UTME online screening portal is active.",
+    details: "EKSU 2025/2026 Post-UTME online screening portal is active.",
     portalLink: "https://eksuportal.eksu.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -180,17 +180,17 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University Oye-Ekiti": {
     isOut: true,
     statusText: "Registration Active (Closes Aug 28)",
-    details: "FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: August 28, 2026. Note: Law department will NOT admit candidates for 2026/2027.",
+    details: "FUOYE 2025/2026 Post-UTME screening portal is active. Deadline: August 28, 2026. Note: Law department will NOT admit candidates for 2025/2026.",
     portalLink: "https://putme.fuoye.edu.ng/utme/",
     cutoffScore: "150",
     registrationFee: 2000,
     citationUrl: "https://myschoolgist.com/news/fuoye-post-utme-form/",
-    eligibilityText: "Minimum JAMB score: 150. Law department suspended for 2026/2027. Awaiting result candidates may apply."
+    eligibilityText: "Minimum JAMB score: 150. Law department suspended for 2025/2026. Awaiting result candidates may apply."
   },
   "Federal University of Technology and Environmental Sciences, Iyin-Ekiti": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTES-IYIN 2026/2027 Post-UTME screening exercise is open. Minimum JAMB score: 160 (some courses require 180).",
+    details: "FUTES-IYIN 2025/2026 Post-UTME screening exercise is open. Minimum JAMB score: 160 (some courses require 180).",
     portalLink: "https://portal.futes.edu.ng/apply",
     cutoffScore: "160",
     registrationFee: 5000,
@@ -200,7 +200,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Nnamdi Azikiwe University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIZIK 2026/2027 Post-UTME screening application portal is active.",
+    details: "UNIZIK 2025/2026 Post-UTME screening application portal is active.",
     portalLink: "https://apply.unizik.edu.ng/auth/login",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -210,7 +210,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Uyo": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIUYO 2026/2027 Post-UTME screening form is out. Registration closes Friday, 7 August 2026.",
+    details: "UNIUYO 2025/2026 Post-UTME screening form is out. Registration closes Friday, 7 August 2026.",
     portalLink: "https://eportals.uniuyo.edu.ng/",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -220,7 +220,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Delta State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "DELSU Abraka 2026/2027 Post-UTME portal is live for registration.",
+    details: "DELSU Abraka 2025/2026 Post-UTME portal is live for registration.",
     portalLink: "https://portal.delsuces.online/",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -230,7 +230,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ladoke Akintola University of Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "LAUTECH 2026/2027 Post-UTME screening portal is open for candidates with 170+ score.",
+    details: "LAUTECH 2025/2026 Post-UTME screening portal is open for candidates with 170+ score.",
     portalLink: "https://eportal.lautech.edu.ng/ug/admissions",
     cutoffScore: "170",
     registrationFee: 2000,
@@ -240,7 +240,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kwara State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KWASU Malete 2026/2027 Post-UTME form is officially out on the portal.",
+    details: "KWASU Malete 2025/2026 Post-UTME form is officially out on the portal.",
     portalLink: "https://portal.kwasu.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -250,7 +250,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Nasarawa State University, Keffi": {
     isOut: true,
     statusText: "Registration Active",
-    details: "NSUK Keffi 2026/2027 Post-UTME/DE application portal is active.",
+    details: "NSUK Keffi 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://portal.nsuk.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -260,7 +260,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Abuja": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIABUJA 2026/2027 Post-UTME online screening portal is live. Ensure O-Level results are uploaded to JAMB CAPS.",
+    details: "UNIABUJA 2025/2026 Post-UTME online screening portal is live. Ensure O-Level results are uploaded to JAMB CAPS.",
     portalLink: "https://portal.uniabuja.edu.ng/",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -270,7 +270,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Imo State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "IMSU Owerri 2026/2027 Post-UTME online screening form is active for candidates who scored 150+ in UTME.",
+    details: "IMSU Owerri 2025/2026 Post-UTME online screening form is active for candidates who scored 150+ in UTME.",
     portalLink: "https://imsu.edu.ng/apply",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -280,7 +280,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Bauchi State University, Gadau": {
     isOut: true,
     statusText: "Registration Active",
-    details: "BASU Gadau (Sa'adu Zungur University) 2026/2027 Post-UTME/DE online screening portal is active.",
+    details: "BASU Gadau (Sa'adu Zungur University) 2025/2026 Post-UTME/DE online screening portal is active.",
     portalLink: "https://basu.edu.ng/apply",
     cutoffScore: "140",
     registrationFee: 2000,
@@ -290,7 +290,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "WAEC & JAMB CAPS Verification": {
     isOut: true,
     statusText: "Upload Window Active",
-    details: "2026 WAEC / NECO result upload on JAMB CAPS is mandatory for all 2026/2027 Post-UTME candidates. Ensure result verification is completed before institutional admission screening closes.",
+    details: "2026 WAEC / NECO result upload on JAMB CAPS is mandatory for all 2025/2026 Post-UTME candidates. Ensure result verification is completed before institutional admission screening closes.",
     portalLink: "https://efacility.jamb.gov.ng/",
     cutoffScore: "5 Credits",
     registrationFee: 0,
@@ -300,7 +300,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Sule Lamido University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "SLU 2026/2027 Post-UTME application form is active on the admissions portal.",
+    details: "SLU 2025/2026 Post-UTME application form is active on the admissions portal.",
     portalLink: "https://admissions.slu.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -310,7 +310,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University, Wukari": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUWUKARI 2026/2027 Post-UTME & DE screening registration portal is active.",
+    details: "FUWUKARI 2025/2026 Post-UTME & DE screening registration portal is active.",
     portalLink: "https://ug.fuwportal.edu.ng/putme_registration.php",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -320,7 +320,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Health Sciences, Otukpo": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUHSO 2026/2027 Post-UTME application portal is live for prospective healthcare candidates.",
+    details: "FUHSO 2025/2026 Post-UTME application portal is live for prospective healthcare candidates.",
     portalLink: "https://postutme.fuhso.edu.ng/apply",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -330,7 +330,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kogi State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "PAAU / KSU Anyigba 2026/2027 Post-UTME screening portal is active.",
+    details: "PAAU / KSU Anyigba 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://portal.paau.edu.ng/pd_dip/utme_dashboard",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -340,7 +340,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Confluence University of Science and Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "CUSTECH Osara 2026/2027 Post-UTME screening application portal is active.",
+    details: "CUSTECH Osara 2025/2026 Post-UTME screening application portal is active.",
     portalLink: "https://eportal.custech.edu.ng/utme/index.php",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -350,7 +350,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Plateau State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "PLASU Bokkos 2026/2027 Post-UTME online registration portal is live.",
+    details: "PLASU Bokkos 2025/2026 Post-UTME online registration portal is live.",
     portalLink: "https://plasu.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -360,7 +360,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Modibbo Adama University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "MAU Yola 2026/2027 Post-UTME screening application portal is open.",
+    details: "MAU Yola 2025/2026 Post-UTME screening application portal is open.",
     portalLink: "https://mau.edu.ng/",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -370,7 +370,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Abubakar Tafawa Balewa University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ATBU Bauchi 2026/2027 Post-UTME screening login portal is active.",
+    details: "ATBU Bauchi 2025/2026 Post-UTME screening login portal is active.",
     portalLink: "http://screening.atbu.edu.ng/pages/login.php",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -380,7 +380,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Sokoto State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "SSU 2026/2027 Post-UTME/DE screening registration portal is live. Minimum cut-off mark: 150.",
+    details: "SSU 2025/2026 Post-UTME/DE screening registration portal is live. Minimum cut-off mark: 150.",
     portalLink: "https://ssu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -389,7 +389,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Northwest University, Kano": {
     isOut: true,
     statusText: "Registration Active",
-    details: "NWUK (YUMSUK) 2026/2027 Post-UTME online application exercise is active.",
+    details: "NWUK (YUMSUK) 2025/2026 Post-UTME online application exercise is active.",
     portalLink: "https://nwu.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -398,7 +398,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Abdulkadir Kure University, Minna": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Abdulkadir Kure University Minna 2026/2027 Post-UTME/DE screening portal is active.",
+    details: "Abdulkadir Kure University Minna 2025/2026 Post-UTME/DE screening portal is active.",
     portalLink: "https://akub.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -407,7 +407,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Health Sciences & Tech. Tsafe": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUHST Tsafe 2026/2027 Post-UTME application portal is accepting candidates for healthcare programs.",
+    details: "FUHST Tsafe 2025/2026 Post-UTME application portal is accepting candidates for healthcare programs.",
     portalLink: "https://fuhsttsafe.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -416,7 +416,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Bamidele Olumilua University of Edu, Sci & Tech.": {
     isOut: true,
     statusText: "Registration Active",
-    details: "BOUESTI Ikere-Ekiti 2026/2027 Post-UTME screening forms are out on the admissions portal.",
+    details: "BOUESTI Ikere-Ekiti 2025/2026 Post-UTME screening forms are out on the admissions portal.",
     portalLink: "https://bouesti.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -425,7 +425,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Aliko Dangote University of Science and Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ADUSTECH Wudil 2026/2027 Post-UTME/DE screening application portal is active.",
+    details: "ADUSTECH Wudil 2025/2026 Post-UTME/DE screening application portal is active.",
     portalLink: "https://adustech.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -434,7 +434,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kogi State University, Kabba": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KSU Kabba 2026/2027 Post-UTME/DE online screening portal is live.",
+    details: "KSU Kabba 2025/2026 Post-UTME/DE online screening portal is live.",
     portalLink: "https://ksukabba.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -443,7 +443,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kashim Ibrahim University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KIU 2026/2027 Post-UTME screening application portal is officially open.",
+    details: "KIU 2025/2026 Post-UTME screening application portal is officially open.",
     portalLink: "https://kiu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -452,7 +452,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Abdullahi Fodio University of Science and Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "AFUSTA 2026/2027 Post-UTME/DE application portal is active.",
+    details: "AFUSTA 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://afusta.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -461,7 +461,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Science & Tech. Kabo": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUST Kabo 2026/2027 Post-UTME application exercise is active.",
+    details: "FUST Kabo 2025/2026 Post-UTME application exercise is active.",
     portalLink: "https://fustkabo.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -470,7 +470,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Al-Qalam University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "AUK Katsina 2026/2027 Post-UTME/DE registration guidelines are published.",
+    details: "AUK Katsina 2025/2026 Post-UTME/DE registration guidelines are published.",
     portalLink: "https://auk.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -479,7 +479,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Medical Health Sci. Kwale": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUMHS Kwale 2026/2027 Post-UTME registration is open for medical & allied sciences.",
+    details: "FUMHS Kwale 2025/2026 Post-UTME registration is open for medical & allied sciences.",
     portalLink: "https://fumhskwale.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -488,7 +488,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Benue State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "BSU Makurdi 2026/2027 Post-UTME online screening portal is live.",
+    details: "BSU Makurdi 2025/2026 Post-UTME online screening portal is live.",
     portalLink: "https://bsum.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -497,7 +497,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Yobe State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "YSU Damaturu 2026/2027 Post-UTME/DE application portal is active.",
+    details: "YSU Damaturu 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://ysu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -506,7 +506,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Jewel University Gombe": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Jewel University Gombe 2026/2027 Post-UTME admission forms are open.",
+    details: "Jewel University Gombe 2025/2026 Post-UTME admission forms are open.",
     portalLink: "https://jeweluniversity.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -515,7 +515,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Summit University, Offa": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Summit University Offa 2026/2027 undergraduate registration portal is active.",
+    details: "Summit University Offa 2025/2026 undergraduate registration portal is active.",
     portalLink: "https://summituniversity.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -524,7 +524,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University Dutse": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUD 2026/2027 Post-UTME screening portal is active.",
+    details: "FUD 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://fud.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -533,7 +533,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Enugu State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ESUT Enugu 2026/2027 Post-UTME online screening application portal is active.",
+    details: "ESUT Enugu 2025/2026 Post-UTME online screening application portal is active.",
     portalLink: "https://esut.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -542,7 +542,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Education, Zaria": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FCE Zaria (Federal Univ of Education) 2026/2027 screening forms are on sale.",
+    details: "FCE Zaria (Federal Univ of Education) 2025/2026 screening forms are on sale.",
     portalLink: "https://fcezaria.edu.ng",
     cutoffScore: "140",
     registrationFee: 2000,
@@ -551,7 +551,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Lagos State University of Science and Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "LASUSTECH Ikorodu 2026/2027 Post-UTME screening portal is active.",
+    details: "LASUSTECH Ikorodu 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://lasustech.edu.ng",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -560,7 +560,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Bayelsa Medical University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "BMU Yenagoa 2026/2027 Post-UTME/DE application portal is active.",
+    details: "BMU Yenagoa 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://bmu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -569,7 +569,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Gombe State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "GOMSU 2026/2027 Post-UTME/DE online screening portal is live.",
+    details: "GOMSU 2025/2026 Post-UTME/DE online screening portal is live.",
     portalLink: "https://gsu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -578,7 +578,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Health Sciences Ira-Orangun": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUHSI Ira-Orangun 2026/2027 Post-UTME application portal is open.",
+    details: "FUHSI Ira-Orangun 2025/2026 Post-UTME application portal is open.",
     portalLink: "https://fuhsi.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -587,7 +587,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kaduna State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KASU 2026/2027 Post-UTME/DE online screening portal is active.",
+    details: "KASU 2025/2026 Post-UTME/DE online screening portal is active.",
     portalLink: "https://kasu.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -596,7 +596,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Emmanuel Alayande University of Education": {
     isOut: true,
     statusText: "Registration Active",
-    details: "EAUE Oyo 2026/2027 Post-UTME/DE screening form is out on portal.",
+    details: "EAUE Oyo 2025/2026 Post-UTME/DE screening form is out on portal.",
     portalLink: "https://eaued.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -605,7 +605,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Joseph Sarwuan Tarka University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "JOSTUM (FUAM) Makurdi 2026/2027 Post-UTME application exercise is live.",
+    details: "JOSTUM (FUAM) Makurdi 2025/2026 Post-UTME application exercise is live.",
     portalLink: "https://jostum.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -614,7 +614,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Bingham University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Bingham University Karu 2026/2027 Post-UTME screening forms are out.",
+    details: "Bingham University Karu 2025/2026 Post-UTME screening forms are out.",
     portalLink: "https://binghamuni.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -623,7 +623,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Lead City University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Lead City University Ibadan 2026/2027 undergraduate admission portal is active.",
+    details: "Lead City University Ibadan 2025/2026 undergraduate admission portal is active.",
     portalLink: "https://lcu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -632,7 +632,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University, Lafia": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FULAFIA 2026/2027 Post-UTME screening portal is active.",
+    details: "FULAFIA 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://fulafia.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -641,7 +641,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Tai Solarin University of Education": {
     isOut: true,
     statusText: "Registration Active",
-    details: "TASUED Ijagun 2026/2027 Post-UTME screening portal is active.",
+    details: "TASUED Ijagun 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://tasued.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -650,7 +650,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "State University of Medical and Applied Sciences": {
     isOut: true,
     statusText: "Registration Active",
-    details: "SUMAS Igbo-Eno 2026/2027 Post-UTME online registration is active.",
+    details: "SUMAS Igbo-Eno 2025/2026 Post-UTME online registration is active.",
     portalLink: "https://sumas.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -659,7 +659,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Michael Okpara University of Agriculture, Umudike": {
     isOut: true,
     statusText: "Registration Active",
-    details: "MOUAU Umudike 2026/2027 Post-UTME screening portal is active.",
+    details: "MOUAU Umudike 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://mouau.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -668,7 +668,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Technology, Ikot-Abasi": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTIA 2026/2027 Post-UTME/DE application portal is active.",
+    details: "FUTIA 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://futia.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -677,7 +677,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Edo State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "EDSU Uzairue 2026/2027 Post-UTME screening portal is open.",
+    details: "EDSU Uzairue 2025/2026 Post-UTME screening portal is open.",
     portalLink: "https://edouniversity.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -686,7 +686,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Health Sciences, Azare": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUHSA Azare 2026/2027 Post-UTME application portal is live.",
+    details: "FUHSA Azare 2025/2026 Post-UTME application portal is live.",
     portalLink: "https://fuhsa.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -695,7 +695,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Agriculture, Bassambiri": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUAB Bassambiri 2026/2027 Post-UTME screening portal is active.",
+    details: "FUAB Bassambiri 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://fuab.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -704,7 +704,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Adamawa State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ADSU Mubi 2026/2027 Post-UTME/DE screening portal is active.",
+    details: "ADSU Mubi 2025/2026 Post-UTME/DE screening portal is active.",
     portalLink: "https://adsu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -713,7 +713,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Transportation, Daura": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUTD Daura 2026/2027 Post-UTME screening forms are out.",
+    details: "FUTD Daura 2025/2026 Post-UTME screening forms are out.",
     portalLink: "https://futd.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -722,7 +722,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Alvan Ikoku Federal University of Education": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Alvan Ikoku Federal University of Education Owerri 2026/2027 screening forms are active.",
+    details: "Alvan Ikoku Federal University of Education Owerri 2025/2026 screening forms are active.",
     portalLink: "https://alvanikoku.edu.ng",
     cutoffScore: "140",
     registrationFee: 2000,
@@ -731,7 +731,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Chukwuemeka Odumegwu Ojukwu University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "COOU Igbariam 2026/2027 Post-UTME/DE application portal is active.",
+    details: "COOU Igbariam 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://coou.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -740,7 +740,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Olusegun Agagu University of Science and Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OAUSTECH Okitipupa 2026/2027 Post-UTME screening portal is active.",
+    details: "OAUSTECH Okitipupa 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://oaustech.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -749,7 +749,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Abia State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ABSU Uturu 2026/2027 Post-UTME online registration procedures released.",
+    details: "ABSU Uturu 2025/2026 Post-UTME online registration procedures released.",
     portalLink: "https://absu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -758,7 +758,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Agriculture and Technology, Okeho": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUNATO Okeho 2026/2027 Post-UTME application exercise is live.",
+    details: "FUNATO Okeho 2025/2026 Post-UTME application exercise is live.",
     portalLink: "https://funato.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -767,7 +767,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Maiduguri": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIMAID 2026/2027 Post-UTME screening portal is active.",
+    details: "UNIMAID 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://unimaid.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -776,7 +776,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Allied Health Sciences": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUAHSE Enugu 2026/2027 Post-UTME application procedures released.",
+    details: "FUAHSE Enugu 2025/2026 Post-UTME application procedures released.",
     portalLink: "https://fuahse.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -794,7 +794,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University Dutsin-ma": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUDMA Dutsin-Ma 2026/2027 Post-UTME screening portal is active.",
+    details: "FUDMA Dutsin-Ma 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://fudutsinma.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -803,7 +803,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University Kashere": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUKASHERE Gombe 2026/2027 Post-UTME application portal is live.",
+    details: "FUKASHERE Gombe 2025/2026 Post-UTME application portal is live.",
     portalLink: "https://fukashere.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -812,7 +812,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Sa'adu Zungur University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "SA'ZU (BASUG) Gadau 2026/2027 Post-UTME screening application is active.",
+    details: "SA'ZU (BASUG) Gadau 2025/2026 Post-UTME screening application is active.",
     portalLink: "https://basug.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -821,7 +821,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Prince Audu Abubakar University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "PAAU (KSU) Anyigba 2026/2027 Post-UTME application portal is active.",
+    details: "PAAU (KSU) Anyigba 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://paau.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -830,7 +830,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Nigerian Maritime University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "NMU Okerenkoko 2026/2027 Post-UTME screening portal is open.",
+    details: "NMU Okerenkoko 2025/2026 Post-UTME screening portal is open.",
     portalLink: "https://nmu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -839,7 +839,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Lagos State University of Education": {
     isOut: true,
     statusText: "Registration Active",
-    details: "LASUED Otto-Ijanikin 2026/2027 Post-UTME screening portal is active.",
+    details: "LASUED Otto-Ijanikin 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://lasued.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -848,7 +848,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ambrose Alli University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "AAU Ekpoma 2026/2027 Post-UTME/DE application procedures released.",
+    details: "AAU Ekpoma 2025/2026 Post-UTME/DE application procedures released.",
     portalLink: "https://aauekpoma.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -857,7 +857,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University of Petroleum Resources, Effurun": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUPRE Effurun 2026/2027 Post-UTME/DE application portal is active.",
+    details: "FUPRE Effurun 2025/2026 Post-UTME/DE application portal is active.",
     portalLink: "https://fupre.edu.ng",
     cutoffScore: "170",
     registrationFee: 2000,
@@ -866,7 +866,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Adekunle Ajasin University, Akungba": {
     isOut: true,
     statusText: "Registration Active",
-    details: "AAUA Akungba-Akoko 2026/2027 Post-UTME screening portal is active.",
+    details: "AAUA Akungba-Akoko 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://aaua.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -875,7 +875,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ebonyi State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "EBSU Abakaliki 2026/2027 Post-UTME application portal is active.",
+    details: "EBSU Abakaliki 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://ebsu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -884,7 +884,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Dennis Osadebay University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "DOU Anwai Asaba 2026/2027 Post-UTME screening portal is open.",
+    details: "DOU Anwai Asaba 2025/2026 Post-UTME screening portal is open.",
     portalLink: "https://dou.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -893,7 +893,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Delta, Agbor": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIDEL Agbor 2026/2027 Post-UTME application portal is active.",
+    details: "UNIDEL Agbor 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://unidel.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -902,7 +902,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Agriculture and Environmental Sciences": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UAES Umuagwo 2026/2027 Post-UTME screening forms are out.",
+    details: "UAES Umuagwo 2025/2026 Post-UTME screening forms are out.",
     portalLink: "https://uaes.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -911,7 +911,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Cross River": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNICROSS Calabar 2026/2027 Post-UTME screening portal is active.",
+    details: "UNICROSS Calabar 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://unicross.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -920,7 +920,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal University, Otuoke": {
     isOut: true,
     statusText: "Registration Active",
-    details: "FUOTUOKE Bayelsa 2026/2027 Post-UTME screening portal is active.",
+    details: "FUOTUOKE Bayelsa 2025/2026 Post-UTME screening portal is active.",
     portalLink: "https://fuotuoke.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -929,7 +929,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Niger Delta University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "NDU Wilberforce Island 2026/2027 Post-UTME application portal is active.",
+    details: "NDU Wilberforce Island 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://ndu.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -938,7 +938,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Rivers State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "RSU Port Harcourt 2026/2027 Post-UTME application portal is active.",
+    details: "RSU Port Harcourt 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://rsu.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -947,7 +947,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "University of Medical Sciences Ondo": {
     isOut: true,
     statusText: "Registration Active",
-    details: "UNIMED Ondo 2026/2027 Post-UTME application portal is active.",
+    details: "UNIMED Ondo 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://unimed.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -956,7 +956,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Afe Babalola University, Ado Ekiti": {
     isOut: true,
     statusText: "Registration Active",
-    details: "ABUAD Ado-Ekiti 2026/2027 undergraduate admission portal is active.",
+    details: "ABUAD Ado-Ekiti 2025/2026 undergraduate admission portal is active.",
     portalLink: "https://abuad.edu.ng",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -965,7 +965,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Redeemer's University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "RUN Ede 2026/2027 Post-UTME application portal is open.",
+    details: "RUN Ede 2025/2026 Post-UTME application portal is open.",
     portalLink: "https://run.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
@@ -974,7 +974,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Babcock University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Babcock University Ilishan-Remo 2026/2027 admissions portal is active.",
+    details: "Babcock University Ilishan-Remo 2025/2026 admissions portal is active.",
     portalLink: "https://babcock.edu.ng",
     cutoffScore: "170",
     registrationFee: 2000,
@@ -983,7 +983,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Ignatius Ajuru University of Education": {
     isOut: true,
     statusText: "Registration Active",
-    details: "IAUE Rumuolumeni 2026/2027 Post-UTME application portal is active.",
+    details: "IAUE Rumuolumeni 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://iaue.edu.ng",
     cutoffScore: "150",
     registrationFee: 2000,
@@ -992,7 +992,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Covenant University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Covenant University Ota 2026/2027 Post-UTME application portal is active.",
+    details: "Covenant University Ota 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://covenantuniversity.edu.ng",
     cutoffScore: "180",
     registrationFee: 2000,
@@ -1010,7 +1010,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Yaba College of Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "YABATECH Yaba 2026/2027 Post-UTME screening portal is open.",
+    details: "YABATECH Yaba 2025/2026 Post-UTME screening portal is open.",
     portalLink: "https://yabatech.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1019,7 +1019,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal Polytechnic, Idah": {
     isOut: true,
     statusText: "Registration Active",
-    details: "Federal Poly Idah 2026/2027 Post-UTME application portal is active.",
+    details: "Federal Poly Idah 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://fepoda.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1028,7 +1028,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal Polytechnic, Offa": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OFFAPOLY 2026/2027 Post-UTME screening procedures released.",
+    details: "OFFAPOLY 2025/2026 Post-UTME screening procedures released.",
     portalLink: "https://fedpoffaonline.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1037,7 +1037,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Plateau State Polytechnic": {
     isOut: true,
     statusText: "Registration Active",
-    details: "PLAPOLY Barkin Ladi 2026/2027 ND admission forms are live.",
+    details: "PLAPOLY Barkin Ladi 2025/2026 ND admission forms are live.",
     portalLink: "https://plapoly.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1046,7 +1046,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal Polytechnic, Ede": {
     isOut: true,
     statusText: "Registration Active",
-    details: "EDEPOLY 2026/2027 Post-UTME online application portal is active.",
+    details: "EDEPOLY 2025/2026 Post-UTME online application portal is active.",
     portalLink: "https://federalpolyede.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1055,7 +1055,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Federal Polytechnic, Oko": {
     isOut: true,
     statusText: "Registration Active",
-    details: "OKOPOLY 2026/2027 Post-UTME application portal is open.",
+    details: "OKOPOLY 2025/2026 Post-UTME application portal is open.",
     portalLink: "https://federalpolyoko.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1064,7 +1064,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Delta State Poly, Ogwashi-Uku": {
     isOut: true,
     statusText: "Registration Active",
-    details: "DSPG Ogwashi-Uku 2026/2027 Post-UTME application portal is active.",
+    details: "DSPG Ogwashi-Uku 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://dspg.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1073,7 +1073,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kogi State Poly": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KSP Lokoja 2026/2027 Post-UTME application procedures released.",
+    details: "KSP Lokoja 2025/2026 Post-UTME application procedures released.",
     portalLink: "https://kogistatepolytechnic.edu.ng",
     cutoffScore: "120",
     registrationFee: 2000,
@@ -1082,7 +1082,7 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Air Force Institute of Technology": {
     isOut: true,
     statusText: "Registration Active",
-    details: "AFIT Kaduna 2026/2027 Post-UTME application portal is active.",
+    details: "AFIT Kaduna 2025/2026 Post-UTME application portal is active.",
     portalLink: "https://afit.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,

@@ -1045,7 +1045,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                     </span>
                                   ) : item.cutoffIsOfficial || (item.university && (item.university.includes('Ibadan') || item.university.toLowerCase() === 'ui')) ? (
                                     <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-md font-bold text-[10px]">
-                                      Verified Official 2025/2026 Release
+                                      Verified Official 2026/2026 Release
                                     </span>
                                   ) : (
                                     <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-md font-bold text-[10px]">

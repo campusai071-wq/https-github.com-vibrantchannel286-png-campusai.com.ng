@@ -845,7 +845,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                       AI Advisor Under Upgrade
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
-                      CampusAI Chat engines are currently undergoing database upgrades for 2026/2027 departmental cutoff calculations and JAMB CAPS guidelines. Chat will be back online shortly!
+                      CampusAI Chat engines are currently undergoing database upgrades for 2025/2026 departmental cutoff calculations and JAMB CAPS guidelines. Chat will be back online shortly!
                     </p>
                   </div>
 

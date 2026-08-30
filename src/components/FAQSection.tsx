@@ -35,7 +35,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Admission',
     question: "How old should I be for me to be eligible?",
-    answer: "Only candidates who will be 16 years old by 30th September, 2025/2026, are eligible to apply. Candidates who would be less than 16 years old can only apply for trial mock examination. However, exceptional students who are below 16 can apply and be considered provided they score 80% in the UTME, SSCE and Post-UTME and the exceptional candidates' examination."
+    answer: "Only candidates who will be 16 years old by 30th September, 2026/2026, are eligible to apply. Candidates who would be less than 16 years old can only apply for trial mock examination. However, exceptional students who are below 16 can apply and be considered provided they score 80% in the UTME, SSCE and Post-UTME and the exceptional candidates' examination."
   },
   {
     category: 'Admission',

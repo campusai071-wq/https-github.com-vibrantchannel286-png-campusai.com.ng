@@ -951,7 +951,11 @@ const AppContent: React.FC = () => {
           <Route path="/admin/stats" element={<CalculationStats />} />
           <Route path="/cbt-simulator" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
-              <CbtSimulator />
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                setPaymentConfig={setPaymentConfig} 
+              />
             </div>
           } />
           
@@ -1035,7 +1039,7 @@ const AppContent: React.FC = () => {
           <Route path="/postutme" element={
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
-                title="2026/2027 Post-UTME Screening Hub & Release Dates"
+                title="2025/2026 Post-UTME Screening Hub & Release Dates"
                 description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
                 canonical="/postutme"
               />
@@ -1070,7 +1074,7 @@ const AppContent: React.FC = () => {
           <Route path="/post-utme" element={
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
-                title="2026/2027 Post-UTME Screening Hub & Release Dates"
+                title="2025/2026 Post-UTME Screening Hub & Release Dates"
                 description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and merit cut-off marks for Nigerian federal and state universities."
                 canonical="/postutme"
               />
@@ -1105,7 +1109,7 @@ const AppContent: React.FC = () => {
           <Route path="/result-slip" element={
             <div className="pt-24 min-h-screen bg-gray-950">
               <SEO 
-                title="2026/2027 Post-UTME Screening Hub & Result Slip"
+                title="2025/2026 Post-UTME Screening Hub & Result Slip"
                 description="Official tracking for 2026 Post-UTME registration dates, screening schedules, and JAMB Original Result Slip printing."
                 canonical="/result-slip"
               />
@@ -1151,7 +1155,7 @@ const AppContent: React.FC = () => {
           <Route path="/syllabus" element={
             <div className="pt-24 md:pt-32 min-h-screen bg-gray-950 px-4 md:px-8">
               <SEO 
-                title="UTME Master Syllabus Explorer - JAMB 2026/2027"
+                title="UTME Master Syllabus Explorer - JAMB 2025/2026"
                 description="Browse official UTME examination syllabuses for Chemistry, Biology, Physics, Mathematics, English, Commerce, Economics, Government, CRS, French, Art, Arabic, and Computer Studies."
               />
               <SyllabusExplorer 
@@ -1301,7 +1305,7 @@ const AppContent: React.FC = () => {
       <Route path="/news" element={
         <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
           <SEO 
-            title="2026/2027 JAMB & Admission News Hub" 
+            title="2025/2026 JAMB & Admission News Hub" 
             description="Stay updated with official admission guidelines, Post-UTME registration dates, and university screening schedules for the 2026 Nigerian academic cycle."
             canonical="/news"
           />
@@ -1326,7 +1330,7 @@ const AppContent: React.FC = () => {
           <Route path="/postutme" element={
             <div className="pt-8 min-h-screen bg-gray-950">
               <SEO 
-                title="2026/2027 Post-UTME Hub | Registration & Schedules" 
+                title="2025/2026 Post-UTME Hub | Registration & Schedules" 
                 description="Official tracking for 2026 Post-UTME registration dates, exam schedules, and merit cut-off marks for Nigerian federal and state universities."
                 canonical="/postutme"
               />

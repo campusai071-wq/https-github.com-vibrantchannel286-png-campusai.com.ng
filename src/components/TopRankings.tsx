@@ -63,7 +63,7 @@ export const EVALUATION_DATA: Record<string, UniversityEvaluationData> = {
     ],
     notableResearchHubs: ["MacArthur Foundation Multidisciplinary Center", "Institute of Advanced Medical Research", "Center for Sustainable Development"],
     employabilityHighlight: "92% graduate employment velocity within 12 months in top medical, civil service, finance, and academic sectors.",
-    calendarStatus: "Fully Active — 2025/2026 Academic Calendar running on precise schedule."
+    calendarStatus: "Fully Active — 2026/2026 Academic Calendar running on precise schedule."
   },
   unilag: {
     rank: 2,
@@ -400,7 +400,7 @@ const TopRankings: React.FC<TopRankingsProps> = ({ onSelectUni }) => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-gray-900 dark:text-white">CampusAI Ranking & Evaluation Methodology</h3>
-                    <p className="text-xs text-gray-400 font-medium">Standardized 100-Point Institutional Quality Matrix (2026/2027)</p>
+                    <p className="text-xs text-gray-400 font-medium">Standardized 100-Point Institutional Quality Matrix (2025/2026)</p>
                   </div>
                 </div>
                 <button 

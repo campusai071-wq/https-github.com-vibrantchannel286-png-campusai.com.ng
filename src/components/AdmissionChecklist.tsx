@@ -132,7 +132,7 @@ export const AdmissionChecklist: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-white/10 pb-8">
             <div>
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-xs uppercase tracking-wider mb-3">
-                <Sparkles size={14} /> 2026/2027 Admission Readiness Hub
+                <Sparkles size={14} /> 2025/2026 Admission Readiness Hub
               </div>
               <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                 Post-Admission Registration & Clearance Checklist

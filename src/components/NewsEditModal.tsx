@@ -242,7 +242,7 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                           .replace(/Candidate unconditional Pl age gorgeous.*/gi, '')
                           .replace(/Timroduce web र DO not written hmm.*/gi, '')
                           .replace(/html At trader injected trades Lil seats.*/gi, '')
-                          .replace(/Quick Action Checklist for 2026\/2027 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2026/2027 Post-UTME Candidates')
+                          .replace(/Quick Action Checklist for 2026\/2026 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2025/2026 Post-UTME Candidates')
                           .replace(/ClassName|className|#html|lmore|Timroduce|hmm|il thereby|dan,K detox|\/|\\|:|\$|र| 준비|準備/gi, ' ')
                           .replace(/[\u0370-\u03FF\u1F00-\u1FFF]/g, '')
                           .replace(/\s\s+/g, ' ')

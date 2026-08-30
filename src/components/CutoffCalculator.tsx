@@ -454,69 +454,69 @@ const getPostUtmeStatus = (schoolName: string): PostUtmeStatusInfo => {
   });
 
   if (n.includes("lagos") || n.includes("unilag"))
-    return closedExam("UNILAG 2026/2027 Post-UTME registration is closed. CBT screening exams & results processing in progress.", "https://applications.unilag.edu.ng/home");
+    return closedExam("UNILAG 2025/2026 Post-UTME registration is closed. CBT screening exams & results processing in progress.", "https://applications.unilag.edu.ng/home");
   if (n.includes("ibadan") || n.includes("ui"))
-    return active("UI 2026/2027 Post-UTME form sales & exam timetable on portal. Fee: ₦5,000.", "https://admissions.ui.edu.ng/#/");
+    return active("UI 2025/2026 Post-UTME form sales & exam timetable on portal. Fee: ₦5,000.", "https://admissions.ui.edu.ng/#/");
   if (n.includes("awolowo") || n.includes("oau") || n.includes("ife"))
-    return closedExam("OAU 2026/2027 Post-UTME registration is closed. Screening CBT exams ongoing.", "https://eportal2.oauife.edu.ng/ug/admissions");
+    return closedExam("OAU 2025/2026 Post-UTME registration is closed. Screening CBT exams ongoing.", "https://eportal2.oauife.edu.ng/ug/admissions");
   if (n.includes("benin") || n.includes("uniben"))
-    return closedExam("UNIBEN 2026/2027 Post-UTME registration is officially closed. Candidates are writing/awaiting screening scores and JAMB CAPS list releases.", "https://unibenportal.com/#application");
+    return closedExam("UNIBEN 2025/2026 Post-UTME registration is officially closed. Candidates are writing/awaiting screening scores and JAMB CAPS list releases.", "https://unibenportal.com/#application");
   if (n.includes("nsukka") || n.includes("nigeria") || n.includes("unn"))
-    return closedOnline("UNN 2026/2027 Post-UTME registration is closed. UNN conducts online O'Level screening (No CBT exam written). Aggregate score processing in progress.", "https://unnportal.unn.edu.ng/");
+    return closedOnline("UNN 2025/2026 Post-UTME registration is closed. UNN conducts online O'Level screening (No CBT exam written). Aggregate score processing in progress.", "https://unnportal.unn.edu.ng/");
   if (n.includes("futa") || n.includes("technology, akure"))
-    return closedOnline("FUTA 2026/2027 Point-Based screening registration is closed. FUTA conducts purely online screening (No CBT exam written). Point ranking in progress.", "https://www.futa.edu.ng/");
+    return closedOnline("FUTA 2025/2026 Point-Based screening registration is closed. FUTA conducts purely online screening (No CBT exam written). Point ranking in progress.", "https://www.futa.edu.ng/");
   if (n.includes("lasu") || n.includes("lagos state"))
-    return closedOnline("LASU 2026/2027 screening application portal closed. LASU evaluates via online point-based screening (No exam written). Results released on portal.", "https://services.lidc.lasu.edu.ng/admissionscreening/");
+    return closedOnline("LASU 2025/2026 screening application portal closed. LASU evaluates via online point-based screening (No exam written). Results released on portal.", "https://services.lidc.lasu.edu.ng/admissionscreening/");
   if (n.includes("futminna") || n.includes("technology, minna"))
-    return active("FUTMinna 2026/2027 online registration on portal. Cutoff: 180.", "https://futminna.edu.ng");
+    return active("FUTMinna 2025/2026 online registration on portal. Cutoff: 180.", "https://futminna.edu.ng");
   if (n.includes("futo") || n.includes("technology, owerri"))
-    return closedOnline("FUTO 2026/2027 screening registration closed. Online screening scores calculated from JAMB + O'Level uploaded on portal.", "https://portal.futo.edu.ng/#undergraduate");
+    return closedOnline("FUTO 2025/2026 screening registration closed. Online screening scores calculated from JAMB + O'Level uploaded on portal.", "https://portal.futo.edu.ng/#undergraduate");
   if (n.includes("port harcourt") || n.includes("uniport"))
-    return closedExam("UNIPORT 2026/2027 Post-UTME registration closed. CBT screening exams & evaluations ongoing.", "https://utmedetails.uniport.edu.ng/welcome_utme.php");
+    return closedExam("UNIPORT 2025/2026 Post-UTME registration closed. CBT screening exams & evaluations ongoing.", "https://utmedetails.uniport.edu.ng/welcome_utme.php");
   if (n.includes("ilorin") || n.includes("unilorin"))
-    return active("UNILORIN 2026/2027 Post-UTME registration active. Cutoff: 180.", "https://admissions.unilorin.edu.ng/");
+    return active("UNILORIN 2025/2026 Post-UTME registration active. Cutoff: 180.", "https://admissions.unilorin.edu.ng/");
   if (n.includes("bayero") || n.includes("buk"))
-    return active("BUK 2026/2027 Post-UTME online screening portal live for 180+ score.", "https://buk.edu.ng/");
+    return active("BUK 2025/2026 Post-UTME online screening portal live for 180+ score.", "https://buk.edu.ng/");
   if (n.includes("abu") || n.includes("abello") || n.includes("zaria"))
-    return active("ABU Zaria 2026/2027 Post-UTME forms on portal. Cutoff: 180.", "https://portal.abu.edu.ng/forms");
+    return active("ABU Zaria 2025/2026 Post-UTME forms on portal. Cutoff: 180.", "https://portal.abu.edu.ng/forms");
   if (n.includes("nnamdi azikiwe") || n.includes("unizik"))
-    return active("UNIZIK 2026/2027 Post-UTME screening registration application link live. Cutoff: 180.", "https://apply.unizik.edu.ng/auth/login");
+    return active("UNIZIK 2025/2026 Post-UTME screening registration application link live. Cutoff: 180.", "https://apply.unizik.edu.ng/auth/login");
   if (n.includes("uyo") || n.includes("uniuyo"))
-    return closedOnline("UNIUYO 2026/2027 Post-UTME screening registration closed. Online O'Level screening (No exam written) processing.", "https://eportals.uniuyo.edu.ng/");
+    return closedOnline("UNIUYO 2025/2026 Post-UTME screening registration closed. Online O'Level screening (No exam written) processing.", "https://eportals.uniuyo.edu.ng/");
   if (n.includes("osun state") || n.includes("uniosun"))
-    return active("UNIOSUN 2026/2027 Post-UTME screening application portal active. Fee: ₦3,000.", "https://admissions.uniosun.edu.ng/");
+    return active("UNIOSUN 2025/2026 Post-UTME screening application portal active. Fee: ₦3,000.", "https://admissions.uniosun.edu.ng/");
   if (n.includes("olabisi onabanjo") || n.includes("oou"))
-    return closedOnline("OOU 2026/2027 Post-UTME screening registration closed. Online point-based screening (No CBT exam) evaluation in progress.", "https://putme.oouagoiwoye.edu.ng/");
+    return closedOnline("OOU 2025/2026 Post-UTME screening registration closed. Online point-based screening (No CBT exam) evaluation in progress.", "https://putme.oouagoiwoye.edu.ng/");
   if (n.includes("ekiti state") || n.includes("eksu"))
-    return active("EKSU 2026/2027 Post-UTME online screening portal active. Cutoff: 160.", "https://eksuportal.eksu.edu.ng/");
+    return active("EKSU 2025/2026 Post-UTME online screening portal active. Cutoff: 160.", "https://eksuportal.eksu.edu.ng/");
   if (n.includes("fuoye") || n.includes("oye-ekiti"))
-    return closedOnline("FUOYE 2026/2027 Post-UTME screening registration closed. FUOYE conducts purely online point screening (No exam written). Aggregate ranking in progress.", "https://putme.fuoye.edu.ng/utme/");
+    return closedOnline("FUOYE 2025/2026 Post-UTME screening registration closed. FUOYE conducts purely online point screening (No exam written). Aggregate ranking in progress.", "https://putme.fuoye.edu.ng/utme/");
   if (n.includes("delta state") || n.includes("delsu"))
-    return closedExam("DELSU 2026/2027 Post-UTME screening registration closed. Post-UTME CBT screening exams conducted.", "https://portal.delsuces.online/");
+    return closedExam("DELSU 2025/2026 Post-UTME screening registration closed. Post-UTME CBT screening exams conducted.", "https://portal.delsuces.online/");
   if (n.includes("lautech") || n.includes("ladoke akintola"))
-    return active("LAUTECH 2026/2027 Post-UTME screening portal active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
+    return active("LAUTECH 2025/2026 Post-UTME screening portal active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
   if (n.includes("kwara state") || n.includes("kwasu"))
-    return active("KWASU 2026/2027 Post-UTME registration portal active.", "https://portal.kwasu.edu.ng/");
+    return active("KWASU 2025/2026 Post-UTME registration portal active.", "https://portal.kwasu.edu.ng/");
   if (n.includes("nasarawa state") || n.includes("nsuk"))
-    return active("NSUK Keffi 2026/2027 Post-UTME screening application portal active.", "https://portal.nsuk.edu.ng/");
+    return active("NSUK Keffi 2025/2026 Post-UTME screening application portal active.", "https://portal.nsuk.edu.ng/");
   if (n.includes("sule lamido") || n.includes("slu"))
-    return active("SLU 2026/2027 Post-UTME screening registration portal active. Cutoff: 160.", "https://admissions.slu.edu.ng/");
+    return active("SLU 2025/2026 Post-UTME screening registration portal active. Cutoff: 160.", "https://admissions.slu.edu.ng/");
   if (n.includes("wukari") || n.includes("fuwukari"))
-    return active("FUWukari 2026/2027 Post-UTME registration portal active.", "https://ug.fuwportal.edu.ng/putme_registration.php");
+    return active("FUWukari 2025/2026 Post-UTME registration portal active.", "https://ug.fuwportal.edu.ng/putme_registration.php");
   if (n.includes("otukpo") || n.includes("fuhso"))
-    return active("FUHSO 2026/2027 Post-UTME screening application portal active.", "https://postutme.fuhso.edu.ng/apply");
+    return active("FUHSO 2025/2026 Post-UTME screening application portal active.", "https://postutme.fuhso.edu.ng/apply");
   if (n.includes("kogi state") || n.includes("ksu") || n.includes("paau"))
-    return closedOnline("PAAU / KSU 2026/2027 Post-UTME screening registration closed.", "https://portal.paau.edu.ng/pd_dip/utme_dashboard");
+    return closedOnline("PAAU / KSU 2025/2026 Post-UTME screening registration closed.", "https://portal.paau.edu.ng/pd_dip/utme_dashboard");
   if (n.includes("custech") || n.includes("confluence"))
-    return active("CUSTECH 2026/2027 Post-UTME screening portal active.", "https://eportal.custech.edu.ng/utme/index.php");
+    return active("CUSTECH 2025/2026 Post-UTME screening portal active.", "https://eportal.custech.edu.ng/utme/index.php");
   if (n.includes("plateau state") || n.includes("plasu"))
-    return active("PLASU 2026/2027 Post-UTME screening portal active. Cutoff: 160.", "https://plasu.edu.ng/");
+    return active("PLASU 2025/2026 Post-UTME screening portal active. Cutoff: 160.", "https://plasu.edu.ng/");
   if (n.includes("modibbo adama") || n.includes("mau"))
-    return active("MAU Yola 2026/2027 Post-UTME screening application portal active.", "https://mau.edu.ng/");
+    return active("MAU Yola 2025/2026 Post-UTME screening application portal active.", "https://mau.edu.ng/");
   if (n.includes("abubakar tafawa balewa") || n.includes("atbu"))
-    return active("ATBU 2026/2027 Post-UTME screening login portal active.", "http://screening.atbu.edu.ng/pages/login.php");
+    return active("ATBU 2025/2026 Post-UTME screening login portal active.", "http://screening.atbu.edu.ng/pages/login.php");
 
-  return pending(`${schoolName} 2026/2027 Post-UTME status: Check official university portal for active registration windows or screening score releases.`);
+  return pending(`${schoolName} 2025/2026 Post-UTME status: Check official university portal for active registration windows or screening score releases.`);
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -1452,17 +1452,17 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [handbookCourseDetails, setHandbookCourseDetails] = useState<Record<string, any>>({});
   const [isCheckingDetails, setIsCheckingDetails] = useState<string | null>(null);
 
-  // ── UI 2025/2026 Cutoffs Explorer State ──
+  // ── UI 2026/2026 Cutoffs Explorer State ──
   const [isUICutoffsModalOpen, setIsUICutoffsModalOpen] = useState(false);
   const [uiCutoffSearch, setUiCutoffSearch] = useState('');
   const [uiFacultyFilter, setUiFacultyFilter] = useState('ALL');
 
-  // ── FUTA 2026/2027 Cutoffs Explorer State ──
+  // ── FUTA 2025/2026 Cutoffs Explorer State ──
   const [isFUTACutoffsModalOpen, setIsFUTACutoffsModalOpen] = useState(false);
   const [futaCutoffSearch, setFutaCutoffSearch] = useState('');
   const [futaSchoolFilter, setFutaSchoolFilter] = useState('ALL');
 
-  // ── LAUTECH 2025/2026 Cutoffs Explorer State ──
+  // ── LAUTECH 2026/2026 Cutoffs Explorer State ──
   const [isLAUTECHCutoffsModalOpen, setIsLAUTECHCutoffsModalOpen] = useState(false);
   const [lautechCutoffSearch, setLautechCutoffSearch] = useState('');
   const [lautechFacultyFilter, setLautechFacultyFilter] = useState('ALL');
@@ -2521,7 +2521,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         cutoffType: result?.cutoffType || (result?.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
         cutoffIsOfficial: !!result?.cutoffIsOfficial,
         cutoffSource: result?.cutoffSource || '',
-        cutoffYear: result?.cutoffYear || '2025/2026',
+        cutoffYear: result?.cutoffYear || '2026/2026',
         cutoffQuotaUsed: result?.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
         scoreDiff: typeof result?.scoreDiff === 'number' ? result.scoreDiff : 0,
         predictionDate: new Date().toISOString().split('T')[0],
@@ -2818,7 +2818,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div className="space-y-3 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <p className="text-xs text-gray-300 font-medium leading-relaxed">
-                        {currentSchoolSlug === 'ui' ? 'Official UI 2025/2026 Departmental Cut-Off Marks (Top Programmes):' : 'Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:'}
+                        {currentSchoolSlug === 'ui' ? 'Official UI 2026/2026 Departmental Cut-Off Marks (Top Programmes):' : 'Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:'}
                       </p>
                       {currentSchoolSlug === 'ui' && (
                         <button
@@ -2835,7 +2835,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           onClick={() => setIsFUTACutoffsModalOpen(true)}
                           className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
-                          <BookOpen size={11} /> View All Official FUTA 2026/2027 Cut-Off Marks
+                          <BookOpen size={11} /> View All Official FUTA 2025/2026 Cut-Off Marks
                         </button>
                       )}
                       {currentSchoolSlug === 'lautech' && (
@@ -4412,7 +4412,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                     {aiResult.cutoffValue ? `${aiResult.cutoffValue}%` : (aiResult.departmentalCutoff || aiResult.cutoff || 'N/A')}
                                   </p>
                                   <p className="text-[9.5px] text-gray-400 mt-1 font-medium leading-tight">
-                                    {aiResult.cutoffSource || (targetUni?.name.includes('Ibadan') ? 'Official UI 2025/2026 Senate Release' : 'Historical Departmental Benchmark')}
+                                    {aiResult.cutoffSource || (targetUni?.name.includes('Ibadan') ? 'Official UI 2026/2026 Senate Release' : 'Historical Departmental Benchmark')}
                                   </p>
                                 </div>
                                 <div className="mt-3 pt-2 border-t border-white/5 text-[9px] font-mono text-emerald-400/90 flex items-center gap-1 font-bold">
@@ -6353,7 +6353,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
 
 
-      {/* UI 2025/2026 Cutoff Marks Explorer Modal */}
+      {/* UI 2026/2026 Cutoff Marks Explorer Modal */}
       <AnimatePresence>
         {isUICutoffsModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -6379,7 +6379,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest">
-                        Official UI Release • 2025/2026
+                        Official UI Release • 2026/2026
                       </span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
@@ -6557,7 +6557,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         )}
       </AnimatePresence>
 
-      {/* FUTA 2026/2027 Cutoff Marks Explorer Modal */}
+      {/* FUTA 2025/2026 Cutoff Marks Explorer Modal */}
       <AnimatePresence>
         {isFUTACutoffsModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -6583,7 +6583,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[8px] font-black uppercase tracking-widest">
-                        Official FUTA Release • 2026/2027
+                        Official FUTA Release • 2025/2026
                       </span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">
@@ -6796,7 +6796,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           </div>
         )}
 
-        {/* ── LAUTECH 2025/2026 Cutoffs Explorer Modal ── */}
+        {/* ── LAUTECH 2026/2026 Cutoffs Explorer Modal ── */}
         {isLAUTECHCutoffsModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <motion.div
@@ -6821,7 +6821,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase tracking-widest">
-                        Official LAUTECH Release • 2025/2026
+                        Official LAUTECH Release • 2026/2026
                       </span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mt-1">

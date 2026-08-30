@@ -1,6 +1,6 @@
 /**
  * Official Federal University of Technology, Akure (FUTA)
- * 2026/2027 Admission Exercise: Approved Departmental Cut-Off Marks
+ * 2025/2026 Admission Exercise: Approved Departmental Cut-Off Marks
  * 
  * Verified against official university Post-UTME screening announcement.
  * General Institutional Cut-Off Mark: 180
@@ -13,7 +13,7 @@ export interface FUTACutoffProgramme {
   cutoff: number;
 }
 
-export const FUTA_SESSION = "2026/2027";
+export const FUTA_SESSION = "2025/2026";
 export const FUTA_INSTITUTION_NAME = "Federal University of Technology, Akure (FUTA)";
 export const FUTA_GENERAL_CUTOFF = 180;
 export const FUTA_SCREENING_FEE = 2000;

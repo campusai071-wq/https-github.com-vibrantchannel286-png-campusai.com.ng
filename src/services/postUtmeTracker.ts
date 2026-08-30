@@ -17,12 +17,12 @@ export interface PostUtmeSchoolRecord {
   requirements?: string;
 }
 
-// Master baseline dictionary for Post-UTME tracking (2026/2027 Session)
+// Master baseline dictionary for Post-UTME tracking (2025/2026 Session)
 const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName' | 'slug' | 'category'>> = {
   "University of Jos": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIJOS 2026/2027 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.',
+    details: 'UNIJOS 2025/2026 Post-UTME/DE online registration & result screening exercise active (13 July - 12 September 2026). Cutoff: 180.',
     portalLink: 'https://portal.unijos.edu.ng',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -31,7 +31,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Nigeria, Nsukka": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNN 2026/2027 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered.',
+    details: 'UNN 2025/2026 Post-UTME application portal is active. Candidates who chose UNN in UTME and met minimum requirements will be considered.',
     portalLink: 'https://unnportal.unn.edu.ng/',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -40,7 +40,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Benin": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIBEN 2026/2027 Post-UTME portal is open for registration. Mandatory O-Level upload on JAMB CAPS required.',
+    details: 'UNIBEN 2025/2026 Post-UTME portal is open for registration. Mandatory O-Level upload on JAMB CAPS required.',
     portalLink: 'https://unibenportal.com/#application',
     cutoffScore: '200',
     registrationFee: 2000,
@@ -49,7 +49,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Ibadan": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UI 2026/2027 Post-UTME form sales and registration are active on the official admissions portal.',
+    details: 'UI 2025/2026 Post-UTME form sales and registration are active on the official admissions portal.',
     portalLink: 'https://admissions.ui.edu.ng/#/',
     cutoffScore: '200',
     registrationFee: 5000,
@@ -58,7 +58,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Obafemi Awolowo University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'OAU 2026/2027 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.',
+    details: 'OAU 2025/2026 Post-UTME and Direct Entry registration guidelines are officially released on the eportal.',
     portalLink: 'https://eportal2.oauife.edu.ng/ug/admissions',
     cutoffScore: '200',
     registrationFee: 2000,
@@ -67,7 +67,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Ilorin": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNILORIN 2026/2027 Post-UTME registration portal is active for first-choice candidates meeting score requirements.',
+    details: 'UNILORIN 2025/2026 Post-UTME registration portal is active for first-choice candidates meeting score requirements.',
     portalLink: 'https://admissions.unilorin.edu.ng/',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -76,7 +76,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Bayero University Kano": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'BUK 2026/2027 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.',
+    details: 'BUK 2025/2026 Post-UTME online screening portal is live for candidates scoring minimum required JAMB score.',
     portalLink: 'https://buk.edu.ng/',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -85,7 +85,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Ahmadu Bello University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'ABU Zaria 2026/2027 Post-UTME screening form is out on the portal. Online registration is active.',
+    details: 'ABU Zaria 2025/2026 Post-UTME screening form is out on the portal. Online registration is active.',
     portalLink: 'https://portal.abu.edu.ng/forms',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -94,7 +94,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Port Harcourt": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIPORT 2026/2027 Post-UTME registration link is live. Ensure O-Level details are properly uploaded.',
+    details: 'UNIPORT 2025/2026 Post-UTME registration link is live. Ensure O-Level details are properly uploaded.',
     portalLink: 'https://utmedetails.uniport.edu.ng/welcome_utme.php',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -103,7 +103,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Federal University of Technology, Akure": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'FUTA 2026/2027 Point-Based screening registrations are active.',
+    details: 'FUTA 2025/2026 Point-Based screening registrations are active.',
     portalLink: 'https://www.futa.edu.ng/',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -112,7 +112,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Lagos": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNILAG 2026/2027 Post-UTME screening portal is active on the applications site.',
+    details: 'UNILAG 2025/2026 Post-UTME screening portal is active on the applications site.',
     portalLink: 'https://applications.unilag.edu.ng/home',
     cutoffScore: '200',
     registrationFee: 2000,
@@ -121,7 +121,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Federal University of Technology, Owerri": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'FUTO 2026/2027 screening forms are out and active on the undergraduate portal.',
+    details: 'FUTO 2025/2026 screening forms are out and active on the undergraduate portal.',
     portalLink: 'https://portal.futo.edu.ng/#undergraduate',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -130,7 +130,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Osun State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIOSUN 2026/2027 Post-UTME screening application portal is active.',
+    details: 'UNIOSUN 2025/2026 Post-UTME screening application portal is active.',
     portalLink: 'https://admissions.uniosun.edu.ng/',
     cutoffScore: '160',
     registrationFee: 3000,
@@ -139,7 +139,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Olabisi Onabanjo University": {
     status: 'CLOSED',
     statusText: 'Registration Closed',
-    details: 'OOU 2026/2027 Post-UTME & DE screening registration closed on July 22, 2026.',
+    details: 'OOU 2025/2026 Post-UTME & DE screening registration closed on July 22, 2026.',
     portalLink: 'https://putme.oouagoiwoye.edu.ng/',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -148,7 +148,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Lagos State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'LASU 2026/2027 admission screening portal is active for first choice applicants.',
+    details: 'LASU 2025/2026 admission screening portal is active for first choice applicants.',
     portalLink: 'https://services.lidc.lasu.edu.ng/admissionscreening/',
     cutoffScore: '195',
     registrationFee: 2000,
@@ -157,7 +157,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Ekiti State University": {
     status: 'CLOSED',
     statusText: 'Registration Closed',
-    details: 'EKSU 2026/2027 Post-UTME online screening portal phase 1 registration is closed.',
+    details: 'EKSU 2025/2026 Post-UTME online screening portal phase 1 registration is closed.',
     portalLink: 'https://eksuportal.eksu.edu.ng/',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -166,16 +166,16 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Federal University, Oye-Ekiti": {
     status: 'OPEN',
     statusText: 'Registration Active (Closes Aug 28)',
-    details: 'FUOYE 2026/2027 Post-UTME screening portal is active. Deadline: August 28, 2026. Note: Law department will NOT admit candidates for 2026/2027.',
+    details: 'FUOYE 2025/2026 Post-UTME screening portal is active. Deadline: August 28, 2026. Note: Law department will NOT admit candidates for 2025/2026.',
     portalLink: 'https://putme.fuoye.edu.ng/utme/',
     cutoffScore: '150',
     registrationFee: 2000,
-    requirements: 'Minimum JAMB score: 150. Law department suspended for 2026/2027. Awaiting result candidates may apply.'
+    requirements: 'Minimum JAMB score: 150. Law department suspended for 2025/2026. Awaiting result candidates may apply.'
   },
   "Federal University of Technology and Environmental Sciences, Iyin-Ekiti": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'FUTES-IYIN 2026/2027 Post-UTME screening exercise is open. Minimum JAMB score: 160 (some courses require 180).',
+    details: 'FUTES-IYIN 2025/2026 Post-UTME screening exercise is open. Minimum JAMB score: 160 (some courses require 180).',
     portalLink: 'https://portal.futes.edu.ng/apply',
     cutoffScore: '160',
     registrationFee: 5000,
@@ -184,7 +184,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Nnamdi Azikiwe University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIZIK 2026/2027 Post-UTME screening application portal is active.',
+    details: 'UNIZIK 2025/2026 Post-UTME screening application portal is active.',
     portalLink: 'https://apply.unizik.edu.ng/auth/login',
     cutoffScore: '180',
     registrationFee: 2000,
@@ -193,7 +193,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Uyo": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'UNIUYO 2026/2027 Post-UTME screening form is out. Registration closes August 7, 2026.',
+    details: 'UNIUYO 2025/2026 Post-UTME screening form is out. Registration closes August 7, 2026.',
     portalLink: 'https://eportals.uniuyo.edu.ng/',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -202,7 +202,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Delta State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'DELSU Abraka 2026/2027 Post-UTME portal is live for registration.',
+    details: 'DELSU Abraka 2025/2026 Post-UTME portal is live for registration.',
     portalLink: 'https://portal.delsuces.online/',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -211,7 +211,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Ladoke Akintola University of Technology": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'LAUTECH 2026/2027 Post-UTME screening portal is open for candidates with 170+ score.',
+    details: 'LAUTECH 2025/2026 Post-UTME screening portal is open for candidates with 170+ score.',
     portalLink: 'https://eportal.lautech.edu.ng/ug/admissions',
     cutoffScore: '170',
     registrationFee: 2000,
@@ -220,7 +220,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Kwara State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'KWASU Malete 2026/2027 Post-UTME form is officially out on the portal.',
+    details: 'KWASU Malete 2025/2026 Post-UTME form is officially out on the portal.',
     portalLink: 'https://portal.kwasu.edu.ng/',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -229,7 +229,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Nasarawa State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'NSUK Keffi 2026/2027 Post-UTME/DE application portal is active.',
+    details: 'NSUK Keffi 2025/2026 Post-UTME/DE application portal is active.',
     portalLink: 'https://portal.nsuk.edu.ng/',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -238,7 +238,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Kogi State University": {
     status: 'CLOSED',
     statusText: 'Registration Closed',
-    details: 'PAAU / KSU Anyigba 2026/2027 Post-UTME screening registration closed on July 1, 2026.',
+    details: 'PAAU / KSU Anyigba 2025/2026 Post-UTME screening registration closed on July 1, 2026.',
     portalLink: 'https://portal.paau.edu.ng/pd_dip/utme_dashboard',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -247,7 +247,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Confluence University of Science and Technology": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'CUSTECH Osara 2026/2027 Post-UTME screening application portal is active.',
+    details: 'CUSTECH Osara 2025/2026 Post-UTME screening application portal is active.',
     portalLink: 'https://eportal.custech.edu.ng/utme/index.php',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -256,7 +256,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "University of Calabar": {
     status: 'NOT_OPEN',
     statusText: 'Form Not Yet Open',
-    details: 'UNICAL 2026/2027 Post-UTME screening form announcement is expected soon by August 2026.',
+    details: 'UNICAL 2025/2026 Post-UTME screening form announcement is expected soon by August 2026.',
     portalLink: 'https://www.unical.edu.ng',
     cutoffScore: '150',
     registrationFee: 2000,
@@ -265,7 +265,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Federal University of Technology, Minna": {
     status: 'NOT_OPEN',
     statusText: 'Form Not Yet Open',
-    details: 'FUTMINNA 2026/2027 screening forms are currently awaiting official release.',
+    details: 'FUTMINNA 2025/2026 screening forms are currently awaiting official release.',
     portalLink: 'https://www.futminna.edu.ng',
     cutoffScore: '160',
     registrationFee: 2000,
@@ -274,7 +274,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Covenant University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'Covenant University 2026/2027 undergraduate screening portal is open.',
+    details: 'Covenant University 2025/2026 undergraduate screening portal is open.',
     portalLink: 'https://admissions.covenantuniversity.edu.ng',
     cutoffScore: '180',
     registrationFee: 7000,
@@ -283,7 +283,7 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Babcock University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'Babcock 2026/2027 admission application portal is active for session candidates.',
+    details: 'Babcock 2025/2026 admission application portal is active for session candidates.',
     portalLink: 'https://www.babcock.edu.ng',
     cutoffScore: '160',
     registrationFee: 5000,
@@ -364,18 +364,18 @@ export const getAllPostUtmeRecords = (): PostUtmeSchoolRecord[] => {
     const status: PostUtmeStatusType = isNotOpen ? 'NOT_OPEN' : isClosed ? 'CLOSED' : 'OPEN';
 
     let statusText = 'Registration Active';
-    let details = `${uni.name} 2026/2027 Post-UTME screening portal is active for first-choice candidates.`;
+    let details = `${uni.name} 2025/2026 Post-UTME screening portal is active for first-choice candidates.`;
     let publishDate = 'June 2026';
     let deadlineDate = 'August 2026';
 
     if (status === 'NOT_OPEN') {
       statusText = 'Form Not Yet Open';
-      details = `${uni.name} 2026/2027 Post-UTME screening form is expected to be released soon.`;
+      details = `${uni.name} 2025/2026 Post-UTME screening form is expected to be released soon.`;
       publishDate = 'Expected August 2026';
       deadlineDate = 'To be announced';
     } else if (status === 'CLOSED') {
       statusText = 'Registration Closed';
-      details = `${uni.name} 2026/2027 Post-UTME screening application period has ended.`;
+      details = `${uni.name} 2025/2026 Post-UTME screening application period has ended.`;
       publishDate = 'May 2026';
       deadlineDate = 'July 2026';
     }
@@ -449,7 +449,7 @@ export const getPostUtmeRecordForSchool = (schoolNameOrSlug: string): PostUtmeSc
     category: 'Federal',
     status: 'NOT_OPEN',
     statusText: 'Form Not Yet Open',
-    details: `${schoolNameOrSlug} 2026/2027 Post-UTME screening form is expected to open soon.`,
+    details: `${schoolNameOrSlug} 2025/2026 Post-UTME screening form is expected to open soon.`,
     portalLink: 'https://jamb.gov.ng',
     cutoffScore: '180',
     registrationFee: 2000,

@@ -10,7 +10,7 @@ export const AdmissionChecklistPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-950 text-white pt-24 pb-20">
       <SEO 
-        title="2026/2027 Admission Clearance & Registration Documents Checklist" 
+        title="2025/2026 Admission Clearance & Registration Documents Checklist" 
         description="Comprehensive list of official documents needed for Nigerian university clearance after admission on JAMB CAPS. Prepare your JAMB admission letter, O'Level results, medical certificates, and state of origin."
         keywords="admission clearance documents 2026, JAMB admission letter, university registration requirements Nigeria, WAEC result verification, medical fitness certificate university, acceptance fee receipt"
       />
@@ -29,7 +29,7 @@ export const AdmissionChecklistPage: React.FC = () => {
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 blur-[100px] pointer-events-none" />
           
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-bold text-xs uppercase tracking-wider mb-4">
-            <FileCheck size={16} /> Official 2026/2027 Clearance Guide
+            <FileCheck size={16} /> Official 2025/2026 Clearance Guide
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
             Post-Admission Clearance & Registration Document Checklist

@@ -275,7 +275,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         .replace(/Kai wa Ọrganĩ Written Subject scores.*/gi, ' ')
         .replace(/Merchant Proficiency Photo List scores.*/gi, ' ')
         .replace(/pv lan commonly jointgroup positions.*/gi, ' ')
-        .replace(/Quick Action Checklist for 2026\/2027 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2026/2027 Post-UTME Candidates')
+        .replace(/Quick Action Checklist for 2026\/2026 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2025/2026 Post-UTME Candidates')
         .replace(/ClassName|className|#html|lmore|Timroduce|hmm|il thereby|dan,K detox|\/|\\|:|\$|र| 준비|準備/gi, ' ')
         .replace(/[\u0370-\u03FF\u1F00-\u1FFF]/g, '')
         .replace(/\s\s+/g, ' ')

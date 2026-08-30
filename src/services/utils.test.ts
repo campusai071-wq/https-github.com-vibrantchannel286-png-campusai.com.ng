@@ -4,7 +4,7 @@ import { slugify, cleanObject, stringify, getApiUrl } from './utils';
 describe('src/services/utils.ts', () => {
   describe('slugify', () => {
     it('converts text into clean URL slug', () => {
-      expect(slugify('JAMB 2026/2027 Admission Cutoff Marks')).toBe('jamb-20262027-admission-cutoff-marks');
+      expect(slugify('JAMB 2025/2026 Admission Cutoff Marks')).toBe('jamb-20262027-admission-cutoff-marks');
       expect(slugify('  University of Lagos (UNILAG)  ')).toBe('university-of-lagos-unilag');
       expect(slugify('Computer Science & Engineering!')).toBe('computer-science-engineering');
     });

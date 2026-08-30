@@ -97,7 +97,7 @@ const PostUtmeTrackerSection: React.FC<PostUtmeTrackerSectionProps> = ({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-800">
             <Calendar size={14} />
-            2026/2027 Live Status Engine
+            2025/2026 Live Status Engine
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
             Post-UTME <span className="text-blue-600 dark:text-cyan-400">Release Tracker</span>

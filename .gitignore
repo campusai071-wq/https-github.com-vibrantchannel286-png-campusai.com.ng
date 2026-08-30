@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build and test outputs
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+
+# Temporary and local files
+*.log
+*.bak
+*.tmp
+.DS_Store
+.env.local

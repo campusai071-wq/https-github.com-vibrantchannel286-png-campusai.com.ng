@@ -1,6 +1,6 @@
 {
   "institution": "University of Lagos (UNILAG)",
-  "session": "2025/2026",
+  "session": "2026/2026",
   "departments": [
     { "name": "Creative Arts", "merit": 69.5, "catchment": { "ekiti": 59.375, "lagos": 61.675, "ogun": 66.225, "ondo": 57.725, "osun": 65.175, "oyo": 65.75 } },
     { "name": "English", "merit": 68.175, "catchment": { "ekiti": 57.475, "lagos": 59.2, "ogun": 65.05, "ondo": 62.025, "osun": 55.675, "oyo": 63.3 } },

@@ -109,7 +109,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
     <div style="background: #2563eb; color: #ffffff; padding: 32px; text-align: center;">
       <h1 style="margin: 0; font-size: 24px; font-weight: 800;">CampusAI Admission Hub</h1>
-      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Verified 2026/2027 Admission & Post-UTME Updates</p>
+      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Verified 2025/2026 Admission & Post-UTME Updates</p>
     </div>
     <div style="padding: 32px;">
       <h2 style="color: #1f2937; font-size: 20px; margin-top: 0;">Hello Esteemed Scholar,</h2>
@@ -153,7 +153,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     try {
       const stored = localStorage.getItem('campusai_saved_email_templates');
       return stored ? JSON.parse(stored) : [
-        { id: '1', name: 'Post-UTME Alert', subject: '🔥 2026/2027 Post-UTME Screening & Cut-Off Notice', htmlContent: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f7;padding:20px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"><h2 style="color:#2563eb;">Post-UTME Screening Update</h2><p>The updated screening schedule and departmental cut-off marks for 2026/2027 have been verified in the CampusAI Knowledge Base.</p><div style="text-align:center;margin:24px 0;"><a href="https://campusai.com.ng" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Check Status Now</a></div></div></body></html>` },
+        { id: '1', name: 'Post-UTME Alert', subject: '🔥 2025/2026 Post-UTME Screening & Cut-Off Notice', htmlContent: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f7;padding:20px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"><h2 style="color:#2563eb;">Post-UTME Screening Update</h2><p>The updated screening schedule and departmental cut-off marks for 2025/2026 have been verified in the CampusAI Knowledge Base.</p><div style="text-align:center;margin:24px 0;"><a href="https://campusai.com.ng" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Check Status Now</a></div></div></body></html>` },
         { id: '2', name: 'Admission List Notice', subject: '🎓 Admission List Release & Verification Notice', htmlContent: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f7;padding:20px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.1);"><h2 style="color:#10b981;">Admission List Verified</h2><p>Your admission status can now be verified against official university portals and JAMB CAPS.</p><div style="text-align:center;margin:24px 0;"><a href="https://campusai.com.ng" style="background:#10b981;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Verify Admission Portal</a></div></div></body></html>` }
       ];
     } catch {
@@ -703,7 +703,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       .replace(/Kai wa Ọrganĩ Written Subject scores.*/gi, ' ')
       .replace(/Merchant Proficiency Photo List scores.*/gi, ' ')
       .replace(/pv lan commonly jointgroup positions.*/gi, ' ')
-      .replace(/Quick Action Checklist for 2026\/2027 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2026/2027 Post-UTME Candidates')
+      .replace(/Quick Action Checklist for 2026\/2026 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2025/2026 Post-UTME Candidates')
       // Remove generic AI artifacts and technical leakage
       .replace(/ClassName|className|#html|lmore|Timroduce|hmm|il thereby|dan,K detox|\/|\\|:|\$|र| 준비|準備/gi, ' ')
       .replace(/[\u0370-\u03FF\u1F00-\u1FFF]/g, '') // Remove Greek/Misc symbols
@@ -1695,7 +1695,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <p className="text-[11px] text-gray-300 leading-relaxed">
                             {isChatUnderMaintenance 
                               ? 'AI Chat is currently in Maintenance Mode. Users will see a maintenance upgrade screen in the chat drawer.' 
-                              : 'AI Chat is ONLINE and serving 2026/2027 admission queries.'}
+                              : 'AI Chat is ONLINE and serving 2025/2026 admission queries.'}
                           </p>
                         </div>
 

@@ -89,7 +89,7 @@ const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
     approvedAcceptC: 37803,
     acceptedD: 65926,
     totalAdmissions: 149428,
-    admissionYear: "2026/2027",
+    admissionYear: "2025/2026",
     sessionDate: "Saturday, August 29, 2026"
   },
   candidates: 2275690,
@@ -138,7 +138,7 @@ function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsS
       approvedAcceptC: incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 35404,
       acceptedD: Math.max(current.summary?.acceptedD || 58973, incoming.summary?.acceptedD || 0),
       totalAdmissions: Math.max(current.summary?.totalAdmissions || 130529, incoming.summary?.totalAdmissions || 0),
-      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2026/2027",
+      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2025/2026",
       sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Wednesday, August 26, 2026",
     }
   };
@@ -226,7 +226,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            JAMB CAPS Official Live Feed • {summary.admissionYear || '2026/2027'} Session
+            JAMB CAPS Official Live Feed • {summary.admissionYear || '2025/2026'} Session
           </div>
           <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
             Central Admissions Processing System (CAPS) Tracker
