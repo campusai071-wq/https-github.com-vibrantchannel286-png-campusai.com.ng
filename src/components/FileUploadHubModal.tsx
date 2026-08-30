@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Upload, FileText, CheckCircle2, Loader2, Trash2, ArrowRight, ShieldCheck, Sparkles, Download } from 'lucide-react';
 import { PdfReader } from './PdfReader';
+import { db, auth, storage } from '../services/firebaseConfig';
+import { collection, addDoc, query, where, getDocs, deleteDoc, doc, Timestamp, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 interface FileUploadHubModalProps {
   isOpen: boolean;
@@ -19,55 +22,82 @@ interface UploadedFileItem {
 }
 
 export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, onClose, onTextParsed }) => {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([
-    {
-      id: 'default-user-upload-1',
-      name: localStorage.getItem('campusai_uploaded_pdf_name') || 'BookOnline1.pdf',
-      size: '1.4 MB',
-      type: 'application/pdf',
-      date: new Date().toLocaleDateString(),
-      extractedText: 'CampusAI Verified User Uploaded Study Material - BookOnline1.pdf',
-      dataUrl: localStorage.getItem('campusai_uploaded_pdf_data') || 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UaXRsZSIgQm9va09ubGluZTEucGRmID4+CmVuZG9iagoyIDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAxIDAgUj4+CmVuZG9iagpzdGFydHhyZWYKMQolJUVPRg=='
-    }
-  ]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'history'>('upload');
   const [parsedPreview, setParsedPreview] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    const fetchFiles = async () => {
+      const q = query(collection(db, 'user_files'), where('userId', '==', auth.currentUser?.uid), orderBy('date', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const files: UploadedFileItem[] = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as UploadedFileItem[];
+      setUploadedFiles(files);
+    };
+    fetchFiles();
+  }, [auth.currentUser]);
+
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !auth.currentUser) return;
 
     setIsUploading(true);
     const file = files[0];
+    const storageRef = ref(storage, `uploads/${auth.currentUser.uid}/${file.name}_${Date.now()}`);
     
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string || '';
-      localStorage.setItem('campusai_uploaded_pdf_data', dataUrl);
-      localStorage.setItem('campusai_uploaded_pdf_name', file.name);
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
 
-      const newItem: UploadedFileItem = {
-        id: Math.random().toString(36).substring(2, 9),
+      const docRef = await addDoc(collection(db, 'user_files'), {
+        userId: auth.currentUser.uid,
         name: file.name,
         size: `${(file.size / 1024).toFixed(1)} KB`,
         type: file.type || 'application/pdf',
         date: new Date().toLocaleDateString(),
-        extractedText: `Uploaded document: ${file.name} successfully loaded into CampusAI.`,
-        dataUrl: dataUrl
+        createdAt: Timestamp.now(),
+        dataUrl: downloadURL,
+        storagePath: snapshot.ref.fullPath
+      });
+
+      const newItem: UploadedFileItem = {
+        id: docRef.id,
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        type: file.type || 'application/pdf',
+        date: new Date().toLocaleDateString(),
+        dataUrl: downloadURL,
+        storagePath: snapshot.ref.fullPath
       };
 
       setUploadedFiles(prev => [newItem, ...prev]);
-      setParsedPreview(`Successfully loaded ${file.name} (${newItem.size}). Ready for download & study.`);
+      setParsedPreview(`Successfully uploaded ${file.name}.`);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload file.");
+    } finally {
       setIsUploading(false);
-      if (onTextParsed) {
-        onTextParsed(newItem.extractedText || '');
-      }
-    };
+    }
+  };
 
-    reader.readAsDataURL(file);
+  const handleDeleteFile = async (file: UploadedFileItem) => {
+    if (!auth.currentUser || !file.storagePath) return;
+
+    try {
+      await deleteDoc(doc(db, 'user_files', file.id));
+      const storageRef = ref(storage, file.storagePath);
+      await deleteObject(storageRef);
+      setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Failed to delete file.");
+    }
   };
 
   const handlePdfTextExtracted = (text: string) => {
@@ -211,7 +241,7 @@ export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, 
                           </a>
                         )}
                         <button
-                          onClick={() => setUploadedFiles(prev => prev.filter(f => f.id !== file.id))}
+                          onClick={() => handleDeleteFile(file)}
                           className="p-2 text-gray-400 hover:text-red-500 transition-all rounded-lg hover:bg-red-500/10"
                           title="Delete file"
                         >

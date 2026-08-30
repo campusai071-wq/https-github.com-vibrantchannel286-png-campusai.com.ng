@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, doc, getDocFromServer, initializeFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import firebaseConfig from '../../firebase-applet-config.json';
 declare var process: any;
 
@@ -31,3 +32,4 @@ export const auth = getAuth(app);
 // Standard Firestore initialization for ultra-fast connection without long polling lag
 export const db = getFirestore(app, configNode.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
+export const storage = getStorage(app);

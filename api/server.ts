@@ -3659,7 +3659,7 @@ ${searchResults[4]}
     STRICT CATEGORY LIST: "Federal", "State", "Private", "JAMB", "Polytechnic", "COE", "National", "Jobs", "Scholarships", "NYSC", "WAEC".
 
     SEARCH CONTEXT:
-    ${combinedResults.substring(0, 12000)}
+    ${combinedResults.substring(0, 6000)}
 
     JSON SCHEMA:
     { "news": [ { "id": "string", "title": "string", "category": "string", "date": "string", "excerpt": "string", "fullContent": "string", "sourceUrl": "string", "image": "string", "tags": ["string"], "isImportant": boolean } ] }`;

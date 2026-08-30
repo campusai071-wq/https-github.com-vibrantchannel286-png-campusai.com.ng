@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
+import { FormulaSheet } from './FormulaSheet';
 import {
   Home,
   BookOpen,
@@ -154,58 +155,6 @@ const SUBJECT_OPTIONS: SubjectConfig[] = [
     key: 'geography',
     label: 'Geography',
     topics: ['Physical Geography & Rocks', 'Map Reading & Contours', 'Weather & Climate', 'Human & Economic Geography', 'Regional Geography of Nigeria']
-  }
-];
-
-// High-Yield Formula Cheat Sheets for Study Section
-const HIGH_YIELD_FORMULAS = [
-  {
-    subject: 'mathematics',
-    title: 'Quadratic Equation Roots',
-    formula: 'x = [-b ± √(b² - 4ac)] / (2a)',
-    notes: 'Sum of roots (α+β) = -b/a, Product of roots (αβ) = c/a. Discriminant D = b² - 4ac (D > 0: real unequal, D = 0: equal, D < 0: complex).'
-  },
-  {
-    subject: 'mathematics',
-    title: 'Calculus Differentiation Rules',
-    formula: 'd/dx (xⁿ) = n·xⁿ⁻¹ | Product Rule: (uv)\' = u\'v + uv\' | Quotient Rule: (u/v)\' = (u\'v - uv\') / v²',
-    notes: 'Integral ∫ xⁿ dx = (xⁿ⁺¹)/(n+1) + C for n ≠ -1.'
-  },
-  {
-    subject: 'physics',
-    title: 'Equations of Uniformly Accelerated Motion',
-    formula: 'v = u + at | s = ut + ½at² | v² = u² + 2as | s = ½(u + v)t',
-    notes: 'Where u = initial velocity, v = final velocity, a = acceleration, s = displacement, t = time.'
-  },
-  {
-    subject: 'physics',
-    title: 'Snell\'s Law of Refraction',
-    formula: 'n₁ sin θ₁ = n₂ sin θ₂ | Refractive Index n = c / v = real depth / apparent depth',
-    notes: 'Critical angle c: sin c = 1 / n.'
-  },
-  {
-    subject: 'chemistry',
-    title: 'Ideal Gas Equation & General Gas Law',
-    formula: 'P₁V₁ / T₁ = P₂V₂ / T₂ | PV = nRT',
-    notes: 'Always convert temperature to Kelvin (T = °C + 273.15) and pressure to standard units.'
-  },
-  {
-    subject: 'chemistry',
-    title: 'pH and Acid-Base Concentration',
-    formula: 'pH = -log₁₀[H⁺] | pH + pOH = 14 | Concentration (mol/dm³) = Mass / (Molar Mass × Vol dm³)',
-    notes: 'For neutral solutions at 25°C, [H⁺] = 10⁻⁷ M.'
-  },
-  {
-    subject: 'biology',
-    title: 'Photosynthesis & Cellular Respiration',
-    formula: '6CO₂ + 6H₂O + Light → C₆H₁₂O₆ + 6O₂ | Respiration: C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + 38 ATP',
-    notes: 'Light reaction occurs in Thylakoids; Dark (Calvin) cycle occurs in Stroma of chloroplast.'
-  },
-  {
-    subject: 'english-language',
-    title: 'Concord & Subject-Verb Agreement',
-    formula: 'Plural Nouns + Singular Verb (e.g., "Mathematics IS easy") | Either/Neither takes verb closest to second subject',
-    notes: 'Words like "along with", "together with", "as well as" do not alter subject number.'
   }
 ];
 
@@ -385,6 +334,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Record<string | number, boolean>>({});
 
   const [loading, setLoading] = useState(false);
+  const [showFormulas, setShowFormulas] = useState(false);
   const [error, setError] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -411,7 +361,6 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [studyAnswers, setStudyAnswers] = useState<Record<string | number, string>>({});
   const [loadingStudy, setLoadingStudy] = useState(false);
   const [studyTab, setStudyTab] = useState<'practice' | 'formulas' | 'novels'>('practice');
-  const [formulaSearch, setFormulaSearch] = useState('');
 
   // ----- AI Tutor Chat Assistant State -----
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
@@ -912,8 +861,23 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 </div>
 
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-                  <div>
-                    <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Select Exam Type</label>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-extrabold text-slate-800">Exam Setup</h2>
+                    <button 
+                      onClick={() => setShowFormulas(!showFormulas)}
+                      className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-100 transition-colors"
+                    >
+                      <BookOpen size={14} /> {showFormulas ? 'Hide' : 'View'} Formulas
+                    </button>
+                  </div>
+                  {showFormulas ? (
+                    <div className="h-[400px] overflow-y-auto border rounded-2xl p-4">
+                      <FormulaSheet />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Select Exam Type</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { id: 'jamb', name: 'JAMB UTME', sub: '120 mins | 4 Subjects' },
@@ -1017,6 +981,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </div>
                     </div>
                   </div>
+                  </>
+                )}
 
                   {error && (
                     <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-2xl flex items-center gap-3">
@@ -1663,43 +1629,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               </div>
             )}
 
-            {studyTab === 'formulas' && (
-              <div className="space-y-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-3">
-                  <Search size={18} className="text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search formulas (e.g. Calculus, Snell's Law, Ideal Gas)..."
-                    value={formulaSearch}
-                    onChange={(e) => setFormulaSearch(e.target.value)}
-                    className="w-full bg-transparent text-sm focus:outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {HIGH_YIELD_FORMULAS.filter(
-                    (f) =>
-                      f.title.toLowerCase().includes(formulaSearch.toLowerCase()) ||
-                      f.subject.toLowerCase().includes(formulaSearch.toLowerCase()) ||
-                      f.formula.toLowerCase().includes(formulaSearch.toLowerCase())
-                  ).map((item, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
-                          {item.subject}
-                        </span>
-                        <BookMarked size={16} className="text-slate-300" />
-                      </div>
-                      <h3 className="text-base font-extrabold text-slate-900">{item.title}</h3>
-                      <div className="p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl font-bold leading-relaxed">
-                        {item.formula}
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">{item.notes}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {studyTab === 'formulas' && <FormulaSheet />}
 
             {studyTab === 'novels' && (
               <div className="space-y-6">

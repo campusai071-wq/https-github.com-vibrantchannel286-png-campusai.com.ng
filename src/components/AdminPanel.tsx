@@ -38,6 +38,7 @@ import NewsDetailView from './NewsDetailView';
 import { ADMIN_TOKEN } from '../lib/adminAuth';
 import PredictionDetailsModal from './PredictionDetailsModal';
 import CalculationStats from './CalculationStats';
+import { FileUploadHubModal } from './FileUploadHubModal';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -86,13 +87,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats'
+    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
   >('analytics');
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures', 'pdf_management'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
@@ -1419,7 +1421,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats'] as const).map(tab => (
+              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
@@ -3289,6 +3291,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               )}
 
               {activeTab === 'stats' && <CalculationStats />}
+              {activeTab === 'pdf_management' && (
+                <div className="p-6">
+                  <h3 className="text-lg font-bold mb-4">PDF File Management</h3>
+                  <button 
+                    onClick={() => setIsPdfModalOpen(true)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    Manage PDFs
+                  </button>
+                  <FileUploadHubModal 
+                    isOpen={isPdfModalOpen} 
+                    onClose={() => setIsPdfModalOpen(false)} 
+                  />
+                </div>
+              )}
               {activeTab === 'notifications' && (
                 <div className="space-y-8">
                   <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6">
