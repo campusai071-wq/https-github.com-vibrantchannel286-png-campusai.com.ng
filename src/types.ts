@@ -87,6 +87,13 @@ export interface SocialLink {
   url: string;
 }
 
+export interface ContactConfig {
+  email: string;
+  whatsapp: string;
+  address: string;
+  supportHours: string;
+}
+
 export interface AdminState {
   isLoggedIn: boolean;
   email: string | null;

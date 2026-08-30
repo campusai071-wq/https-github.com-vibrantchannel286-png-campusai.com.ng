@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
-  Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info,
+  Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
   ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power
 } from 'lucide-react';
@@ -377,6 +377,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [socialTiktok, setSocialTiktok]       = useState('');
   const [socialNairaland, setSocialNairaland] = useState('');
   const [socialWhatsapp, setSocialWhatsapp]   = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactWhatsApp, setContactWhatsApp] = useState('');
+  const [contactAddress, setContactAddress] = useState('');
+  const [supportHours, setSupportHours] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, currentUni: '' });
 
@@ -819,6 +823,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         setSocialNairaland(config.socialLinks.nairaland || '');
         setSocialWhatsapp(config.socialLinks.whatsapp   || '');
       }
+      if (config.contact) {
+        setContactEmail(config.contact.email || '');
+        setContactWhatsApp(config.contact.whatsapp || '');
+        setContactAddress(config.contact.address || '');
+        setSupportHours(config.contact.supportHours || '');
+      }
     }
     const [news, _, asuu] = await Promise.all([
       getCloudNews(true, true, undefined, undefined, adminNewsLimit),
@@ -1232,8 +1242,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       youtube: socialYoutube, tiktok: socialTiktok,
       nairaland: socialNairaland, whatsapp: socialWhatsapp,
     };
+    const contact = { email: contactEmail, whatsapp: contactWhatsApp, address: contactAddress, supportHours };
     await saveGlobalConfig({ 
-      geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys, socialLinks,
+      geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys, socialLinks, contact,
       isChatUnderMaintenance, showImportantBanner
     });
     try {
@@ -1887,6 +1898,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       Save Community Links
                     </button>
                   </div>
+
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-6">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                      <Mail size={14} className="text-purple-500 animate-pulse" /> Contact Channels
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        ['Email', contactEmail, setContactEmail, 'support@campusai.com.ng'],
+                        ['WhatsApp', contactWhatsApp, setContactWhatsApp, '+234...'],
+                        ['Address', contactAddress, setContactAddress, '...'],
+                        ['Support Hours', supportHours, setSupportHours, '...'],
+                      ].map(([label, val, set, ph]) => (
+                        <div key={label as string}>
+                          <label className="text-[9px] font-black uppercase text-gray-500 ml-1">{label as string}</label>
+                          <input value={val as string} onChange={e => (set as any)(e.target.value)} placeholder={ph as string}
+                            className="w-full p-4 bg-white dark:bg-gray-950 rounded-2xl border-transparent focus:border-purple-500 outline-none dark:text-white mt-1 text-xs" />
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={handleSaveConfig} className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:brightness-110 active:scale-95 transition-all">
+                      Save Contact Channels
+                    </button>
+                  </div>
+
 
                   <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl space-y-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Database size={14} /> Institutional Scoring Sync</h3>

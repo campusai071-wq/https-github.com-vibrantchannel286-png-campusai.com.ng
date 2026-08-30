@@ -43,6 +43,7 @@ const Tour = lazyWithRetry(() => import('./Tour'));
 const InstallPrompt = lazyWithRetry(() => import('./InstallPrompt'));
 const CalculationAnimation = lazyWithRetry(() => import('./CalculationAnimation'));
 const StatusPage = lazyWithRetry(() => import('./StatusPage'));
+const ContactPage = lazyWithRetry(() => import('./ContactPage'));
 const NotFound = lazyWithRetry(() => import('./NotFound'));
 const FeedbackModal = lazyWithRetry(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazyWithRetry(() => import('./AdmissionChecklistPage'));
@@ -766,6 +767,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('status');
       navigate('/status');
       window.scrollTo(0, 0);
+    } else if (p === 'contact') {
+      setCurrentPage('contact');
+      navigate('/contact');
+      window.scrollTo(0, 0);
     } else if (p === 'about') {
       setCurrentPage('about');
       navigate('/');
@@ -1374,6 +1379,7 @@ const AppContent: React.FC = () => {
           <Route path="/cookie-policy" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
           
           <Route path="/status" element={<><SEO title="System Status" canonical="/status" /><StatusPage /></>} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<NotFound onGoHome={() => handleNavigate('home')} />} />
         </Routes>
         </Suspense>

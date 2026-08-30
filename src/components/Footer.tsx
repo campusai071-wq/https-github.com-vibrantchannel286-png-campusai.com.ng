@@ -168,6 +168,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
                 { label: 'AI Strategist', id: 'ai' },
                 { label: 'Official JAMB News', id: 'jamb' },
                 { label: 'System Status', id: 'status' },
+                { label: 'Contact Us', id: 'contact' },
                 { label: 'Download App', id: 'download' }
               ].map((item) => (
                 <li key={item.id}>
