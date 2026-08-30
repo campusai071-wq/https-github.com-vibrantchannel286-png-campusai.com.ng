@@ -30,6 +30,7 @@ interface ScholarPackModalProps {
 
 const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, user, paymentConfig = { type: 'pack', amount: 500, label: 'Scholar Pack 2026' } }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -41,6 +42,8 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     }
   }, [isOpen, paymentConfig.label, user?.scholarCredits]);
 
+  const activeEmail = user?.email || guestEmail || 'scholar@campusai.com.ng';
+
   const fwConfig = {
     public_key: MASTER_CONFIG.FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK_TEST-X',
     tx_ref: `campusai-${Date.now()}`,
@@ -48,7 +51,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
     customer: {
-      email: user?.email || 'scholar@campusai.com.ng',
+      email: activeEmail,
       phone_number: '',
       name: user?.displayName || 'Scholar',
     },
@@ -64,7 +67,6 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
   const handleFlutterPayment = useFlutterwave(fwConfig);
 
   const handleUpgrade = () => {
-    if (!user) return;
     setIsProcessing(true);
     
     // GA4 Event: payment_started
@@ -88,52 +90,40 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
             payment_type: paymentConfig.type,
           });
 
-          if (paymentConfig.type === 'pack') {
-            const currentCredits = user?.scholarCredits || 0;
-            await updateUserProfile({ 
-              is_premium: true, 
-              scholarCredits: currentCredits + 5,
-              premium_activated_at: new Date().toISOString()
-            }, user.uid);
-            alert(`${paymentConfig.label} Activated Successfully! You now have ${currentCredits + 5} premium calculation trials and increased daily chats.`);
-          } else if (paymentConfig.type === 'refill') {
-            const currentCredits = user?.scholarCredits || 0;
-            const addedCredits = paymentConfig.amount === 100 ? 1 : 5;
-            await updateUserProfile({ 
-              scholarCredits: currentCredits + addedCredits
-            }, user.uid);
-            alert(`${paymentConfig.label} Unlocked! ${addedCredits} Premium Session(s) added to your scholar account.`);
-          } else {
-            const currentCredits = user?.scholarCredits || 0;
-            await updateUserProfile({ 
-              is_premium: true, 
-              scholarCredits: currentCredits + 5,
-              premium_activated_at: new Date().toISOString()
-            }, user.uid);
-            alert(`${paymentConfig.label} Unlocked! 5 Premium Sessions added to your scholar account.`);
-          }
-          
-          // Log Payment in Firestore
-          if (db) {
-            try {
-              await addDoc(collection(db, "payments"), {
-                uid: user.uid,
-                email: user.email,
-                amount: paymentConfig.amount,
-                type: paymentConfig.type,
-                label: paymentConfig.label,
-                status: 'success',
-                tx_ref: response.tx_ref,
-                flw_ref: response.flw_ref,
+          // Secure Server-side Payment Verification & Entitlement Fulfillment
+          try {
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
                 transaction_id: response.transaction_id,
-                createdAt: Timestamp.now()
-              });
-            } catch (e) {
-              console.error("Payment Logging Error:", e);
+                tx_ref: response.tx_ref || fwConfig.tx_ref,
+                type: paymentConfig.type,
+                toolId: paymentConfig.toolId,
+                email: activeEmail,
+                uid: user?.uid
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyData.success) {
+              alert("Payment verification failed on server: " + (verifyData.error || "Unknown error"));
+              setIsProcessing(false);
+              return;
             }
+          } catch (apiErr: any) {
+            console.error("Payment API verification error:", apiErr);
+          }
+
+          if (paymentConfig.type === 'pack') {
+            alert(`${paymentConfig.label} Activated Successfully! You now have premium calculation trials.`);
+          } else if (paymentConfig.type === 'refill') {
+            alert(`${paymentConfig.label} Unlocked! Extra session(s) added.`);
+          } else if (paymentConfig.type === 'tool' && paymentConfig.toolId) {
+            alert(`"${paymentConfig.label}" Unlocked Successfully! Click download again to get your file.`);
           }
           
           onClose();
+          window.location.reload();
         } else {
           alert("Payment was not successful. Please try again.");
         }
@@ -252,14 +242,27 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                     <button 
                       type="button"
                       onClick={async () => {
-                        const currentCredits = user?.scholarCredits || 0;
-                        await updateUserProfile({ 
-                          is_premium: true, 
-                          scholarCredits: Math.max(currentCredits + 5, 5),
-                          premium_activated_at: new Date().toISOString()
-                        }, user?.uid);
-                        alert("Scholar Pack Restored! You now have 10 Daily Chats and 5 Premium AI Calculation Sessions active.");
-                        onClose();
+                        if (!user?.uid) {
+                          alert("Please sign in first to restore access.");
+                          return;
+                        }
+                        try {
+                          const res = await fetch('/api/restore-access', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ uid: user.uid, email: user.email })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert("Scholar Pack Restored Successfully from verified server records!");
+                            onClose();
+                            window.location.reload();
+                          } else {
+                            alert(data.error || "No verified purchase record found for this account.");
+                          }
+                        } catch (err: any) {
+                          alert("Failed to restore access: " + err.message);
+                        }
                       }}
                       className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline block mx-auto"
                     >

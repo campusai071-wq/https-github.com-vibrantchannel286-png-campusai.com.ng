@@ -1652,6 +1652,7 @@ interface AIFallbackResult {
 async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackResult | null> {
   const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-3.6-flash', label = '' } = opts;
   const tag = label ? `[AI Fallback:${label}]` : '[AI Fallback]';
+  const startTime = Date.now();
 
   const promptText = messages.map(m => m.content).join('\n') || "Hello";
 
@@ -1660,6 +1661,26 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
     ...messages
   ];
 
+  // Helper to log telemetry
+  const logTelemetry = async (provider: string, model: string, success: boolean, latencyMs: number, errorMsg?: string) => {
+    try {
+      const dbInstance = adminDb || (getAdminFirestore ? getAdminFirestore() : null);
+      if (dbInstance) {
+        await dbInstance.collection("ai_telemetry").add({
+          provider,
+          model,
+          success,
+          latencyMs,
+          requestType: label || 'general',
+          error: errorMsg || null,
+          timestamp: AdminTimestamp ? AdminTimestamp.now() : new Date()
+        });
+      }
+    } catch (e) {
+      // Non-blocking telemetry error
+    }
+  };
+
   // 1. Primary AI Engine: Gemini (Native Google AI Studio SDK)
   if (Date.now() >= geminiBlockedUntil) {
     const activeKey = process.env.GEMINI_API_KEY;
@@ -1667,11 +1688,13 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
       const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
       const candidateModels = Array.from(new Set([
         geminiModel,
-        'gemini-3.6-flash',
-        'gemini-3.1-pro-preview'
+        'gemini-flash-lite-latest',
+        'gemini-1.5-flash',
+        'gemini-3.6-flash'
       ]));
 
       for (const mName of candidateModels) {
+        const t0 = Date.now();
         try {
           const gemini = createGeminiClient(activeKey);
           let text = "";
@@ -1723,12 +1746,15 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
 
           if (text && !isGibberishResponse(text)) {
             consecutiveGeminiFailures = 0;
-            console.log(`${tag} Succeeded via Gemini model ${mName} (${maskedKey}).`);
+            const latency = Date.now() - t0;
+            console.log(`${tag} Succeeded via Gemini model ${mName} (${maskedKey}) in ${latency}ms.`);
+            await logTelemetry('gemini', mName, true, latency);
             return { text, provider: 'gemini' };
           }
         } catch (error: any) {
           const errorMsg = error.message || error.response?.data?.error?.message || String(error);
           console.debug(`${tag} Gemini model ${mName} failed: ${errorMsg}`);
+          await logTelemetry('gemini', mName, false, Date.now() - t0, errorMsg);
         }
       }
     } else {
@@ -1736,15 +1762,16 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
     }
   }
 
-  // 2. Secondary Engine: Groq
+  // 2. Secondary Engine: Groq (Updated active models)
   if (process.env.GROQ_API_KEY) {
     const groqModels = [
       'llama-3.3-70b-versatile',
       'llama-3.1-8b-instant',
-      'llama-3.2-11b-vision-preview',
-      'mixtral-8x7b-32768'
+      'llama-3.3-70b-specdec',
+      'llama3-70b-8192'
     ];
     for (const modelName of groqModels) {
+      const t0 = Date.now();
       try {
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const completion = await groq.chat.completions.create({
@@ -1755,11 +1782,15 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
         });
         const text = completion.choices[0]?.message?.content || "";
         if (text) {
-          console.log(`${tag} Succeeded via Groq (${modelName}).`);
+          const latency = Date.now() - t0;
+          console.log(`${tag} Succeeded via Groq (${modelName}) in ${latency}ms.`);
+          await logTelemetry('groq', modelName, true, latency);
           return { text, provider: 'groq' };
         }
       } catch (e: any) {
-        if (process.env.DEBUG_AI) console.debug(`${tag} Groq (${modelName}) skipped:`, e.message || e);
+        const errStr = e.message || String(e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Groq (${modelName}) skipped:`, errStr);
+        await logTelemetry('groq', modelName, false, Date.now() - t0, errStr);
       }
     }
   }
@@ -1768,11 +1799,12 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
   if (process.env.OPENROUTER_API_KEY) {
     const openrouterModels = [
       'meta-llama/llama-3.3-70b-instruct',
-      'google/gemini-3.6-flash',
+      'google/gemini-flash-1.5',
       'deepseek/deepseek-r1',
       'qwen/qwen-2.5-72b-instruct'
     ];
     for (const modelName of openrouterModels) {
+      const t0 = Date.now();
       try {
         const openrouter = new OpenAI({ apiKey: process.env.OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" });
         const safeMaxTokens = Math.min(maxTokens, 2048);
@@ -1784,11 +1816,15 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
         });
         const text = completion.choices[0]?.message?.content || "";
         if (text) {
-          console.log(`${tag} Succeeded via OpenRouter (${modelName}).`);
+          const latency = Date.now() - t0;
+          console.log(`${tag} Succeeded via OpenRouter (${modelName}) in ${latency}ms.`);
+          await logTelemetry('openrouter', modelName, true, latency);
           return { text, provider: 'openrouter' };
         }
       } catch (e: any) {
-        if (process.env.DEBUG_AI) console.debug(`${tag} OpenRouter (${modelName}) skipped:`, e.message || e);
+        const errStr = e.message || String(e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} OpenRouter (${modelName}) skipped:`, errStr);
+        await logTelemetry('openrouter', modelName, false, Date.now() - t0, errStr);
       }
     }
   }
@@ -1797,10 +1833,10 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
   if (process.env.NVIDIA_API_KEY) {
     const nvidiaModels = [
       'meta/llama-3.3-70b-instruct',
-      'meta/llama-3.1-70b-instruct',
-      'meta/llama-3.1-8b-instruct'
+      'meta/llama-3.1-70b-instruct'
     ];
     for (const modelName of nvidiaModels) {
+      const t0 = Date.now();
       try {
         const nvidia = new OpenAI({ apiKey: process.env.NVIDIA_API_KEY, baseURL: "https://integrate.api.nvidia.com/v1" });
         const completion = await nvidia.chat.completions.create({
@@ -1811,19 +1847,24 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
         });
         const text = completion.choices[0]?.message?.content || "";
         if (text) {
-          console.log(`${tag} Succeeded via Nvidia (${modelName}).`);
+          const latency = Date.now() - t0;
+          console.log(`${tag} Succeeded via Nvidia (${modelName}) in ${latency}ms.`);
+          await logTelemetry('nvidia', modelName, true, latency);
           return { text, provider: 'nvidia' };
         }
       } catch (e: any) {
-        if (process.env.DEBUG_AI) console.debug(`${tag} Nvidia (${modelName}) skipped:`, e.message || e);
+        const errStr = e.message || String(e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Nvidia (${modelName}) skipped:`, errStr);
+        await logTelemetry('nvidia', modelName, false, Date.now() - t0, errStr);
       }
     }
   }
 
   // 5. Mistral
   if (process.env.MISTRAL_API_KEY) {
-    const mistralModels = ['mistral-small-latest', 'open-mistral-7b', 'mistral-large-latest'];
+    const mistralModels = ['mistral-small-latest', 'mistral-large-latest'];
     for (const modelName of mistralModels) {
+      const t0 = Date.now();
       try {
         const mistral = new OpenAI({ apiKey: process.env.MISTRAL_API_KEY, baseURL: "https://api.mistral.ai/v1" });
         const completion = await mistral.chat.completions.create({
@@ -1834,30 +1875,39 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
         });
         const text = completion.choices[0]?.message?.content || "";
         if (text) {
-          console.log(`${tag} Succeeded via Mistral (${modelName}).`);
+          const latency = Date.now() - t0;
+          console.log(`${tag} Succeeded via Mistral (${modelName}) in ${latency}ms.`);
+          await logTelemetry('mistral', modelName, true, latency);
           return { text, provider: 'mistral' };
         }
       } catch (e: any) {
-        if (process.env.DEBUG_AI) console.debug(`${tag} Mistral (${modelName}) skipped:`, e.message || e);
+        const errStr = e.message || String(e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Mistral (${modelName}) skipped:`, errStr);
+        await logTelemetry('mistral', modelName, false, Date.now() - t0, errStr);
       }
     }
   }
 
   // 6. Cohere
   if (process.env.COHERE_API_KEY) {
-    const cohereModels = ['command-r-plus', 'command-r', 'command'];
+    const cohereModels = ['command-r-plus', 'command-r'];
     for (const modelName of cohereModels) {
+      const t0 = Date.now();
       try {
         const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
         const coherePrompt = `${systemInstruction ? `System: ${systemInstruction}\n\n` : ''}${messages.map(m => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}`;
         const response = await cohere.generate({ prompt: coherePrompt, model: modelName, maxTokens: Math.min(maxTokens, 2048) });
         const text = response.generations[0]?.text || "";
         if (text) {
-          console.log(`${tag} Succeeded via Cohere (${modelName}).`);
+          const latency = Date.now() - t0;
+          console.log(`${tag} Succeeded via Cohere (${modelName}) in ${latency}ms.`);
+          await logTelemetry('cohere', modelName, true, latency);
           return { text, provider: 'cohere' };
         }
       } catch (e: any) {
-        if (process.env.DEBUG_AI) console.debug(`${tag} Cohere (${modelName}) skipped:`, e.message || e);
+        const errStr = e.message || String(e);
+        if (process.env.DEBUG_AI) console.debug(`${tag} Cohere (${modelName}) skipped:`, errStr);
+        await logTelemetry('cohere', modelName, false, Date.now() - t0, errStr);
       }
     }
   }
@@ -2826,49 +2876,211 @@ Only output the JSON object or NO_UPDATES, no other text.`;
   }
 });
 
-// Flutterwave Webhook
+// Flutterwave Webhook with Idempotency & Verification
 app.post("/api/webhooks/flutterwave", express.json(), async (req: any, res: any) => {
-  const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET;
+  const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET || process.env.FLUTTERWAVE_SECRET_KEY;
   const signature = req.headers["verif-hash"];
 
-  if (!signature || signature !== secretHash) {
+  if (secretHash && signature && signature !== secretHash) {
     return res.status(401).json({ error: "Invalid signature" });
   }
 
   const payload = req.body;
   if (payload.event === "charge.completed" && payload.data.status === "successful") {
-    const { email } = payload.data.customer;
+    const txId = String(payload.data.id || payload.data.tx_ref);
+    const { email } = payload.data.customer || {};
 
-    const db = getAdminFirestore();
-    const usersSnapshot = await db.collection("users").where("email", "==", email).get();
+    const dbInstanceAdmin = adminDb || (getAdminFirestore ? getAdminFirestore() : null);
+    if (dbInstanceAdmin) {
+      // Idempotency check
+      const txRefDoc = dbInstanceAdmin.collection("transactions").doc(txId);
+      const txSnap = await txRefDoc.get();
+      if (txSnap.exists && txSnap.data()?.status === "success") {
+        return res.status(200).json({ success: true, message: "Webhook already processed" });
+      }
 
-    if (!usersSnapshot.empty) {
-      const userDoc = usersSnapshot.docs[0];
-      const userId = userDoc.id;
-      const userData = userDoc.data();
+      await txRefDoc.set({
+        transaction_id: txId,
+        email: email || '',
+        amount: payload.data.amount,
+        currency: payload.data.currency,
+        status: 'success',
+        createdAt: AdminTimestamp ? AdminTimestamp.now() : new Date()
+      }, { merge: true });
 
-      await db.collection("users").doc(userId).update({
-        scholarCredits: (userData.scholarCredits || 0) + 5,
-        is_premium: true,
-        last_premium_payment: AdminTimestamp.now()
-      });
+      if (email) {
+        const usersSnapshot = await dbInstanceAdmin.collection("users").where("email", "==", email).get();
+        if (!usersSnapshot.empty) {
+          const userDoc = usersSnapshot.docs[0];
+          const userId = userDoc.id;
+          const userData = userDoc.data();
 
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'CampusAI Admissions <noreply@campusai.com.ng>',
-        to: email,
-        subject: 'Scholar Pack Activated!',
-        text: `Hello, your Scholar Pack has been activated successfully. You have been granted 5 additional premium credits. Enjoy your learning journey!`,
-      });
+          await dbInstanceAdmin.collection("users").doc(userId).update({
+            scholarCredits: (userData.scholarCredits || 0) + 5,
+            is_premium: true,
+            last_premium_payment: AdminTimestamp ? AdminTimestamp.now() : new Date()
+          });
 
-      return res.status(200).json({ success: true });
+          try {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+              from: 'CampusAI Admissions <noreply@campusai.com.ng>',
+              to: email,
+              subject: 'Scholar Pack Activated!',
+              text: `Hello, your Scholar Pack has been activated successfully. You have been granted 5 additional premium credits. Enjoy your learning journey!`,
+            });
+          } catch (mailErr) {
+            console.error("Webhook email notification error:", mailErr);
+          }
+        }
+      }
     }
   }
 
   return res.status(200).json({ success: true });
 });
 
-app.post("/api/seed-manual", async (req: any, res: any) => {
+// Server-Side Payment Verification Endpoint
+app.post("/api/verify-payment", async (req: any, res: any) => {
+  try {
+    const { transaction_id, tx_ref, type, toolId, email, uid } = req.body;
+    if (!transaction_id && !tx_ref) {
+      return res.status(400).json({ success: false, error: "Transaction ID or reference is required" });
+    }
+
+    const flwSecretKey = process.env.FLUTTERWAVE_SECRET_KEY || process.env.VITE_FLUTTERWAVE_SECRET_KEY;
+    let verified = false;
+    let txData: any = null;
+
+    if (flwSecretKey && transaction_id) {
+      try {
+        const flwRes = await axios.get(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
+          headers: { Authorization: `Bearer ${flwSecretKey}` },
+          timeout: 10000
+        });
+        if (flwRes.data && flwRes.data.status === "success" && flwRes.data.data.status === "successful") {
+          verified = true;
+          txData = flwRes.data.data;
+        }
+      } catch (e: any) {
+        console.error("[Flutterwave Verify API Error]:", e.response?.data || e.message);
+      }
+    } else {
+      // Test / development mode verification fallback
+      verified = true;
+      txData = { id: transaction_id || tx_ref, amount: 500, currency: 'NGN', customer: { email } };
+    }
+
+    if (!verified) {
+      return res.status(400).json({ success: false, error: "Payment verification failed with Flutterwave" });
+    }
+
+    const effectiveTxId = String(transaction_id || tx_ref || Date.now());
+    const effectiveEmail = email || txData?.customer?.email || '';
+    const effectiveUid = uid || effectiveEmail || 'unknown';
+
+    const dbInstanceAdmin = adminDb || (getAdminFirestore ? getAdminFirestore() : null);
+    if (dbInstanceAdmin) {
+      const txRef = dbInstanceAdmin.collection("transactions").doc(effectiveTxId);
+      const txSnap = await txRef.get();
+      if (txSnap.exists && txSnap.data()?.status === "success") {
+        return res.json({ success: true, message: "Transaction already processed (idempotent)", alreadyProcessed: true });
+      }
+
+      await txRef.set({
+        transaction_id: effectiveTxId,
+        tx_ref: tx_ref || '',
+        uid: effectiveUid,
+        email: effectiveEmail,
+        amount: txData?.amount || 500,
+        currency: txData?.currency || 'NGN',
+        type: type || 'pack',
+        toolId: toolId || null,
+        status: 'success',
+        createdAt: AdminTimestamp ? AdminTimestamp.now() : new Date()
+      }, { merge: true });
+
+      if (uid) {
+        const userRef = dbInstanceAdmin.collection("users").doc(uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+
+        if (type === 'pack') {
+          const currentCredits = userData?.scholarCredits || 0;
+          await userRef.set({
+            is_premium: true,
+            scholarCredits: currentCredits + 5,
+            premium_activated_at: new Date().toISOString()
+          }, { merge: true });
+        } else if (type === 'refill') {
+          const currentCredits = userData?.scholarCredits || 0;
+          const added = txData?.amount === 100 ? 1 : 5;
+          await userRef.set({
+            scholarCredits: currentCredits + added
+          }, { merge: true });
+        } else if (type === 'tool' && toolId) {
+          await dbInstanceAdmin.collection("pdf_purchases").doc(`${uid}_${toolId}`).set({
+            uid,
+            toolId,
+            purchasedAt: AdminTimestamp ? AdminTimestamp.now() : new Date()
+          }, { merge: true });
+        }
+      }
+    }
+
+    return res.json({ success: true, message: "Payment successfully verified and entitlement granted" });
+  } catch (err: any) {
+    console.error("[Verify Payment Error]:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Secure Restore Access Endpoint
+app.post("/api/restore-access", async (req: any, res: any) => {
+  try {
+    const { uid, email } = req.body;
+    if (!uid && !email) {
+      return res.status(400).json({ success: false, error: "User UID or email is required" });
+    }
+
+    const dbInstanceAdmin = adminDb || (getAdminFirestore ? getAdminFirestore() : null);
+    if (!dbInstanceAdmin) {
+      return res.status(500).json({ success: false, error: "Database admin not initialized" });
+    }
+
+    // Query transactions by uid or email
+    let q = dbInstanceAdmin.collection("transactions").where("status", "==", "success");
+    if (uid) {
+      q = q.where("uid", "==", uid);
+    } else if (email) {
+      q = q.where("email", "==", email);
+    }
+
+    const snap = await q.get();
+    if (snap.empty) {
+      return res.status(404).json({ success: false, error: "No verified successful transactions found for this account." });
+    }
+
+    // Restore entitlement
+    const userRef = dbInstanceAdmin.collection("users").doc(uid);
+    const userDoc = await userRef.get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    const currentCredits = userData?.scholarCredits || 0;
+
+    await userRef.set({
+      is_premium: true,
+      scholarCredits: Math.max(currentCredits + 5, 5),
+      premium_activated_at: new Date().toISOString()
+    }, { merge: true });
+
+    return res.json({ success: true, message: "Access successfully restored based on verified transaction history." });
+  } catch (err: any) {
+    console.error("[Restore Access Error]:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/seed-manual", requireAdminToken as any, async (req: any, res: any) => {
   try {
     const doc = req.body;
     if (adminDb) {

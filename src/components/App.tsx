@@ -775,8 +775,12 @@ const AppContent: React.FC = () => {
       }, 100);
     } else {
       setCurrentPage(p);
-      if (p === 'home' && user) {
-        navigate('/dashboard');
+      if (p === 'home') {
+        if (user) {
+          navigate('/dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         navigate('/');
       }

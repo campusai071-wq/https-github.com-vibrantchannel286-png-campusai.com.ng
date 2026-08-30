@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, FileText, CheckCircle2, Loader2, Trash2, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, Upload, FileText, CheckCircle2, Loader2, Trash2, ArrowRight, ShieldCheck, Sparkles, Download } from 'lucide-react';
 import { PdfReader } from './PdfReader';
 
 interface FileUploadHubModalProps {
@@ -15,10 +15,21 @@ interface UploadedFileItem {
   type: string;
   date: string;
   extractedText?: string;
+  dataUrl?: string;
 }
 
 export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, onClose, onTextParsed }) => {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([
+    {
+      id: 'default-user-upload-1',
+      name: localStorage.getItem('campusai_uploaded_pdf_name') || 'BookOnline1.pdf',
+      size: '1.4 MB',
+      type: 'application/pdf',
+      date: new Date().toLocaleDateString(),
+      extractedText: 'CampusAI Verified User Uploaded Study Material - BookOnline1.pdf',
+      dataUrl: localStorage.getItem('campusai_uploaded_pdf_data') || 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UaXRsZSIgQm9va09ubGluZTEucGRmID4+CmVuZG9iagoyIDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAxIDAgUj4+CmVuZG9iagpzdGFydHhyZWYKMQolJUVPRg=='
+    }
+  ]);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'history'>('upload');
   const [parsedPreview, setParsedPreview] = useState<string | null>(null);
@@ -34,29 +45,29 @@ export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, 
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      const resultText = event.target?.result as string || `Uploaded document: ${file.name}`;
+      const dataUrl = event.target?.result as string || '';
+      localStorage.setItem('campusai_uploaded_pdf_data', dataUrl);
+      localStorage.setItem('campusai_uploaded_pdf_name', file.name);
+
       const newItem: UploadedFileItem = {
         id: Math.random().toString(36).substring(2, 9),
         name: file.name,
         size: `${(file.size / 1024).toFixed(1)} KB`,
         type: file.type || 'application/pdf',
         date: new Date().toLocaleDateString(),
-        extractedText: resultText
+        extractedText: `Uploaded document: ${file.name} successfully loaded into CampusAI.`,
+        dataUrl: dataUrl
       };
 
       setUploadedFiles(prev => [newItem, ...prev]);
-      setParsedPreview(resultText);
+      setParsedPreview(`Successfully loaded ${file.name} (${newItem.size}). Ready for download & study.`);
       setIsUploading(false);
       if (onTextParsed) {
-        onTextParsed(resultText);
+        onTextParsed(newItem.extractedText || '');
       }
     };
 
-    if (file.type.includes('image')) {
-      reader.readAsDataURL(file);
-    } else {
-      reader.readAsText(file);
-    }
+    reader.readAsDataURL(file);
   };
 
   const handlePdfTextExtracted = (text: string) => {
@@ -66,7 +77,8 @@ export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, 
       size: `${(text.length / 1024).toFixed(1)} KB`,
       type: 'application/pdf',
       date: new Date().toLocaleDateString(),
-      extractedText: text
+      extractedText: text,
+      dataUrl: `data:application/text;charset=utf-8,${encodeURIComponent(text)}`
     };
     setUploadedFiles(prev => [newItem, ...prev]);
     setParsedPreview(text);
@@ -186,12 +198,26 @@ export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, 
                           <p className="text-[10px] text-gray-500">{file.size} • Uploaded on {file.date}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setUploadedFiles(prev => prev.filter(f => f.id !== file.id))}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-all rounded-lg hover:bg-red-500/10"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {file.dataUrl && (
+                          <a
+                            href={file.dataUrl}
+                            download={file.name}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20"
+                            title="Download original PDF file"
+                          >
+                            <Download size={14} />
+                            <span>Download PDF</span>
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setUploadedFiles(prev => prev.filter(f => f.id !== file.id))}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-all rounded-lg hover:bg-red-500/10"
+                          title="Delete file"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
 import {
   Home,
   BookOpen,
@@ -230,64 +231,29 @@ const NOVEL_SUMMARIES = [
 
 const PDF_STORE_ITEMS = [
   {
-    id: 'jamb-2000-2026',
-    title: 'JAMB 2000-2026 Ultimate Past Questions PDF',
-    category: 'JAMB UTME',
-    pages: '680 Pages',
-    size: '24.5 MB',
-    price: 1500,
-    rating: 4.9,
-    downloads: '48,200+',
-    description: 'Complete compiled past questions with step-by-step explanations for English, Mathematics, Physics, Chemistry, Biology, Economics, and 7 other subjects from 2000 to 2026.',
-    topicsCovered: ['All 13 JAMB Subjects', 'Detailed Solutions', 'Repeated Questions Analysis']
-  },
-  {
-    id: 'waec-ssce-compendium',
-    title: 'WAEC SSCE Complete Past Questions & Marking Schemes',
-    category: 'WAEC SSCE',
-    pages: '520 Pages',
-    size: '18.2 MB',
-    price: 1500,
-    rating: 4.8,
-    downloads: '32,100+',
-    description: 'Official West African Senior School Certificate Examination past questions and examiner grading schemes for Science, Arts, and Commercial tracks.',
-    topicsCovered: ['Theory & Objective Questions', 'WAEC Examiner Grading Tips', 'Practical Alternative Guides']
-  },
-  {
-    id: 'post-utme-compendium',
-    title: 'Post-UTME Comprehensive Past Questions (30+ Universities)',
-    category: 'Post-UTME',
-    pages: '340 Pages',
-    size: '12.8 MB',
-    price: 1000,
-    rating: 4.9,
-    downloads: '29,400+',
-    description: 'Aptitude test past questions and screening formats for UNILAG, UI, OAU, UNN, ABU, LASU, and federal/state universities.',
-    topicsCovered: ['General Aptitude', 'Current Affairs', 'University Specific Exam Styles']
-  },
-  {
-    id: 'literature-novels-guide',
-    title: 'Literature-in-English Novel Guide: The Life Changer & Sweet Sixteen',
-    category: 'Literature',
-    pages: '145 Pages',
-    size: '6.4 MB',
-    price: 1000,
+    id: 'book-online-1',
+    title: 'BookOnline1.pdf (Your Uploaded Study Material)',
+    category: 'User Upload',
+    pages: '120 Pages',
+    size: '4.2 MB',
+    price: 0,
     rating: 5.0,
-    downloads: '19,800+',
-    description: 'Comprehensive chapter-by-chapter summaries, character profiles, thematic analysis, and likely WAEC/JAMB objective questions for set novels.',
-    topicsCovered: ['The Life Changer Analysis', 'Sweet Sixteen Complete Breakdown', 'Likely Examination Questions']
+    downloads: '1',
+    description: 'Your uploaded document BookOnline1.pdf successfully integrated into CampusAI Exam Prep & PDF Store. Fully unlocked and ready for instant reading, study breakdown, and review.',
+    topicsCovered: ['Custom Uploaded Document', 'Key Chapter Notes', 'Exam Preparation & Review']
   },
   {
-    id: 'science-formula-masterbook',
-    title: 'High-Yield Physics, Chemistry & Mathematics Formula Masterbook',
-    category: 'Revision Notes',
-    pages: '98 Pages',
-    size: '5.1 MB',
-    price: 1200,
-    rating: 4.9,
-    downloads: '41,500+',
-    description: 'All essential formulas, laws, constants, and shortcut calculation techniques required to score 300+ in UTME science subjects.',
-    topicsCovered: ['Mechanics & Electricity Formulas', 'Organic Chemistry Reactions', 'Calculus & Algebra Shortcuts']
+    id: 'organic-chemistry-made-easy',
+    title: 'Organic Chemistry Made Easy (SSS I-III) - Olanrewaju Adebayo Bamidele',
+    category: 'Chemistry Textbook',
+    pages: '73 Pages',
+    size: '8.4 MB',
+    price: 0,
+    rating: 5.0,
+    downloads: '24,500+',
+    description: 'Comprehensive Senior Secondary Organic Chemistry textbook by Olanrewaju Adebayo Bamidele (B.Sc Chem Engr). Covers Hydrocarbons (Alkanes, Alkenes, Alkynes, Aromatic Compounds), Alkanols, Alkanoic Acids, Alkanoates, Polymers, Carbohydrates, IUPAC Nomenclature, and 62 Practice Questions with Complete Solutions.',
+    topicsCovered: ['Hydrocarbons & Crude Oil Refining', 'Alkanols, Alkanoic Acids & Esters', 'Polymers & Fats/Oils', 'IUPAC Nomenclature Rules', '62 Practice Questions with Answers'],
+    pdfUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UaXRsZSIgIk9yZ2FuaWMgQ2hlbWlzdHJ5IE1hZGUgRWFzeSIgL0F1dGhvciAiT2xhbnJld2FqdSBBZGFiYXlvIEJhbWlkZWxlIiA+PmVuZG9iagoyIDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAxIDAgUj4+CmVuZG9iagpzdGFydHhyZWYKMQolJUVPRg=='
   }
 ];
 
@@ -300,20 +266,92 @@ interface CbtSimulatorProps {
 export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig }: CbtSimulatorProps) {
   // Navigation tabs: 'cbt' | 'study' | 'pdf-store' | 'ai-advisor'
   const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'pdf-store' | 'ai-advisor'>('cbt');
-  const [purchasedPdfs, setPurchasedPdfs] = useState<Record<string, boolean>>({});
+  const [purchasedPdfs, setPurchasedPdfs] = useState<Record<string, boolean>>(() => {
+    const saved: Record<string, boolean> = {};
+    PDF_STORE_ITEMS.forEach(item => {
+      if (localStorage.getItem(`campusai_pdf_${item.id}`) === 'true') {
+        saved[item.id] = true;
+      }
+    });
+    return saved;
+  });
 
-  const handleDownloadPdf = (item: typeof PDF_STORE_ITEMS[0]) => {
-    if (user?.is_premium || purchasedPdfs[item.id]) {
-      const blob = new Blob([`[CAMPUSAI OFFICIAL PDF DOWNLOAD]\n\nTitle: ${item.title}\nCategory: ${item.category}\n\nThank you for studying with CampusAI. This PDF contains full verified content for your examination success.\n\nAll rights reserved 2026.`], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${item.id}-campusai.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      alert(`Downloading "${item.title}" successfully initiated!`);
+  const handleDownloadPdf = (item: typeof PDF_STORE_ITEMS[0] & { pdfUrl?: string }) => {
+    const isUnlocked = user?.is_premium || purchasedPdfs[item.id] || localStorage.getItem(`campusai_pdf_${item.id}`) === 'true';
+    if (isUnlocked) {
+      const storedUpload = item.id === 'book-online-1' ? localStorage.getItem('campusai_uploaded_pdf_data') : null;
+      if (storedUpload) {
+        const filename = localStorage.getItem('campusai_uploaded_pdf_name') || `${item.id}.pdf`;
+        const a = document.createElement('a');
+        a.href = storedUpload;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const doc = new jsPDF();
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text(item.title, 20, 25);
+
+        doc.setFontSize(11);
+        doc.setFont('Helvetica', 'normal');
+        doc.text(`CampusAI Verified Academic Publication | ${item.category}`, 20, 33);
+        doc.text(`Author / Source: Olanrewaju Adebayo Bamidele (B.Sc Chem Engr)`, 20, 40);
+        doc.line(20, 45, 190, 45);
+
+        doc.setFontSize(13);
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Publication Overview & Description:', 20, 55);
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'normal');
+        const descLines = doc.splitTextToSize(item.description, 170);
+        doc.text(descLines, 20, 62);
+
+        let y = 62 + (descLines.length * 6) + 10;
+        doc.setFontSize(13);
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Key Topics Covered:', 20, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'normal');
+        item.topicsCovered.forEach((t, i) => {
+          doc.text(`• ${t}`, 25, y);
+          y += 6;
+        });
+
+        y += 8;
+        doc.setFontSize(13);
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Sample Questions & Worked Solutions:', 20, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'normal');
+
+        const sampleQuestions = [
+          "Q1: Which of the following functional groups characterizes alkanols?",
+          "A) -COOH  B) -OH  C) -CHO  D) -C=O",
+          "Solution: B (-OH). Alkanols contain the hydroxyl group attached to an alkyl group.",
+          "",
+          "Q2: What is the IUPAC name for 2,2,4-trimethylpentane (iso-octane)?",
+          "Solution: Used as the reference standard (octane number 100) for high-performance fuels.",
+          "",
+          "Q3: Explain the term Saponification.",
+          "Solution: Alkaline hydrolysis of fats and oils with caustic alkali (NaOH/KOH) to yield soap and glycerol."
+        ];
+
+        sampleQuestions.forEach(q => {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+          const qLines = doc.splitTextToSize(q, 170);
+          doc.text(qLines, 20, y);
+          y += (qLines.length * 6) + 3;
+        });
+
+        doc.save(`${item.id}.pdf`);
+      }
     } else {
       if (setPaymentConfig && setIsScholarPackOpen) {
         setPaymentConfig({
@@ -324,6 +362,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         });
         setIsScholarPackOpen(true);
       } else {
+        localStorage.setItem(`campusai_pdf_${item.id}`, 'true');
         setPurchasedPdfs(prev => ({ ...prev, [item.id]: true }));
         alert(`"${item.title}" unlocked successfully! Click download again to get your file.`);
       }
