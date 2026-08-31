@@ -42,6 +42,9 @@ import {
   Lock
 } from 'lucide-react';
 
+import institutionsTree from '../data/institutionsTree.json';
+import masterCourses from '../data/masterCourses.json';
+
 /**
  * ---------------------------------------------------------------------------
  * Interfaces & Types
@@ -189,21 +192,56 @@ interface CbtSimulatorProps {
 export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig }: CbtSimulatorProps) {
   // Navigation tabs: 'cbt' | 'study' | 'target-system' | 'ai-advisor'
   const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>('cbt');
-  const [targetUniversity, setTargetUniversity] = useState('University of Lagos (UNILAG)');
-  const [targetCourse, setTargetCourse] = useState('Computer Science');
-  const [targetScore, setTargetScore] = useState(250);
-  const [progressHistory, setProgressHistory] = useState([
-    { month: 'August', score: 178 },
-    { month: 'September', score: 193 },
-    { month: 'October', score: 211 },
-    { month: 'November', score: 228 },
-    { month: 'December', score: 241 }
-  ]);
-  const [newMonthInput, setNewMonthInput] = useState('');
-  const [newScoreInput, setNewScoreInput] = useState<number>(248);
+  const [targetUniversity, setTargetUniversity] = useState('');
+  const [targetCourse, setTargetCourse] = useState('');
+  const [targetScore, setTargetScore] = useState<number | ''>('');
+  const [progressHistory, setProgressHistory] = useState<{ month: string, score: number }[]>([]);
 
-  const currentCbtEquivalent = progressHistory[progressHistory.length - 1]?.score || 178;
-  const gap = Math.max(0, targetScore - currentCbtEquivalent);
+  // Load from local storage on mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('campusai_target_config');
+    if (savedConfig) {
+      try {
+        const parsed = JSON.parse(savedConfig);
+        if (parsed.university) setTargetUniversity(parsed.university);
+        if (parsed.course) setTargetCourse(parsed.course);
+        if (parsed.score) setTargetScore(parsed.score);
+        if (parsed.history && Array.isArray(parsed.history)) setProgressHistory(parsed.history);
+      } catch (e) {
+        console.error('Failed to parse saved config', e);
+      }
+    }
+  }, []);
+
+  // Save to local storage on change
+  useEffect(() => {
+    localStorage.setItem('campusai_target_config', JSON.stringify({
+      university: targetUniversity,
+      course: targetCourse,
+      score: targetScore,
+      history: progressHistory
+    }));
+  }, [targetUniversity, targetCourse, targetScore, progressHistory]);
+
+  const [newMonthInput, setNewMonthInput] = useState('');
+  const [newScoreInput, setNewScoreInput] = useState<number | ''>('');
+
+  const currentCbtEquivalent = progressHistory.length > 0 ? progressHistory[progressHistory.length - 1]?.score : 0;
+  const gap = Math.max(0, (typeof targetScore === 'number' ? targetScore : 0) - currentCbtEquivalent);
+
+  const flatInstitutions = useMemo(() => {
+    const list: string[] = [];
+    const recurse = (node: any) => {
+      if (node.type === 'institution' && node.name) list.push(node.name);
+      if (node.children) node.children.forEach(recurse);
+    };
+    institutionsTree.forEach(recurse);
+    return list.sort();
+  }, []);
+
+  const coursesList = useMemo(() => {
+    return masterCourses.map((c: any) => c.title).sort();
+  }, []);
 
   const prioritySubjects = useMemo(() => {
     const c = targetCourse.toLowerCase();
@@ -414,6 +452,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     setShowResults(true);
 
     const totalScore = calculateScore();
+    
+    // Automatically save CBT attempt to Target Progress
+    const jambEquivalentScore = Math.round((totalScore / totalQuestions) * 400) || 0;
+    const currentMonth = new Date().toLocaleString('default', { month: 'short' });
+    setProgressHistory(prev => {
+      const newHistory = [...prev];
+      // Check if last entry is this month, if so, we can add a new one or update
+      newHistory.push({ month: `${currentMonth} (Attempt)`, score: jambEquivalentScore });
+      // Keep only last 12 attempts to avoid infinite array
+      if (newHistory.length > 12) return newHistory.slice(newHistory.length - 12);
+      return newHistory;
+    });
 
     // Prepare subject breakdown for AI analysis
     const subjectBreakdown = selectedSubjects.map((subKey) => {
@@ -700,25 +750,25 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     onChange={(e) => setTargetUniversity(e.target.value)}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="University of Lagos (UNILAG)">University of Lagos (UNILAG)</option>
-                    <option value="Federal University of Technology, Akure (FUTA)">Federal University of Technology, Akure (FUTA)</option>
-                    <option value="University of Ibadan (UI)">University of Ibadan (UI)</option>
-                    <option value="Obafemi Awolowo University (OAU)">Obafemi Awolowo University (OAU)</option>
-                    <option value="University of Nigeria, Nsukka (UNN)">University of Nigeria, Nsukka (UNN)</option>
-                    <option value="Lagos State University (LASU)">Lagos State University (LASU)</option>
-                    <option value="Ahmadu Bello University (ABU)">Ahmadu Bello University (ABU)</option>
+                    <option value="" disabled>Select Institution...</option>
+                    {flatInstitutions.map((inst, idx) => (
+                      <option key={idx} value={inst}>{inst}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Course of Study</label>
-                  <input
-                    type="text"
+                  <select
                     value={targetCourse}
                     onChange={(e) => setTargetCourse(e.target.value)}
-                    placeholder="e.g. Computer Science, Medicine..."
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-500"
-                  />
+                  >
+                    <option value="" disabled>Select Course...</option>
+                    {coursesList.map((course, idx) => (
+                      <option key={idx} value={course}>{course}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -728,7 +778,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     min={180}
                     max={400}
                     value={targetScore}
-                    onChange={(e) => setTargetScore(parseInt(e.target.value) || 250)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setTargetScore(isNaN(val) ? '' : val);
+                    }}
+                    placeholder="e.g. 250"
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-black text-lg focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -801,15 +855,19 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   <input
                     type="number"
                     value={newScoreInput}
-                    onChange={(e) => setNewScoreInput(parseInt(e.target.value) || 200)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setNewScoreInput(isNaN(val) ? '' : val);
+                    }}
                     placeholder="Score"
                     className="w-24 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
                   />
                   <button
                     onClick={() => {
-                      if (newMonthInput && newScoreInput) {
+                      if (newMonthInput && typeof newScoreInput === 'number') {
                         setProgressHistory([...progressHistory, { month: newMonthInput, score: newScoreInput }]);
                         setNewMonthInput('');
+                        setNewScoreInput('');
                       }
                     }}
                     className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all"
@@ -820,34 +878,42 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               </div>
 
               {/* Timeline Display */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 pt-4">
-                {progressHistory.map((item, index) => {
-                  const isLatest = index === progressHistory.length - 1;
-                  return (
-                    <div key={index} className={`p-4 rounded-2xl border text-center relative ${isLatest ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
-                      {isLatest && (
-                        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
-                          Current
-                        </span>
-                      )}
-                      <span className="text-xs font-bold text-slate-500 block">{item.month}</span>
-                      <div className="text-2xl font-black text-slate-950 mt-2">{item.score}</div>
-                      <span className="text-[10px] text-slate-400 block mt-1">UTME Score</span>
-                    </div>
-                  );
-                })}
-              </div>
+              {progressHistory.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50 mt-4">
+                  <TrendingUp size={32} className="mx-auto text-slate-300 mb-3" />
+                  <h3 className="text-sm font-bold text-slate-700">No Progress Recorded Yet</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Start taking CBT practice exams or manually log your scores above to start building your JAMB progress timeline.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 pt-4">
+                  {progressHistory.map((item, index) => {
+                    const isLatest = index === progressHistory.length - 1;
+                    return (
+                      <div key={index} className={`p-4 rounded-2xl border text-center relative ${isLatest ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                        {isLatest && (
+                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
+                            Current
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-slate-500 block">{item.month}</span>
+                        <div className="text-2xl font-black text-slate-950 mt-2">{item.score}</div>
+                        <span className="text-[10px] text-slate-400 block mt-1">UTME Score</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Visual Progress Bar to Target */}
               <div className="space-y-2 pt-4 border-t border-slate-100">
                 <div className="flex justify-between text-xs font-bold">
-                  <span className="text-slate-600">Progress to Target ({currentCbtEquivalent} / {targetScore})</span>
-                  <span className="text-emerald-600">{Math.round((currentCbtEquivalent / targetScore) * 100)}% Achieved</span>
+                  <span className="text-slate-600">Progress to Target ({currentCbtEquivalent} / {targetScore || '-'})</span>
+                  <span className="text-emerald-600">{Math.round((currentCbtEquivalent / (typeof targetScore === 'number' ? targetScore : 1)) * 100)}% Achieved</span>
                 </div>
                 <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(5, (currentCbtEquivalent / targetScore) * 100))}%` }}
+                    style={{ width: `${typeof targetScore === 'number' && targetScore > 0 ? Math.min(100, Math.max(5, (currentCbtEquivalent / targetScore) * 100)) : 0}%` }}
                   ></div>
                 </div>
               </div>
