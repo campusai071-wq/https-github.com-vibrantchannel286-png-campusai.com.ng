@@ -141,7 +141,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
   if (cleanPath.startsWith('/news/')) {
     isArticle = true;
     const rawSlug = cleanPath.split('/')[2];
-    const slug = rawSlug ? decodeURIComponent(rawSlug).trim().toLowerCase() : '';
+    const slug = rawSlug ? decodeURIComponent(rawSlug).trim() : '';
     if (slug) {
       try {
         let docData: any = null;

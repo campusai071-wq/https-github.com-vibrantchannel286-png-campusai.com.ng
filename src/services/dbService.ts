@@ -73,10 +73,11 @@ export const updateGlobalSyncMetadata = async (lastSync: number) => {
  * News Persistence & Archival
  */
 export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> => {
-  const cleanSlug = slug.split('?')[0].replace(/\/$/, '').toLowerCase();
+  const cleanSlug = slug.split('?')[0].replace(/\/$/, '');
+  const lowerSlug = cleanSlug.toLowerCase();
 
   if (!db) {
-    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === lowerSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }
@@ -99,7 +100,7 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
 
     // 2. Query where slug == cleanSlug
     const newsRef = collection(db, "news");
-    const q = query(newsRef, where("slug", "==", cleanSlug));
+    const q = query(newsRef, where("slug", "==", lowerSlug));
     let querySnapshot;
     try {
       querySnapshot = await getDocs(q);
@@ -133,14 +134,16 @@ export const getNewsItemBySlug = async (slug: string): Promise<NewsItem | null> 
       return cloudMatch;
     }
 
-    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
+    const lowerSlug = cleanSlug.toLowerCase();
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === lowerSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }
     return null;
   } catch (e) {
     console.error("Error fetching news by slug:", e);
-    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === cleanSlug) || null;
+    const lowerSlug = cleanSlug.toLowerCase();
+    const mock = MOCK_NEWS.find(n => n.id === cleanSlug || (n.slug || slugify(n.title)) === lowerSlug) || null;
     if (mock) {
       return { ...mock, category: normalizeCategory(mock.category, mock.title) };
     }
