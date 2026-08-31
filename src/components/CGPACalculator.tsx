@@ -24,6 +24,7 @@ interface CGPACalculatorProps {
   user?: any;
   isPremium?: boolean;
   onUpgrade?: () => void;
+  onLoginRequest?: () => void;
 }
 
 export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {

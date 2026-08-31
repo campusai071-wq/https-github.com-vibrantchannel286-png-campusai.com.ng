@@ -166,7 +166,7 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
       />
       <CutoffCalculator 
         user={user} 
-        onLoginRequest={() => navigate('/login')} 
+        onLoginRequest={() => setIsAuthModalOpen ? setIsAuthModalOpen(true) : navigate('/login')} 
         onPremiumRequired={() => setIsScholarPackOpen(true)}
         onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
         initialSchoolName={computedSchoolName}
@@ -977,7 +977,7 @@ const AppContent: React.FC = () => {
               />
               <CutoffCalculator 
                 user={user} 
-                onLoginRequest={() => navigate('/login')} 
+                onLoginRequest={() => setIsAuthModalOpen(true)} 
                 onPremiumRequired={() => setIsScholarPackOpen(true)}
                 onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
                 initialSchoolName={selectedSchoolForChances}

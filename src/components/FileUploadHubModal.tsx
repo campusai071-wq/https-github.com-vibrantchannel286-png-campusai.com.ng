@@ -19,6 +19,7 @@ interface UploadedFileItem {
   date: string;
   extractedText?: string;
   dataUrl?: string;
+  storagePath?: string;
 }
 
 export const FileUploadHubModal: React.FC<FileUploadHubModalProps> = ({ isOpen, onClose, onTextParsed }) => {

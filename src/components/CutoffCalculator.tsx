@@ -1240,6 +1240,16 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   }, []);
 
   const [jambScore, setJambScore] = useState('');
+  const [calculationCount, setCalculationCount] = useState<number>(() => {
+    const stored = localStorage.getItem('campusai_aggregate_calc_count');
+    return stored ? parseInt(stored, 10) : 0;
+  });
+
+  const incrementCalculation = () => {
+    const newCount = calculationCount + 1;
+    setCalculationCount(newCount);
+    localStorage.setItem('campusai_aggregate_calc_count', String(newCount));
+  };
   const [postUtmeScore, setPostUtmeScore] = useState('');
   const [targetUni, setTargetUni] = useState<any>(null);
   const [targetCourse, setTargetCourse] = useState('');
@@ -2248,7 +2258,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     return found || { name: searchStr, slug: searchStr.toLowerCase().replace(/\s+/g, '-') };
   };
 
-  const handleLaunchAudit = async () => { await handleLaunchAuditInternal(false, false); };
+  const handleLaunchAudit = async () => {
+    if (!user && calculationCount >= 1) {
+      onLoginRequest?.();
+      return;
+    }
+    
+    incrementCalculation();
+    await handleLaunchAuditInternal(false, false); 
+  };
 
   const handleLaunchAuditInternal = async (forceBypass = false, forceBypassAccreditation = false, overrideUni?: any, overrideCourse?: string) => {
     let rawUni = overrideUni || targetUni;
@@ -2931,6 +2949,22 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Guest Conversion Banner */}
+          {!user && calculationCount >= 1 && (
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg mb-6">
+              <div>
+                <h3 className="font-bold text-lg">Save your aggregate analysis!</h3>
+                <p className="text-sm text-blue-100">Sign up to get full analytics, save your calculator history, and track admission chances.</p>
+              </div>
+              <button 
+                onClick={onLoginRequest}
+                className="bg-white text-blue-700 font-bold px-6 py-2 rounded-xl text-sm hover:bg-gray-100"
+              >
+                Sign Up Now
+              </button>
             </div>
           )}
 
@@ -5621,6 +5655,30 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   );
                 })() : null}
                 </div>
+
+                {!user && aiResult && (
+                  <div className="p-6 md:p-8 bg-gradient-to-br from-blue-700 via-indigo-700 to-cyan-900 rounded-[24px] shadow-2xl text-white relative overflow-hidden border border-blue-400/30">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none" />
+                    <div className="flex items-center gap-3 mb-3 relative z-10">
+                      <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md">
+                        <Sparkles size={20} className="text-yellow-300 animate-pulse" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-black uppercase tracking-tight text-white">Unlock Full Admission Diagnostic</h5>
+                        <p className="text-[9.5px] text-cyan-200 font-medium">Detailed AI probability strategy & history storage</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-50/90 leading-relaxed mb-5 relative z-10">
+                      Great job calculating your aggregate score of <strong className="text-cyan-300">{aggregateScore}%</strong>! Create a free account to unlock your personalized AI admission forecast, compare multiple universities, and save your admission progress.
+                    </p>
+                    <button
+                      onClick={() => onLoginRequest?.()}
+                      className="w-full py-3.5 bg-white hover:bg-cyan-50 text-blue-900 rounded-xl font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer relative z-10"
+                    >
+                      <Sparkles size={16} className="text-blue-600" /> Sign Up / Sign In To Unlock Full Report
+                    </button>
+                  </div>
+                )}
 
                 {user && aiResult && (
                   <>
