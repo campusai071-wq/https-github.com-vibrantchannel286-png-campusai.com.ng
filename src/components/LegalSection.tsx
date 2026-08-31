@@ -21,26 +21,26 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Terms of Service',
       icon: Scale,
       color: 'blue',
-      revision: 'August 2026.1',
+      revision: 'August 2026.2',
       warning: 'PLEASE READ: Campusai.com.ng is an independent AI research platform. We are NOT the official JAMB portal. Always cross-verify critical deadlines with the official government domain.',
       content: [
         {
           title: '1. Service Scope & Algorithmic Processors',
           icon: FileText,
           color: 'text-blue-500',
-          text: 'By utilizing this "Intelligence Engine" and its dynamic calculators, you acknowledge that all probability scores, what-if simulators, point-based O-level mapping criteria, and subject combination validations are generated via advanced mathematical modeling and Google Gemini Neural Networks. We provide guided target estimations for the 2026 Nigerian admission cycle.'
+          text: 'By utilizing this "Intelligence Engine", JAMB Target System, and dynamic calculators, you acknowledge that all probability scores, target gap analyses, monthly progress trackers, randomized CBT simulations, and O-level mapping criteria are generated via advanced mathematical modeling and Google Gemini Neural Networks.'
         },
         {
           title: '2. Data Accuracy & Interactive Simulators',
           icon: Globe,
           color: 'text-cyan-500',
-          text: 'While our Strategist Nodes and "What-If" Analysis engines utilize verified university blueprints, values returned are high-probability simulation models. CampusAI accepts no liability for actual admissions decisions or portal errors. You are responsible for registering and verifying final thresholds with your chosen institutions.'
+          text: 'While our Strategist Nodes, Target Systems, and CBT test engines utilize verified institutional blueprints, values and randomized question sets returned are high-probability simulation models. CampusAI accepts no liability for actual admissions decisions. In addition, the legacy PDF store has been deprecated and replaced with live interactive CBT practice and AI study guides.'
         },
         {
           title: '3. Service Access & Quota Limits',
           icon: ShieldCheck,
           color: 'text-emerald-500',
-          text: 'Campusai.com.ng provides AI Strategist access for the active admission season. We reserve the right to apply rate limits or prioritize dedicated server channels to manage background calculations, real-time map requests, and news-alert distributions under heavy server loads.'
+          text: 'Campusai.com.ng provides AI Strategist access for the active admission season. We reserve the right to apply rate limits or prioritize dedicated server channels to manage background calculations, randomized test generation, and news-alert distributions under heavy server loads.'
         },
         {
           title: '4. Prohibited Behavior & Integrity',
@@ -54,14 +54,14 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Privacy Protocol',
       icon: Lock,
       color: 'emerald',
-      revision: 'August 2026.1',
-      warning: 'Your privacy is architected into the system. We use 256-bit encryption for all cloud profiles, journey logs, and mock scores.',
+      revision: 'August 2026.2',
+      warning: 'Your privacy is architected into the system. We use 256-bit encryption for all cloud profiles, target goals, monthly progress logs, and mock scores.',
       content: [
         {
-          title: '1. Academic Data & What-If Scores',
+          title: '1. Academic Data & Target System Scores',
           icon: Lock,
           color: 'text-blue-500',
-          text: 'We collect and process grade scores, JAMB combinations, simulation scores, and calculated aggregate results. Your credentials are fully protected. No individual "what-if" scores or experimental grade sequences are shared publicly.'
+          text: 'We collect and process grade scores, JAMB target goals, monthly progression metrics, and calculated aggregate results. Your credentials are fully protected. No individual target scores or experimental grade sequences are shared publicly.'
         },
         {
           title: '2. Map Coordinates & Center Finding',
@@ -79,7 +79,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
           title: '4. Record Expungement',
           icon: Scale,
           color: 'text-orange-500',
-          text: 'All calculations, user profiles, and active checklist histories can be completely and instantly expunged upon custom request by contacting support@campusai.com.ng.'
+          text: 'All calculations, user profiles, target configurations, and active checklist histories can be completely and instantly expunged upon custom request by contacting support@campusai.com.ng.'
         },
         {
           title: '5. Advertising and Third-Party Cookies',
@@ -93,8 +93,8 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
       title: 'Cookie Policy',
       icon: Cookie,
       color: 'amber',
-      revision: 'August 2026.1',
-      warning: 'Cookies are small data packets used to synchronize your AI preferences and session tokens across the 2026 admission season.',
+      revision: 'August 2026.2',
+      warning: 'Cookies are small data packets used to synchronize your AI preferences, target admission goals, and session tokens across the 2026 admission season.',
       content: [
         {
           title: '1. Essential Logic Cookies',
@@ -103,16 +103,16 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
           text: 'These are strictly necessary for the core Decision Engine to function. They store your temporary session ID, theme preference (Dark/Light), and calculator state while you are actively mapping your aggregate scores.'
         },
         {
-          title: '2. AI Preference Cookies',
+          title: '2. AI & Target System Preference Cookies',
           icon: Brain,
           color: 'text-cyan-500',
-          text: 'These cookies help Gemini remember your academic focus (e.g., Medicine, Engineering) so the strategizer can provide personalized target thresholds without you re-entering data every visit.'
+          text: 'These cookies help Gemini remember your target university, course selection, and monthly progress logs so the strategizer can provide personalized target thresholds without you re-entering data every visit.'
         },
         {
           title: '3. Synchronization & Persistence',
           icon: Globe,
           color: 'text-emerald-500',
-          text: 'We use persistent local storage tokens to keep your checklist progress saved even if you close your browser. This ensures your 2026 admission journey is never lost.'
+          text: 'We use persistent local storage tokens to keep your checklist and target progress saved even if you close your browser. This ensures your 2026 admission journey is never lost.'
         }
       ]
     }

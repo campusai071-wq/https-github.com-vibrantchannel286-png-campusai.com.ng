@@ -11,6 +11,26 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
   {
+    category: 'Academic',
+    question: "How does the JAMB Target System and Score Gap Analysis work?",
+    answer: "The CampusAI Target System allows you to select your dream university (e.g., UNILAG, FUTA, UI) and course of study, then set a target UTME score (e.g., 250). CampusAI automatically compares your current CBT equivalent, computes your score gap, highlights priority subjects, and recommends high-yield focus topics to close the gap."
+  },
+  {
+    category: 'Academic',
+    question: "Can I track my monthly exam score improvements over time?",
+    answer: "Yes! CampusAI features an interactive Monthly Progress Tracker where you can log and view your score evolution month by month (e.g., August: 178, September: 193, October: 211, November: 228, December: 241) to watch yourself improve steadily toward your admission target."
+  },
+  {
+    category: 'Academic',
+    question: "Are CBT practice questions repeated or randomized?",
+    answer: "Our CBT Simulator features an advanced randomization and shuffling engine coupled with high-temperature AI fallback generation. This ensures that every time you start a practice test, questions and options are thoroughly shuffled so you never encounter identical question sequences across attempts."
+  },
+  {
+    category: 'General',
+    question: "What happened to the PDF store and downloadable study files?",
+    answer: "In compliance with platform updates and streamlined study workflows, the legacy PDF store has been completely removed. All focus is now dedicated to live interactive CBT practice, syllabus exploration, AI-powered study breakdowns, and the JAMB Target System."
+  },
+  {
     category: 'Admission',
     question: "How do I verify and upload my O'Level results?",
     answer: (
