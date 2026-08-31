@@ -596,19 +596,20 @@ async function generateMockQuestions(subject: string, examType = 'JAMB') {
       throw new Error("GEMINI_API_KEY is not configured");
     }
     const ai = new GoogleGenAI({ apiKey });
+    const randomSeed = Math.floor(Math.random() * 100000);
     
-    const prompt = `Generate 10 authentic Nigerian ${examType} past examination practice multiple choice questions for ${subject}.
+    const prompt = `Generate 15 unique, randomized authentic Nigerian ${examType} past examination practice multiple choice questions for ${subject} (Random seed: ${randomSeed}, ensure completely different topics and questions from standard sets).
 Respond ONLY with a valid JSON array of objects. Do not include markdown formatting or backticks.
 Each question object MUST follow this exact schema:
 [
   {
-    "id": 1,
+    "id": "gen-${randomSeed}-${Math.random()}",
     "question": "Question text here",
     "option": { "a": "Option A", "b": "Option B", "c": "Option C", "d": "Option D" },
     "answer": "a",
     "solution": "Clear step-by-step solution explaining why A is correct.",
     "examType": "${examType}",
-    "examYear": "2023",
+    "examYear": "${2020 + Math.floor(Math.random() * 6)}",
     "section": "Optional passage or instruction"
   }
 ]`;
@@ -617,7 +618,7 @@ Each question object MUST follow this exact schema:
       model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
-        temperature: 0.6,
+        temperature: 0.95,
         responseMimeType: "application/json"
       }
     });
@@ -756,8 +757,12 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
       }
 
       if (allRawQuestions.length > 0) {
+        // Shuffle questions randomly so students never get the exact same questions twice
+        allRawQuestions.sort(() => Math.random() - 0.5);
+        const slicedQuestions = allRawQuestions.slice(0, totalRequested);
+
         // Normalize ALOC v1 structure for compatibility with frontend
-        const normalizedQuestions = allRawQuestions.map((q: any) => {
+        const normalizedQuestions = slicedQuestions.map((q: any) => {
           const rawOptions = q.options || q.option || {};
           return {
             id: q.id,

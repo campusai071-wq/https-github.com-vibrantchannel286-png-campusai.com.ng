@@ -178,33 +178,7 @@ const NOVEL_SUMMARIES = [
   }
 ];
 
-const PDF_STORE_ITEMS = [
-  {
-    id: 'book-online-1',
-    title: 'BookOnline1.pdf (Your Uploaded Study Material)',
-    category: 'User Upload',
-    pages: '120 Pages',
-    size: '4.2 MB',
-    price: 0,
-    rating: 5.0,
-    downloads: '1',
-    description: 'Your uploaded document BookOnline1.pdf successfully integrated into CampusAI Exam Prep & PDF Store. Fully unlocked and ready for instant reading, study breakdown, and review.',
-    topicsCovered: ['Custom Uploaded Document', 'Key Chapter Notes', 'Exam Preparation & Review']
-  },
-  {
-    id: 'organic-chemistry-made-easy',
-    title: 'Organic Chemistry Made Easy (SSS I-III) - Olanrewaju Adebayo Bamidele',
-    category: 'Chemistry Textbook',
-    pages: '73 Pages',
-    size: '8.4 MB',
-    price: 0,
-    rating: 5.0,
-    downloads: '24,500+',
-    description: 'Comprehensive Senior Secondary Organic Chemistry textbook by Olanrewaju Adebayo Bamidele (B.Sc Chem Engr). Covers Hydrocarbons (Alkanes, Alkenes, Alkynes, Aromatic Compounds), Alkanols, Alkanoic Acids, Alkanoates, Polymers, Carbohydrates, IUPAC Nomenclature, and 62 Practice Questions with Complete Solutions.',
-    topicsCovered: ['Hydrocarbons & Crude Oil Refining', 'Alkanols, Alkanoic Acids & Esters', 'Polymers & Fats/Oils', 'IUPAC Nomenclature Rules', '62 Practice Questions with Answers'],
-    pdfUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UaXRsZSIgIk9yZ2FuaWMgQ2hlbWlzdHJ5IE1hZGUgRWFzeSIgL0F1dGhvciAiT2xhbnJld2FqdSBBZGFiYXlvIEJhbWlkZWxlIiA+PmVuZG9iagoyIDAgb2JqCjw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAxIDAgUj4+CmVuZG9iagpzdGFydHhyZWYKMQolJUVPRg=='
-  }
-];
+const PDF_STORE_ITEMS: any[] = [];
 
 interface CbtSimulatorProps {
   user?: any;
@@ -213,110 +187,47 @@ interface CbtSimulatorProps {
 }
 
 export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig }: CbtSimulatorProps) {
-  // Navigation tabs: 'cbt' | 'study' | 'pdf-store' | 'ai-advisor'
-  const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'pdf-store' | 'ai-advisor'>('cbt');
-  const [purchasedPdfs, setPurchasedPdfs] = useState<Record<string, boolean>>(() => {
-    const saved: Record<string, boolean> = {};
-    PDF_STORE_ITEMS.forEach(item => {
-      if (localStorage.getItem(`campusai_pdf_${item.id}`) === 'true') {
-        saved[item.id] = true;
-      }
-    });
-    return saved;
-  });
+  // Navigation tabs: 'cbt' | 'study' | 'target-system' | 'ai-advisor'
+  const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>('cbt');
+  const [targetUniversity, setTargetUniversity] = useState('University of Lagos (UNILAG)');
+  const [targetCourse, setTargetCourse] = useState('Computer Science');
+  const [targetScore, setTargetScore] = useState(250);
+  const [progressHistory, setProgressHistory] = useState([
+    { month: 'August', score: 178 },
+    { month: 'September', score: 193 },
+    { month: 'October', score: 211 },
+    { month: 'November', score: 228 },
+    { month: 'December', score: 241 }
+  ]);
+  const [newMonthInput, setNewMonthInput] = useState('');
+  const [newScoreInput, setNewScoreInput] = useState<number>(248);
 
-  const handleDownloadPdf = (item: typeof PDF_STORE_ITEMS[0] & { pdfUrl?: string }) => {
-    const isUnlocked = user?.is_premium || purchasedPdfs[item.id] || localStorage.getItem(`campusai_pdf_${item.id}`) === 'true';
-    if (isUnlocked) {
-      const storedUpload = item.id === 'book-online-1' ? localStorage.getItem('campusai_uploaded_pdf_data') : null;
-      if (storedUpload) {
-        const filename = localStorage.getItem('campusai_uploaded_pdf_name') || `${item.id}.pdf`;
-        const a = document.createElement('a');
-        a.href = storedUpload;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        const doc = new jsPDF();
-        doc.setFont('Helvetica', 'bold');
-        doc.setFontSize(20);
-        doc.text(item.title, 20, 25);
+  const currentCbtEquivalent = progressHistory[progressHistory.length - 1]?.score || 178;
+  const gap = Math.max(0, targetScore - currentCbtEquivalent);
 
-        doc.setFontSize(11);
-        doc.setFont('Helvetica', 'normal');
-        doc.text(`CampusAI Verified Academic Publication | ${item.category}`, 20, 33);
-        doc.text(`Author / Source: Olanrewaju Adebayo Bamidele (B.Sc Chem Engr)`, 20, 40);
-        doc.line(20, 45, 190, 45);
-
-        doc.setFontSize(13);
-        doc.setFont('Helvetica', 'bold');
-        doc.text('Publication Overview & Description:', 20, 55);
-        doc.setFontSize(10);
-        doc.setFont('Helvetica', 'normal');
-        const descLines = doc.splitTextToSize(item.description, 170);
-        doc.text(descLines, 20, 62);
-
-        let y = 62 + (descLines.length * 6) + 10;
-        doc.setFontSize(13);
-        doc.setFont('Helvetica', 'bold');
-        doc.text('Key Topics Covered:', 20, y);
-        y += 7;
-        doc.setFontSize(10);
-        doc.setFont('Helvetica', 'normal');
-        item.topicsCovered.forEach((t, i) => {
-          doc.text(`• ${t}`, 25, y);
-          y += 6;
-        });
-
-        y += 8;
-        doc.setFontSize(13);
-        doc.setFont('Helvetica', 'bold');
-        doc.text('Sample Questions & Worked Solutions:', 20, y);
-        y += 7;
-        doc.setFontSize(10);
-        doc.setFont('Helvetica', 'normal');
-
-        const sampleQuestions = [
-          "Q1: Which of the following functional groups characterizes alkanols?",
-          "A) -COOH  B) -OH  C) -CHO  D) -C=O",
-          "Solution: B (-OH). Alkanols contain the hydroxyl group attached to an alkyl group.",
-          "",
-          "Q2: What is the IUPAC name for 2,2,4-trimethylpentane (iso-octane)?",
-          "Solution: Used as the reference standard (octane number 100) for high-performance fuels.",
-          "",
-          "Q3: Explain the term Saponification.",
-          "Solution: Alkaline hydrolysis of fats and oils with caustic alkali (NaOH/KOH) to yield soap and glycerol."
-        ];
-
-        sampleQuestions.forEach(q => {
-          if (y > 275) {
-            doc.addPage();
-            y = 20;
-          }
-          const qLines = doc.splitTextToSize(q, 170);
-          doc.text(qLines, 20, y);
-          y += (qLines.length * 6) + 3;
-        });
-
-        doc.save(`${item.id}.pdf`);
-      }
-    } else {
-      if (setPaymentConfig && setIsScholarPackOpen) {
-        setPaymentConfig({
-          type: 'tool',
-          amount: item.price,
-          label: item.title,
-          toolId: item.id
-        });
-        setIsScholarPackOpen(true);
-      } else {
-        localStorage.setItem(`campusai_pdf_${item.id}`, 'true');
-        setPurchasedPdfs(prev => ({ ...prev, [item.id]: true }));
-        alert(`"${item.title}" unlocked successfully! Click download again to get your file.`);
-      }
+  const prioritySubjects = useMemo(() => {
+    const c = targetCourse.toLowerCase();
+    if (c.includes('computer') || c.includes('software') || c.includes('engineering') || c.includes('physics')) {
+      return 'Mathematics + Physics + Chemistry';
     }
-  };
+    if (c.includes('medicine') || c.includes('nurse') || c.includes('biology') || c.includes('biochem')) {
+      return 'Biology + Chemistry + Physics';
+    }
+    if (c.includes('law') || c.includes('art') || c.includes('english') || c.includes('government')) {
+      return 'Literature + Government + CRS';
+    }
+    if (c.includes('account') || c.includes('econ') || c.includes('business') || c.includes('finance')) {
+      return 'Economics + Mathematics + Government';
+    }
+    return 'Use of English + Mathematics + Physics + Chemistry';
+  }, [targetCourse]);
+
+  const nextRecommendedTest = useMemo(() => {
+    if (gap > 50) return 'Chemistry — Stoichiometry & Mole Concepts';
+    if (gap > 25) return 'Physics — Electromagnetic Induction & Waves';
+    return 'Mathematics — Advanced Calculus & Integration';
+  }, [gap]);
+
 
   // ----- CBT Setup States -----
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(['english-language', 'mathematics', 'physics', 'chemistry']);
@@ -705,13 +616,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <span className="text-[10px]">Study Hub</span>
         </button>
         <button
-          onClick={() => setActiveTab('pdf-store')}
+          onClick={() => setActiveTab('target-system')}
           className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
-            activeTab === 'pdf-store' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'target-system' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <FileText size={20} />
-          <span className="text-[10px]">PDF Store</span>
+          <Target size={20} />
+          <span className="text-[10px]">Target</span>
         </button>
         <button
           onClick={() => setActiveTab('ai-advisor')}
@@ -747,10 +658,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               Study
             </button>
             <button
-              onClick={() => setActiveTab('pdf-store')}
-              className={`px-2.5 py-1 rounded-lg ${activeTab === 'pdf-store' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
+              onClick={() => setActiveTab('target-system')}
+              className={`px-2.5 py-1 rounded-lg ${activeTab === 'target-system' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
-              PDFs
+              Target
             </button>
             <button
               onClick={() => setActiveTab('ai-advisor')}
@@ -762,80 +673,184 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         </div>
 
         {/* -------------------------------------------------------------------
-            TAB: PDF STORE & PAST QUESTIONS
+            TAB: JAMB TARGET SYSTEM
            ------------------------------------------------------------------- */}
-        {activeTab === 'pdf-store' && (
-          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
-            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 border border-emerald-500/30">
-                  <Sparkles size={14} /> Official Downloadable PDFs & Past Questions
-                </span>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Exam Prep PDF Store & Textbooks</h1>
-                <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-xl leading-relaxed">
-                  Download high-resolution verified past question compendiums, textbook guides, and formula masterbooks for JAMB UTME, WAEC, and Post-UTME.
-                </p>
-              </div>
-              <div className="bg-white/10 p-4 rounded-2xl border border-white/10 text-center flex-shrink-0">
-                <div className="text-emerald-400 font-extrabold text-xs uppercase tracking-wider">Instant Access</div>
-                <div className="text-white text-sm font-bold mt-1">Secure Flutterwave Checkout</div>
+        {activeTab === 'target-system' && (
+          <div className="p-4 sm:p-8 max-w-5xl mx-auto w-full space-y-6">
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 border border-emerald-500/30">
+                <Target size={14} /> 2027 JAMB Target & Score Analytics System
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Set Your Dream University & Course Target</h1>
+              <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-xl leading-relaxed">
+                Enter your desired institution, course, and target UTME score. CampusAI automatically tracks your CBT equivalent, gap analysis, priority subjects, and monthly progression.
+              </p>
+            </div>
+
+            {/* Input Config Card */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+              <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
+                <SlidersHorizontal size={20} className="text-emerald-600" /> Admissions Goal Configuration
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">University / Institution</label>
+                  <select
+                    value={targetUniversity}
+                    onChange={(e) => setTargetUniversity(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="University of Lagos (UNILAG)">University of Lagos (UNILAG)</option>
+                    <option value="Federal University of Technology, Akure (FUTA)">Federal University of Technology, Akure (FUTA)</option>
+                    <option value="University of Ibadan (UI)">University of Ibadan (UI)</option>
+                    <option value="Obafemi Awolowo University (OAU)">Obafemi Awolowo University (OAU)</option>
+                    <option value="University of Nigeria, Nsukka (UNN)">University of Nigeria, Nsukka (UNN)</option>
+                    <option value="Lagos State University (LASU)">Lagos State University (LASU)</option>
+                    <option value="Ahmadu Bello University (ABU)">Ahmadu Bello University (ABU)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Course of Study</label>
+                  <input
+                    type="text"
+                    value={targetCourse}
+                    onChange={(e) => setTargetCourse(e.target.value)}
+                    placeholder="e.g. Computer Science, Medicine..."
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-bold text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Target UTME Score (out of 400)</label>
+                  <input
+                    type="number"
+                    min={180}
+                    max={400}
+                    value={targetScore}
+                    onChange={(e) => setTargetScore(parseInt(e.target.value) || 250)}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-black text-lg focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {PDF_STORE_ITEMS.map((item) => {
-                const isUnlocked = user?.is_premium || purchasedPdfs[item.id];
-                return (
-                  <div key={item.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-emerald-500/50 transition-all">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px] uppercase tracking-wider border border-emerald-200">
-                          {item.category}
-                        </span>
-                        <span className="text-xs font-bold text-slate-500">{item.pages} • {item.size}</span>
-                      </div>
-                      <h3 className="text-lg font-black text-slate-950 leading-snug">{item.title}</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
-                      
-                      <div className="pt-2 space-y-1.5">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Topics Covered:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {item.topicsCovered.map((topic, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-medium">
-                              {topic}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+            {/* Analysis Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Current CBT Equivalent</span>
+                <div className="text-3xl font-black text-slate-950 mt-2">{currentCbtEquivalent} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
+                <p className="text-[11px] text-emerald-600 font-bold mt-1">Based on recent practice tests</p>
+              </div>
 
-                    <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between gap-4">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-bold">Price</span>
-                        <span className="text-lg font-black text-slate-900">₦{item.price.toLocaleString()}</span>
-                      </div>
-                      <button
-                        onClick={() => handleDownloadPdf(item)}
-                        className={`px-5 py-3 rounded-2xl font-extrabold text-xs transition-all flex items-center gap-2 shadow-sm ${
-                          isUnlocked
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                            : 'bg-slate-900 hover:bg-slate-800 text-white'
-                        }`}
-                      >
-                        {isUnlocked ? (
-                          <>
-                            <Download size={16} /> Download PDF
-                          </>
-                        ) : (
-                          <>
-                            <Lock size={16} /> Buy & Download (₦{item.price.toLocaleString()})
-                          </>
-                        )}
-                      </button>
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Target Score</span>
+                <div className="text-3xl font-black text-emerald-600 mt-2">{targetScore} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
+                <p className="text-[11px] text-slate-500 font-bold mt-1">{targetUniversity}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Score Gap</span>
+                <div className="text-3xl font-black text-amber-600 mt-2">+{gap} <span className="text-xs text-slate-400 font-normal">marks</span></div>
+                <p className="text-[11px] text-slate-500 font-bold mt-1">Needed for {targetCourse}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Priority Subjects</span>
+                <div className="text-sm font-black text-slate-950 mt-3">{prioritySubjects}</div>
+                <p className="text-[11px] text-emerald-600 font-bold mt-1">High weight for {targetCourse}</p>
+              </div>
+            </div>
+
+            {/* Next Recommended Test & AI Action */}
+            <div className="bg-gradient-to-r from-emerald-900 to-teal-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="space-y-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-emerald-500/30">
+                  AI Next Recommendation
+                </span>
+                <h3 className="text-xl font-black tracking-tight">{nextRecommendedTest}</h3>
+                <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
+                  To close your +{gap} mark gap for {targetCourse}, our AI recommends mastering this high-yield topic immediately in the CBT Exam module.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('cbt')}
+                className="px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-emerald-500/20 flex-shrink-0 flex items-center gap-2"
+              >
+                Start Recommended Test <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Progress Tracking Timeline & Growth Chart */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-emerald-600" /> Progress Tracking & Monthly Growth
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">Students can actually see themselves improving month by month toward their {targetScore} target.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newMonthInput}
+                    onChange={(e) => setNewMonthInput(e.target.value)}
+                    placeholder="Month (e.g. Jan)"
+                    className="w-28 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                  />
+                  <input
+                    type="number"
+                    value={newScoreInput}
+                    onChange={(e) => setNewScoreInput(parseInt(e.target.value) || 200)}
+                    placeholder="Score"
+                    className="w-24 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newMonthInput && newScoreInput) {
+                        setProgressHistory([...progressHistory, { month: newMonthInput, score: newScoreInput }]);
+                        setNewMonthInput('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all"
+                  >
+                    Add Score
+                  </button>
+                </div>
+              </div>
+
+              {/* Timeline Display */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 pt-4">
+                {progressHistory.map((item, index) => {
+                  const isLatest = index === progressHistory.length - 1;
+                  return (
+                    <div key={index} className={`p-4 rounded-2xl border text-center relative ${isLatest ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                      {isLatest && (
+                        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
+                          Current
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-slate-500 block">{item.month}</span>
+                      <div className="text-2xl font-black text-slate-950 mt-2">{item.score}</div>
+                      <span className="text-[10px] text-slate-400 block mt-1">UTME Score</span>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Visual Progress Bar to Target */}
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-600">Progress to Target ({currentCbtEquivalent} / {targetScore})</span>
+                  <span className="text-emerald-600">{Math.round((currentCbtEquivalent / targetScore) * 100)}% Achieved</span>
+                </div>
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(5, (currentCbtEquivalent / targetScore) * 100))}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
         )}

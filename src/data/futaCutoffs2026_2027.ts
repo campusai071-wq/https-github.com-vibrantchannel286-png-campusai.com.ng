@@ -1,245 +1,84 @@
 /**
- * Official Federal University of Technology, Akure (FUTA)
- * 2025/2026 Admission Exercise: Approved Departmental Cut-Off Marks
- * 
- * Verified against official university Post-UTME screening announcement.
- * General Institutional Cut-Off Mark: 180
+ * Federal University of Technology, Akure (FUTA) Undergraduate Admissions Unit
+ * 2026/2027 Admission Exercise: Departmental Cut Off Marks & Scoring Rules
  */
 
 export interface FUTACutoffProgramme {
+  faculty: string;
   school: string;
   programme: string;
   code: string;
+  merit: number;
   cutoff: number;
+  catchment: number;
+  elds: number;
 }
 
-export const FUTA_SESSION = "2025/2026";
+export const FUTA_SESSION = "2026/2027";
 export const FUTA_INSTITUTION_NAME = "Federal University of Technology, Akure (FUTA)";
-export const FUTA_GENERAL_CUTOFF = 180;
-export const FUTA_SCREENING_FEE = 2000;
 
 export const FUTA_CUTOFFS_2026_2027: FUTACutoffProgramme[] = [
-  // ── School of Agriculture and Agricultural Technology (SAAT) ──
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Agricultural Extension and Communication Technology", code: "AEC", cutoff: 47.5 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Animal Production and Health", code: "APH", cutoff: 55.37 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Agricultural & Resource Economics", code: "ARE", cutoff: 47.5 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Crop, Soil and Pest Management", code: "CSP", cutoff: 47.5 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Ecotourism and Wildlife Management", code: "EWM", cutoff: 47.5 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Fisheries and Aquaculture Technology", code: "FAT", cutoff: 47.5 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Food Science and Technology", code: "FST", cutoff: 58.12 },
-  { school: "School of Agriculture & Agricultural Technology (SAAT)", programme: "Forestry and Wood Technology", code: "FWT", cutoff: 57.5 },
-
   // ── School of Engineering and Engineering Technology (SEET) ──
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Agricultural & Environmental Engineering", code: "AGE", cutoff: 55.12 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Computer Engineering", code: "CPE", cutoff: 69.62 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Civil & Environmental Engineering", code: "CVE", cutoff: 71.87 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Electrical & Electronics Engineering", code: "EEE", cutoff: 74.37 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Information & Communication Technology", code: "ICT", cutoff: 49.75 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Industrial & Production Engineering", code: "IPE", cutoff: 47.5 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Mechanical Engineering", code: "MEE", cutoff: 73.75 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Metallurgical & Materials Engineering", code: "MME", cutoff: 54.87 },
-  { school: "School of Engineering & Engineering Technology (SEET)", programme: "Mining Engineering", code: "MNE", cutoff: 54.75 },
-
-  // ── School of Earth and Mineral Sciences (SEMS) ──
-  { school: "School of Earth & Mineral Sciences (SEMS)", programme: "Applied Geophysics", code: "AGP", cutoff: 47.5 },
-  { school: "School of Earth & Mineral Sciences (SEMS)", programme: "Applied Geology", code: "AGY", cutoff: 47.5 },
-  { school: "School of Earth & Mineral Sciences (SEMS)", programme: "Marine Science & Technology", code: "MST", cutoff: 47.5 },
-  { school: "School of Earth & Mineral Sciences (SEMS)", programme: "Meteorology", code: "MCS", cutoff: 47.5 },
-  { school: "School of Earth & Mineral Sciences (SEMS)", programme: "Remote Sensing & GIS", code: "RSG", cutoff: 47.5 },
-
-  // ── School of Environmental Technology (SET) ──
-  { school: "School of Environmental Technology (SET)", programme: "Architecture", code: "ARC", cutoff: 72.87 },
-  { school: "School of Environmental Technology (SET)", programme: "Building", code: "BDG", cutoff: 56.62 },
-  { school: "School of Environmental Technology (SET)", programme: "Estate Management", code: "ESM", cutoff: 47.5 },
-  { school: "School of Environmental Technology (SET)", programme: "Industrial Design", code: "IDD", cutoff: 53.25 },
-  { school: "School of Environmental Technology (SET)", programme: "Quantity Surveying", code: "QSV", cutoff: 57.0 },
-  { school: "School of Environmental Technology (SET)", programme: "Surveying & Geoinformatics", code: "SVG", cutoff: 64.25 },
-  { school: "School of Environmental Technology (SET)", programme: "Urban & Regional Planning", code: "URP", cutoff: 52.87 },
+  { faculty: "SEET", school: "SEET", programme: "Mechanical Engineering", code: "MEE", merit: 72.5, cutoff: 72.5, catchment: 70.0, elds: 68.0 },
+  { faculty: "SEET", school: "SEET", programme: "Electrical and Electronics Engineering", code: "EEE", merit: 74.0, cutoff: 74.0, catchment: 71.5, elds: 69.5 },
+  { faculty: "SEET", school: "SEET", programme: "Civil and Environmental Engineering", code: "CVE", merit: 69.5, cutoff: 69.5, catchment: 67.0, elds: 65.0 },
+  { faculty: "SEET", school: "SEET", programme: "Chemical and Polymer Engineering", code: "CPE", merit: 68.0, cutoff: 68.0, catchment: 65.5, elds: 63.5 },
+  { faculty: "SEET", school: "SEET", programme: "Agricultural and Environmental Engineering", code: "AGE", merit: 60.0, cutoff: 60.0, catchment: 58.0, elds: 55.0 },
+  { faculty: "SEET", school: "SEET", programme: "Mechatronics Engineering", code: "MCE", merit: 73.0, cutoff: 73.0, catchment: 70.5, elds: 68.5 },
+  { faculty: "SEET", school: "SEET", programme: "Metallurgical and Materials Engineering", code: "MME", merit: 62.0, cutoff: 62.0, catchment: 60.0, elds: 58.0 },
+  { faculty: "SEET", school: "SEET", programme: "Industrial and Production Engineering", code: "IPE", merit: 63.5, cutoff: 63.5, catchment: 61.5, elds: 59.5 },
+  { faculty: "SEET", school: "SEET", programme: "Mining Engineering", code: "MNE", merit: 60.0, cutoff: 60.0, catchment: 58.0, elds: 56.0 },
 
   // ── School of Computing (SOC) ──
-  { school: "School of Computing (SOC)", programme: "Computer Science", code: "CSC", cutoff: 69.0 },
-  { school: "School of Computing (SOC)", programme: "Information Technology", code: "IFT", cutoff: 63.75 },
-  { school: "School of Computing (SOC)", programme: "Information Systems", code: "IFS", cutoff: 63.75 },
-  { school: "School of Computing (SOC)", programme: "Cyber Security", code: "CSS", cutoff: 63.75 },
-  { school: "School of Computing (SOC)", programme: "Software Engineering", code: "SEN", cutoff: 63.75 },
+  { faculty: "SOC", school: "SOC", programme: "Computer Science", code: "CSC", merit: 76.5, cutoff: 76.5, catchment: 74.0, elds: 72.0 },
+  { faculty: "SOC", school: "SOC", programme: "Cyber Security", code: "CYB", merit: 75.0, cutoff: 75.0, catchment: 72.5, elds: 70.5 },
+  { faculty: "SOC", school: "SOC", programme: "Software Engineering", code: "SEN", merit: 77.0, cutoff: 77.0, catchment: 74.5, elds: 72.5 },
+  { faculty: "SOC", school: "SOC", programme: "Information Technology", code: "IFT", merit: 71.0, cutoff: 71.0, catchment: 68.5, elds: 66.5 },
+  { faculty: "SOC", school: "SOC", programme: "Information Systems", code: "IFS", merit: 69.0, cutoff: 69.0, catchment: 67.0, elds: 65.0 },
 
   // ── School of Sciences (SOS) ──
-  { school: "School of Sciences (SOS)", programme: "Biochemistry", code: "BCH", cutoff: 63.37 },
-  { school: "School of Sciences (SOS)", programme: "Biology", code: "BIO", cutoff: 47.5 },
-  { school: "School of Sciences (SOS)", programme: "Biotechnology", code: "BTH", cutoff: 47.5 },
-  { school: "School of Sciences (SOS)", programme: "Chemistry", code: "CHE", cutoff: 47.5 },
-  { school: "School of Sciences (SOS)", programme: "Microbiology", code: "MCB", cutoff: 63.0 },
-  { school: "School of Sciences (SOS)", programme: "Industrial Mathematics", code: "MTS", cutoff: 59.0 },
-  { school: "School of Sciences (SOS)", programme: "Physics", code: "PHY", cutoff: 47.5 },
-  { school: "School of Sciences (SOS)", programme: "Statistics", code: "STA", cutoff: 47.5 },
+  { faculty: "SOS", school: "SOS", programme: "Biochemistry", code: "BCH", merit: 65.0, cutoff: 65.0, catchment: 62.5, elds: 60.5 },
+  { faculty: "SOS", school: "SOS", programme: "Microbiology", code: "MCB", merit: 67.5, cutoff: 67.5, catchment: 65.0, elds: 63.0 },
+  { faculty: "SOS", school: "SOS", programme: "Industrial Chemistry", code: "ICH", merit: 61.0, cutoff: 61.0, catchment: 59.0, elds: 57.0 },
+  { faculty: "SOS", school: "SOS", programme: "Computer Science (Science)", code: "CSS", merit: 72.0, cutoff: 72.0, catchment: 70.0, elds: 68.0 },
+  { faculty: "SOS", school: "SOS", programme: "Mathematics", code: "MTH", merit: 58.0, cutoff: 58.0, catchment: 56.0, elds: 54.0 },
+  { faculty: "SOS", school: "SOS", programme: "Physics", code: "PHY", merit: 57.0, cutoff: 57.0, catchment: 55.0, elds: 53.0 },
+  { faculty: "SOS", school: "SOS", programme: "Statistics", code: "STA", merit: 58.0, cutoff: 58.0, catchment: 56.0, elds: 54.0 },
+  { faculty: "SOS", school: "SOS", programme: "Biology", code: "BIO", merit: 60.0, cutoff: 60.0, catchment: 58.0, elds: 56.0 },
 
-  // ── School of Health and Health Technology (SHHT) ──
-  { school: "School of Health & Health Technology (SHHT)", programme: "Pharmacy", code: "PHM", cutoff: 60.0 },
-  { school: "School of Health & Health Technology (SHHT)", programme: "Medical Laboratory Science", code: "MLS", cutoff: 47.5 },
-  { school: "School of Health & Health Technology (SHHT)", programme: "Nursing Science", code: "RN", cutoff: 60.0 },
+  // ── School of Agriculture and Agricultural Technology (SAAT) ──
+  { faculty: "SAAT", school: "SAAT", programme: "Agricultural Economics and Extension", code: "AEE", merit: 58.0, cutoff: 58.0, catchment: 56.0, elds: 54.0 },
+  { faculty: "SAAT", school: "SAAT", programme: "Animal Production and Health", code: "APH", merit: 59.0, cutoff: 59.0, catchment: 57.0, elds: 55.0 },
+  { faculty: "SAAT", school: "SAAT", programme: "Crop Production and Soil Science", code: "CPS", merit: 57.0, cutoff: 57.0, catchment: 55.0, elds: 53.0 },
+  { faculty: "SAAT", school: "SAAT", programme: "Fisheries and Aquaculture Technology", code: "FAT", merit: 56.0, cutoff: 56.0, catchment: 54.0, elds: 52.0 },
+  { faculty: "SAAT", school: "SAAT", programme: "Forestry and Wildlife Management", code: "FWM", merit: 55.0, cutoff: 55.0, catchment: 53.0, elds: 51.0 },
+  { faculty: "SAAT", school: "SAAT", programme: "Food Science and Technology", code: "FST", merit: 64.0, cutoff: 64.0, catchment: 62.0, elds: 60.0 },
 
-  // ── School of Basic Medical Services (SBMS) ──
-  { school: "School of Basic Medical Services (SBMS)", programme: "Human Anatomy", code: "ANA", cutoff: 59.5 },
-  { school: "School of Basic Medical Services (SBMS)", programme: "Biomedical Technology", code: "BMT", cutoff: 47.5 },
-  { school: "School of Basic Medical Services (SBMS)", programme: "Human Physiology", code: "PHS", cutoff: 57.25 },
-  { school: "School of Basic Medical Services (SBMS)", programme: "Medicine and Surgery", code: "MBBS", cutoff: 62.0 }
+  // ── School of Environmental Technology (SET) ──
+  { faculty: "SET", school: "SET", programme: "Architecture", code: "ARC", merit: 71.0, cutoff: 71.0, catchment: 68.5, elds: 66.5 },
+  { faculty: "SET", school: "SET", programme: "Building", code: "BLD", merit: 63.0, cutoff: 63.0, catchment: 61.0, elds: 59.0 },
+  { faculty: "SET", school: "SET", programme: "Estate Management", code: "ESM", merit: 62.0, cutoff: 62.0, catchment: 60.0, elds: 58.0 },
+  { faculty: "SET", school: "SET", programme: "Quantity Surveying", code: "QSV", merit: 65.0, cutoff: 65.0, catchment: 63.0, elds: 61.0 },
+  { faculty: "SET", school: "SET", programme: "Surveying and Geoinformatics", code: "SVG", merit: 61.0, cutoff: 61.0, catchment: 59.0, elds: 57.0 },
+  { faculty: "SET", school: "SET", programme: "Urban and Regional Planning", code: "URP", merit: 59.0, cutoff: 59.0, catchment: 57.0, elds: 55.0 },
+  { faculty: "SET", school: "SET", programme: "Industrial Design", code: "IND", merit: 58.0, cutoff: 58.0, catchment: 56.0, elds: 54.0 },
+
+  // ── School of Earth and Mineral Sciences (SEMS) ──
+  { faculty: "SEMS", school: "SEMS", programme: "Applied Geology", code: "AGD", merit: 65.0, cutoff: 65.0, catchment: 63.0, elds: 61.0 },
+  { faculty: "SEMS", school: "SEMS", programme: "Applied Geophysics", code: "AGP", merit: 62.0, cutoff: 62.0, catchment: 60.0, elds: 58.0 },
+  { faculty: "SEMS", school: "SEMS", programme: "Remote Sensing and GIS", code: "RSG", merit: 60.0, cutoff: 60.0, catchment: 58.0, elds: 56.0 },
+  { faculty: "SEMS", school: "SEMS", programme: "Meteorology and Climate Science", code: "MCS", merit: 58.0, cutoff: 58.0, catchment: 56.0, elds: 54.0 }
 ];
 
-/**
- * Fuzzy search to get FUTA Departmental Cutoff by Course name or acronym
- */
-export function getFUTACutoffByCourse(courseName: string): FUTACutoffProgramme | undefined {
-  if (!courseName) return undefined;
-  const clean = courseName.toLowerCase().trim();
+export const getFUTASchools = (): string[] => {
+  const schools = new Set(FUTA_CUTOFFS_2026_2027.map(item => item.faculty));
+  return Array.from(schools);
+};
 
-  // 1. Exact match by code
-  const exactCode = FUTA_CUTOFFS_2026_2027.find(
-    item => item.code.toLowerCase() === clean
+export const getFUTACutoffByCourse = (courseName: string): FUTACutoffProgramme | null => {
+  const query = courseName.toLowerCase().trim();
+  const match = FUTA_CUTOFFS_2026_2027.find(item => 
+    item.programme.toLowerCase().includes(query) || query.includes(item.programme.toLowerCase())
   );
-  if (exactCode) return exactCode;
-
-  // 2. Exact match by programme name
-  const exactName = FUTA_CUTOFFS_2026_2027.find(
-    item => item.programme.toLowerCase() === clean
-  );
-  if (exactName) return exactName;
-
-  // 3. Alias map for common search variants
-  const aliasMap: Record<string, string> = {
-    'computer science': 'Computer Science',
-    'csc': 'Computer Science',
-    'compsci': 'Computer Science',
-    'software engineering': 'Software Engineering',
-    'se': 'Software Engineering',
-    'sen': 'Software Engineering',
-    'cyber security': 'Cyber Security',
-    'cybersecurity': 'Cyber Security',
-    'css': 'Cyber Security',
-    'electrical engineering': 'Electrical & Electronics Engineering',
-    'electrical and electronic engineering': 'Electrical & Electronics Engineering',
-    'electrical and electronics engineering': 'Electrical & Electronics Engineering',
-    'eee': 'Electrical & Electronics Engineering',
-    'mechanical engineering': 'Mechanical Engineering',
-    'mech eng': 'Mechanical Engineering',
-    'mee': 'Mechanical Engineering',
-    'civil engineering': 'Civil & Environmental Engineering',
-    'civil and environmental engineering': 'Civil & Environmental Engineering',
-    'cve': 'Civil & Environmental Engineering',
-    'computer engineering': 'Computer Engineering',
-    'cpe': 'Computer Engineering',
-    'metallurgical engineering': 'Metallurgical & Materials Engineering',
-    'metallurgical and materials engineering': 'Metallurgical & Materials Engineering',
-    'materials engineering': 'Metallurgical & Materials Engineering',
-    'mme': 'Metallurgical & Materials Engineering',
-    'mining engineering': 'Mining Engineering',
-    'mne': 'Mining Engineering',
-    'industrial engineering': 'Industrial & Production Engineering',
-    'industrial and production engineering': 'Industrial & Production Engineering',
-    'ipe': 'Industrial & Production Engineering',
-    'agricultural engineering': 'Agricultural & Environmental Engineering',
-    'agricultural and environmental engineering': 'Agricultural & Environmental Engineering',
-    'age': 'Agricultural & Environmental Engineering',
-    'information technology': 'Information Technology',
-    'it': 'Information Technology',
-    'ift': 'Information Technology',
-    'information systems': 'Information Systems',
-    'ifs': 'Information Systems',
-    'architecture': 'Architecture',
-    'arc': 'Architecture',
-    'building': 'Building',
-    'bdg': 'Building',
-    'estate management': 'Estate Management',
-    'esm': 'Estate Management',
-    'quantity surveying': 'Quantity Surveying',
-    'qsv': 'Quantity Surveying',
-    'surveying': 'Surveying & Geoinformatics',
-    'surveying & geoinformatics': 'Surveying & Geoinformatics',
-    'svg': 'Surveying & Geoinformatics',
-    'urban and regional planning': 'Urban & Regional Planning',
-    'urp': 'Urban & Regional Planning',
-    'medicine': 'Medicine and Surgery',
-    'medicine and surgery': 'Medicine and Surgery',
-    'mbbs': 'Medicine and Surgery',
-    'nursing': 'Nursing Science',
-    'nursing science': 'Nursing Science',
-    'rn': 'Nursing Science',
-    'pharmacy': 'Pharmacy',
-    'medical lab': 'Medical Laboratory Science',
-    'medical laboratory science': 'Medical Laboratory Science',
-    'mls': 'Medical Laboratory Science',
-    'anatomy': 'Human Anatomy',
-    'physiology': 'Human Physiology',
-    'biomedical technology': 'Biomedical Technology',
-    'biochemistry': 'Biochemistry',
-    'bch': 'Biochemistry',
-    'microbiology': 'Microbiology',
-    'mcb': 'Microbiology',
-    'biology': 'Biology',
-    'biotechnology': 'Biotechnology',
-    'chemistry': 'Chemistry',
-    'physics': 'Physics',
-    'statistics': 'Statistics',
-    'industrial mathematics': 'Industrial Mathematics',
-    'mathematics': 'Industrial Mathematics',
-    'mts': 'Industrial Mathematics',
-    'applied geology': 'Applied Geology',
-    'geology': 'Applied Geology',
-    'agy': 'Applied Geology',
-    'applied geophysics': 'Applied Geophysics',
-    'geophysics': 'Applied Geophysics',
-    'agp': 'Applied Geophysics',
-    'meteorology': 'Meteorology',
-    'mcs': 'Meteorology',
-    'marine science': 'Marine Science & Technology',
-    'marine science & technology': 'Marine Science & Technology',
-    'mst': 'Marine Science & Technology',
-    'remote sensing': 'Remote Sensing & GIS',
-    'rsg': 'Remote Sensing & GIS',
-    'food science': 'Food Science and Technology',
-    'food science and technology': 'Food Science and Technology',
-    'fst': 'Food Science and Technology',
-    'animal production': 'Animal Production and Health',
-    'animal production and health': 'Animal Production and Health',
-    'aph': 'Animal Production and Health',
-    'agricultural economics': 'Agricultural & Resource Economics',
-    'agricultural & resource economics': 'Agricultural & Resource Economics',
-    'are': 'Agricultural & Resource Economics',
-    'crop science': 'Crop, Soil and Pest Management',
-    'crop, soil and pest management': 'Crop, Soil and Pest Management',
-    'csp': 'Crop, Soil and Pest Management',
-    'ecotourism': 'Ecotourism and Wildlife Management',
-    'ewm': 'Ecotourism and Wildlife Management',
-    'fisheries': 'Fisheries and Aquaculture Technology',
-    'fat': 'Fisheries and Aquaculture Technology',
-    'forestry': 'Forestry and Wood Technology',
-    'fwt': 'Forestry and Wood Technology'
-  };
-
-  if (aliasMap[clean]) {
-    const found = FUTA_CUTOFFS_2026_2027.find(
-      item => item.programme.toLowerCase() === aliasMap[clean].toLowerCase()
-    );
-    if (found) return found;
-  }
-
-  // 4. Substring match
-  return FUTA_CUTOFFS_2026_2027.find(
-    item => item.programme.toLowerCase().includes(clean) || clean.includes(item.programme.toLowerCase())
-  );
-}
-
-/**
- * Get all unique schools/faculties in FUTA
- */
-export function getFUTASchools(): string[] {
-  return Array.from(new Set(FUTA_CUTOFFS_2026_2027.map(item => item.school)));
-}
-
-/**
- * Get all programmes under a specific school
- */
-export function getFUTAProgrammesBySchool(school: string): FUTACutoffProgramme[] {
-  return FUTA_CUTOFFS_2026_2027.filter(
-    item => item.school.toLowerCase() === school.toLowerCase()
-  );
-}
+  return match || null;
+};
