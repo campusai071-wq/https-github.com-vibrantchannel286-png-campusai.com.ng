@@ -10,7 +10,7 @@ const StatCard: React.FC<{ title: string; value: string; colorClass: string }> =
 export const CapsStatsDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">JAMB CAPS Statistics - August 29, 2026</h2>
+      <h2 className="text-2xl font-bold">JAMB CAPS Statistics - August 31, 2026</h2>
       
       <section>
         <h3 className="text-lg font-semibold mb-2">Cumulative Till Date</h3>
@@ -27,7 +27,7 @@ export const CapsStatsDashboard: React.FC = () => {
       <section>
         <h3 className="text-lg font-semibold mb-2">Candidates' O'Level Statistics</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard title="O'Level Results" value="1,136,917" colorClass="bg-green-600" />
+          <StatCard title="O'Level Results" value="1,139,708" colorClass="bg-green-600" />
           <StatCard title="5 Credits (100+ & DE)" value="1,096,182" colorClass="bg-purple-600" />
           <StatCard title="5 Credits (140+ & DE)" value="1,078,464" colorClass="bg-blue-600" />
           <StatCard title="5 Credits (100+) + ENG + DE" value="1,075,896" colorClass="bg-yellow-600" />
@@ -40,11 +40,11 @@ export const CapsStatsDashboard: React.FC = () => {
       <section>
         <h3 className="text-lg font-semibold mb-2">Admissions' Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <StatCard title="Candidates (A)" value="26,333" colorClass="bg-green-600" />
-          <StatCard title="Candidates (B)" value="19,366" colorClass="bg-purple-600" />
-          <StatCard title="Approved (C)" value="37,803" colorClass="bg-yellow-600" />
-          <StatCard title="Accepted (D)" value="65,926" colorClass="bg-blue-800" />
-          <StatCard title="Total (A+B+C+D)" value="149,428" colorClass="bg-red-800" />
+          <StatCard title="Candidates (A)" value="29,904" colorClass="bg-green-600" />
+          <StatCard title="Candidates (B)" value="19,781" colorClass="bg-purple-600" />
+          <StatCard title="Approved (C)" value="42,702" colorClass="bg-yellow-600" />
+          <StatCard title="Accepted (D)" value="69,380" colorClass="bg-blue-800" />
+          <StatCard title="Total (A+B+C+D)" value="161,767" colorClass="bg-red-800" />
         </div>
       </section>
     </div>

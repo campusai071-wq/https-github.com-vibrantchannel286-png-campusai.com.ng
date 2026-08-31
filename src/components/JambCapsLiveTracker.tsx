@@ -55,47 +55,47 @@ export interface JambCapsStatsState {
 
 const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
   overview: {
-    institutions: 1799,
+    institutions: 1801,
     candidates: 2275690,
-    qualifiedDE: 76403,
-    qualified100: 2128061,
-    qualifiedUTME_DE: 2204464,
-    qualified140: 2048135,
+    qualifiedDE: 76628,
+    qualified100: 2127837,
+    qualifiedUTME_DE: 2204465,
+    qualified140: 2047913,
   },
   olevel: {
-    resultsUploaded: 1126292,
-    credits100DE: 1096181,
-    credits140DE: 1078461,
-    credits100EngDE: 1075895,
-    credits100EngMathDE: 1065891,
-    credits140EngDE: 1059078,
-    credits140EngMathDE: 1049415,
+    resultsUploaded: 1139708,
+    credits100DE: 1096182,
+    credits140DE: 1078464,
+    credits100EngDE: 1075896,
+    credits100EngMathDE: 1065892,
+    credits140EngDE: 1059081,
+    credits140EngMathDE: 1049418,
   },
   todayAll: {
-    instHeads: 314,
-    deskOfficers: 1705,
-    approvedAcceptance: 195,
-    acceptedCandidates: 468,
+    instHeads: 768,
+    deskOfficers: 853,
+    approvedAcceptance: 1603,
+    acceptedCandidates: 510,
   },
   todayPrivate: {
-    instHeads: 89,
-    deskOfficers: 682,
-    approvedAcceptance: 184,
-    acceptedCandidates: 192,
+    instHeads: 14,
+    deskOfficers: 141,
+    approvedAcceptance: 1406,
+    acceptedCandidates: 118,
   },
   summary: {
-    instHeadsA: 26333,
-    deskOfficersB: 19366,
-    approvedAcceptC: 37803,
-    acceptedD: 65926,
-    totalAdmissions: 149428,
-    admissionYear: "2025/2026",
-    sessionDate: "Saturday, August 29, 2026"
+    instHeadsA: 29904,
+    deskOfficersB: 19781,
+    approvedAcceptC: 42702,
+    acceptedD: 69380,
+    totalAdmissions: 161767,
+    admissionYear: "2026/2027",
+    sessionDate: "Monday, August 31, 2026"
   },
   candidates: 2275690,
   qualified100: 2127837,
-  acceptedD: 65926,
-  totalAdmissions: 149428
+  acceptedD: 69380,
+  totalAdmissions: 161767
 };
 
 function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsStatsState>): JambCapsStatsState {
@@ -104,42 +104,42 @@ function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsS
     ...current,
     ...incoming,
     overview: {
-      institutions: Math.max(current.overview?.institutions || 1799, incoming.overview?.institutions || 0),
+      institutions: Math.max(current.overview?.institutions || 1801, incoming.overview?.institutions || 0),
       candidates: Math.max(current.overview?.candidates || 2275690, incoming.overview?.candidates || 0),
-      qualifiedDE: Math.max(current.overview?.qualifiedDE || 76224, incoming.overview?.qualifiedDE || 0),
-      qualified100: Math.max(current.overview?.qualified100 || 2128240, incoming.overview?.qualified100 || 0),
-      qualifiedUTME_DE: Math.max(current.overview?.qualifiedUTME_DE || 2204464, incoming.overview?.qualifiedUTME_DE || 0),
-      qualified140: Math.max(current.overview?.qualified140 || 2048314, incoming.overview?.qualified140 || 0),
+      qualifiedDE: Math.max(current.overview?.qualifiedDE || 76628, incoming.overview?.qualifiedDE || 0),
+      qualified100: Math.max(current.overview?.qualified100 || 2127837, incoming.overview?.qualified100 || 0),
+      qualifiedUTME_DE: Math.max(current.overview?.qualifiedUTME_DE || 2204465, incoming.overview?.qualifiedUTME_DE || 0),
+      qualified140: Math.max(current.overview?.qualified140 || 2047913, incoming.overview?.qualified140 || 0),
     },
     olevel: {
-      resultsUploaded: Math.max(current.olevel?.resultsUploaded || 1121092, incoming.olevel?.resultsUploaded || 0),
-      credits100DE: Math.max(current.olevel?.credits100DE || 1096181, incoming.olevel?.credits100DE || 0),
-      credits140DE: Math.max(current.olevel?.credits140DE || 1078461, incoming.olevel?.credits140DE || 0),
-      credits100EngDE: Math.max(current.olevel?.credits100EngDE || 1075895, incoming.olevel?.credits100EngDE || 0),
-      credits100EngMathDE: Math.max(current.olevel?.credits100EngMathDE || 1065891, incoming.olevel?.credits100EngMathDE || 0),
-      credits140EngDE: Math.max(current.olevel?.credits140EngDE || 1059078, incoming.olevel?.credits140EngDE || 0),
-      credits140EngMathDE: Math.max(current.olevel?.credits140EngMathDE || 1049415, incoming.olevel?.credits140EngMathDE || 0),
+      resultsUploaded: Math.max(current.olevel?.resultsUploaded || 1139708, incoming.olevel?.resultsUploaded || 0),
+      credits100DE: Math.max(current.olevel?.credits100DE || 1096182, incoming.olevel?.credits100DE || 0),
+      credits140DE: Math.max(current.olevel?.credits140DE || 1078464, incoming.olevel?.credits140DE || 0),
+      credits100EngDE: Math.max(current.olevel?.credits100EngDE || 1075896, incoming.olevel?.credits100EngDE || 0),
+      credits100EngMathDE: Math.max(current.olevel?.credits100EngMathDE || 1065892, incoming.olevel?.credits100EngMathDE || 0),
+      credits140EngDE: Math.max(current.olevel?.credits140EngDE || 1059081, incoming.olevel?.credits140EngDE || 0),
+      credits140EngMathDE: Math.max(current.olevel?.credits140EngMathDE || 1049418, incoming.olevel?.credits140EngMathDE || 0),
     },
     todayPrivate: {
-      instHeads: incoming.todayPrivate?.instHeads ?? current.todayPrivate?.instHeads ?? 670,
-      deskOfficers: incoming.todayPrivate?.deskOfficers ?? current.todayPrivate?.deskOfficers ?? 352,
-      approvedAcceptance: incoming.todayPrivate?.approvedAcceptance ?? current.todayPrivate?.approvedAcceptance ?? 542,
-      acceptedCandidates: Math.max(current.todayPrivate?.acceptedCandidates || 1088, incoming.todayPrivate?.acceptedCandidates || 0),
+      instHeads: incoming.todayPrivate?.instHeads ?? current.todayPrivate?.instHeads ?? 14,
+      deskOfficers: incoming.todayPrivate?.deskOfficers ?? current.todayPrivate?.deskOfficers ?? 141,
+      approvedAcceptance: incoming.todayPrivate?.approvedAcceptance ?? current.todayPrivate?.approvedAcceptance ?? 1406,
+      acceptedCandidates: Math.max(current.todayPrivate?.acceptedCandidates || 118, incoming.todayPrivate?.acceptedCandidates || 0),
     },
     todayAll: {
-      instHeads: incoming.todayAll?.instHeads ?? current.todayAll?.instHeads ?? 3133,
-      deskOfficers: incoming.todayAll?.deskOfficers ?? current.todayAll?.deskOfficers ?? 2204,
-      approvedAcceptance: incoming.todayAll?.approvedAcceptance ?? current.todayAll?.approvedAcceptance ?? 2611,
-      acceptedCandidates: Math.max(current.todayAll?.acceptedCandidates || 2249, incoming.todayAll?.acceptedCandidates || 0),
+      instHeads: incoming.todayAll?.instHeads ?? current.todayAll?.instHeads ?? 768,
+      deskOfficers: incoming.todayAll?.deskOfficers ?? current.todayAll?.deskOfficers ?? 853,
+      approvedAcceptance: incoming.todayAll?.approvedAcceptance ?? current.todayAll?.approvedAcceptance ?? 1603,
+      acceptedCandidates: Math.max(current.todayAll?.acceptedCandidates || 510, incoming.todayAll?.acceptedCandidates || 0),
     },
     summary: {
-      instHeadsA: Math.max(current.summary?.instHeadsA || 20236, incoming.summary?.instHeadsA || 0),
-      deskOfficersB: incoming.summary?.deskOfficersB ?? current.summary?.deskOfficersB ?? 15916,
-      approvedAcceptC: incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 35404,
-      acceptedD: Math.max(current.summary?.acceptedD || 58973, incoming.summary?.acceptedD || 0),
-      totalAdmissions: Math.max(current.summary?.totalAdmissions || 130529, incoming.summary?.totalAdmissions || 0),
-      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2025/2026",
-      sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Wednesday, August 26, 2026",
+      instHeadsA: Math.max(current.summary?.instHeadsA || 29904, incoming.summary?.instHeadsA || 0),
+      deskOfficersB: incoming.summary?.deskOfficersB ?? current.summary?.deskOfficersB ?? 19781,
+      approvedAcceptC: incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 42702,
+      acceptedD: Math.max(current.summary?.acceptedD || 69380, incoming.summary?.acceptedD || 0),
+      totalAdmissions: Math.max(current.summary?.totalAdmissions || 161767, incoming.summary?.totalAdmissions || 0),
+      admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2026/2027",
+      sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Monday, August 31, 2026",
     }
   };
   merged.candidates = merged.overview.candidates;
@@ -156,7 +156,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [stats, setStats] = useState<JambCapsStatsState>(() => {
     try {
-      const saved = localStorage.getItem('campusai_jamb_caps_stats_v4');
+      const saved = localStorage.getItem('campusai_jamb_caps_stats_v5');
       if (saved) {
         return mergeCapsStats(DEFAULT_JAMB_CAPS_STATS, JSON.parse(saved));
       }
@@ -167,6 +167,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
   // Auto-fetch latest server telemetry on mount
   useEffect(() => {
     localStorage.removeItem('campusai_jamb_caps_stats_v3');
+    localStorage.removeItem('campusai_jamb_caps_stats_v4');
     let isMounted = true;
     axios.get('/api/jamb/caps-stats')
       .then(res => {
@@ -174,7 +175,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
           setStats(prev => {
             const next = mergeCapsStats(prev, res.data.stats);
             try {
-              localStorage.setItem('campusai_jamb_caps_stats_v3', JSON.stringify(next));
+              localStorage.setItem('campusai_jamb_caps_stats_v5', JSON.stringify(next));
             } catch (e) {}
             return next;
           });
@@ -194,7 +195,7 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
           setStats(prev => {
             const next = mergeCapsStats(prev, res.data.stats);
             try {
-              localStorage.setItem('campusai_jamb_caps_stats_v3', JSON.stringify(next));
+              localStorage.setItem('campusai_jamb_caps_stats_v5', JSON.stringify(next));
             } catch (e) {}
             return next;
           });
