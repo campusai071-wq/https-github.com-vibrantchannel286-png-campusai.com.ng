@@ -5,6 +5,7 @@ import CalculationAnimation from './CalculationAnimation';
 interface HeroSectionProps {
   user: any;
   onLaunchCalculator: () => void;
+  onSignUpRequest?: () => void;
   title?: React.ReactNode;
   subtitle?: string;
   badgeText?: string;
@@ -13,6 +14,7 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ 
   user, 
   onLaunchCalculator, 
+  onSignUpRequest,
   title, 
   subtitle,
   badgeText = "Nigeria's Admission Intelligence"
@@ -40,15 +42,27 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             {subtitle || "Nigeria's most accurate AI admission strategist. Real-time aggregate calculation and merit probability mapping for your success."}
           </p>
           
-          <div className="flex flex-col sm:flex-row justify-start gap-4">
+          <div className="flex flex-col sm:flex-row flex-wrap justify-start gap-4">
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onLaunchCalculator}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-xl shadow-blue-600/20 text-sm uppercase tracking-widest"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-xl shadow-blue-600/20 text-sm uppercase tracking-widest cursor-pointer"
             >
               Launch Calculator
             </motion.button>
+            
+            {!user && onSignUpRequest && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onSignUpRequest}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-xl shadow-cyan-500/20 text-sm uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer border border-cyan-300/30"
+              >
+                Sign Up Free
+              </motion.button>
+            )}
+
             <motion.a 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

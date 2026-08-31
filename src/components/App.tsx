@@ -1215,6 +1215,7 @@ const AppContent: React.FC = () => {
                     badgeText={user ? `Welcome back, ${user?.displayName?.split(' ')[0] || 'Scholar'}` : undefined}
                     title={user ? <>Your <span className="text-blue-500">Admission</span> Dashboard</> : undefined}
                     subtitle={user ? "Your AI admission strategist is active. Use the tools below to calculate your aggregate and track your chances." : undefined}
+                    onSignUpRequest={() => setIsAuthModalOpen(true)}
                     onLaunchCalculator={() => {
                       setCurrentPage('calculator');
                       navigate('/calculator');

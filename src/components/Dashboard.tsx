@@ -38,6 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
         badgeText={`Welcome back, ${user?.displayName?.split(' ')[0] || 'Scholar'}`}
         title={<>Your <span className="text-blue-500">Admission</span> Dashboard</>}
         subtitle="Your AI admission strategist is active. Use the tools below to calculate your aggregate and track your chances."
+        onSignUpRequest={onLoginRequest}
         onLaunchCalculator={() => {
           if (onNavigateToCalculator) {
             onNavigateToCalculator();

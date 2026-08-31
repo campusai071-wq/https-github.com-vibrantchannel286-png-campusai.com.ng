@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark, Crown, BarChart3, Activity } from 'lucide-react';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark, Crown, BarChart3, Activity, UserPlus, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
 import { searchWebRaw, SearchResultItem } from '../services/searchService';
@@ -31,6 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSyncingNews, setIsSyncingNews] = useState(false);
+  const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -69,6 +70,23 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   };
 
   const navItems = [
+    { name: 'Home', icon: <Home size={16} />, id: 'home' },
+    { name: 'Admissions', icon: <GraduationCap size={16} />, id: 'admissions' },
+    { name: 'Calculator', icon: <Zap size={16} />, id: 'calculator' },
+    { name: 'CBT Simulator', icon: <Activity size={16} />, id: 'cbt-simulator' },
+    { name: 'Portals', icon: <Landmark size={16} />, id: 'universities' },
+    { name: 'Latest News', icon: <Newspaper size={16} />, id: 'jamb' },
+  ];
+
+  const moreNavItems = [
+    { name: 'CAPS Portal', icon: <BarChart3 size={16} />, id: 'jamb-caps' },
+    { name: 'CGPA Studio', icon: <Calculator size={16} />, id: 'cgpa-calculator' },
+    { name: 'Syllabus', icon: <BookOpen size={16} />, id: 'syllabus' },
+    { name: 'Result Slip', icon: <ShieldCheck size={16} />, id: 'result-slip' },
+    { name: 'Checklist', icon: <FileCheck size={16} />, id: 'checklist' },
+  ];
+
+  const allNavItems = [
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
     { name: 'Admissions', icon: <GraduationCap size={18} />, id: 'admissions' },
     { name: 'Portals', icon: <Landmark size={18} />, id: 'universities' },
@@ -102,31 +120,31 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   return (
     <nav className={`fixed top-0 left-0 right-0 w-full z-[100] transition-all duration-300 ease-in-out ${
       isScrolled 
-        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm py-3' 
-        : 'bg-white/95 dark:bg-gray-950/95 py-4 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
+        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm py-2.5' 
+        : 'bg-white/95 dark:bg-gray-950/95 py-3 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
     }`}>
-      <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
-        <div className="flex items-center gap-3.5">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 flex justify-between items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
           {onOpenSidebar && (
             <button
               onClick={onOpenSidebar}
-              className="p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-800 cursor-pointer"
+              className="p-2 sm:p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-800 cursor-pointer"
               title="Open Navigation Menu"
               aria-label="Open Navigation Menu"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
           )}
 
           <div className="flex flex-col items-start cursor-pointer group" onClick={() => { onNavigate('home'); setIsMobileMenuOpen(false); }}>
-            <span className="text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 text-gray-950 dark:text-white transition-colors">
+            <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter flex items-center gap-0.5 text-gray-950 dark:text-white transition-colors">
               Campus
               <span className="inline-flex items-center justify-center mx-0.5 text-cyan-500 dark:text-cyan-400 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-                <Brain size={22} className="fill-cyan-500/20 text-cyan-500 dark:text-cyan-400 stroke-[2.5]" />
+                <Brain size={20} className="fill-cyan-500/20 text-cyan-500 dark:text-cyan-400 stroke-[2.5]" />
               </span>
               AI<span className="text-cyan-600 dark:text-cyan-400 font-extrabold">.ng</span>
             </span>
-            <div className="flex flex-wrap items-center mt-0.5 gap-2">
+            <div className="flex flex-wrap items-center mt-0.5 gap-1.5 sm:gap-2">
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                 <span className="text-[7px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">
@@ -134,7 +152,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 </span>
               </div>
               <span className="text-[7px] font-black uppercase tracking-widest text-gray-300 dark:text-gray-600">•</span>
-              <span className="text-[7px] font-black uppercase tracking-widest text-cyan-700 dark:text-cyan-300 font-bold">
+              <span className="text-[7px] font-black uppercase tracking-widest text-cyan-700 dark:text-cyan-300 font-bold hidden sm:inline">
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
@@ -147,7 +165,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                 initial={{ opacity: 0, scale: 0.9, x: -10 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 exit={{ opacity: 0, scale: 0.9, x: -10 }}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-600 dark:text-cyan-400 text-[9px] font-black uppercase tracking-wider backdrop-blur-md shadow-[0_0_12px_rgba(34,211,238,0.15)] animate-pulse ml-2"
+                className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-600 dark:text-cyan-400 text-[9px] font-black uppercase tracking-wider backdrop-blur-md shadow-[0_0_12px_rgba(34,211,238,0.15)] animate-pulse ml-1"
               >
                 <Loader2 size={11} className="animate-spin text-cyan-500 dark:text-cyan-400" />
                 <span>Syncing...</span>
@@ -157,17 +175,17 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
         </div>
 
         {/* Desktop Search Bar */}
-        <div className="hidden lg:flex flex-1 max-w-[200px] xl:max-w-md mx-4 xl:mx-8 relative">
+        <div className="hidden xl:flex flex-1 max-w-[170px] 2xl:max-w-xs mx-2 relative shrink">
           <form onSubmit={handleSearch} className="w-full relative group">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 group-focus-within:text-cyan-600 dark:group-focus-within:text-cyan-400 transition-colors">
-              <Search size={14} />
+              <Search size={13} />
             </div>
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 text-[10px] font-bold rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 focus:border-cyan-500 dark:focus:border-cyan-400 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all outline-none"
+              className="w-full pl-8 pr-7 py-1.5 text-[10px] font-bold rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 focus:border-cyan-500 dark:focus:border-cyan-400 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all outline-none"
             />
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
               {searchQuery && (
@@ -176,10 +194,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                   onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
                   className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
                 >
-                  <X size={12} className="text-gray-400 dark:text-gray-500" />
+                  <X size={11} className="text-gray-400 dark:text-gray-500" />
                 </button>
               )}
-              {isSearching && <Loader2 size={12} className="animate-spin text-cyan-500" />}
+              {isSearching && <Loader2 size={11} className="animate-spin text-cyan-500" />}
             </div>
           </form>
 
@@ -233,13 +251,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
           </AnimatePresence>
         </div>
 
-        {/* Desktop Menu */}
-        <div className="hidden lg:flex items-center space-x-6">
+        {/* Desktop Primary Menu */}
+        <div className="hidden lg:flex items-center space-x-3 xl:space-x-5">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex items-center space-x-1.5 font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer ${
+              className={`flex items-center space-x-1.5 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                 currentPage === item.id 
                   ? 'text-cyan-600 dark:text-cyan-400 font-extrabold' 
                   : 'text-gray-700 hover:text-cyan-600 dark:text-gray-300 dark:hover:text-cyan-400'
@@ -249,17 +267,66 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               <span>{item.name}</span>
             </button>
           ))}
+
+          {/* More Tools Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMoreToolsOpen(!isMoreToolsOpen)}
+              className={`flex items-center space-x-1 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                moreNavItems.some(i => i.id === currentPage)
+                  ? 'text-cyan-600 dark:text-cyan-400 font-extrabold'
+                  : 'text-gray-700 hover:text-cyan-600 dark:text-gray-300 dark:hover:text-cyan-400'
+              }`}
+            >
+              <span>More</span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${isMoreToolsOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {isMoreToolsOpen && (
+                <>
+                  <div className="fixed inset-0 z-[105]" onClick={() => setIsMoreToolsOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-2 z-[110] space-y-1"
+                  >
+                    {moreNavItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          onNavigate(item.id);
+                          setIsMoreToolsOpen(false);
+                        }}
+                        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-left font-black text-[10px] uppercase tracking-wider transition-colors cursor-pointer ${
+                          currentPage === item.id
+                            ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-extrabold'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <span className="text-cyan-500">{item.icon}</span>
+                        <span>{item.name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
           
-          <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-800">
+        {/* Right Controls Container */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* ADMIN ONLY ACCESS */}
             {isAuthorizedAdmin && (
                <button 
                  onClick={() => onNavigate('admin')} 
-                 className="p-2.5 rounded-xl transition-all bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse cursor-pointer"
+                 className="p-2 sm:p-2.5 rounded-xl transition-all bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse cursor-pointer"
                  title="Open Architect Console"
                  aria-label="Open Architect Console"
                >
-                 <ShieldAlert size={18} />
+                 <ShieldAlert size={16} />
                </button>
             )}
 
@@ -271,39 +338,39 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onThemeToggle?.(); } }}
               aria-label={`Current theme is ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-              className="relative flex items-center p-1 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-inner hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer select-none"
+              className="relative flex items-center p-0.5 sm:p-1 rounded-2xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-inner hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer select-none shrink-0"
             >
               {/* Animated active backdrop slider */}
               <motion.div
                 layout
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                className={`absolute top-1 bottom-1 w-7 rounded-xl shadow-xs ${
+                className={`absolute top-0.5 sm:top-1 bottom-0.5 sm:bottom-1 w-6 sm:w-7 rounded-xl shadow-xs ${
                   theme === 'dark'
-                    ? 'left-[calc(100%-32px)] bg-gray-800 border border-cyan-500/30 shadow-cyan-500/10'
-                    : 'left-1 bg-white border border-amber-400/30 shadow-amber-500/10'
+                    ? 'left-[calc(100%-28px)] sm:left-[calc(100%-32px)] bg-gray-800 border border-cyan-500/30 shadow-cyan-500/10'
+                    : 'left-0.5 sm:left-1 bg-white border border-amber-400/30 shadow-amber-500/10'
                 }`}
               />
 
               {/* Sun (Light Mode) */}
               <div 
-                className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
+                className={`relative z-10 w-6 sm:w-7 h-6 sm:h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
                   theme === 'light' 
                     ? 'text-amber-500' 
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Sun size={15} className={`transition-transform duration-300 ${theme === 'light' ? 'rotate-0 scale-110 fill-amber-400/25 stroke-[2.5]' : '-rotate-45 scale-90'}`} />
+                <Sun size={13} className={`transition-transform duration-300 ${theme === 'light' ? 'rotate-0 scale-110 fill-amber-400/25 stroke-[2.5]' : '-rotate-45 scale-90'}`} />
               </div>
 
               {/* Moon (Dark Mode) */}
               <div 
-                className={`relative z-10 w-7 h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
+                className={`relative z-10 w-6 sm:w-7 h-6 sm:h-7 flex items-center justify-center rounded-xl transition-colors duration-200 ${
                   theme === 'dark' 
                     ? 'text-cyan-300' 
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Moon size={15} className={`transition-transform duration-300 ${theme === 'dark' ? 'rotate-0 scale-110 fill-cyan-400/25 stroke-[2.5]' : 'rotate-45 scale-90'}`} />
+                <Moon size={13} className={`transition-transform duration-300 ${theme === 'dark' ? 'rotate-0 scale-110 fill-cyan-400/25 stroke-[2.5]' : 'rotate-45 scale-90'}`} />
               </div>
             </div>
             
@@ -311,7 +378,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             {onScholarPackRequest && (
               <button
                 onClick={onScholarPackRequest}
-                className={`hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md ${
+                className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shrink-0 ${
                   user?.is_premium
                     ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
                     : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-amber-500/20 hover:scale-105 active:scale-95 border border-amber-300/30'
@@ -320,11 +387,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               >
                 {user?.is_premium ? (
                   <>
-                    <Zap size={12} className="fill-white" /> Scholar Pack ⚡ Active
+                    <Zap size={12} className="fill-white" /> <span className="hidden xl:inline">Scholar Pack</span> Active
                   </>
                 ) : (
                   <>
-                    <Crown size={12} className="fill-amber-200 text-amber-100" /> Activate Scholar Pack
+                    <Crown size={12} className="fill-amber-200 text-amber-100" /> <span className="hidden xl:inline">Scholar</span> Pack
                   </>
                 )}
               </button>
@@ -332,69 +399,51 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
 
             {/* INVITE & EARN */}
             {user && (
-               <button onClick={onInviteEarnRequest} aria-label="Invite and Earn" className="p-2.5 rounded-xl transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-pointer">
-                 <Gift size={18} />
+               <button onClick={onInviteEarnRequest} aria-label="Invite and Earn" className="p-2 sm:p-2.5 rounded-xl transition-all bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-pointer shrink-0">
+                 <Gift size={16} />
                </button>
             )}
             
             {user ? (
-               <div className="flex items-center gap-2">
-                  <button onClick={() => onNavigate('settings')} aria-label="User Settings" className="p-2.5 rounded-xl transition-all relative bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
-                     <User size={18} />
-                     <div className={`absolute -top-1 -right-1 w-3 h-3 border-2 border-white dark:border-gray-950 rounded-full ${user.is_premium ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
+               <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => onNavigate('settings')} aria-label="User Settings" className="p-2 sm:p-2.5 rounded-xl transition-all relative bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
+                     <User size={16} />
+                     <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 border-2 border-white dark:border-gray-950 rounded-full ${user.is_premium ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
                   </button>
                </div>
             ) : (
-               <div className="flex items-center gap-2">
+               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                  <button 
                   onClick={onLoginRequest} 
-                  className="px-4 py-2 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-900 dark:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer border border-gray-200 dark:border-gray-800"
+                  className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-900 dark:text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer border border-gray-200 dark:border-gray-800 flex items-center gap-1 shrink-0"
                  >
-                   Log In
+                   <LogIn size={13} className="text-gray-500 dark:text-gray-400" />
+                   <span>Sign In</span>
                  </button>
                  <button 
                   onClick={onLoginRequest} 
-                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer border border-blue-400/20"
+                  className="flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer border border-blue-400/20 shrink-0"
                  >
-                   Get Started
+                   <UserPlus size={13} className="text-cyan-200" />
+                   <span>Sign Up</span>
                  </button>
                </div>
             )}
             
-            <button onClick={() => onNavigate('settings')} aria-label="Settings" className="p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer">
-              <Settings size={18} />
+            <button onClick={() => onNavigate('settings')} aria-label="Settings" className="hidden sm:flex p-2 sm:p-2.5 rounded-xl transition-all bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 cursor-pointer shrink-0">
+              <Settings size={16} />
             </button>
-          </div>
-        </div>
 
-        {/* Mobile Toggle Bar with Direct Theme Switcher */}
-        <div className="lg:hidden flex items-center gap-2">
-          {/* Direct Mobile Theme Switcher */}
-          <button 
-            onClick={() => onThemeToggle?.()} 
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              theme === 'dark'
-                ? 'bg-gray-900 border-gray-800 text-cyan-300'
-                : 'bg-gray-100 border-gray-200 text-amber-500'
-            }`}
-          >
-            {theme === 'dark' ? <Moon size={18} className="fill-cyan-400/20 stroke-[2.5]" /> : <Sun size={18} className="fill-amber-400/20 stroke-[2.5]" />}
-          </button>
-
-          {isAuthorizedAdmin && (
-             <button onClick={() => onNavigate('admin')} className="p-2 bg-red-600 text-white rounded-xl cursor-pointer">
-               <ShieldAlert size={18} />
-             </button>
-          )}
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-            className={`p-2 rounded-xl transition-all cursor-pointer ${isScrolled ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900' : (theme === 'dark' ? 'text-white bg-white/10' : 'text-gray-900 bg-gray-100')}`}
-            aria-label="Toggle mobile menu"
-          >
-            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+            {/* Mobile Toggle Button */}
+            <div className="lg:hidden flex items-center gap-1">
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                className={`p-2 rounded-xl transition-all cursor-pointer ${isScrolled ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900' : (theme === 'dark' ? 'text-white bg-white/10' : 'text-gray-900 bg-gray-100')}`}
+                aria-label="Toggle mobile menu"
+              >
+                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
         </div>
       </div>
 
@@ -480,7 +529,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               </div>
             )}
             
-            <div className="mt-8 px-2">
+            <div className="mt-6 px-1">
               <form onSubmit={handleSearch} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
                   <Search size={18} />
@@ -490,7 +539,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                   placeholder="Search resources..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-900 border-none rounded-[20px] text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                  className="w-full pl-12 pr-4 py-3.5 bg-gray-100 dark:bg-gray-900 border-none rounded-[20px] text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
                 />
                 {isSearching && (
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
@@ -528,38 +577,38 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
               </AnimatePresence>
             </div>
 
-            <div className="mt-8 flex flex-col gap-2">
+            <div className="mt-6 flex flex-col gap-2">
                {isAuthorizedAdmin && (
                  <button 
                    onClick={() => { onNavigate('admin'); setIsMobileMenuOpen(false); }}
-                   className="mb-4 w-full p-5 bg-red-600 text-white rounded-[24px] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl"
+                   className="mb-3 w-full p-4 bg-red-600 text-white rounded-[20px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl"
                  >
-                   <ShieldAlert size={20} /> Access Architect Console
+                   <ShieldAlert size={18} /> Access Architect Console
                  </button>
                )}
                 {!user && (
-                  <div className="mb-4 flex gap-2">
+                  <div className="mb-3 flex gap-2">
                     <button 
                       onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
-                      className="flex-1 p-4 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-[20px] font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-gray-800 cursor-pointer"
+                      className="flex-1 p-3.5 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-[18px] font-black text-xs uppercase tracking-wider border border-gray-200 dark:border-gray-800 cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      Log In
+                      <LogIn size={15} /> Sign In
                     </button>
                     <button 
                       onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
-                      className="flex-1 p-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-[20px] font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/25 cursor-pointer border border-blue-400/20"
+                      className="flex-1 p-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-[18px] font-black text-xs uppercase tracking-wider shadow-xl shadow-blue-500/25 cursor-pointer border border-blue-400/20 flex items-center justify-center gap-1.5"
                     >
-                      Get Started
+                      <UserPlus size={15} /> Sign Up Free
                     </button>
                   </div>
                 )}
                
-               {navItems.map(item => (
+               {allNavItems.map(item => (
                   <button 
                     key={item.id} 
                     onClick={() => { onNavigate(item.id); setIsMobileMenuOpen(false); }} 
-                    className={`p-5 text-left font-black text-sm border-b border-gray-50 dark:border-gray-900 flex items-center gap-4 ${
-                      currentPage === item.id ? 'text-blue-600' : 'dark:text-white text-gray-700'
+                    className={`p-4 text-left font-black text-sm border-b border-gray-100 dark:border-gray-900 flex items-center gap-3.5 ${
+                      currentPage === item.id ? 'text-blue-600 dark:text-cyan-400' : 'dark:text-white text-gray-700'
                     }`}
                   >
                     {item.icon} {item.name}
@@ -568,9 +617,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                
                <button 
                  onClick={() => { onNavigate('settings'); setIsMobileMenuOpen(false); }} 
-                 className="p-5 text-left font-black text-sm border-b border-gray-50 dark:border-gray-900 flex items-center gap-4 dark:text-white text-gray-700"
+                 className="p-4 text-left font-black text-sm border-b border-gray-100 dark:border-gray-900 flex items-center gap-3.5 dark:text-white text-gray-700"
                >
-                 <Settings size={20} /> Profile & Settings
+                 <Settings size={18} /> Profile & Settings
                </button>
             </div>
           </motion.div>
