@@ -14,6 +14,7 @@ interface NavbarProps {
   user: any;
   admin?: AdminState;
   onLoginRequest: () => void;
+  onSignUpRequest?: () => void;
   onShareRequest: () => void;
   onInviteEarnRequest: () => void;
   onScholarPackRequest?: () => void;
@@ -22,7 +23,7 @@ interface NavbarProps {
   onOpenSidebar?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onSignUpRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [asuuStatus, setAsuuStatus] = useState<string | null>(null);
@@ -421,7 +422,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                    <span>Sign In</span>
                  </button>
                  <button 
-                  onClick={onLoginRequest} 
+                  onClick={onSignUpRequest || onLoginRequest} 
                   className="flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer border border-blue-400/20 shrink-0"
                  >
                    <UserPlus size={13} className="text-cyan-200" />
@@ -595,7 +596,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                       <LogIn size={15} /> Sign In
                     </button>
                     <button 
-                      onClick={() => { onLoginRequest(); setIsMobileMenuOpen(false); }}
+                      onClick={() => { (onSignUpRequest || onLoginRequest)(); setIsMobileMenuOpen(false); }}
                       className="flex-1 p-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-[18px] font-black text-xs uppercase tracking-wider shadow-xl shadow-blue-500/25 cursor-pointer border border-blue-400/20 flex items-center justify-center gap-1.5"
                     >
                       <UserPlus size={15} /> Sign Up Free

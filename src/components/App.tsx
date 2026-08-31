@@ -202,6 +202,7 @@ const AppContent: React.FC = () => {
   });
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -826,6 +827,7 @@ const AppContent: React.FC = () => {
         theme={theme}
         onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
         onLoginRequest={() => navigate('/login')}
+        onSignUpRequest={() => navigate('/signup')}
         onShareRequest={() => setIsShareOpen(true)}
         onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
         onScholarPackRequest={() => setIsScholarPackOpen(true)}
@@ -1215,7 +1217,7 @@ const AppContent: React.FC = () => {
                     badgeText={user ? `Welcome back, ${user?.displayName?.split(' ')[0] || 'Scholar'}` : undefined}
                     title={user ? <>Your <span className="text-blue-500">Admission</span> Dashboard</> : undefined}
                     subtitle={user ? "Your AI admission strategist is active. Use the tools below to calculate your aggregate and track your chances." : undefined}
-                    onSignUpRequest={() => setIsAuthModalOpen(true)}
+                    onSignUpRequest={() => navigate('/signup')}
                     onLaunchCalculator={() => {
                       setCurrentPage('calculator');
                       navigate('/calculator');
@@ -1422,7 +1424,7 @@ const AppContent: React.FC = () => {
           onNavigateAI={() => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: 'Hello CampusAI, I have some questions about the 2026 admission cycle requirements.' }))} 
         />
         
-        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} initialMode={authModalMode} />
         <UserSettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 

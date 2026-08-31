@@ -16,10 +16,17 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (email: string, role?: UserRole) => void;
+  initialMode?: 'login' | 'signup' | 'reset';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState<'login' | 'reset' | 'signup'>('login');
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
+  const [mode, setMode] = useState<'login' | 'reset' | 'signup'>(initialMode);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
