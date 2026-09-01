@@ -978,6 +978,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 setIsScholarPackOpen={setIsScholarPackOpen} 
                 setPaymentConfig={setPaymentConfig} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
                 initialTab="cbt"
               />
             </div>
@@ -988,6 +990,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 setIsScholarPackOpen={setIsScholarPackOpen} 
                 setPaymentConfig={setPaymentConfig} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
                 initialTab="study"
               />
             </div>
@@ -998,6 +1002,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 setIsScholarPackOpen={setIsScholarPackOpen} 
                 setPaymentConfig={setPaymentConfig} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
                 initialTab="target-system"
               />
             </div>
@@ -1008,6 +1014,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 setIsScholarPackOpen={setIsScholarPackOpen} 
                 setPaymentConfig={setPaymentConfig} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
                 initialTab="ai-advisor"
               />
             </div>
@@ -1223,7 +1231,7 @@ const AppContent: React.FC = () => {
           <Route path="/cgpa-calculator" element={
             <div className="pt-24 min-h-screen bg-white dark:bg-gray-950">
               <SEO 
-                title="CGPA Analytics Studio & GPA Planner (Coming Soon)"
+                title="CGPA Analytics Studio & GPA Planner"
                 description="Multi-semester CGPA tracking, trajectory forecasting, and grade analytics for university and polytechnic students in Nigeria."
                 canonical="/cgpa-calculator"
               />
@@ -1231,6 +1239,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 isPremium={user?.is_premium} 
                 onUpgrade={() => setIsScholarPackOpen(true)} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
               />
             </div>
           } />
@@ -1238,7 +1248,7 @@ const AppContent: React.FC = () => {
           <Route path="/cgpa" element={
             <div className="pt-24 min-h-screen bg-white dark:bg-gray-950">
               <SEO 
-                title="CGPA Analytics Studio & GPA Planner (Coming Soon)"
+                title="CGPA Analytics Studio & GPA Planner"
                 description="Multi-semester CGPA tracking, trajectory forecasting, and grade analytics for university and polytechnic students in Nigeria."
                 canonical="/cgpa-calculator"
               />
@@ -1246,6 +1256,8 @@ const AppContent: React.FC = () => {
                 user={user} 
                 isPremium={user?.is_premium} 
                 onUpgrade={() => setIsScholarPackOpen(true)} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
               />
             </div>
           } />

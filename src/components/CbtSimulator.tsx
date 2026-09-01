@@ -188,11 +188,108 @@ interface CbtSimulatorProps {
   user?: any;
   setIsScholarPackOpen?: (open: boolean) => void;
   setPaymentConfig?: (config: { type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string }) => void;
+  onLoginRequest?: () => void;
+  onSignUpRequest?: () => void;
   initialTab?: 'cbt' | 'study' | 'target-system' | 'ai-advisor';
 }
 
-export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, initialTab = 'cbt' }: CbtSimulatorProps) {
+export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, onLoginRequest, onSignUpRequest, initialTab = 'cbt' }: CbtSimulatorProps) {
   const navigate = useNavigate();
+
+  // If user is not logged in, show Auth Guard requiring Sign Up / Login
+  if (!user) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
+        {/* Background glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative z-10 text-center space-y-6">
+          <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg mb-2">
+            <Monitor size={40} />
+          </div>
+
+          <div>
+            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[11px] uppercase tracking-widest rounded-full">
+              Account Required
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-3 tracking-tight">
+              Sign Up to Access CBT Practice & Study Hub
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
+              Create a free account or log in to unlock full JAMB/WAEC past question drills, step-by-step AI solutions, and personalized score target tracking.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">AI Working Derivations</div>
+                <div className="text-[11px] text-slate-400">Step-by-step math & science solutions</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <Target size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Score Target Engine</div>
+                <div className="text-[11px] text-slate-400">Track admission score gap & progress</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                <Brain size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">AI Subject Tutor</div>
+                <div className="text-[11px] text-slate-400">Instant explanations & exam advice</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                <BookOpen size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">10,000+ Past Questions</div>
+                <div className="text-[11px] text-slate-400">JAMB, WAEC, NECO & Post-UTME drills</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                if (onSignUpRequest) onSignUpRequest();
+                else if (onLoginRequest) onLoginRequest();
+                else navigate('/login');
+              }}
+              className="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Create Free Account</span>
+              <ArrowRight size={16} />
+            </button>
+            
+            <button
+              onClick={() => {
+                if (onLoginRequest) onLoginRequest();
+                else navigate('/login');
+              }}
+              className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
+            >
+              Log In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // Navigation tabs: 'cbt' | 'study' | 'target-system' | 'ai-advisor'
   const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>(initialTab);
 

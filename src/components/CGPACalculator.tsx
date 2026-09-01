@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calculator, Award, Info, Brain, TrendingUp, Sparkles, 
   CheckCircle2, Target, BookOpen, Clock, 
-  GraduationCap, FileText, Plus, Trash2, RefreshCw, Download, ChevronDown, ChevronUp
+  GraduationCap, FileText, Plus, Trash2, RefreshCw, Download, ChevronDown, ChevronUp, ArrowRight
 } from 'lucide-react';
 import { analyzeCGPA } from '../services/premiumToolsService';
 
@@ -25,9 +26,106 @@ interface CGPACalculatorProps {
   isPremium?: boolean;
   onUpgrade?: () => void;
   onLoginRequest?: () => void;
+  onSignUpRequest?: () => void;
 }
 
-export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user }) => {
+export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium, onUpgrade, onLoginRequest, onSignUpRequest }) => {
+  const navigate = useNavigate();
+
+  // If user is not logged in, show Auth Guard requiring Sign Up / Login
+  if (!user) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
+        {/* Background glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative z-10 text-center space-y-6">
+          <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-purple-500/20 to-indigo-500/10 border border-purple-500/30 text-purple-400 shadow-lg mb-2">
+            <GraduationCap size={40} />
+          </div>
+
+          <div>
+            <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 font-extrabold text-[11px] uppercase tracking-widest rounded-full">
+              Account Required
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-3 tracking-tight">
+              Sign Up to Access CGPA & Transcript Studio
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
+              Create a free account or log in to track semester GPAs, forecast your target degree honours class, and get AI academic performance recommendations.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                <Calculator size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">5.0 & 4.0 Scale Calculations</div>
+                <div className="text-[11px] text-slate-400">Compliant with Nigerian university grading</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Honours Trajectory Forecast</div>
+                <div className="text-[11px] text-slate-400">Calculate required GPAs for First Class / 2:1</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <Brain size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">AI Academic Advisor</div>
+                <div className="text-[11px] text-slate-400">Personalized study advice based on course performance</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                <Award size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Semester Academic Record</div>
+                <div className="text-[11px] text-slate-400">Multi-semester unit tracking & backup</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                if (onSignUpRequest) onSignUpRequest();
+                else if (onLoginRequest) onLoginRequest();
+                else navigate('/login');
+              }}
+              className="flex-1 py-3.5 px-6 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-purple-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Create Free Account</span>
+              <ArrowRight size={16} />
+            </button>
+            
+            <button
+              onClick={() => {
+                if (onLoginRequest) onLoginRequest();
+                else navigate('/login');
+              }}
+              className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
+            >
+              Log In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const [scale, setScale] = useState<5 | 4>(5);
   const [semesters, setSemesters] = useState<Semester[]>([
     {
