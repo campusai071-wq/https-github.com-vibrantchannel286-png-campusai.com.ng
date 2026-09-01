@@ -239,6 +239,26 @@ const getSuggestedJambSubjects = (courseName: string): [string, string, string] 
   return null;
 };
 
+const getInstitutionDefaultState = (uniName: string, uniSlug?: string): string => {
+  const str = ((uniName || '') + ' ' + (uniSlug || '')).toLowerCase();
+  if (str.includes('oou') || str.includes('olabisi onabanjo')) return 'Ogun';
+  if (str.includes('oau') || str.includes('obafemi awolowo')) return 'Osun';
+  if (str.includes('unilag') || str.includes('lagos state') || str.includes('lasu')) return 'Lagos';
+  if (str.includes('ui') || str.includes('ibadan') || str.includes('lautech')) return 'Oyo';
+  if (str.includes('futa') || str.includes('adekunle ajasin') || str.includes('aaua')) return 'Ondo';
+  if (str.includes('uniben')) return 'Edo';
+  if (str.includes('unilorin')) return 'Kwara';
+  if (str.includes('unn') || str.includes('esut')) return 'Enugu';
+  if (str.includes('abu') || str.includes('ahmadu bello')) return 'Kaduna';
+  if (str.includes('buk') || str.includes('bayero')) return 'Kano';
+  if (str.includes('futo')) return 'Imo';
+  if (str.includes('delsu') || str.includes('delta')) return 'Delta';
+  if (str.includes('eksu')) return 'Ekiti';
+  if (str.includes('uniport')) return 'Rivers';
+  if (str.includes('uniabuja') || str.includes('abuja')) return 'FCT Abuja';
+  return 'Lagos';
+};
+
 const calculateAggregateScore = (
   jamb: number,
   post: number,
@@ -1407,6 +1427,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   }>({ isOpen: false, title: '', reason: '', type: 'jamb' });
   const [bypassSubjectDisqualificationAlert, setBypassSubjectDisqualificationAlert] = useState(false);
   const [validationAlert, setValidationAlert] = useState<{ isOpen: boolean; errors: string[] }>({ isOpen: false, errors: [] });
+  const [highlightedFieldKeys, setHighlightedFieldKeys] = useState<{ [key: string]: boolean }>({});
   const [isAccreditationWarningDisabled, setIsAccreditationWarningDisabled] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('campusai_accreditation_warning_disabled');
@@ -1620,10 +1641,34 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (found) {
       setTargetUni(found);
       setUniSearch(found.name);
-      setTargetCourse('');
-      setCourseSearch('');
+
+      // Smart auto-fill State of Origin for direct school landing
+      if (!stateOfOrigin) {
+        setStateOfOrigin(getInstitutionDefaultState(found.name, found.slug));
+      }
+
       const dbMatch = UNIVERSITIES_DB[found.name] || Object.values(UNIVERSITIES_DB).find(x => x.name.toLowerCase() === found.name.toLowerCase());
-      setAvailableCourses(dbMatch?.courses || []);
+      const coursesList = dbMatch?.courses || [];
+      setAvailableCourses(coursesList);
+
+      // Auto-select standard popular course for the school if not set
+      if (!targetCourse && !courseSearch && coursesList.length > 0) {
+        const defaultCourse = coursesList.find((c: string) => 
+          ['medicine', 'computer science', 'nursing', 'law', 'accounting', 'microbiology'].some(k => c.toLowerCase().includes(k))
+        ) || coursesList[0];
+
+        if (defaultCourse) {
+          setTargetCourse(defaultCourse);
+          setCourseSearch(defaultCourse);
+          const suggested = getSuggestedJambSubjects(defaultCourse);
+          if (suggested) {
+            setJambSubject1(suggested[0]);
+            setJambSubject2(suggested[1]);
+            setJambSubject3(suggested[2]);
+          }
+        }
+      }
+
       if (dbMatch?.scoringSystem) {
         setScoringSystem(dbMatch.scoringSystem);
       }
@@ -2287,11 +2332,36 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     }
     const activeCourse = overrideCourse || targetCourse || courseSearch;
 
+    // Smart auto-fallbacks to prevent drop-offs
+    let currentCourse = activeCourse;
+    if (!currentCourse && availableCourses.length > 0) {
+      const defaultCourse = availableCourses.find((c: string) => 
+        ['medicine', 'computer science', 'nursing', 'law', 'accounting'].some(k => c.toLowerCase().includes(k))
+      ) || availableCourses[0];
+      if (defaultCourse) {
+        setTargetCourse(defaultCourse);
+        setCourseSearch(defaultCourse);
+        currentCourse = defaultCourse;
+      }
+    }
+
+    if (!stateOfOrigin && activeUni) {
+      const defaultState = getInstitutionDefaultState(activeUni.name, activeUni.slug);
+      setStateOfOrigin(defaultState);
+    }
+
+    if ((!jambSubject1 || !jambSubject2 || !jambSubject3) && currentCourse) {
+      const suggested = getSuggestedJambSubjects(currentCourse) || ['Mathematics', 'Physics', 'Chemistry'];
+      if (!jambSubject1) setJambSubject1(suggested[0]);
+      if (!jambSubject2) setJambSubject2(suggested[1]);
+      if (!jambSubject3) setJambSubject3(suggested[2]);
+    }
+
     const errors: string[] = [];
     if (!activeUni) {
       errors.push("Please select a target Higher Institution.");
     }
-    if (!activeCourse) {
+    if (!currentCourse) {
       errors.push("Please select or search for your target Course of study.");
     }
 
@@ -2332,14 +2402,29 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       errors.push("Please select all 3 JAMB UTME Subject elective inputs.");
     }
 
-    if (!stateOfOrigin) {
-      errors.push("Please select your State of Origin (needed to compute Catchment/ELDS statutory benefits).");
-    }
+    const newHighlights: { [key: string]: boolean } = {};
+    if (!activeUni) newHighlights['uni-search'] = true;
+    if (!currentCourse) newHighlights['course-search'] = true;
+    if (!jambScore && !isAR && !isCOE) newHighlights['jamb-score'] = true;
+    if (hasPostUtme && !isPostUtmePending && !postUtmeScore) newHighlights['post-utme-score'] = true;
 
     if (errors.length > 0) {
+      setHighlightedFieldKeys(newHighlights);
       setValidationAlert({ isOpen: true, errors });
+      const firstId = Object.keys(newHighlights)[0];
+      if (firstId) {
+        setTimeout(() => {
+          const el = document.getElementById(firstId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus();
+          }
+        }, 150);
+      }
       return;
     }
+
+    setHighlightedFieldKeys({});
 
     if (!forceBypass && !bypassSubjectDisqualificationAlert) {
       const jambList = ['English Language', jambSubject1, jambSubject2, jambSubject3].filter(Boolean);
@@ -3289,10 +3374,62 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <input
                     id="course-search" name="course-search" type="text"
                     placeholder="e.g. Nursing..." value={courseSearch}
-                    onChange={e => { setCourseSearch(e.target.value); setIsCourseDropdownOpen(true); }}
+                    onChange={e => {
+                      setCourseSearch(e.target.value);
+                      setIsCourseDropdownOpen(true);
+                      if (highlightedFieldKeys['course-search']) {
+                        setHighlightedFieldKeys(prev => ({ ...prev, 'course-search': false }));
+                      }
+                    }}
                     onFocus={() => setIsCourseDropdownOpen(true)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/5 rounded-xl font-bold text-xs outline-none focus:border-cyan-500 transition-all text-white"
+                    className={`w-full pl-10 pr-4 py-2.5 bg-black/40 border rounded-xl font-bold text-xs outline-none transition-all text-white ${
+                      highlightedFieldKeys['course-search']
+                        ? 'border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse'
+                        : 'border-white/5 focus:border-cyan-500'
+                    }`}
                   />
+                  {highlightedFieldKeys['course-search'] && (
+                    <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider">⚠️ Please select or type your target course</p>
+                  )}
+
+                  {/* Quick Popular Courses Bar */}
+                  {availableCourses.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                      <span className="text-[7.5px] font-black uppercase text-gray-400 shrink-0">Popular:</span>
+                      {['Medicine', 'Computer Science', 'Nursing', 'Law', 'Accounting', 'Mechanical', 'Microbiology']
+                        .filter(pc => availableCourses.some(ac => ac.toLowerCase().includes(pc.toLowerCase())))
+                        .slice(0, 5)
+                        .map(pc => {
+                          const fullMatch = availableCourses.find(ac => ac.toLowerCase().includes(pc.toLowerCase())) || pc;
+                          const isSelected = targetCourse.toLowerCase() === fullMatch.toLowerCase();
+                          return (
+                            <button
+                              key={pc}
+                              type="button"
+                              onClick={() => {
+                                setTargetCourse(fullMatch);
+                                setCourseSearch(fullMatch);
+                                setIsCourseDropdownOpen(false);
+                                setHighlightedFieldKeys(prev => ({ ...prev, 'course-search': false }));
+                                const suggested = getSuggestedJambSubjects(fullMatch);
+                                if (suggested) {
+                                  setJambSubject1(suggested[0]);
+                                  setJambSubject2(suggested[1]);
+                                  setJambSubject3(suggested[2]);
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-lg text-[8px] font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-cyan-500 text-black border-cyan-400 font-black shadow-md' 
+                                  : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
+                              }`}
+                            >
+                              {pc}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
                   <AnimatePresence>
                     {isCourseDropdownOpen && (courseSearch.length > 1 || availableCourses.length > 0) && (
                       <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-60 overflow-y-auto">
@@ -3694,9 +3831,22 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   id="jamb-score" name="jamb-score"
                   type={targetUni?.category === 'COE' ? "text" : "number"}
                   placeholder={targetUni?.category === 'COE' ? "JAMB Reg No" : "e.g. 270"}
-                  value={jambScore} onChange={e => setJambScore(e.target.value)}
-                  className="w-full p-3 bg-black/40 border border-white/5 rounded-xl font-black text-lg text-center outline-none focus:border-blue-500 text-white"
+                  value={jambScore}
+                  onChange={e => {
+                    setJambScore(e.target.value);
+                    if (highlightedFieldKeys['jamb-score']) {
+                      setHighlightedFieldKeys(prev => ({ ...prev, 'jamb-score': false }));
+                    }
+                  }}
+                  className={`w-full p-3 bg-black/40 border rounded-xl font-black text-lg text-center outline-none transition-all text-white ${
+                    highlightedFieldKeys['jamb-score']
+                      ? 'border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse'
+                      : 'border-white/5 focus:border-blue-500'
+                  }`}
                 />
+                {highlightedFieldKeys['jamb-score'] && (
+                  <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider text-center">⚠️ Enter your JAMB score (100 - 400)</p>
+                )}
               </div>
 
               {/* Post-UTME */}
@@ -3712,9 +3862,24 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   </div>
                   <input
                     id="post-utme-score" name="post-utme-score" type="number" placeholder={isPostUtmePending ? "70" : "e.g. 74"}
-                    value={postUtmeScore} onChange={e => setPostUtmeScore(e.target.value)}
-                    className={`w-full p-3 bg-black/40 border rounded-xl font-black text-lg text-center outline-none transition-all ${isPostUtmePending ? 'border-cyan-500/60 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)] focus:border-cyan-400' : 'border-white/5 text-white focus:border-blue-500'}`}
+                    value={postUtmeScore}
+                    onChange={e => {
+                      setPostUtmeScore(e.target.value);
+                      if (highlightedFieldKeys['post-utme-score']) {
+                        setHighlightedFieldKeys(prev => ({ ...prev, 'post-utme-score': false }));
+                      }
+                    }}
+                    className={`w-full p-3 bg-black/40 border rounded-xl font-black text-lg text-center outline-none transition-all ${
+                      highlightedFieldKeys['post-utme-score']
+                        ? 'border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] animate-pulse text-white'
+                        : isPostUtmePending
+                          ? 'border-cyan-500/60 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)] focus:border-cyan-400'
+                          : 'border-white/5 text-white focus:border-blue-500'
+                    }`}
                   />
+                  {highlightedFieldKeys['post-utme-score'] && (
+                    <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider text-center">⚠️ Enter screening score or click Pending</p>
+                  )}
                 </div>
               )}
             </div>
@@ -6097,92 +6262,86 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         {validationAlert.isOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setValidationAlert({ isOpen: false, errors: [] })} className="absolute inset-0 bg-black/85 backdrop-blur-xl" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-gray-950 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-red-500/20">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
-              <button onClick={() => setValidationAlert({ isOpen: false, errors: [] })} className="absolute top-6 right-6 p-2 bg-gray-800 rounded-full hover:scale-110 transition-transform z-10 text-gray-400 hover:text-red-500">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-gray-950 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-cyan-500/30">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
+              <button onClick={() => setValidationAlert({ isOpen: false, errors: [] })} className="absolute top-6 right-6 p-2 bg-gray-800 rounded-full hover:scale-110 transition-transform z-10 text-gray-400 hover:text-cyan-400">
                 <X size={16} />
               </button>
               <div className="p-8 text-center relative z-10">
-                <div className="w-16 h-16 bg-red-950/30 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-red-500/10">
-                  <span className="text-2xl">⚡</span>
+                <div className="w-16 h-16 bg-cyan-950/40 text-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg border border-cyan-500/20">
+                  <Sparkles size={28} />
                 </div>
-                <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight leading-tight">Incomplete <span className="text-red-500">Trial Data</span></h3>
-                <p className="text-gray-400 font-bold mb-6 text-[10px] tracking-widest uppercase">Required Admission Inputs Missing</p>
+                <h3 className="text-xl font-black text-white mb-1 uppercase tracking-tight leading-tight">Complete <span className="text-cyan-400">Required Details</span></h3>
+                <p className="text-gray-400 font-bold mb-5 text-[10px] tracking-wider uppercase">Quickly complete these inputs or auto-calculate below</p>
                 
-                <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10 mb-4 text-left max-h-[180px] overflow-y-auto no-scrollbar space-y-2">
-                  <p className="text-[10px] font-black uppercase text-red-400 tracking-wider mb-2">Please resolve the following fields to complete your calculation:</p>
+                <div className="p-4 bg-gray-900/80 rounded-2xl border border-white/10 mb-4 text-left max-h-[160px] overflow-y-auto no-scrollbar space-y-2">
+                  <p className="text-[10px] font-black uppercase text-cyan-400 tracking-wider mb-2">Required items to complete calculation:</p>
                   {validationAlert.errors.map((err, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-[10px] font-bold text-gray-300 leading-normal uppercase tracking-tight">
-                      <span className="text-red-500 mt-0.5 shrink-0">•</span>
+                      <span className="text-cyan-400 mt-0.5 shrink-0">•</span>
                       <span>{err}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* 1-Click Fix for Post-UTME pending / not written yet */}
-                {validationAlert.errors.some(e => e.toLowerCase().includes('post-utme')) && (
-                  <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-2xl mb-4 text-left">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Clock size={12} className="text-cyan-400" />
-                      <p className="text-[9.5px] font-black uppercase text-cyan-300">
-                        Haven't written Post-UTME screening yet?
-                      </p>
-                    </div>
-                    <p className="text-[8px] text-gray-300 leading-snug mb-2.5">
-                      You can simulate your admission chances using a target screening score (e.g. 70/100):
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPostUtmePending(true);
-                        setPostUtmeScore('70');
-                        setValidationAlert({ isOpen: false, errors: [] });
-                        setTimeout(() => {
-                          handleLaunchAuditInternal();
-                        }, 150);
-                      }}
-                      className="w-full py-2.5 px-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                    >
-                      <Sparkles size={12} /> Auto-Simulate (70% Target) & Calculate Now
-                    </button>
-                  </div>
-                )}
-
-                {/* 1-Click Fix for Missing JAMB subjects */}
-                {validationAlert.errors.some(e => e.toLowerCase().includes('jamb utme subject')) && (
-                  <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-2xl mb-4 text-left">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Sparkles size={12} className="text-blue-400" />
-                      <p className="text-[9.5px] font-black uppercase text-blue-300">
-                        Missing JAMB Subject combination?
-                      </p>
-                    </div>
-                    <p className="text-[8px] text-gray-300 leading-snug mb-2.5">
-                      Auto-fill standard UTME subject electives for <strong className="text-white">{targetCourse || courseSearch || 'your course'}</strong>:
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const suggested = getSuggestedJambSubjects(targetCourse || courseSearch);
-                        if (suggested) {
-                          setJambSubject1(suggested[0]);
-                          setJambSubject2(suggested[1]);
-                          setJambSubject3(suggested[2]);
-                        }
-                        setValidationAlert({ isOpen: false, errors: [] });
-                      }}
-                      className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                    >
-                      <Check size={12} /> Auto-Fill Required JAMB Subjects
-                    </button>
-                  </div>
-                )}
-
+                {/* 1-Click Master Auto-Fill & Calculate Button */}
                 <button
-                  onClick={() => setValidationAlert({ isOpen: false, errors: [] })}
-                  className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  type="button"
+                  onClick={() => {
+                    let courseToUse = targetCourse || courseSearch;
+                    if (!courseToUse && availableCourses.length > 0) {
+                      courseToUse = availableCourses[0];
+                      setTargetCourse(courseToUse);
+                      setCourseSearch(courseToUse);
+                    } else if (!courseToUse) {
+                      courseToUse = "Computer Science";
+                      setTargetCourse(courseToUse);
+                      setCourseSearch(courseToUse);
+                    }
+
+                    const suggested = getSuggestedJambSubjects(courseToUse) || ['Physics', 'Chemistry', 'Biology'];
+                    if (!jambSubject1) setJambSubject1(suggested[0]);
+                    if (!jambSubject2) setJambSubject2(suggested[1]);
+                    if (!jambSubject3) setJambSubject3(suggested[2]);
+
+                    if (!stateOfOrigin && targetUni) {
+                      setStateOfOrigin(getInstitutionDefaultState(targetUni.name, targetUni.slug));
+                    }
+
+                    if (!jambScore && !isAR) {
+                      setJambScore('240');
+                    }
+
+                    if (!postUtmeScore && (!computedScoringSystem || computedScoringSystem.hasPostUtme !== false)) {
+                      setIsPostUtmePending(true);
+                      setPostUtmeScore('70');
+                    }
+
+                    setValidationAlert({ isOpen: false, errors: [] });
+                    setHighlightedFieldKeys({});
+                    setTimeout(() => {
+                      handleLaunchAuditInternal(true, false, targetUni, courseToUse);
+                    }, 150);
+                  }}
+                  className="w-full py-3.5 px-4 mb-3 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
                 >
-                  Complete Entries Now
+                  <Sparkles size={16} /> ⚡ 1-Click Quick Auto-Fill & Calculate Score
+                </button>
+
+                {/* Manual Edit Button */}
+                <button
+                  onClick={() => {
+                    setValidationAlert({ isOpen: false, errors: [] });
+                    const firstKey = Object.keys(highlightedFieldKeys)[0] || 'course-search';
+                    const el = document.getElementById(firstKey);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      el.focus();
+                    }
+                  }}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-2xl font-bold text-[11px] uppercase tracking-wider border border-white/10 transition-all cursor-pointer"
+                >
+                  Enter Fields Manually
                 </button>
               </div>
             </motion.div>

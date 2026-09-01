@@ -8,7 +8,6 @@ import SEO from './SEO';
 
 import NewsGrid from './NewsGrid';
 import Dashboard from './Dashboard';
-import CutoffCalculator from './CutoffCalculator';
 import PostUtmeReleaseHub from './PostUtmeReleaseHub';
 import UniversityDirectory from './UniversityDirectory';
 import TopRankings from './TopRankings';
@@ -20,6 +19,7 @@ import SimpleCalculator from './SimpleCalculator';
 import CalculationStats from './CalculationStats';
 
 // Code-split heavy secondary views & modals for faster initial load
+const CutoffCalculator = lazyWithRetry(() => import('./CutoffCalculator'));
 const CbtSimulator = lazyWithRetry(() => import('./CbtSimulator'));
 const PolicySection = lazyWithRetry(() => import('./PolicySection'));
 const FAQSection = lazyWithRetry(() => import('./FAQSection'));
@@ -118,6 +118,23 @@ const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, 
   );
 };
 
+const CalculatorSkeleton = () => (
+  <div className="min-h-[60vh] flex items-center justify-center p-4">
+    <div className="w-full max-w-4xl bg-gray-900/90 border border-white/10 rounded-3xl p-8 space-y-6 animate-pulse text-center backdrop-blur-xl">
+      <div className="w-16 h-16 bg-blue-500/20 border border-blue-500/30 rounded-2xl mx-auto flex items-center justify-center text-blue-400">
+        <span className="text-2xl animate-spin">⚡</span>
+      </div>
+      <div className="h-7 bg-slate-800 rounded-xl w-2/3 mx-auto" />
+      <div className="h-4 bg-slate-800/60 rounded-lg w-1/2 mx-auto" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+        <div className="h-12 bg-slate-800/70 rounded-xl" />
+        <div className="h-12 bg-slate-800/70 rounded-xl" />
+      </div>
+      <div className="h-14 bg-blue-600/40 rounded-2xl w-full" />
+    </div>
+  </div>
+);
+
 const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpen, selectedSchoolForChances, setSelectedSchoolForChances, onGoHome }: any) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -164,14 +181,16 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
         description={`Calculate your ${computedSchoolName} aggregate score for the 2026 admission cycle. Accurate results based on official departmental cut-off marks and merit guidelines.`}
         canonical={rawPath}
       />
-      <CutoffCalculator 
-        user={user} 
-        onLoginRequest={() => setIsAuthModalOpen ? setIsAuthModalOpen(true) : navigate('/login')} 
-        onPremiumRequired={() => setIsScholarPackOpen(true)}
-        onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
-        initialSchoolName={computedSchoolName}
-        onClearInitialSchool={() => setSelectedSchoolForChances('')}
-      />
+      <Suspense fallback={<CalculatorSkeleton />}>
+        <CutoffCalculator 
+          user={user} 
+          onLoginRequest={() => setIsAuthModalOpen ? setIsAuthModalOpen(true) : navigate('/login')} 
+          onPremiumRequired={() => setIsScholarPackOpen(true)}
+          onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
+          initialSchoolName={computedSchoolName}
+          onClearInitialSchool={() => setSelectedSchoolForChances('')}
+        />
+      </Suspense>
     </div>
   );
 };
@@ -1028,14 +1047,16 @@ const AppContent: React.FC = () => {
                 description="Universal 2026 admission aggregate calculator for all Nigerian Universities, Polytechnics, and Colleges of Education. Features official institutional formula compliance."
                 canonical="/calculator"
               />
-              <CutoffCalculator 
-                user={user} 
-                onLoginRequest={() => setIsAuthModalOpen(true)} 
-                onPremiumRequired={() => setIsScholarPackOpen(true)}
-                onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
-                initialSchoolName={selectedSchoolForChances}
-                onClearInitialSchool={() => setSelectedSchoolForChances('')}
-              />
+              <Suspense fallback={<CalculatorSkeleton />}>
+                <CutoffCalculator 
+                  user={user} 
+                  onLoginRequest={() => setIsAuthModalOpen(true)} 
+                  onPremiumRequired={() => setIsScholarPackOpen(true)}
+                  onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
+                  initialSchoolName={selectedSchoolForChances}
+                  onClearInitialSchool={() => setSelectedSchoolForChances('')}
+                />
+              </Suspense>
               <div className="flex justify-center mt-4">
                   <a href="/calculator-simple" className="text-sm text-blue-400 hover:underline">Use Normal Calculator</a>
                 </div>
