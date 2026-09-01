@@ -1,279 +1,173 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
-const INSTITUTIONS = ['UNILAG', 'OAU', 'UI', 'FUTA', 'UNIABUJA', 'ABU', 'UNIBEN', 'LASU'];
-const COURSES = ['Medicine', 'Law', 'Engineering', 'Computer Sci', 'Pharmacy', 'Architecture'];
+type Mode = 'cbt' | 'aggregate' | 'cgpa';
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
-
-function useAnimatedNumber(target: number, duration = 1000) {
-  const [value, setValue] = useState(target);
-  const startRef = useRef<number | null>(null);
-  const startValRef = useRef(target);
-  const rafRef = useRef<number | null>(null);
+export default function MultiFeatureAnimation() {
+  const [mode, setMode] = useState<Mode>('cbt');
+  const [progress, setProgress] = useState(0);
+  const [cbtScore, setCbtScore] = useState(285);
+  const [aggScore, setAggScore] = useState(78.5);
+  const [cgpaScore, setCgpaScore] = useState(4.65);
+  const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    startValRef.current = value;
-    startRef.current = null;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    const animate = (ts: number) => {
-      if (!startRef.current) startRef.current = ts;
-      const progress = Math.min((ts - startRef.current) / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(lerp(startValRef.current, target, ease)));
-      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [target]);
+    const interval = setInterval(() => {
+      setMode((prev) => {
+        if (prev === 'cbt') return 'aggregate';
+        if (prev === 'aggregate') return 'cgpa';
+        return 'cbt';
+      });
+      setProgress(0);
+    }, 4500);
 
-  return value;
-}
-
-type Particle = { id: number; x: number; y: number; vx: number; vy: number; life: number; color: string };
-const PARTICLE_COLORS = ['#10b981', '#3b82f6', '#a78bfa', '#f59e0b'];
-
-const CalculationAnimation: React.FC = () => {
-  const [instIdx, setInstIdx] = useState(0);
-  const [courseIdx, setCourseIdx] = useState(0);
-  const [jamb, setJamb] = useState(312);
-  const [postUtme, setPostUtme] = useState(72);
-  const [aggregate, setAggregate] = useState(76);
-  const [meritPct, setMeritPct] = useState(87);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [streamLines, setStreamLines] = useState<string[]>([]);
-  const [glowActive, setGlowActive] = useState(false);
-  const pidRef = useRef(0);
-
-  const animJamb = useAnimatedNumber(jamb, 900);
-  const animPostUtme = useAnimatedNumber(postUtme, 900);
-  const animAggregate = useAnimatedNumber(aggregate, 1100);
-  const animMerit = useAnimatedNumber(meritPct, 1300);
-
-  // Rotate institution + scores every 3.5s
-  useEffect(() => {
-    const id = setInterval(() => {
-      const nextInst = (instIdx + 1) % INSTITUTIONS.length;
-      const nextCourse = Math.floor(Math.random() * COURSES.length);
-      const j = 230 + Math.floor(Math.random() * 130);
-      const p = 50 + Math.floor(Math.random() * 45);
-      const agg = Math.round(j / 8 + p * 0.4);
-      const merit = 55 + Math.floor(Math.random() * 42);
-      setInstIdx(nextInst);
-      setCourseIdx(nextCourse);
-      setJamb(j);
-      setPostUtme(p);
-      setAggregate(agg);
-      setMeritPct(merit);
-      setGlowActive(true);
-      setTimeout(() => setGlowActive(false), 500);
-      // burst particles
-      setParticles(prev => [
-        ...prev,
-        ...Array.from({ length: 14 }, () => ({
-          id: pidRef.current++,
-          x: 60 + Math.random() * 180,
-          y: 60 + Math.random() * 80,
-          vx: (Math.random() - 0.5) * 3.5,
-          vy: -1.5 - Math.random() * 2.5,
-          life: 1,
-          color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
-        })),
-      ].slice(-70));
-    }, 3500);
-    return () => clearInterval(id);
-  }, [instIdx]);
-
-  // Particle tick
-  useEffect(() => {
-    const id = setInterval(() => {
-      setParticles(prev =>
-        prev.map(p => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, life: p.life - 0.028 }))
-          .filter(p => p.life > 0)
-      );
-    }, 30);
-    return () => clearInterval(id);
+    return () => clearInterval(interval);
   }, []);
 
-  // Data stream
   useEffect(() => {
-    const lines = [
-      `→ Fetching ${INSTITUTIONS[instIdx]} cutoff data...`,
-      `✓ JAMB score validated: ${jamb}`,
-      `⚡ Running merit algorithm...`,
-      `→ Post-UTME weight: ${postUtme}%`,
-      `✓ Aggregate computed: ${aggregate}`,
-      `⚡ Probability matrix: ${meritPct}%`,
-      `✓ Departmental quota checked`,
-    ];
-    let i = 0;
-    setStreamLines([]);
-    const id = setInterval(() => {
-      if (i < lines.length) { setStreamLines(l => [...l.slice(-5), lines[i]]); i++; }
-    }, 400);
-    return () => clearInterval(id);
-  }, [instIdx, meritPct]);
-
-  const circumference = 2 * Math.PI * 44;
-  const dashOffset = circumference * (1 - animMerit / 100);
-  const ringColor = animMerit >= 80 ? '#10b981' : animMerit >= 60 ? '#f59e0b' : '#ef4444';
+    setProgress(0);
+    const startTime = Date.now();
+    const duration = 4500;
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const p = Math.min((elapsed / duration) * 100, 100);
+      setProgress(p);
+      if (p < 100) {
+        timerRef.current = requestAnimationFrame(updateProgress);
+      }
+    };
+    timerRef.current = requestAnimationFrame(updateProgress);
+    return () => {
+      if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    };
+  }, [mode]);
 
   return (
-    <div
-      style={{
-        width: 310,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 24,
-        padding: '18px 18px 14px',
-        position: 'relative',
-        overflow: 'hidden',
-        backdropFilter: 'blur(12px)',
-        boxShadow: glowActive ? '0 0 36px 6px rgba(16,185,129,0.22)' : '0 0 0px transparent',
-        transition: 'box-shadow 0.4s ease',
-        fontFamily: 'ui-monospace, monospace',
-      }}
-    >
-      {/* Grid background */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06, pointerEvents: 'none' }} viewBox="0 0 310 320" preserveAspectRatio="none">
-        {[0,1,2,3,4,5,6].map(i => <line key={`h${i}`} x1="0" y1={i*52} x2="310" y2={i*52} stroke="#10b981" strokeWidth="0.5"/>)}
-        {[0,1,2,3,4,5,6,7].map(i => <line key={`v${i}`} x1={i*44} y1="0" x2={i*44} y2="320" stroke="#3b82f6" strokeWidth="0.5"/>)}
-      </svg>
+    <div className="w-full max-w-md mx-auto bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-xl text-white relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      {/* Particles */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} viewBox="0 0 310 320">
-        {particles.map(p => (
-          <circle key={p.id} cx={p.x} cy={p.y} r={3 * p.life} fill={p.color} opacity={p.life * 0.85} />
-        ))}
-      </svg>
-
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, position: 'relative' }}>
-        <div>
-          <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 3 }}>AI Admission Engine</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', transition: 'all 0.5s' }}>{INSTITUTIONS[instIdx]}</span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>·</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', transition: 'all 0.5s' }}>{COURSES[courseIdx]}</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 20 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'caLivePing 1.2s infinite' }} />
-          <span style={{ fontSize: 8, fontWeight: 900, color: '#10b981', letterSpacing: '0.14em' }}>LIVE</span>
-        </div>
+      {/* Mode Switcher Tabs */}
+      <div className="flex bg-slate-950 p-1.5 rounded-2xl mb-6 border border-slate-800/80">
+        <button
+          onClick={() => setMode('cbt')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            mode === 'cbt' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          CBT Exam
+        </button>
+        <button
+          onClick={() => setMode('aggregate')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            mode === 'aggregate' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Aggregate
+        </button>
+        <button
+          onClick={() => setMode('cgpa')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            mode === 'cgpa' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          CGPA Studio
+        </button>
       </div>
 
-      {/* Score bars */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px', marginBottom: 14, position: 'relative' }}>
-        {[
-          { label: 'JAMB Score', value: animJamb, max: 400, color: '#3b82f6' },
-          { label: "O'Level", value: 8, max: 9, color: '#a78bfa' },
-          { label: 'Post-UTME', value: animPostUtme, max: 100, color: '#f59e0b', suffix: '%' },
-          { label: 'Aggregate', value: animAggregate, max: 100, color: '#10b981' },
-        ].map((s, i) => (
-          <div key={i}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{s.label}</span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}{s.suffix || ''}</span>
+      {/* Dynamic Content Display */}
+      <div className="min-h-[220px] flex flex-col justify-between">
+        {mode === 'cbt' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
+                Live CBT Simulator
+              </span>
+              <span className="text-xs text-slate-400 font-mono">Time: 01:42:10</span>
             </div>
-            <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${Math.min((s.value / s.max) * 100, 100)}%`,
-                background: s.color,
-                borderRadius: 2,
-                transition: 'width 1s cubic-bezier(0.22,1,0.36,1)',
-                boxShadow: `0 0 6px ${s.color}55`,
-              }} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Merit ring + probability */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, position: 'relative' }}>
-        <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
-          <svg width="96" height="96" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
-            <circle cx="50" cy="50" r="44" fill="none" stroke={ringColor} strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={circumference} strokeDashoffset={dashOffset}
-              style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1), stroke 0.5s', transform: 'rotate(-90deg)', transformOrigin: '50px 50px' }}
-            />
-            {Array.from({ length: 20 }).map((_, i) => {
-              const a = (i / 20) * 360 - 90, r = (a * Math.PI) / 180;
-              return <line key={i} x1={50 + 36 * Math.cos(r)} y1={50 + 36 * Math.sin(r)} x2={50 + 40 * Math.cos(r)} y2={50 + 40 * Math.sin(r)} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />;
-            })}
-          </svg>
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{animMerit}%</span>
-            <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 3 }}>Merit</span>
-          </div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Admission Probability</div>
-          {[
-            { label: 'Direct Entry', pct: Math.min(animMerit + 4, 99), color: '#10b981' },
-            { label: 'On Merit', pct: Math.min(animMerit + 11, 99), color: '#3b82f6' },
-            { label: 'Catchment', pct: Math.min(animMerit + 19, 99), color: '#a78bfa' },
-          ].map((row, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.35)', flex: 1, whiteSpace: 'nowrap' }}>{row.label}</span>
-              <div style={{ width: 55, height: 2, background: 'rgba(255,255,255,0.07)', borderRadius: 1, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${row.pct}%`, background: row.color, borderRadius: 1, transition: 'width 1s cubic-bezier(0.22,1,0.36,1)' }} />
+            <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-2">
+              <div className="text-xs font-bold text-slate-300">Mathematics Mock Question #14</div>
+              <div className="text-sm font-black text-white">Evaluate (343)^(1/3) × (0.14)^(-1) × (25)^(-1/2)</div>
+              <div className="flex gap-2 pt-2">
+                <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold rounded-xl">A. 10 ✓</span>
+                <span className="px-3 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl">B. 12</span>
               </div>
-              <span style={{ fontSize: 9, fontWeight: 700, color: row.color, width: 26, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.pct}%</span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Terminal stream */}
-      <div style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '8px 10px', minHeight: 70, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-          {['#ef4444','#f59e0b','#10b981'].map((c,i) => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: c, display: 'inline-block' }}/>)}
-          <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.2)', marginLeft: 3, letterSpacing: '0.12em' }}>AI ENGINE OUTPUT</span>
-        </div>
-        {streamLines.map((line, i) => (
-          <div key={i} style={{ fontSize: 8, color: i === streamLines.length - 1 ? '#10b981' : 'rgba(255,255,255,0.28)', lineHeight: 1.75, transition: 'color 0.3s' }}>
-            {line}
-            {i === streamLines.length - 1 && (
-              <span style={{ display: 'inline-block', width: 5, height: 9, background: '#10b981', marginLeft: 3, verticalAlign: 'middle', animation: 'caBlinkCursor 0.9s steps(1) infinite' }} />
-            )}
+            <div className="flex justify-between items-center text-xs text-slate-400 pt-1">
+              <span>Predicted Score: <strong className="text-emerald-400 font-bold">{cbtScore} / 400</strong></span>
+              <span className="text-emerald-400 font-bold">AI Step-by-Step Active</span>
+            </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Verdict */}
-      <div style={{
-        marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '7px 11px',
-        background: animMerit >= 75 ? 'rgba(16,185,129,0.09)' : 'rgba(245,158,11,0.09)',
-        border: `1px solid ${animMerit >= 75 ? 'rgba(16,185,129,0.22)' : 'rgba(245,158,11,0.22)'}`,
-        borderRadius: 10, transition: 'all 0.5s', position: 'relative',
-      }}>
-        <div>
-          <div style={{ fontSize: 7, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>AI Verdict</div>
-          <div style={{ fontSize: 10, fontWeight: 900, color: animMerit >= 75 ? '#10b981' : '#f59e0b', transition: 'color 0.5s' }}>
-            {animMerit >= 85 ? '🎯 High Chance of Admission' : animMerit >= 70 ? '⚡ Moderate — Apply Now' : '⚠️ Borderline — Boost Score'}
+        {mode === 'aggregate' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg border border-blue-500/20">
+                Post-UTME Calculator
+              </span>
+              <span className="text-xs text-blue-400 font-bold">UNILAG / Medicine</span>
+            </div>
+            <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-400">JAMB (50%):</span>
+                <span className="text-white">310 / 400</span>
+              </div>
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-400">Post-UTME (50%):</span>
+                <span className="text-white">82%</span>
+              </div>
+              <div className="pt-2 border-t border-slate-800/80 flex justify-between items-center">
+                <span className="text-xs font-extrabold text-slate-300 uppercase">Computed Aggregate:</span>
+                <span className="text-lg font-black text-blue-400 font-mono">79.5%</span>
+              </div>
+            </div>
+            <div className="text-xs text-blue-300/80 font-medium">
+              🎯 Merit Cutoff Met: Guaranteed Admission Probability (92%)
+            </div>
           </div>
-        </div>
-        <div style={{
-          fontSize: 8, fontWeight: 700,
-          color: animMerit >= 75 ? '#10b981' : '#f59e0b',
-          border: `1px solid ${animMerit >= 75 ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)'}`,
-          borderRadius: 6, padding: '3px 8px', letterSpacing: '0.1em',
-        }}>
-          {animMerit >= 75 ? 'PROCEED' : 'REVIEW'}
+        )}
+
+        {mode === 'cgpa' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-3 py-1 rounded-lg border border-purple-500/20">
+                CGPA & Transcript Studio
+              </span>
+              <span className="text-xs text-purple-400 font-bold">Year 3, Semester 1</span>
+            </div>
+            <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">Current Standing:</span>
+                <span className="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 font-bold text-xs rounded-full border border-purple-500/30">First Class Honors</span>
+              </div>
+              <div className="flex justify-between items-end pt-1">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Cumulative CGPA</div>
+                  <div className="text-2xl font-black text-purple-400 font-mono">4.65 <span className="text-xs font-normal text-slate-400">/ 5.00</span></div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Units</div>
+                  <div className="text-base font-bold text-white">84 Units</div>
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-purple-300/80 font-medium">
+              📈 Target Calculator: Maintain 4.70+ for Summa Cum Laude
+            </div>
+          </div>
+        )}
+
+        {/* Progress bar timer */}
+        <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-4">
+          <div
+            className={`h-full transition-all duration-100 ${
+              mode === 'cbt' ? 'bg-emerald-500' : mode === 'aggregate' ? 'bg-blue-500' : 'bg-purple-500'
+            }`}
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
-
-      <style>{`
-        @keyframes caLivePing { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.6)} }
-        @keyframes caBlinkCursor { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-      `}</style>
     </div>
   );
-};
-
-export default CalculationAnimation;
+}

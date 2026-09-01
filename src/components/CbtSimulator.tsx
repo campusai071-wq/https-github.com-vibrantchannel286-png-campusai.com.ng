@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { FormulaSheet } from './FormulaSheet';
 import {
@@ -187,11 +188,19 @@ interface CbtSimulatorProps {
   user?: any;
   setIsScholarPackOpen?: (open: boolean) => void;
   setPaymentConfig?: (config: { type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string }) => void;
+  initialTab?: 'cbt' | 'study' | 'target-system' | 'ai-advisor';
 }
 
-export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig }: CbtSimulatorProps) {
+export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, initialTab = 'cbt' }: CbtSimulatorProps) {
+  const navigate = useNavigate();
   // Navigation tabs: 'cbt' | 'study' | 'target-system' | 'ai-advisor'
-  const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>('cbt');
+  const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [targetUniversity, setTargetUniversity] = useState('');
   const [targetCourse, setTargetCourse] = useState('');
   const [targetScore, setTargetScore] = useState<number | ''>('');
@@ -261,10 +270,32 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   }, [targetCourse]);
 
   const nextRecommendedTest = useMemo(() => {
-    if (gap > 50) return 'Chemistry — Stoichiometry & Mole Concepts';
-    if (gap > 25) return 'Physics — Electromagnetic Induction & Waves';
-    return 'Mathematics — Advanced Calculus & Integration';
-  }, [gap]);
+    const c = targetCourse.toLowerCase();
+    if (c.includes('engineering') || c.includes('computer') || c.includes('software') || c.includes('tech') || c.includes('physics')) {
+      if (gap > 50) return 'Physics — Mechanics, Work, Energy & Power';
+      if (gap > 25) return 'Mathematics — Calculus & Matrices';
+      return 'Chemistry — Electrochemistry & Rate of Reaction';
+    }
+    if (c.includes('medicine') || c.includes('surgery') || c.includes('nurse') || c.includes('biology') || c.includes('biochem') || c.includes('pharmacy')) {
+      if (gap > 50) return 'Biology — Mammalian Anatomy & Physiology';
+      if (gap > 25) return 'Chemistry — Organic Chemistry & Functional Groups';
+      return 'Physics — Geometrical & Wave Optics';
+    }
+    if (c.includes('law') || c.includes('art') || c.includes('government') || c.includes('history') || c.includes('international')) {
+      if (gap > 50) return 'Government — Federalism & Public Administration';
+      if (gap > 25) return 'Literature — Literary Principles & Poetry Analysis';
+      return 'CRS — Christian Ethics & Pauline Epistles';
+    }
+    if (c.includes('account') || c.includes('econ') || c.includes('finance') || c.includes('banking') || c.includes('business')) {
+      if (gap > 50) return 'Economics — National Income & International Trade';
+      if (gap > 25) return 'Mathematics — Probability & Commercial Arithmetic';
+      return 'Commerce — Business Finance & Consumer Protection';
+    }
+    // Default fallback
+    if (gap > 50) return 'Use of English — Lexis, Structure & Comprehension';
+    if (gap > 25) return 'Mathematics — Algebra & Sequence Series';
+    return 'General Aptitude — Quantitative & Verbal Reasoning';
+  }, [gap, targetCourse]);
 
 
   // ----- CBT Setup States -----
@@ -291,6 +322,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
   // ----- Timer -----
   const [timeLeft, setTimeLeft] = useState(0);
+  const [endTime, setEndTime] = useState<number | null>(null);
   const [timeElapsedSeconds, setTimeElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
@@ -347,13 +379,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     try {
       const results: Record<string, Question[]> = {};
       for (const subjectKey of selectedSubjects) {
+        // According to JAMB standard: English has 60, others have 40 when testMode is 'full'
+        const limit = testMode === 'full' 
+           ? (subjectKey === 'english-language' ? 60 : 40)
+           : questionsPerSubject;
+
         const response = await fetch('/api/aloc/questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subject: subjectKey,
             examType,
-            limit: questionsPerSubject,
+            limit,
           }),
         });
         const data = await response.json();
@@ -374,7 +411,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setActiveSubjectKey(selectedSubjects[0]);
 
       const totalQuestions = Object.values(results).reduce((sum, arr) => sum + arr.length, 0);
-      const minutes = testMode === 'full' ? 120 : Math.max(10, Math.round(totalQuestions * 1.2));
+      // JAMB standard is 90 minutes for full mode
+      const minutes = testMode === 'full' ? 90 : Math.max(10, Math.round(totalQuestions * 1.2));
+      const endTimeValue = Date.now() + minutes * 60 * 1000;
+      setEndTime(endTimeValue);
       setTimeLeft(minutes * 60);
       setIsTimerRunning(true);
       setStarted(true);
@@ -386,22 +426,22 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     }
   };
 
-  // Timer countdown and time tracking
+  // Timer countdown and time tracking (prevent drifting)
   useEffect(() => {
-    if (!isTimerRunning || showResults) return;
+    if (!isTimerRunning || showResults || !endTime) return;
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          triggerSubmitTest();
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remainingMs = endTime - Date.now();
+      if (remainingMs <= 1000) {
+        clearInterval(timer);
+        setTimeLeft(0);
+        triggerSubmitTest();
+      } else {
+        setTimeLeft(Math.floor(remainingMs / 1000));
+      }
       setTimeElapsedSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, [isTimerRunning, showResults]);
+  }, [isTimerRunning, showResults, endTime]);
 
   const formatTime = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -451,10 +491,25 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     setShowSubmitModal(false);
     setShowResults(true);
 
-    const totalScore = calculateScore();
+    const totalRawScore = calculateScore();
     
     // Automatically save CBT attempt to Target Progress
-    const jambEquivalentScore = Math.round((totalScore / totalQuestions) * 400) || 0;
+    // Psychometric score calculation per subject
+    let jambEquivalentScore = 0;
+    selectedSubjects.forEach((subKey) => {
+      const pool = questionsBySubject[subKey] || [];
+      const answers = answersBySubject[subKey] || {};
+      let subScore = 0;
+      pool.forEach((q) => {
+        if (answers[q.id]?.toLowerCase() === q.answer.toLowerCase()) subScore++;
+      });
+      // JAMB Psychometric Scaling: (Raw / Total) * 100
+      const scaledScore = pool.length > 0 ? (subScore / pool.length) * 100 : 0;
+      jambEquivalentScore += scaledScore;
+    });
+    
+    jambEquivalentScore = Math.round(jambEquivalentScore) || 0;
+
     const currentMonth = new Date().toLocaleString('default', { month: 'short' });
     setProgressHistory(prev => {
       const newHistory = [...prev];
@@ -505,7 +560,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           examType,
-          totalScore,
+          totalScore: totalRawScore,
           totalQuestions,
           timeTakenSeconds: timeElapsedSeconds,
           subjectBreakdown
@@ -523,7 +578,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   };
 
   // Fetch individual question step-by-step working
-  const handleFetchExplanation = async (q: Question) => {
+  const handleFetchExplanation = async (q: Question, overrideSubject?: string) => {
     if (explanations[q.id] || loadingExplain[q.id]) return;
     setLoadingExplain((prev) => ({ ...prev, [q.id]: true }));
     try {
@@ -534,7 +589,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           questionId: q.id,
           questionText: q.question,
           correctAnswer: q.answer,
-          subject: (q as any).__subject || activeSubjectKey,
+          subject: overrideSubject || (q as any).__subject || activeSubjectKey,
         }),
       });
       const resData = await res.json();
@@ -562,7 +617,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       });
       const data = await res.json();
       if (data.success && data.data) {
-        setStudyQuestions(data.data);
+        const tagged = (data.data as Question[]).map(q => ({ ...q, __subject: studySubject }));
+        setStudyQuestions(tagged);
         setStudyAnswers({});
       }
     } catch (e) {
@@ -638,6 +694,60 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     if (currentIndex > 0) goToQuestion(currentIndex - 1);
   };
 
+  // JAMB CBT Exact 9-Key System Keyboard Listener
+  useEffect(() => {
+    if (!started || showResults) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in chat or input fields
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+      const key = e.key.toUpperCase();
+      
+      if (showSubmitModal) {
+        if (key === 'R') {
+          e.preventDefault();
+          setShowSubmitModal(false);
+        } else if (key === 'Y') {
+          e.preventDefault();
+          triggerSubmitTest();
+        }
+        return; // Block other keys while modal is open
+      }
+
+      switch (key) {
+        case 'A':
+        case 'B':
+        case 'C':
+        case 'D':
+          if (currentQuestion && currentQuestion.option) {
+            e.preventDefault();
+            const optionKey = key.toLowerCase();
+            // Ensure option exists in payload before selecting
+            if (currentQuestion.option[optionKey as keyof typeof currentQuestion.option]) {
+              handleSelect(activeSubjectKey, currentQuestion.id, optionKey);
+            }
+          }
+          break;
+        case 'N':
+          e.preventDefault();
+          goNext();
+          break;
+        case 'P':
+          e.preventDefault();
+          goPrevious();
+          break;
+        case 'S':
+          e.preventDefault();
+          setShowSubmitModal(true);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [started, showResults, showSubmitModal, currentQuestion, activeSubjectKey, currentIndex, currentSubjectQuestions.length]);
+
   const activeSubjectLabel = SUBJECT_OPTIONS.find((s) => s.key === activeSubjectKey)?.label || activeSubjectKey;
 
   return (
@@ -648,7 +758,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           CBT
         </div>
         <button
-          onClick={() => setActiveTab('cbt')}
+          onClick={() => {
+            setActiveTab('cbt');
+            navigate('/cbt-simulator');
+          }}
           className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
             activeTab === 'cbt' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
@@ -657,7 +770,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <span className="text-[10px]">CBT Exam</span>
         </button>
         <button
-          onClick={() => setActiveTab('study')}
+          onClick={() => {
+            setActiveTab('study');
+            navigate('/study-hub');
+          }}
           className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
             activeTab === 'study' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
@@ -666,7 +782,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <span className="text-[10px]">Study Hub</span>
         </button>
         <button
-          onClick={() => setActiveTab('target-system')}
+          onClick={() => {
+            setActiveTab('target-system');
+            navigate('/target');
+          }}
           className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
             activeTab === 'target-system' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
@@ -675,7 +794,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <span className="text-[10px]">Target</span>
         </button>
         <button
-          onClick={() => setActiveTab('ai-advisor')}
+          onClick={() => {
+            setActiveTab('ai-advisor');
+            navigate('/ai-coach');
+          }}
           className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
             activeTab === 'ai-advisor' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
@@ -696,25 +818,37 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           </div>
           <div className="flex bg-slate-800 p-1 rounded-xl text-xs font-bold gap-1">
             <button
-              onClick={() => setActiveTab('cbt')}
+              onClick={() => {
+                setActiveTab('cbt');
+                navigate('/cbt-simulator');
+              }}
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'cbt' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               Test
             </button>
             <button
-              onClick={() => setActiveTab('study')}
+              onClick={() => {
+                setActiveTab('study');
+                navigate('/study-hub');
+              }}
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'study' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               Study
             </button>
             <button
-              onClick={() => setActiveTab('target-system')}
+              onClick={() => {
+                setActiveTab('target-system');
+                navigate('/target');
+              }}
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'target-system' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               Target
             </button>
             <button
-              onClick={() => setActiveTab('ai-advisor')}
+              onClick={() => {
+                setActiveTab('ai-advisor');
+                navigate('/ai-coach');
+              }}
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'ai-advisor' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               AI Coach
@@ -1474,15 +1608,41 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </button>
                     </div>
 
-                    <div
-                      className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed mb-6"
-                      dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
-                    />
-
-                    {currentQuestion.imageUrl && (
-                      <div className="mb-6 p-2 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
-                        <img src={currentQuestion.imageUrl} alt="Diagram" className="max-w-full h-auto rounded-xl" />
+                    {currentQuestion.section && currentQuestion.section.trim() !== '' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 overflow-y-auto max-h-[400px]">
+                          <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Reading Passage</h4>
+                          <div
+                            className="text-sm font-medium text-slate-800 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: currentQuestion.section }}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                           <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Question</h4>
+                           <div
+                            className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
+                          />
+                          {currentQuestion.imageUrl && (
+                            <div className="mt-4 p-2 bg-slate-50 rounded-2xl border border-slate-200 inline-block self-start">
+                              <img src={currentQuestion.imageUrl} alt="Diagram" className="max-w-full h-auto rounded-xl" />
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div
+                          className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed mb-6"
+                          dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
+                        />
+
+                        {currentQuestion.imageUrl && (
+                          <div className="mb-6 p-2 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
+                            <img src={currentQuestion.imageUrl} alt="Diagram" className="max-w-full h-auto rounded-xl" />
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div className="space-y-3">
@@ -1692,12 +1852,58 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                                 })}
                               </div>
 
-                              {isAnswered && q.solution && (
-                                <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-xs text-emerald-950">
-                                  <strong className="block font-bold mb-0.5">Solution Note:</strong>
-                                  <span dangerouslySetInnerHTML={{ __html: q.solution }} />
+                              {isAnswered && (() => {
+                                const explanation = explanations[q.id];
+                                return (
+                                <div className="space-y-3 pt-2">
+                                  {q.solution && (
+                                    <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-xs text-emerald-950">
+                                      <strong className="block font-bold mb-0.5">Solution Note:</strong>
+                                      <span dangerouslySetInnerHTML={{ __html: q.solution }} />
+                                    </div>
+                                  )}
+
+                                  {explanation ? (
+                                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs space-y-3">
+                                      <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+                                        <Lightbulb size={16} className="text-emerald-600" /> Step-by-Step AI Working
+                                      </div>
+                                      {explanation.simplifiedExplanation && (
+                                        <div className="p-2.5 bg-white/80 rounded-xl border border-emerald-100 text-slate-800 font-medium">
+                                          {explanation.simplifiedExplanation}
+                                        </div>
+                                      )}
+                                      {explanation.steps && explanation.steps.length > 0 && (
+                                        <ol className="list-decimal list-inside space-y-1.5 text-slate-700 pl-1">
+                                          {explanation.steps.map((step, sIdx) => (
+                                            <li key={sIdx} className="leading-relaxed">{step}</li>
+                                          ))}
+                                        </ol>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-end pt-1">
+                                      <button
+                                        onClick={() => handleFetchExplanation(q, studySubject)}
+                                        disabled={loadingExplain[q.id]}
+                                        className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5"
+                                      >
+                                        {loadingExplain[q.id] ? (
+                                          <>
+                                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-emerald-700 border-t-transparent"></div>
+                                            Generating Solution...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Sparkles size={14} /> View Step-by-Step AI Working
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              );
+                              })()}
                             </div>
                           );
                         })}

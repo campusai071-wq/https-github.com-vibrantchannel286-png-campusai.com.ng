@@ -719,6 +719,18 @@ const AppContent: React.FC = () => {
       setCurrentPage('cbt-simulator');
       navigate('/cbt-simulator');
       window.scrollTo(0, 0);
+    } else if (p === 'study-hub') {
+      setCurrentPage('study-hub');
+      navigate('/study-hub');
+      window.scrollTo(0, 0);
+    } else if (p === 'target') {
+      setCurrentPage('target');
+      navigate('/target');
+      window.scrollTo(0, 0);
+    } else if (p === 'ai-coach') {
+      setCurrentPage('ai-coach');
+      navigate('/ai-coach');
+      window.scrollTo(0, 0);
     } else if (p === 'cgpa' || p === 'cgpa-calculator') {
       setCurrentPage('cgpa');
       navigate('/cgpa-calculator');
@@ -966,6 +978,37 @@ const AppContent: React.FC = () => {
                 user={user} 
                 setIsScholarPackOpen={setIsScholarPackOpen} 
                 setPaymentConfig={setPaymentConfig} 
+                initialTab="cbt"
+              />
+            </div>
+          } />
+          <Route path="/study-hub" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                setPaymentConfig={setPaymentConfig} 
+                initialTab="study"
+              />
+            </div>
+          } />
+          <Route path="/target" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                setPaymentConfig={setPaymentConfig} 
+                initialTab="target-system"
+              />
+            </div>
+          } />
+          <Route path="/ai-coach" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                setPaymentConfig={setPaymentConfig} 
+                initialTab="ai-advisor"
               />
             </div>
           } />
