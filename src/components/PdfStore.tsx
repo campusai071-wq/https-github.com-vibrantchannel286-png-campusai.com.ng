@@ -237,12 +237,72 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
   useEffect(() => {
     let unsubscribeFirestorePdf: (() => void) | null = null;
 
+    // Helper function to auto-sync local PDFs to cloud & server vault
+    const syncLocalPdfsToCloud = async (localList: PdfStoreItem[], existingFirestoreIds: Set<string>) => {
+      for (const item of localList) {
+        if (!item.id) continue;
+        let fileUrl = item.downloadUrl || `/api/pdf-store/file/${item.id}`;
+
+        // If local item has dataUrl or needs vault registration
+        if (item.downloadUrl && (item.downloadUrl.startsWith('data:') || item.downloadUrl.startsWith('blob:'))) {
+          try {
+            const res = await fetch('/api/pdf-store/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: item.id,
+                title: item.title,
+                category: item.category,
+                fileSize: item.fileSize,
+                uploadDate: item.uploadDate,
+                description: item.description,
+                author: item.author,
+                authorId: item.authorId,
+                institution: item.institution,
+                pdfBase64: item.downloadUrl,
+                pageCount: item.pageCount
+              })
+            });
+            const data = await res.json();
+            if (data.success && data.downloadUrl) {
+              fileUrl = data.downloadUrl;
+            }
+          } catch (e) {
+            console.warn('Backend PDF vault sync error:', e);
+          }
+        }
+
+        // Push lightweight document metadata to Firestore so all devices see it
+        try {
+          await setDoc(doc(db, 'pdf_store', item.id), {
+            id: item.id,
+            title: item.title || 'Untitled PDF',
+            category: item.category || 'User Upload',
+            fileSize: item.fileSize || '1.0 MB',
+            uploadDate: item.uploadDate || new Date().toISOString().split('T')[0],
+            description: item.description || '',
+            author: item.author || 'Candidate',
+            authorId: item.authorId || '',
+            institution: item.institution || '',
+            downloadUrl: fileUrl,
+            isUserUploaded: true,
+            pageCount: item.pageCount || 1,
+            createdAt: serverTimestamp()
+          }, { merge: true });
+        } catch (err) {
+          console.warn('Firestore sync failed for item ' + item.id, err);
+        }
+      }
+    };
+
     try {
       const q = collection(db, 'pdf_store');
       unsubscribeFirestorePdf = onSnapshot(q, (snapshot) => {
+        const firestoreIds = new Set<string>();
         if (!snapshot.empty) {
           const loadedPdfs: PdfStoreItem[] = snapshot.docs.map(docSnap => {
             const d = docSnap.data();
+            firestoreIds.add(docSnap.id);
             return {
               id: docSnap.id,
               title: d.title || 'Untitled PDF',
@@ -253,7 +313,7 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
               author: d.author || 'Candidate',
               authorId: d.authorId || '',
               institution: d.institution || '',
-              downloadUrl: d.downloadUrl || '',
+              downloadUrl: d.downloadUrl || `/api/pdf-store/file/${docSnap.id}`,
               isUserUploaded: true,
               pageCount: d.pageCount || 1,
               createdAt: d.createdAt
@@ -269,16 +329,30 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
 
           setItems(loadedPdfs);
           localStorage.setItem(LOCAL_STORAGE_PDF_KEY, JSON.stringify(loadedPdfs));
+
+          // Also check if any local items need to be published to Firestore
+          const rawStored = localStorage.getItem(LOCAL_STORAGE_PDF_KEY);
+          if (rawStored) {
+            try {
+              const localList: PdfStoreItem[] = JSON.parse(rawStored);
+              const unSynced = localList.filter(it => !firestoreIds.has(it.id));
+              if (unSynced.length > 0) {
+                syncLocalPdfsToCloud(unSynced, firestoreIds);
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
         } else {
-          loadStoredPdfs();
+          loadStoredPdfs(syncLocalPdfsToCloud);
         }
       }, (err) => {
         console.warn('Firestore PDF snapshot warning, falling back to local storage', err);
-        loadStoredPdfs();
+        loadStoredPdfs(syncLocalPdfsToCloud);
       });
     } catch (e) {
       console.warn('Firestore PDF not reachable, using local storage fallback', e);
-      loadStoredPdfs();
+      loadStoredPdfs(syncLocalPdfsToCloud);
     }
 
     return () => {
@@ -286,11 +360,15 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
     };
   }, []);
 
-  const loadStoredPdfs = () => {
+  const loadStoredPdfs = (syncFn?: (localList: PdfStoreItem[], ids: Set<string>) => void) => {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_PDF_KEY);
       if (stored) {
-        setItems(JSON.parse(stored));
+        const parsed: PdfStoreItem[] = JSON.parse(stored);
+        setItems(parsed);
+        if (syncFn && parsed.length > 0) {
+          syncFn(parsed, new Set<string>());
+        }
       } else {
         setItems([]);
       }
@@ -510,9 +588,40 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
       return;
     }
 
+    setIsProcessingFile(true);
+
     const sizeInMb = (selectedFile.size / (1024 * 1024)).toFixed(2);
     const pdfDocId = `pdf-${Date.now()}`;
     const authorName = defaultDisplayName || 'Student Candidate';
+
+    let serverDownloadUrl = `/api/pdf-store/file/${pdfDocId}`;
+
+    // 1. Post to Server Vault for file storage & URL creation
+    try {
+      const res = await fetch('/api/pdf-store/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: pdfDocId,
+          title: uploadTitle.trim(),
+          category: uploadCategory,
+          fileSize: `${sizeInMb} MB`,
+          uploadDate: new Date().toISOString().split('T')[0],
+          description: uploadDescription.trim() || 'User uploaded study document for Post-UTME / JAMB preparation.',
+          author: authorName,
+          authorId: loggedInUid,
+          institution: uploadInstitution.trim() || 'Custom Document',
+          pdfBase64: fileDataUrl,
+          pageCount: Math.max(1, Math.floor(selectedFile.size / 30000))
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.downloadUrl) {
+        serverDownloadUrl = data.downloadUrl;
+      }
+    } catch (err) {
+      console.warn('Server PDF vault upload warning, proceeding with direct URL', err);
+    }
 
     const newItem: PdfStoreItem = {
       id: pdfDocId,
@@ -524,28 +633,19 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
       author: authorName,
       authorId: loggedInUid,
       institution: uploadInstitution.trim() || 'Custom Document',
-      downloadUrl: fileDataUrl,
+      downloadUrl: serverDownloadUrl,
       isUserUploaded: true,
       pageCount: Math.max(1, Math.floor(selectedFile.size / 30000))
     };
 
-    // Save to Firestore with fallback for large base64 payload size limits
+    // 2. Save lightweight record to Firestore so all devices see the new document
     try {
       await setDoc(doc(db, 'pdf_store', pdfDocId), {
         ...newItem,
         createdAt: serverTimestamp()
       });
     } catch (err) {
-      console.warn('Firestore setDoc for PDF warning, retrying with optimized download payload', err);
-      try {
-        await setDoc(doc(db, 'pdf_store', pdfDocId), {
-          ...newItem,
-          downloadUrl: fileDataUrl.length > 500000 ? '' : fileDataUrl,
-          createdAt: serverTimestamp()
-        });
-      } catch (err2) {
-        console.error('Firestore setDoc retry error', err2);
-      }
+      console.warn('Firestore setDoc for PDF warning', err);
     }
 
     // Save locally
@@ -553,6 +653,7 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
     setItems(updatedList);
     saveAllPdfItemsLocally(updatedList);
 
+    setIsProcessingFile(false);
     setUploadTitle('');
     setUploadCategory('User Upload');
     setUploadInstitution('');

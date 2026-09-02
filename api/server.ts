@@ -2411,6 +2411,89 @@ app.post("/api/ai/maps-grounding", async (req: any, res: any) => {
   }
 });
 
+// ------------------------------------------------------------------
+// PDF STORE FILE VAULT & SERVER-SIDE STORAGE
+// ------------------------------------------------------------------
+const pdfStoreMemory = new Map<string, { meta: any; dataUrl: string }>();
+
+app.post("/api/pdf-store/upload", (req: any, res: any) => {
+  try {
+    const { id, title, category, fileSize, uploadDate, description, author, authorId, institution, pdfBase64, pageCount } = req.body;
+    if (!id || !title) {
+      return res.status(400).json({ error: "Missing required fields: id and title" });
+    }
+
+    const pdfDocId = id;
+    const fileUrl = `/api/pdf-store/file/${pdfDocId}`;
+
+    const docMeta = {
+      id: pdfDocId,
+      title: title.trim(),
+      category: category || "User Upload",
+      fileSize: fileSize || "1.0 MB",
+      uploadDate: uploadDate || new Date().toISOString().split("T")[0],
+      description: description || "Study document for Post-UTME / JAMB preparation.",
+      author: author || "Candidate",
+      authorId: authorId || "",
+      institution: institution || "CampusAI Vault",
+      downloadUrl: fileUrl,
+      isUserUploaded: true,
+      pageCount: pageCount || 1,
+      createdAt: new Date().toISOString()
+    };
+
+    if (pdfBase64) {
+      pdfStoreMemory.set(pdfDocId, {
+        meta: docMeta,
+        dataUrl: pdfBase64
+      });
+    } else {
+      const existing = pdfStoreMemory.get(pdfDocId);
+      if (existing) {
+        existing.meta = docMeta;
+      } else {
+        pdfStoreMemory.set(pdfDocId, { meta: docMeta, dataUrl: "" });
+      }
+    }
+
+    return res.json({ success: true, downloadUrl: fileUrl, doc: docMeta });
+  } catch (err: any) {
+    console.error("[PDF Vault Upload Error]:", err);
+    return res.status(500).json({ error: "Failed to store PDF file" });
+  }
+});
+
+app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const entry = pdfStoreMemory.get(id);
+
+    if (!entry || !entry.dataUrl) {
+      return res.status(404).send("PDF document content not found or expired.");
+    }
+
+    const base64Data = entry.dataUrl.includes(",") ? entry.dataUrl.split(",")[1] : entry.dataUrl;
+    const buffer = Buffer.from(base64Data, "base64");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(entry.meta.title || id)}.pdf"`);
+    res.setHeader("Content-Length", buffer.length);
+    return res.send(buffer);
+  } catch (err: any) {
+    console.error("[PDF Vault File Retrieval Error]:", err);
+    return res.status(500).send("Error serving PDF document.");
+  }
+});
+
+app.get("/api/pdf-store/all", (req: any, res: any) => {
+  try {
+    const list = Array.from(pdfStoreMemory.values()).map(e => e.meta);
+    return res.json({ success: true, count: list.length, items: list });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to list PDFs" });
+  }
+});
+
 // 3. Text-To-Speech (TTS) using gemini-3.1-flash-tts-preview
 app.post("/api/ai/tts", async (req: any, res: any) => {
   try {
