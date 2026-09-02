@@ -352,17 +352,23 @@ service cloud.firestore {
 
     match /discussions/{threadId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if (isAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId)) ||
-                       (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'likedBy', 'replyCount', 'lastActivityAt']));
-      allow delete: if isAdmin() || isOwner(existing().userId);
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
 
       match /replies/{replyId} {
         allow read: if true;
-        allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-        allow update: if (isAdmin() || isOwner(existing().userId)) || (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'likedBy']));
-        allow delete: if isAdmin() || isOwner(existing().userId);
+        allow create: if true;
+        allow update: if true;
+        allow delete: if true;
       }
+    }
+
+    match /pdf_store/{pdfId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
   }
 }

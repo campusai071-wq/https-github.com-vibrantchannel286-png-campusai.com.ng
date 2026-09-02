@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, Activity,
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -137,6 +137,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <BookOpen size={18} />,
       badge: 'JAMB & WAEC',
       badgeBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+    },
+    {
+      id: 'pdf-store',
+      name: 'PDF Store & Vault',
+      icon: <FolderDown size={18} />,
+      badge: 'PDF Store',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
     },
     {
       id: 'checklist',

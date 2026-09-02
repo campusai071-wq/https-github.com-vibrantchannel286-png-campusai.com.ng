@@ -52,6 +52,7 @@ const AdmissionsExplorer = lazyWithRetry(() => import('./AdmissionsExplorer'));
 const JambCapsLiveTrackerPage = lazyWithRetry(() => import('./JambCapsLiveTrackerPage'));
 const CGPACalculator = lazy(() => import('./CGPACalculator'));
 import { CbtCenterLocator } from './CbtCenterLocator';
+import { PdfStore } from './PdfStore';
 import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
@@ -776,6 +777,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('result-slip');
       navigate('/result-slip');
       window.scrollTo(0, 0);
+    } else if (p === 'pdf-store' || p === 'pdf') {
+      setCurrentPage('pdf-store');
+      navigate('/pdf-store');
+      window.scrollTo(0, 0);
     } else if (p === 'checklist' || p === 'admission-checklist') {
       setCurrentPage('checklist');
       navigate('/admission-checklist');
@@ -1239,6 +1244,12 @@ const AppContent: React.FC = () => {
                 canonical="/result-slip-guide"
               />
               <AdmissionsExplorer initialArticleId="jamb_result_slip" />
+            </div>
+          } />
+
+          <Route path="/pdf-store" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} />
             </div>
           } />
 

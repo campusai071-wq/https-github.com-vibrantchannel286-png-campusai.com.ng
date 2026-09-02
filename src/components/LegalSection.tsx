@@ -34,7 +34,7 @@ const LegalSection: React.FC<LegalSectionProps> = ({ type }) => {
           title: '2. Data Accuracy & Interactive Simulators',
           icon: Globe,
           color: 'text-cyan-500',
-          text: 'While our Strategist Nodes, Target Systems, and CBT test engines utilize verified institutional blueprints, values and randomized question sets returned are high-probability simulation models. CampusAI accepts no liability for actual admissions decisions. In addition, the legacy PDF store has been deprecated and replaced with live interactive CBT practice and AI study guides.'
+          text: 'While our Strategist Nodes, Target Systems, and CBT test engines utilize verified institutional blueprints, values and randomized question sets returned are high-probability simulation models. CampusAI accepts no liability for actual admissions decisions. Candidates can utilize the PDF Store to upload and store verified admission guides and result slips.'
         },
         {
           title: '3. Service Access & Quota Limits',

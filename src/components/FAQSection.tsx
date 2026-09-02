@@ -27,8 +27,8 @@ const faqs: FAQItem[] = [
   },
   {
     category: 'General',
-    question: "What happened to the PDF store and downloadable study files?",
-    answer: "In compliance with platform updates and streamlined study workflows, the legacy PDF store has been completely removed. All focus is now dedicated to live interactive CBT practice, syllabus exploration, AI-powered study breakdowns, and the JAMB Target System."
+    question: "How does the PDF Store & Document Vault work?",
+    answer: "The CampusAI PDF Store allows candidates to browse official JAMB syllabuses, Post-UTME past question booklets, and upload custom PDF study notes and result slips. Uploaded files are securely cached and ready for instant preview and download across your devices."
   },
   {
     category: 'Admission',

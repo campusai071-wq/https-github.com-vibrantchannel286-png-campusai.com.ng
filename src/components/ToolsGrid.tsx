@@ -81,6 +81,7 @@ const ToolsGrid: React.FC = () => {
 
   const tools = [
     { title: "CBT Center Locator", subtitle: "Google Maps AI", icon: MapPin, path: "/cbt-locator" },
+    { title: "PDF Store & Vault", subtitle: "Upload & Download PDFs", icon: FileText, path: "/pdf-store" },
     { title: "Aggregate Calculator", subtitle: "All Universities", icon: Calculator, path: "/calculator" },
     { title: "Syllabus Finder", subtitle: "JAMB 2026", icon: BookOpen, path: "/syllabus" },
     { title: "University News", subtitle: "Latest Updates", icon: Newspaper, path: "/news" },
