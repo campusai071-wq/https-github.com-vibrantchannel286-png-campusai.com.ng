@@ -627,7 +627,7 @@ Each question object MUST follow this exact schema:
     if (text.includes('```')) {
       text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
     }
-    const questions = JSON.parse(text);
+    const questions = safeJsonParse(text, []);
     return { data: questions, subject: subject, status: 200, source: "ai_fallback", message: "Generated with AI fallback" };
   } catch (e: any) {
     console.error("Gemini Mock Questions Error:", e.message);
@@ -882,7 +882,7 @@ Format response as JSON with this structure:
             responseMimeType: "application/json"
           }
         });
-        aiData = JSON.parse(aiRes.text || '{}');
+        aiData = safeJsonParse(aiRes.text, {});
         source = "ai_fallback";
       } else {
         aiData = {
@@ -973,7 +973,7 @@ Provide a structured, encouraging JSON output adhering strictly to this schema:
       }
     });
 
-    const parsed = JSON.parse(aiRes.text || '{}');
+    const parsed = safeJsonParse(aiRes.text, {});
     return res.json({ success: true, data: parsed });
   } catch (err: any) {
     console.error("[AI Score Analysis Error]:", err.message);
@@ -1605,6 +1605,10 @@ const fetchWithTimeout = <T>(promise: Promise<T>, ms: number, errorMessage = 'Op
   });
 };
 
+const getActiveApiKey = (): string => {
+  return process.env.GEMINI_API_KEY || "";
+};
+
 const createGeminiClient = (apiKey: string): any => {
   if (apiKey.startsWith('AQ')) {
     return {
@@ -1716,9 +1720,9 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
       const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
       const candidateModels = Array.from(new Set([
         geminiModel,
-        'gemini-flash-lite-latest',
-        'gemini-1.5-flash',
-        'gemini-3.6-flash'
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-flash-lite-latest'
       ]));
 
       for (const mName of candidateModels) {
@@ -1744,7 +1748,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
                 contents: formattedContents,
                 config
               }),
-              30000,
+              15000,
               "Gemini AIP timeout"
             );
             text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -1765,7 +1769,7 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
                 contents: formattedContents,
                 generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
               }),
-              30000,
+              15000,
               "Gemini SDK timeout"
             );
             const response = await genResult.response;
@@ -2151,30 +2155,333 @@ How can I help guide your academic journey today?`;
 
 // --- API Routes ---
 const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
-  if (!text) return fallback;
-  let cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
-  
-  // Try standard JSON.parse
+  if (!text || typeof text !== "string") return fallback;
+
+  let cleanText = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  // 1. Direct parse attempt
   try {
     return JSON.parse(cleanText);
   } catch (e) {
-    console.warn("[Safe JSON Parse] Failed to parse JSON, attempting repair...");
-    
-    // Attempt to extract the JSON object/array from the text
-    const match = cleanText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (match) {
-      try { 
-        return JSON.parse(match[0]); 
-      } catch (e2) { 
-        console.error("[Safe JSON Parse] Secondary parse failed:", e2); 
+    // Continue
+  }
+
+  // 2. Sanitize control chars inside strings and trailing commas
+  const sanitizeControlChars = (raw: string): string => {
+    let result = "";
+    let insideString = false;
+    let escaped = false;
+    for (let i = 0; i < raw.length; i++) {
+      const char = raw[i];
+      if (char === '"' && !escaped) {
+        insideString = !insideString;
+        result += char;
+      } else if (char === '\\' && insideString) {
+        escaped = !escaped;
+        result += char;
+      } else {
+        if (insideString) {
+          if (char === '\n') result += "\\n";
+          else if (char === '\r') result += "\\r";
+          else if (char === '\t') result += "\\t";
+          else if (char.charCodeAt(0) < 32) {
+            // strip control characters
+          } else {
+            result += char;
+          }
+        } else {
+          result += char;
+        }
+        escaped = false;
       }
     }
-    
-    // Last resort: log raw text to diagnose what AI sent
-    console.error("[Safe JSON Parse] Final parse failed. Raw AI response:", cleanText.substring(0, 500));
+    return result.replace(/,(\s*[}\]])/g, '$1');
+  };
+
+  const sanitized = sanitizeControlChars(cleanText);
+
+  try {
+    return JSON.parse(sanitized);
+  } catch (e2) {
+    // Continue
+  }
+
+  // 3. Extract JSON object/array candidate
+  const firstBrace = sanitized.indexOf('{');
+  const firstBracket = sanitized.indexOf('[');
+  let start = -1;
+  let endChar = '';
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    start = firstBrace;
+    endChar = '}';
+  } else if (firstBracket !== -1) {
+    start = firstBracket;
+    endChar = ']';
+  }
+
+  if (start !== -1) {
+    let lastEnd = sanitized.lastIndexOf(endChar);
+    while (lastEnd > start) {
+      const candidate = sanitized.substring(start, lastEnd + 1);
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        lastEnd = sanitized.lastIndexOf(endChar, lastEnd - 1);
+      }
+    }
+  }
+
+  // 4. Truncated JSON Repair (balance open quotes, braces, brackets)
+  try {
+    let repaired = start !== -1 ? sanitized.substring(start) : sanitized;
+    let openQuotes = 0;
+    let escaped = false;
+    for (let i = 0; i < repaired.length; i++) {
+      if (repaired[i] === '"' && !escaped) openQuotes++;
+      if (repaired[i] === '\\' && !escaped) escaped = true;
+      else escaped = false;
+    }
+    if (openQuotes % 2 !== 0) {
+      repaired += '"';
+    }
+
+    const stack: string[] = [];
+    let insideStr = false;
+    let esc = false;
+    for (let i = 0; i < repaired.length; i++) {
+      const char = repaired[i];
+      if (char === '"' && !esc) insideStr = !insideStr;
+      if (char === '\\' && insideStr) esc = !esc;
+      else esc = false;
+
+      if (!insideStr) {
+        if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
+        else if (char === '}' || char === ']') {
+          if (stack.length > 0 && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
+        }
+      }
+    }
+
+    repaired = repaired.replace(/,\s*$/, '');
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+
+    return JSON.parse(repaired);
+  } catch (e3) {
+    console.error("[Safe JSON Parse] Final parse failed. Raw AI response sample:", text.substring(0, 300));
     return fallback;
   }
 };
+
+// --- AI Multimodal & Grounding Endpoints ---
+
+// 1. Audio Transcription using gemini-3.5-transcribe
+app.post("/api/ai/transcribe", async (req: any, res: any) => {
+  try {
+    const { audioBase64, mimeType = "audio/webm" } = req.body;
+    if (!audioBase64) {
+      return res.status(400).json({ error: "audioBase64 parameter is required" });
+    }
+
+    const apiKey = getActiveApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: "Gemini API Key is not configured" });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+
+    const audioPart = {
+      inlineData: {
+        mimeType,
+        data: audioBase64
+      }
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-transcribe",
+      contents: {
+        parts: [
+          audioPart,
+          { text: "Accurately transcribe the spoken audio into text in English or Nigerian Pidgin/English. Return only the transcription text without extra commentary." }
+        ]
+      }
+    });
+
+    const text = response.text?.trim() || "";
+    return res.json({ success: true, text });
+  } catch (err: any) {
+    console.error("[Transcribe Endpoint Error]:", err);
+    return res.status(500).json({ error: err.message || "Failed to transcribe audio" });
+  }
+});
+
+// 2. Google Maps Grounded CBT Center & Institution Locator
+app.post("/api/ai/maps-grounding", async (req: any, res: any) => {
+  try {
+    const { query, state, category = "cbt_centers" } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: "query parameter is required" });
+    }
+
+    const apiKey = getActiveApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+
+    const systemPrompt = `You are a Nigerian Tertiary Admission & Campus Location Specialist. Use Google Maps grounding to locate real, official JAMB CBT Accredited Exam Centers, Nigerian University/Polytechnic Campuses, host community locations, and nearby student accommodation hubs. Provide complete, accurate street addresses, LGA, State, landmark references, and practical candidate advice. Format your output as a JSON object containing a title (string), summary (string), and array of locations (objects with name, address, state, lga, mapSearchQuery, notes).`;
+
+    const userPrompt = `Locate and provide Google Maps location details for: "${query}". State context: ${state || 'Nigeria'}. Category: ${category}.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        tools: [{ googleMaps: {} }],
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsedData = safeJsonParse(response.text, {
+      title: `Search results for ${query}`,
+      summary: response.text || "No details found.",
+      locations: []
+    });
+
+    return res.json({ success: true, data: parsedData, rawText: response.text });
+  } catch (err: any) {
+    console.error("[Maps Grounding Endpoint Error]:", err);
+    try {
+      const fallbackRes = await callAIWithFallback({
+        systemInstruction: "You are a Nigerian Tertiary Admission Location Specialist. Return a JSON object with title, summary, and locations array listing real JAMB CBT Centers or Nigerian Campuses with addresses, landmarks, and state info.",
+        messages: [{ role: 'user', content: `Provide accurate location details for: ${req.body.query}` }],
+        jsonMode: true,
+        label: 'maps_grounding_fallback'
+      });
+      if (fallbackRes && fallbackRes.text) {
+        const parsed = safeJsonParse(fallbackRes.text, {});
+        return res.json({ success: true, data: parsed, source: 'fallback' });
+      }
+    } catch (fErr) {
+      console.error("[Maps Grounding Fallback Error]:", fErr);
+    }
+    return res.status(500).json({ error: err.message || "Failed to search location" });
+  }
+});
+
+// 3. Text-To-Speech (TTS) using gemini-3.1-flash-tts-preview
+app.post("/api/ai/tts", async (req: any, res: any) => {
+  try {
+    const { text, voice = "Zephyr" } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "text is required" });
+    }
+
+    const apiKey = getActiveApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-tts-preview",
+      contents: [{ parts: [{ text: text.substring(0, 1000) }] }],
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: voice }
+          }
+        }
+      }
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+      return res.status(500).json({ error: "No audio generated from TTS" });
+    }
+
+    return res.json({ success: true, audioBase64: base64Audio, mimeType: "audio/pcm" });
+  } catch (err: any) {
+    console.error("[TTS Endpoint Error]:", err);
+    return res.status(500).json({ error: err.message || "Speech generation failed" });
+  }
+});
+
+// 4. Voice Assistant Conversational Endpoint
+app.post("/api/ai/voice-assistant", async (req: any, res: any) => {
+  try {
+    const { userMessage, conversationHistory = [] } = req.body;
+
+    const apiKey = getActiveApiKey();
+    if (!apiKey) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
+    }
+
+    const systemPrompt = `You are CampusAI Voice Assistant, an intelligent, empathetic, and encouraging admissions counselor for Nigerian tertiary education (JAMB, Post-UTME, Direct Entry, O-Level, aggregate cut-offs, host community & catchment policies). 
+Give concise, clear, and direct spoken answers suitable for a voice response (2 to 4 sentences max). Keep tone natural, polite, and helpful.`;
+
+    const aiRes = await callAIWithFallback({
+      systemInstruction: systemPrompt,
+      messages: [...conversationHistory, { role: 'user', content: userMessage }],
+      jsonMode: false,
+      maxTokens: 300,
+      label: 'voice_assistant'
+    });
+
+    const answerText = aiRes?.text?.trim() || "I apologize, candidate. Could you please repeat your question?";
+
+    let audioBase64: string | null = null;
+    try {
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      const ttsRes = await ai.models.generateContent({
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text: answerText }] }],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } }
+          }
+        }
+      });
+      audioBase64 = ttsRes.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+    } catch (ttsErr) {
+      console.warn("[Voice Assistant TTS Warning]:", ttsErr);
+    }
+
+    return res.json({
+      success: true,
+      text: answerText,
+      audioBase64,
+      provider: aiRes?.provider || 'gemini'
+    });
+  } catch (err: any) {
+    console.error("[Voice Assistant Endpoint Error]:", err);
+    return res.status(500).json({ error: err.message || "Failed to process voice conversation" });
+  }
+});
 
 app.post("/api/gemini", async (req: any, res: any) => {
   const { params } = req.body;
@@ -2847,8 +3154,8 @@ Only output the JSON object or NO_UPDATES, no other text.`;
       return res.status(200).json({ success: true, message: "Processed: No relevant updates" });
     }
 
-    const jsonMatch = generatedNewsText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const newsData = safeJsonParse(generatedNewsText, null);
+    if (!newsData || (!newsData.title && !newsData.content)) {
       console.log("[API Webhook] Failed to parse AI response as JSON:", generatedNewsText.substring(0, 100));
       if (adminDb) {
         await adminDb.collection("admin_notifications").add({
@@ -2861,8 +3168,6 @@ Only output the JSON object or NO_UPDATES, no other text.`;
       }
       return res.status(200).json({ success: true, message: "Processed: Could not parse updates" });
     }
-
-    const newsData = JSON.parse(jsonMatch[0]);
 
     const newsDoc = {
       title: newsData.title || "Post-UTME Update Detected",
@@ -3683,9 +3988,19 @@ ${searchResults[4]}
 
     if (aiResult) {
       const data = safeJsonParse(aiResult.text, null);
-      if (data && Array.isArray(data.news) && data.news.length > 0) {
-        console.log(`[API News Sync] Success via ${aiResult.provider}! Curated ${data.news.length} articles.`);
-        return res.json({ news: data.news, provider: aiResult.provider });
+      let newsList: any[] | null = null;
+      if (Array.isArray(data)) {
+        newsList = data;
+      } else if (data && Array.isArray(data.news)) {
+        newsList = data.news;
+      } else if (data && typeof data === 'object') {
+        const arrVal = Object.values(data).find(v => Array.isArray(v));
+        if (arrVal) newsList = arrVal as any[];
+      }
+
+      if (newsList && newsList.length > 0) {
+        console.log(`[API News Sync] Success via ${aiResult.provider}! Curated ${newsList.length} articles.`);
+        return res.json({ news: newsList, provider: aiResult.provider });
       }
     }
 

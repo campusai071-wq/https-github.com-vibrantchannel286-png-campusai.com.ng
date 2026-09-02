@@ -51,6 +51,7 @@ const SyllabusExplorer = lazyWithRetry(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazyWithRetry(() => import('./AdmissionsExplorer'));
 const JambCapsLiveTrackerPage = lazyWithRetry(() => import('./JambCapsLiveTrackerPage'));
 const CGPACalculator = lazy(() => import('./CGPACalculator'));
+import { CbtCenterLocator } from './CbtCenterLocator';
 import { useDailyReminder } from '../hooks/useDailyReminder';
 import { useStandalone } from '../hooks/useStandalone';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
@@ -1001,6 +1002,12 @@ const AppContent: React.FC = () => {
                 onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
                 initialTab="cbt"
               />
+            </div>
+          } />
+          <Route path="/cbt-locator" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <SEO title="JAMB CBT Center & Campus Locator | Google Maps Grounding" description="Find accredited JAMB CBT examination centers, university campuses, and nearby student accommodation across Nigeria with Google Maps grounded location search." canonical="/cbt-locator" />
+              <CbtCenterLocator />
             </div>
           } />
           <Route path="/study-hub" element={

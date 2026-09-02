@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, Activity,
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -95,6 +95,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Activity size={18} />,
       badge: 'Live',
       badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+    },
+    {
+      id: 'cbt-locator',
+      name: 'CBT Center Locator',
+      icon: <MapPin size={18} />,
+      badge: 'Maps Grounding',
+      badgeBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20'
     },
     {
       id: 'study-hub',

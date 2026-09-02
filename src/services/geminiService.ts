@@ -670,11 +670,22 @@ export const runAIWithFallback = async (
 // ─── JSON Parser ───────────────────────────────────────────────────────────────
 
 const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
-  if (!text) return fallback;
+  if (!text || typeof text !== "string") return fallback;
 
-  let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  let cleanText = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 
-  const sanitize = (raw: string): string => {
+  // 1. Direct parse
+  try {
+    return JSON.parse(cleanText);
+  } catch {
+    // Continue
+  }
+
+  // 2. Sanitize control chars inside string literals and remove trailing commas
+  const sanitizeControlChars = (raw: string): string => {
     let result = "";
     let insideString = false;
     let escaped = false;
@@ -691,7 +702,11 @@ const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
           if (char === '\n') result += "\\n";
           else if (char === '\r') result += "\\r";
           else if (char === '\t') result += "\\t";
-          else result += char;
+          else if (char.charCodeAt(0) < 32) {
+            // strip control characters
+          } else {
+            result += char;
+          }
         } else {
           result += char;
         }
@@ -701,34 +716,81 @@ const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
     return result.replace(/,(\s*[}\]])/g, '$1');
   };
 
-  cleanText = sanitize(cleanText);
+  const sanitized = sanitizeControlChars(cleanText);
 
   try {
-    return JSON.parse(cleanText);
+    return JSON.parse(sanitized);
   } catch {
-    try {
-      const firstBrace   = cleanText.indexOf('{');
-      const firstBracket = cleanText.indexOf('[');
-      let start = -1;
-      let endChar = '';
+    // Continue
+  }
 
-      if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-        start = firstBrace; endChar = '}';
-      } else if (firstBracket !== -1) {
-        start = firstBracket; endChar = ']';
+  // 3. Extract JSON object/array candidate
+  const firstBrace = sanitized.indexOf('{');
+  const firstBracket = sanitized.indexOf('[');
+  let start = -1;
+  let endChar = '';
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    start = firstBrace;
+    endChar = '}';
+  } else if (firstBracket !== -1) {
+    start = firstBracket;
+    endChar = ']';
+  }
+
+  if (start !== -1) {
+    let lastEnd = sanitized.lastIndexOf(endChar);
+    while (lastEnd > start) {
+      const candidate = sanitized.substring(start, lastEnd + 1);
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        lastEnd = sanitized.lastIndexOf(endChar, lastEnd - 1);
       }
+    }
+  }
 
-      if (start !== -1) {
-        let lastEnd = cleanText.lastIndexOf(endChar);
-        while (lastEnd > start) {
-          const candidate = cleanText.substring(start, lastEnd + 1);
-          try { return JSON.parse(candidate); } catch { lastEnd = cleanText.lastIndexOf(endChar, lastEnd - 1); }
+  // 4. Truncated JSON Repair
+  try {
+    let repaired = start !== -1 ? sanitized.substring(start) : sanitized;
+    let openQuotes = 0;
+    let escaped = false;
+    for (let i = 0; i < repaired.length; i++) {
+      if (repaired[i] === '"' && !escaped) openQuotes++;
+      if (repaired[i] === '\\' && !escaped) escaped = true;
+      else escaped = false;
+    }
+    if (openQuotes % 2 !== 0) {
+      repaired += '"';
+    }
+
+    const stack: string[] = [];
+    let insideStr = false;
+    let esc = false;
+    for (let i = 0; i < repaired.length; i++) {
+      const char = repaired[i];
+      if (char === '"' && !esc) insideStr = !insideStr;
+      if (char === '\\' && insideStr) esc = !esc;
+      else esc = false;
+
+      if (!insideStr) {
+        if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
+        else if (char === '}' || char === ']') {
+          if (stack.length > 0 && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
         }
       }
-    } catch (recoveryError) {
-      console.error("Robust JSON recovery failed:", recoveryError);
     }
-    console.error("JSON Parse Error. Data sample:", text.substring(0, 150) + "...");
+
+    repaired = repaired.replace(/,\s*$/, '');
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+
+    return JSON.parse(repaired);
+  } catch {
+    console.error("[geminiService safeJsonParse] All recovery attempts failed. Sample:", text.substring(0, 150));
     return fallback;
   }
 };
@@ -865,7 +927,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3.6-flash",
         contents: `You are an elite Investigative Editor for Campusai.com.ng (Nigeria). 
          
          TASK:
@@ -966,7 +1028,7 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3.6-flash",
         contents: `You are a premier Investigative Education Journalist in Nigeria for CampusAI. 
         
         TASK:
@@ -2267,7 +2329,7 @@ You must apply extremely strict and realistic historical cutoffs.
 
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3.6-flash",
         contents: `
 ${overridePrompt}
 
