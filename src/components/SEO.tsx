@@ -34,7 +34,7 @@ const SEO: React.FC<SEOProps> = ({
   section = "JAMB News"
 }) => {
   const siteName = "CampusAI Nigeria";
-  const defaultDescription = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
+  const defaultDescription = "Nigeria's premier higher education platform: JAMB CBT exam simulator, university aggregate calculators, cutoff marks, institutional portals, syllabus explorer, and CGPA studio.";
   
   const siteDomain = "https://campusai.com.ng";
   const rawPath = typeof window !== 'undefined' ? window.location.pathname : "";
@@ -43,13 +43,13 @@ const SEO: React.FC<SEOProps> = ({
   // SEO standards: Title < 70, Desc between 70 and 160
   const rawDesc = description || defaultDescription;
   const paddedDesc = rawDesc.length < 70 
-    ? `${rawDesc} - Calculate aggregate scores, view official cutoff marks, and check admission requirements with CampusAI Nigeria 2026.` 
+    ? `${rawDesc} - Practice JAMB CBT exams, calculate aggregate scores, view cutoff marks, and explore academic portals on CampusAI.ng.` 
     : rawDesc;
   const cleanDescription = paddedDesc.length > 160
     ? paddedDesc.substring(0, 157) + '...'
     : paddedDesc;
 
-  let formattedTitle = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
+  let formattedTitle = "CampusAI.ng | Nigeria's Academic & Admission Intelligence Platform";
   if (title) {
     if (title.toLowerCase().includes('campusai')) {
       formattedTitle = title;

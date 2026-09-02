@@ -157,18 +157,19 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500 mb-8">Navigation Hub</h4>
-            <ul className="space-y-5">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500 mb-8">Academic Hub</h4>
+            <ul className="space-y-4">
               {[
                 { label: 'Home Orbit', id: 'home' },
-                { label: 'Admission Checklist', id: 'checklist' },
-                { label: 'Federal Directory', id: 'federal' },
-                { label: 'State Gateways', id: 'state' },
+                { label: 'JAMB CBT Exam Hub', id: 'cbt-simulator' },
                 { label: 'Aggregate Calculator', id: 'calculator' },
-                { label: 'AI Strategist', id: 'ai' },
+                { label: 'JAMB CAPS Portal', id: 'jamb-caps' },
+                { label: 'CGPA Studio', id: 'cgpa-calculator' },
+                { label: 'Institutional Portals', id: 'universities' },
+                { label: 'Syllabus Explorer', id: 'syllabus' },
+                { label: 'CBT Center Locator', id: 'cbt-locator' },
+                { label: 'Admission Checklist', id: 'checklist' },
                 { label: 'Official JAMB News', id: 'jamb' },
-                { label: 'System Status', id: 'status' },
-                { label: 'Contact Us', id: 'contact' },
                 { label: 'Download App', id: 'download' }
               ].map((item) => (
                 <li key={item.id}>

@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       id: 'cgpa-calculator',
       name: 'CGPA Studio',
       icon: <Calculator size={18} />,
-      badge: 'Paused (2026/27)',
+      badge: 'Academic Studio',
       badgeBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
     },
     {

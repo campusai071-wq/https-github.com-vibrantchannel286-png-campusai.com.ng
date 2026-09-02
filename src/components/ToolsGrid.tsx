@@ -80,20 +80,22 @@ const ToolsGrid: React.FC = () => {
   }, []);
 
   const tools = [
-    { title: "CBT Center Locator", subtitle: "Google Maps AI", icon: MapPin, path: "/cbt-locator" },
-    { title: "PDF Store & Vault", subtitle: "Upload & Download PDFs", icon: FileText, path: "/pdf-store" },
-    { title: "Aggregate Calculator", subtitle: "All Universities", icon: Calculator, path: "/calculator" },
-    { title: "Syllabus Finder", subtitle: "JAMB 2026", icon: BookOpen, path: "/syllabus" },
-    { title: "University News", subtitle: "Latest Updates", icon: Newspaper, path: "/news" },
-    { title: "Check Admissions", subtitle: "Post-UTME Hub", icon: Search, path: "/postutme" },
-    { title: "UNILAG Calculator", subtitle: "Lagos", icon: Calculator, path: "/unilag-aggregate-calculator" },
-    { title: "UI Calculator", subtitle: "Ibadan", icon: Calculator, path: "/ui-aggregate-calculator" },
-    { title: "LASU Calculator", subtitle: "Lagos State", icon: Calculator, path: "/lasu-aggregate-calculator" },
-    { title: "OAU Calculator", subtitle: "Ife", icon: Calculator, path: "/oau-aggregate-calculator" },
-    { title: "UNIBEN Calculator", subtitle: "Benin", icon: Calculator, path: "/uniben-aggregate-calculator" },
-    { title: "FUTA Calculator", subtitle: "Akure", icon: Calculator, path: "/futa-aggregate-calculator" },
-    { title: "Admission Checklist", subtitle: "Documents", icon: CheckSquare, path: "/admission-checklist" },
-    { title: "CGPA Tracker", subtitle: "Analytics", icon: Award, path: "/cgpa-calculator" },
+    { title: "JAMB CBT Simulator", subtitle: "Live Mock Exams & AI", icon: Award, path: "/cbt-simulator" },
+    { title: "JAMB CAPS Portal", subtitle: "Live Status Tracker", icon: Search, path: "/jamb-caps" },
+    { title: "Aggregate Calculator", subtitle: "Official 2026/2027 Formulas", icon: Calculator, path: "/calculator" },
+    { title: "CBT Center Locator", subtitle: "Google Maps Grounding", icon: MapPin, path: "/cbt-locator" },
+    { title: "CGPA Analytics Studio", subtitle: "Semester GPA & Target", icon: GraduationCap, path: "/cgpa-calculator" },
+    { title: "Institutional Portals", subtitle: "283+ Universities & Poly", icon: BookOpen, path: "/universities" },
+    { title: "PDF Store & Vault", subtitle: "Past Questions & Guides", icon: FileText, path: "/pdf-store" },
+    { title: "Syllabus Explorer", subtitle: "JAMB & WAEC Official", icon: BookOpen, path: "/syllabus" },
+    { title: "Admission Checklist", subtitle: "Screening Document Kit", icon: CheckSquare, path: "/admission-checklist" },
+    { title: "Post-UTME Hub", subtitle: "Screening Releases & Dates", icon: Search, path: "/postutme" },
+    { title: "Higher Education News", subtitle: "Verified Daily Feeds", icon: Newspaper, path: "/news" },
+    { title: "FUHSI Calculator", subtitle: "2026/27 Ila-Orangun", icon: Calculator, path: "/fuhsi-aggregate-calculator" },
+    { title: "UNILAG Calculator", subtitle: "Lagos 50:30:20", icon: Calculator, path: "/unilag-aggregate-calculator" },
+    { title: "UI Calculator", subtitle: "Ibadan 50:50", icon: Calculator, path: "/ui-aggregate-calculator" },
+    { title: "LASU Calculator", subtitle: "Lagos State 50:50", icon: Calculator, path: "/lasu-aggregate-calculator" },
+    { title: "OAU Calculator", subtitle: "Ife 50:40:10", icon: Calculator, path: "/oau-aggregate-calculator" },
   ];
 
   return (

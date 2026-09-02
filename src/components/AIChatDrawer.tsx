@@ -10,6 +10,7 @@ import { executeAiChat, executeAiChatStream, sanitizeGroundingChunks } from '../
 import { checkAndIncrementChats, getLocalProfile, isRealUser, getChatLimits } from '../services/userService';
 import { getGlobalConfig } from '../services/dbService';
 import { VoiceInputButton } from './VoiceInputButton';
+import { speakText, stopAllSpeech } from '../utils/audioPlayer';
 import { ChatMessage } from '../types';
 import QuotaModal from './QuotaModal';
 import Markdown from 'react-markdown';
@@ -693,25 +694,40 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
     setShareModalMsg(msg);
   };
 
-  const handleToggleSpeech = (text: string, index: number) => {
-    if (!('speechSynthesis' in window)) {
-      showToast("Speech synthesis is not supported on this browser.");
+  const handleToggleSpeech = async (text: string, index: number) => {
+    if (speakingIndex === index) {
+      stopAllSpeech();
+      setSpeakingIndex(null);
+      showToast("Audio stopped");
       return;
     }
-    if (speakingIndex === index) {
-      window.speechSynthesis.cancel();
+
+    stopAllSpeech();
+    setSpeakingIndex(index);
+    showToast("Starting voice read-aloud...");
+
+    try {
+      await speakText(text, {
+        onStart: () => setSpeakingIndex(index),
+        onEnd: () => setSpeakingIndex(null),
+        onError: (errMsg) => {
+          setSpeakingIndex(null);
+          showToast(errMsg || "Could not play voice audio.");
+        }
+      });
+    } catch (err) {
       setSpeakingIndex(null);
-    } else {
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*_#`~[\]()]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
-      utterance.onend = () => setSpeakingIndex(null);
-      utterance.onerror = () => setSpeakingIndex(null);
-      window.speechSynthesis.speak(utterance);
-      setSpeakingIndex(index);
+      showToast("Voice playback failed.");
     }
   };
+
+  // Stop speech when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      stopAllSpeech();
+      setSpeakingIndex(null);
+    }
+  }, [isOpen]);
 
   // ── Open drawer + auto-send external message ──
   useEffect(() => {

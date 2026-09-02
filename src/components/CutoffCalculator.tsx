@@ -14,7 +14,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn } from 'lucide-react';
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
@@ -31,6 +31,7 @@ import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, 
 import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
 import { FUTA_CUTOFFS_2026_2027, getFUTASchools } from '../data/futaCutoffs2026_2027';
 import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechCutoffs2025_2026';
+import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import QuotaModal from './QuotaModal';
@@ -885,6 +886,41 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
         "Double-check your venue in Samaru (Main Campus) or Kongo Campus to avoid confusion."
       ]
     }
+  },
+  fuhsi: {
+    fullName: "Federal University of Health Sciences, Ila-Orangun (FUHSI)",
+    formulaDesc: "FUHSI evaluates candidates using composite merit and state catchment benchmarks across Osun, Oyo, Ondo, Ogun, Ekiti, and Lagos states. Minimum UTME eligibility is 160.",
+    formulaSteps: [
+      "JAMB Cutoff: 160 minimum institutional cutoff; high-demand programmes (MBBS 81.3%, Nursing 75.4%, Physiotherapy 73.3%, MLS 72.2%) require significantly higher aggregates.",
+      "Official 2026/2027 Cut-Off Marks: Officially published and signed by Registrar Kassim Kayode Babamale.",
+      "State Catchment Quota: Candidates from South-West states (Osun, Oyo, Ondo, Ogun, Ekiti, Lagos) benefit from specialized state quota cut-off scores."
+    ],
+    cutoffs: [
+      { course: "MBBS", score: "81.3%" },
+      { course: "Nursing Science", score: "75.4%" },
+      { course: "Doctor of Physiotherapy", score: "73.3%" },
+      { course: "Medical Laboratory Science", score: "72.2%" },
+      { course: "Prosthetics and Orthotics", score: "65.7%" },
+      { course: "Audiology", score: "65.5%" },
+      { course: "Pharmacology", score: "64.6%" },
+      { course: "Nutrition & Dietetics", score: "61.8%" },
+      { course: "IT & Health Informatics", score: "59.8%" },
+      { course: "Environmental Health Science", score: "59.3%" },
+      { course: "Biochemistry", score: "50.3%" },
+      { course: "Microbiology", score: "50.0%" },
+      { course: "Biotechnology & Molecular Bio", score: "50.0%" }
+    ],
+    postUtmeGuide: {
+      format: "Online Screening / Document Verification",
+      subjects: "English Language, Biology, Chemistry, Physics (UTME and O'Level verification).",
+      duration: "Online Screening Portal",
+      fee: "₦2,000",
+      tips: [
+        "FUHSI offers exclusively healthcare and biomedical disciplines; ensure your science background is strong.",
+        "Catchment quotas apply specifically to Osun, Oyo, Ondo, Ogun, Ekiti, and Lagos.",
+        "Ensure all O'Level results are promptly uploaded and verified on the JAMB CAPS portal."
+      ]
+    }
   }
 };
 
@@ -1497,6 +1533,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isLAUTECHCutoffsModalOpen, setIsLAUTECHCutoffsModalOpen] = useState(false);
   const [lautechCutoffSearch, setLautechCutoffSearch] = useState('');
   const [lautechFacultyFilter, setLautechFacultyFilter] = useState('ALL');
+
+  // ── FUHSI 2026/2027 Cutoffs Explorer State ──
+  const [isFUHSICutoffsModalOpen, setIsFUHSICutoffsModalOpen] = useState(false);
+  const [fuhsiCutoffSearch, setFuhsiCutoffSearch] = useState('');
+  const [fuhsiFacultyFilter, setFuhsiFacultyFilter] = useState('ALL');
+  const [fuhsiStateQuota, setFuhsiStateQuota] = useState<'merit' | 'osun' | 'oyo' | 'ondo' | 'ogun' | 'ekiti' | 'lagos'>('merit');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -2921,7 +2963,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <div className="space-y-3 w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <p className="text-xs text-gray-300 font-medium leading-relaxed">
-                        {currentSchoolSlug === 'ui' ? 'Official UI 2026/2026 Departmental Cut-Off Marks (Top Programmes):' : 'Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:'}
+                        {currentSchoolSlug === 'ui' ? 'Official UI 2026/2026 Departmental Cut-Off Marks (Top Programmes):' : currentSchoolSlug === 'fuhsi' ? 'Official FUHSI 2026/2027 Admissions Cut-Off Marks (Merit & Catchment):' : 'Estimated Competitive Benchmark scores to secure merit-list admissions in 2026:'}
                       </p>
                       {currentSchoolSlug === 'ui' && (
                         <button
@@ -2948,6 +2990,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View All 57 LAUTECH Departmental Cut-Off Marks
+                        </button>
+                      )}
+                      {currentSchoolSlug === 'fuhsi' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsFUHSICutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official FUHSI 2026/2027 Cut-Off Marks (Merit & Catchment)
                         </button>
                       )}
                     </div>
@@ -3009,12 +3060,14 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative z-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 relative z-10">
                 {[
                   { slug: 'unilag', name: 'UNILAG Hub', loc: 'Lagos' },
                   { slug: 'oau', name: 'OAU Hub', loc: 'Ife' },
                   { slug: 'ui', name: 'UI Hub', loc: 'Ibadan' },
                   { slug: 'lasu', name: 'LASU Hub', loc: 'Ojo' },
+                  { slug: 'futa', name: 'FUTA Hub', loc: 'Akure' },
+                  { slug: 'fuhsi', name: 'FUHSI Hub', loc: 'Ila-Orangun' },
                 ].map(hub => (
                   <button
                     key={hub.slug}
@@ -3340,7 +3393,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                   institution_type: u.type || u.category || 'University'
                                 });
                                 const slug = u.slug;
-                                const isDedicated = ['unilag', 'oau', 'ui', 'lasu', 'uniben', 'unilorin', 'unn', 'futa', 'abu-zaria', 'abu'].includes(slug);
+                                const isDedicated = ['unilag', 'oau', 'ui', 'lasu', 'uniben', 'unilorin', 'unn', 'futa', 'abu-zaria', 'abu', 'fuhsi'].includes(slug);
                                 if (isDedicated) {
                                   const finalSlug = slug === 'abu-zaria' ? 'abu' : slug;
                                   navigate(`/${finalSlug}-aggregate-calculator`);
@@ -6564,6 +6617,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             <a href="/unn-aggregate-calculator" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Calculate for UNN</a>
             <a href="/futa-aggregate-calculator" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Calculate for FUTA</a>
             <a href="/abu-aggregate-calculator" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Calculate for ABU</a>
+            <a href="/fuhsi-aggregate-calculator" className="px-4 py-2 bg-gradient-to-r from-teal-900/60 to-emerald-900/60 border border-teal-500/30 hover:border-teal-400 text-teal-300 text-xs font-semibold rounded-lg transition-colors">Calculate for FUHSI (Ila-Orangun)</a>
           </div>
         </div>
       </div>
@@ -7255,6 +7309,271 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsLAUTECHCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* FUHSI 2026/2027 Cutoff Marks Explorer Modal */}
+        {isFUHSICutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFUHSICutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-5xl max-h-[90vh] bg-gray-900 border border-teal-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10"
+            >
+              {/* Modal Header */}
+              <div className="p-4 sm:p-6 border-b border-white/10 bg-gradient-to-r from-teal-950/60 via-gray-900 to-emerald-950/40 shrink-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[8.5px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <CheckCircle2 size={10} /> Official FUHSI Release • 2026/2027
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-[8.5px] font-bold">
+                        Signed by Registrar Kassim Kayode Babamale
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 text-[8.5px] font-bold">
+                        Institutional Minimum: 160
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-xl font-black text-white tracking-tight">
+                      Federal University of Health Sciences, Ila-Orangun (FUHSI)
+                    </h3>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">
+                      Official Departmental Cut-Off Marks for 2026/2027 Admissions Exercise across Merit and Catchment States.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsFUHSICutoffsModalOpen(false)}
+                    className="p-2 text-gray-400 hover:text-white rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Filters & Search */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 mt-4">
+                  {/* Search Bar */}
+                  <div className="sm:col-span-6 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                    <input
+                      type="text"
+                      value={fuhsiCutoffSearch}
+                      onChange={e => setFuhsiCutoffSearch(e.target.value)}
+                      placeholder="Search FUHSI courses (e.g., MBBS, Nursing, MLS, Physiotherapy)..."
+                      className="w-full pl-9 pr-8 py-2 bg-black/50 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 outline-none focus:border-teal-400 transition-colors"
+                    />
+                    {fuhsiCutoffSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setFuhsiCutoffSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quota Column Highlighter */}
+                  <div className="sm:col-span-6 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider shrink-0">
+                      Highlight:
+                    </span>
+                    {(['merit', 'osun', 'oyo', 'ondo', 'ogun', 'ekiti', 'lagos'] as const).map(qKey => (
+                      <button
+                        key={qKey}
+                        type="button"
+                        onClick={() => setFuhsiStateQuota(qKey)}
+                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                          fuhsiStateQuota === qKey
+                            ? 'bg-teal-500 text-black shadow-md font-extrabold'
+                            : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {qKey === 'merit' ? 'Merit' : qKey.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Faculty Filters */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 mt-1">
+                  <span className="text-[8px] font-black uppercase text-gray-500 tracking-wider shrink-0 mr-1">
+                    Faculty:
+                  </span>
+                  {['ALL', ...getFUHSIFaculties()].map(faculty => (
+                    <button
+                      key={faculty}
+                      type="button"
+                      onClick={() => setFuhsiFacultyFilter(faculty)}
+                      className={`px-2.5 py-1 rounded-lg text-[8.5px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                        fuhsiFacultyFilter === faculty
+                          ? 'bg-teal-500 text-black shadow-md'
+                          : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {faculty === 'ALL' ? `All (${FUHSI_CUTOFFS_2026_2027.length})` : faculty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table Body */}
+              <div className="overflow-y-auto flex-1 p-3 sm:p-6">
+                {(() => {
+                  const filtered = FUHSI_CUTOFFS_2026_2027.filter(item => {
+                    const matchesSearch =
+                      item.programme.toLowerCase().includes(fuhsiCutoffSearch.toLowerCase()) ||
+                      item.faculty.toLowerCase().includes(fuhsiCutoffSearch.toLowerCase());
+                    const matchesFaculty = fuhsiFacultyFilter === 'ALL' || item.faculty === fuhsiFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+                        <BookOpen size={32} className="text-gray-600" />
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">No FUHSI programmes matched your search</p>
+                        <button
+                          type="button"
+                          onClick={() => { setFuhsiCutoffSearch(''); setFuhsiFacultyFilter('ALL'); }}
+                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[9px] font-black uppercase tracking-wider border border-white/10"
+                        >
+                          Reset Filter
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                          <tr className="border-b border-white/10 text-[9px] font-black uppercase tracking-wider text-gray-400">
+                            <th className="py-2.5 px-2.5">S/N</th>
+                            <th className="py-2.5 px-3">Course / Programme</th>
+                            <th className="py-2.5 px-2.5">Faculty</th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'merit' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-teal-400'}`}>
+                              Merit
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'osun' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Osun
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'oyo' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Oyo
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'ondo' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Ondo
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'ogun' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Ogun
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'ekiti' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Ekiti
+                            </th>
+                            <th className={`py-2.5 px-2 text-center transition-colors ${fuhsiStateQuota === 'lagos' ? 'bg-teal-500/20 text-teal-300 font-extrabold rounded-t-lg' : 'text-cyan-400'}`}>
+                              Lagos
+                            </th>
+                            <th className="py-2.5 px-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map(item => (
+                            <tr key={item.sn} className="hover:bg-white/[0.03] transition-colors group">
+                              <td className="py-2.5 px-2.5 font-mono text-[10px] text-gray-500">{item.sn}</td>
+                              <td className="py-2.5 px-3 font-bold text-white uppercase tracking-tight">
+                                <span className="group-hover:text-teal-300 transition-colors">{item.programme}</span>
+                              </td>
+                              <td className="py-2.5 px-2.5 text-[9px] text-gray-400 uppercase tracking-tight">{item.faculty}</td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-black ${fuhsiStateQuota === 'merit' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-teal-400'}`}>
+                                {item.merit}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'osun' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.osun}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'oyo' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.oyo}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'ondo' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.ondo}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'ogun' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.ogun}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'ekiti' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.ekiti}%
+                              </td>
+                              <td className={`py-2.5 px-2 text-center font-mono font-bold ${fuhsiStateQuota === 'lagos' ? 'bg-teal-500/10 text-teal-300 text-sm' : 'text-gray-300'}`}>
+                                {item.states.lagos}%
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const fuhsiUni = universityData.find(u => u.name.toLowerCase().includes('ila') || u.slug === 'fuhsi');
+                                    if (fuhsiUni) {
+                                      setTargetUni(fuhsiUni);
+                                      setUniSearch(fuhsiUni.name);
+                                    } else {
+                                      setTargetUni({
+                                        name: "Federal University of Health Sciences, Ila Orangun",
+                                        slug: "fuhsi",
+                                        category: "Federal"
+                                      });
+                                      setUniSearch("Federal University of Health Sciences, Ila Orangun");
+                                    }
+                                    setTargetCourse(item.programme);
+                                    setCourseSearch(item.programme);
+                                    setIsFUHSICutoffsModalOpen(false);
+                                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                                  }}
+                                  className="px-2.5 py-1 bg-teal-500/10 hover:bg-teal-500 text-teal-300 hover:text-black rounded-lg font-black uppercase text-[8px] tracking-wider transition-all cursor-pointer whitespace-nowrap"
+                                >
+                                  Calculate
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-teal-400" />
+                  <span>Official Release signed by Registrar Kassim Kayode Babamale • FUHSI 2026/2027 Admissions</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://fuhsi.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-teal-400 hover:underline flex items-center gap-1"
+                  >
+                    FUHSI Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsFUHSICutoffsModalOpen(false)}
                     className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
                   >
                     Close

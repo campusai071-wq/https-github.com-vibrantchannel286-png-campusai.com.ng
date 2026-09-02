@@ -66,6 +66,7 @@ import { searchSyllabuses } from "../data/syllabuses";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
 import { getLAUTECHCutoffByCourse } from "../data/lautechCutoffs2025_2026";
+import { getFUHSICutoffByCourse } from "../data/fuhsiCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -2116,6 +2117,21 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
+      if (!manualOverride && (nUni.includes("fuhsi") || nUni.includes("ila") || nUni.includes("health sciences, ila"))) {
+        const fuhsiCutoff = getFUHSICutoffByCourse(course);
+        if (fuhsiCutoff) {
+          const stateKey = (stateOfOrigin || "").toLowerCase() as keyof typeof fuhsiCutoff.states;
+          const stateScore = fuhsiCutoff.states[stateKey];
+          const targetCutoff = stateScore ? stateScore : fuhsiCutoff.merit;
+          manualOverride = {
+            institution: "Federal University of Health Sciences, Ila-Orangun (FUHSI)",
+            course: fuhsiCutoff.programme,
+            departmentalCutoff: `${targetCutoff}%`,
+            institutionalCutoff: "160",
+            explanation: `Official FUHSI 2026/2027 Cutoff: Merit (${fuhsiCutoff.merit}%), Osun (${fuhsiCutoff.states.osun}%), Oyo (${fuhsiCutoff.states.oyo}%), Ondo (${fuhsiCutoff.states.ondo}%), Ogun (${fuhsiCutoff.states.ogun}%), Ekiti (${fuhsiCutoff.states.ekiti}%), Lagos (${fuhsiCutoff.states.lagos}%)`
+          };
+        }
+      }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
@@ -2215,6 +2231,21 @@ export const getCourseCutoffInfo = async (
           departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
           institutionalCutoff: "170",
           explanation: `Official LAUTECH 2026/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fuhsi") || nUni.includes("ila-orangun") || nUni.includes("ila orangun") || (nUni.includes("health sciences") && nUni.includes("ila")))) {
+      const fuhsiCutoff = getFUHSICutoffByCourse(course);
+      if (fuhsiCutoff) {
+        const stateKey = (stateOfOrigin || "").toLowerCase() as keyof typeof fuhsiCutoff.states;
+        const stateScore = fuhsiCutoff.states[stateKey];
+        const targetCutoff = stateScore ? stateScore : fuhsiCutoff.merit;
+        manualOverride = {
+          institution: "Federal University of Health Sciences, Ila-Orangun (FUHSI)",
+          course: fuhsiCutoff.programme,
+          departmentalCutoff: `${targetCutoff}%`,
+          institutionalCutoff: "160",
+          explanation: `Official FUHSI 2026/2027 Cutoff: Merit (${fuhsiCutoff.merit}%), Osun (${fuhsiCutoff.states.osun}%), Oyo (${fuhsiCutoff.states.oyo}%), Ondo (${fuhsiCutoff.states.ondo}%), Ogun (${fuhsiCutoff.states.ogun}%), Ekiti (${fuhsiCutoff.states.ekiti}%), Lagos (${fuhsiCutoff.states.lagos}%)`
         };
       }
     }
@@ -2507,6 +2538,21 @@ Return JSON:
           departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
           institutionalCutoff: "170",
           explanation: `Official LAUTECH 2026/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fuhsi") || nUni.includes("ila-orangun") || nUni.includes("ila orangun") || (nUni.includes("health sciences") && nUni.includes("ila")))) {
+      const fuhsiCutoff = getFUHSICutoffByCourse(course);
+      if (fuhsiCutoff) {
+        const stateKey = (stateOfOrigin || "").toLowerCase() as keyof typeof fuhsiCutoff.states;
+        const stateScore = fuhsiCutoff.states[stateKey];
+        const targetCutoff = stateScore ? stateScore : fuhsiCutoff.merit;
+        manualOverride = {
+          institution: "Federal University of Health Sciences, Ila-Orangun (FUHSI)",
+          course: fuhsiCutoff.programme,
+          departmentalCutoff: `${targetCutoff}%`,
+          institutionalCutoff: "160",
+          explanation: `Official FUHSI 2026/2027 Cutoff: Merit (${fuhsiCutoff.merit}%), Osun (${fuhsiCutoff.states.osun}%), Oyo (${fuhsiCutoff.states.oyo}%), Ondo (${fuhsiCutoff.states.ondo}%), Ogun (${fuhsiCutoff.states.ogun}%), Ekiti (${fuhsiCutoff.states.ekiti}%), Lagos (${fuhsiCutoff.states.lagos}%)`
         };
       }
     }

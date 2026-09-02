@@ -672,6 +672,8 @@ const AppContent: React.FC = () => {
       setCurrentPage('cookies');
     } else if (path.startsWith('/jamb-caps') || path.startsWith('/caps')) {
       setCurrentPage('jamb-caps');
+    } else if (path.startsWith('/cbt-locator') || path.startsWith('/locator')) {
+      setCurrentPage('cbt-locator');
     } else {
       setCurrentPage('home');
     }
@@ -788,6 +790,10 @@ const AppContent: React.FC = () => {
     } else if (p === 'checklist' || p === 'admission-checklist') {
       setCurrentPage('checklist');
       navigate('/admission-checklist');
+      window.scrollTo(0, 0);
+    } else if (p === 'cbt-locator' || p === 'cbt_locator' || p === 'locator') {
+      setCurrentPage('cbt-locator');
+      navigate('/cbt-locator');
       window.scrollTo(0, 0);
     } else if (p === 'jamb-caps' || p === 'caps' || p === 'caps-portal') {
       setCurrentPage('jamb-caps');

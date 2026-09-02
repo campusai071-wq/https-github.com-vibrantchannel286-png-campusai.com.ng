@@ -575,14 +575,23 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     registrationFee: 2000,
     eligibilityText: "Candidates who selected GSU with 150+ score."
   },
-  "Federal University of Health Sciences Ira-Orangun": {
+  "Federal University of Health Sciences, Ila Orangun": {
     isOut: true,
-    statusText: "Registration Active",
-    details: "FUHSI Ira-Orangun 2025/2026 Post-UTME application portal is open.",
+    statusText: "Cut-Off Marks Released",
+    details: "FUHSI Ila-Orangun 2026/2027 Official Departmental Cut-Off Marks released (MBBS: 81.3%, Nursing: 75.4%, Physiotherapy: 73.3%, MLS: 72.2%). Portal active.",
     portalLink: "https://fuhsi.edu.ng",
     cutoffScore: "160",
     registrationFee: 2000,
-    eligibilityText: "Healthcare candidates with 160+ UTME score."
+    eligibilityText: "Candidates who chose FUHSI with minimum 160+ UTME score (higher for professional courses)."
+  },
+  "Federal University of Health Sciences Ira-Orangun": {
+    isOut: true,
+    statusText: "Cut-Off Marks Released",
+    details: "FUHSI Ila-Orangun 2026/2027 Official Departmental Cut-Off Marks released (MBBS: 81.3%, Nursing: 75.4%, Physiotherapy: 73.3%, MLS: 72.2%). Portal active.",
+    portalLink: "https://fuhsi.edu.ng",
+    cutoffScore: "160",
+    registrationFee: 2000,
+    eligibilityText: "Candidates who chose FUHSI with minimum 160+ UTME score."
   },
   "Kaduna State University": {
     isOut: true,

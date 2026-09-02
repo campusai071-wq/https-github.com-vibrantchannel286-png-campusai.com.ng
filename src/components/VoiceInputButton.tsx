@@ -15,12 +15,82 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
 
   const startRecording = async () => {
+    // 1. First attempt Web Speech Recognition for instant on-device recognition
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      try {
+        const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognitionClass();
+        recognition.lang = 'en-NG';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+          setIsRecording(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event?.results?.[0]?.[0]?.transcript;
+          if (transcript) {
+            onTranscript(transcript.trim());
+          }
+          setIsRecording(false);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.warn("[SpeechRecognition event error]:", event?.error);
+          setIsRecording(false);
+          // Fall back to MediaRecorder if recognition fails
+          if (event?.error === 'not-allowed' || event?.error === 'service-not-allowed') {
+            console.warn("Microphone not allowed for SpeechRecognition.");
+          } else {
+            startMediaRecorder();
+          }
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        return;
+      } catch (recErr) {
+        console.warn("[SpeechRecognition start failed, falling back to MediaRecorder]:", recErr);
+      }
+    }
+
+    // 2. Fallback to MediaRecorder + Gemini 3.6 Multimodal Audio API
+    startMediaRecorder();
+  };
+
+  const startMediaRecorder = async () => {
     try {
       audioChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      // Detect supported mimeType
+      let mimeType = 'audio/webm';
+      let options: MediaRecorderOptions = {};
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options = { mimeType: 'audio/webm;codecs=opus' };
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          options = { mimeType: 'audio/ogg' };
+          mimeType = 'audio/ogg';
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -30,7 +100,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
       mediaRecorder.onstop = async () => {
         setIsProcessing(true);
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -39,23 +109,29 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           const reader = new FileReader();
           reader.readAsDataURL(audioBlob);
           reader.onloadend = async () => {
-            const base64Audio = (reader.result as string).split(',')[1];
-            if (!base64Audio) {
+            const resultStr = reader.result as string;
+            const audioBase64 = resultStr ? resultStr.split(',')[1] : null;
+            if (!audioBase64) {
               setIsProcessing(false);
               return;
             }
 
-            const response = await fetch('/api/ai/transcribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioBase64: base64Audio, mimeType: 'audio/webm' })
-            });
+            try {
+              const response = await fetch('/api/ai/transcribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioBase64, mimeType })
+              });
 
-            const data = await response.json();
-            if (data.success && data.text) {
-              onTranscript(data.text);
+              const data = await response.json();
+              if (data.success && data.text) {
+                onTranscript(data.text);
+              }
+            } catch (postErr) {
+              console.error("[Transcribe API error]:", postErr);
+            } finally {
+              setIsProcessing(false);
             }
-            setIsProcessing(false);
           };
         } catch (err) {
           console.error("Audio processing failed", err);
@@ -67,30 +143,23 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.warn("MediaRecorder failed, attempting webkitSpeechRecognition fallback", err);
-      // Web Speech API fallback if MediaRecorder fails
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'en-NG';
-        recognition.onstart = () => setIsRecording(true);
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          if (transcript) onTranscript(transcript);
-          setIsRecording(false);
-        };
-        recognition.onerror = () => setIsRecording(false);
-        recognition.onend = () => setIsRecording(false);
-        recognition.start();
-      } else {
-        alert("Microphone permission denied or not supported in this browser.");
-      }
+      console.warn("Microphone access could not be initialized:", err);
+      setIsRecording(false);
+      setIsProcessing(false);
     }
   };
 
   const stopRecording = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+      recognitionRef.current = null;
+    }
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
       setIsRecording(false);
     }
   };

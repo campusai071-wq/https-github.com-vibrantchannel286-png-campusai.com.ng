@@ -1,38 +1,38 @@
 import React from 'react';
-import { Target, Calculator, Cpu, TrendingUp } from 'lucide-react';
+import { Target, Activity, Cpu, GraduationCap } from 'lucide-react';
 
 export default function HowItWorks() {
   const steps = [
     {
       step: '01',
-      title: 'Select Your Target',
-      description: 'Choose your dream Nigerian university, polytechnic, and specific course of study from our verified official database.',
-      icon: Target,
-      badge: 'Institution & Course',
-      gradient: 'from-blue-500/10 to-indigo-500/15 border-blue-200/60 dark:border-blue-800/40 text-blue-600 dark:text-blue-400'
-    },
-    {
-      step: '02',
-      title: 'Input Your Scores',
-      description: 'Enter your JAMB UTME score, Post-UTME screening score (or mock score), and best 5 O-Level SSCE grades.',
-      icon: Calculator,
-      badge: 'SSCE & UTME',
+      title: 'Practice & Master CBT',
+      description: 'Train with authentic JAMB UTME past questions in our live timed simulator with instant step-by-step AI working and answers.',
+      icon: Activity,
+      badge: 'CBT Simulator & Syllabus',
       gradient: 'from-emerald-500/10 to-teal-500/15 border-emerald-200/60 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400'
     },
     {
+      step: '02',
+      title: 'Target Institution & Cutoff',
+      description: 'Search official departmental cutoffs across Merit, Catchment, and ELDS quotas for over 280+ Nigerian universities and polytechnics.',
+      icon: Target,
+      badge: 'Institutional Gateways',
+      gradient: 'from-blue-500/10 to-indigo-500/15 border-blue-200/60 dark:border-blue-800/40 text-blue-600 dark:text-blue-400'
+    },
+    {
       step: '03',
-      title: 'AI Aggregate Calculation',
-      description: 'Our intelligent engine instantly computes your exact weighted aggregate score using official institutional ratios (e.g., 50:30:20).',
+      title: 'AI Aggregate Engine',
+      description: 'Compute your exact weighted aggregate score using university-specific official formulas (50:30:20, 50:50, screening points, or custom ratio).',
       icon: Cpu,
       badge: 'Automated Formula',
       gradient: 'from-violet-500/10 to-purple-500/15 border-violet-200/60 dark:border-violet-800/40 text-violet-600 dark:text-violet-400'
     },
     {
       step: '04',
-      title: 'Track & Forecast Success',
-      description: 'Compare your score against historical cutoffs, verify mandatory subject combinations, and forecast admission probability.',
-      icon: TrendingUp,
-      badge: 'Admission Insights',
+      title: 'Track Success & CGPA',
+      description: 'Track JAMB CAPS admission status in real-time, organize admission checklists, and project university semester GPAs in the CGPA Studio.',
+      icon: GraduationCap,
+      badge: 'CAPS & Academic Studio',
       gradient: 'from-amber-500/10 to-orange-500/15 border-amber-200/60 dark:border-amber-800/40 text-amber-600 dark:text-amber-400'
     }
   ];
@@ -41,13 +41,13 @@ export default function HowItWorks() {
     <section className="py-20 px-4 md:px-8 max-w-7xl mx-auto">
       <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
         <span className="inline-block px-3.5 py-1.5 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider rounded-full">
-          Simple 4-Step User Journey
+          Complete Academic Lifecycle
         </span>
         <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
           How CampusAI.ng Works
         </h2>
         <p className="text-base text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
-          Navigate your Nigerian university admission journey with absolute clarity and precision in four easy steps.
+          From UTME preparation and official cutoff benchmarking to aggregate computation, admission verification, and campus CGPA tracking.
         </p>
       </div>
 
