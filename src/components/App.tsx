@@ -434,6 +434,9 @@ const AppContent: React.FC = () => {
         if (config.geminiKey2) localStorage.setItem('campusai_gemini_key_2', config.geminiKey2);
         if (config.geminiKey3) localStorage.setItem('campusai_gemini_key_3', config.geminiKey3);
         if (config.developerPhoto) localStorage.setItem('campusai_developer_photo', config.developerPhoto);
+        if (config.isChatUnderMaintenance !== undefined) {
+          localStorage.setItem('campusai_chat_maintenance', config.isChatUnderMaintenance ? 'true' : 'false');
+        }
         if (config.showImportantBanner !== undefined) {
           setShowImportantBanner(Boolean(config.showImportantBanner));
           localStorage.setItem('campusai_show_important_banner', config.showImportantBanner ? 'true' : 'false');
@@ -443,6 +446,7 @@ const AppContent: React.FC = () => {
           setSocialLinks(config.socialLinks);
         }
         window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('campusai_config_updated'));
       }
 
       try {

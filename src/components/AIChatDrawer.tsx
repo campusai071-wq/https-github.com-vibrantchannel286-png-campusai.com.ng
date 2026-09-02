@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { executeAiChat, executeAiChatStream, sanitizeGroundingChunks } from '../services/geminiService';
 import { checkAndIncrementChats, getLocalProfile, isRealUser, getChatLimits } from '../services/userService';
+import { getGlobalConfig } from '../services/dbService';
+import { VoiceInputButton } from './VoiceInputButton';
 import { ChatMessage } from '../types';
 import QuotaModal from './QuotaModal';
 import Markdown from 'react-markdown';
@@ -177,23 +179,41 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
 
   const [isUnderMaintenance, setIsUnderMaintenance] = useState<boolean>(() => {
     const saved = localStorage.getItem('campusai_chat_maintenance');
-    return saved !== null ? saved === 'true' : true;
+    return saved !== null ? saved === 'true' : false;
   });
 
   useEffect(() => {
+    const syncMaintenanceFromCloud = async () => {
+      try {
+        const config = await getGlobalConfig();
+        if (config && config.isChatUnderMaintenance !== undefined) {
+          const isMaint = Boolean(config.isChatUnderMaintenance);
+          setIsUnderMaintenance(isMaint);
+          localStorage.setItem('campusai_chat_maintenance', isMaint ? 'true' : 'false');
+        }
+      } catch (err) {
+        console.warn("Could not sync maintenance config from db", err);
+      }
+    };
+
+    syncMaintenanceFromCloud();
+
     const handleConfigChange = () => {
       const saved = localStorage.getItem('campusai_chat_maintenance');
       if (saved !== null) {
         setIsUnderMaintenance(saved === 'true');
+      } else {
+        syncMaintenanceFromCloud();
       }
     };
+
     window.addEventListener('storage', handleConfigChange);
     window.addEventListener('campusai_config_updated', handleConfigChange);
     return () => {
       window.removeEventListener('storage', handleConfigChange);
       window.removeEventListener('campusai_config_updated', handleConfigChange);
     };
-  }, []);
+  }, [isOpen]);
   const [input, setInput] = useState('');
   const [profile, setProfile] = useState(() => getLocalProfile());
   const [isLoading, setIsLoading] = useState(false);
@@ -1023,6 +1043,14 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
                       >
                         <Paperclip size={18} />
                       </button>
+                      <VoiceInputButton
+                        onTranscript={(transcript) => {
+                          if (transcript) {
+                            setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+                          }
+                        }}
+                        className="mb-0.5 border-none bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-2.5 rounded-xl shadow-none"
+                      />
                       <textarea
                         rows={1}
                         value={input}

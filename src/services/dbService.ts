@@ -1266,6 +1266,8 @@ export const getGlobalConfig = async (): Promise<any> => {
 };
 
 export const saveGlobalConfig = async (config: any) => {
+  cachedGlobalConfig = { ...(cachedGlobalConfig || {}), ...config };
+  lastConfigFetchTime = Date.now();
   if (!db) return;
   try {
     await setDoc(doc(db, "settings", "global"), {

@@ -3,16 +3,35 @@ import { motion } from 'framer-motion';
 import SEO from './SEO';
 import { ShieldCheck, Activity, Globe, Calculator, Newspaper, Brain, CheckCircle2, Clock, Smartphone, Wrench } from 'lucide-react';
 
+import { getGlobalConfig } from '../services/dbService';
+
 const StatusPage: React.FC = () => {
   const [isChatUnderMaintenance, setIsChatUnderMaintenance] = useState<boolean>(() => {
     const saved = localStorage.getItem('campusai_chat_maintenance');
-    return saved !== null ? saved === 'true' : true;
+    return saved !== null ? saved === 'true' : false;
   });
 
   useEffect(() => {
+    const syncStatus = async () => {
+      try {
+        const config = await getGlobalConfig();
+        if (config && config.isChatUnderMaintenance !== undefined) {
+          setIsChatUnderMaintenance(Boolean(config.isChatUnderMaintenance));
+        }
+      } catch (err) {
+        console.warn("Could not sync status page config", err);
+      }
+    };
+
+    syncStatus();
+
     const handleStorageChange = () => {
       const saved = localStorage.getItem('campusai_chat_maintenance');
-      if (saved !== null) setIsChatUnderMaintenance(saved === 'true');
+      if (saved !== null) {
+        setIsChatUnderMaintenance(saved === 'true');
+      } else {
+        syncStatus();
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
