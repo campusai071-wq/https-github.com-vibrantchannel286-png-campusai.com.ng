@@ -146,8 +146,11 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
   const [replaceTargetItem, setReplaceTargetItem] = useState<PdfStoreItem | null>(null);
   const [isReplacingFile, setIsReplacingFile] = useState<boolean>(false);
   const [previewTimestamp, setPreviewTimestamp] = useState<number>(Date.now());
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [replaceSuccessMsg, setReplaceSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  const replaceTargetItemRef = useRef<PdfStoreItem | null>(null);
 
   // Listen to Auth State
   useEffect(() => {
@@ -686,6 +689,14 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
     setItems(updatedList);
     saveAllPdfItemsLocally(updatedList);
 
+    // Open viewer immediately with instant blob URL so user sees their actual PDF right away
+    if (selectedFile) {
+      const instantBlobUrl = URL.createObjectURL(selectedFile);
+      setPreviewBlobUrl(instantBlobUrl);
+      setPreviewingItem(newItem);
+      setReplaceSuccessMsg(`✓ Real PDF "${uploadTitle.trim()}" successfully uploaded and ready!`);
+    }
+
     setIsProcessingFile(false);
     setUploadTitle('');
     setUploadCategory('User Upload');
@@ -699,89 +710,96 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
 
   // Re-upload / Update File Handlers
   const handleTriggerReplaceFile = (item: PdfStoreItem) => {
+    replaceTargetItemRef.current = item;
     setReplaceTargetItem(item);
-    replaceFileInputRef.current?.click();
+    setReplaceSuccessMsg(null);
+    if (replaceFileInputRef.current) {
+      replaceFileInputRef.current.value = '';
+      replaceFileInputRef.current.click();
+    }
   };
 
   const handleReplaceFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !replaceTargetItem) return;
+    const targetItem = replaceTargetItemRef.current || replaceTargetItem || previewingItem;
+    if (!file || !targetItem) return;
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please select a valid PDF file.');
+      alert('Please select a valid PDF file (.pdf)');
       return;
     }
 
     setIsReplacingFile(true);
+    setReplaceSuccessMsg(null);
+
+    // 1. Immediately create a local Blob URL so the viewer updates INSTANTLY in front of the user!
+    const instantBlobUrl = URL.createObjectURL(file);
+    setPreviewBlobUrl(instantBlobUrl);
+
+    const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+    const targetId = targetItem.id;
+
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const base64 = reader.result as string;
-        const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
-        const targetId = replaceTargetItem.id;
 
-        // 1. Save to local IndexedDB
+        // 2. Save directly to local IndexedDB for rapid client retrieval
         await savePdfBlobLocally(targetId, base64);
 
         let updatedUrl = `/api/pdf-store/file/${targetId}?v=${Date.now()}`;
-        let storagePath = replaceTargetItem.storagePath;
+        let storagePath = targetItem.storagePath;
 
-        // 2. Primary: Upload replacement to Firebase Storage
-        try {
-          const storageRes = await uploadPdfToFirebaseStorage(targetId, file, {
-            title: replaceTargetItem.title,
-            author: replaceTargetItem.author,
-            category: replaceTargetItem.category
-          });
-          if (storageRes.success && storageRes.downloadUrl) {
-            updatedUrl = storageRes.downloadUrl;
-            storagePath = storageRes.storagePath;
-          }
-        } catch (err) {
-          console.warn('Firebase storage replacement warning:', err);
-        }
-
-        // 3. Post to server vault to permanently overwrite disk PDF
+        // 3. Post to server vault to permanently write to disk
         try {
           const res = await fetch('/api/pdf-store/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id: targetId,
-              title: replaceTargetItem.title,
-              category: replaceTargetItem.category,
+              title: targetItem.title,
+              category: targetItem.category,
               fileSize: `${sizeInMb} MB`,
               uploadDate: new Date().toISOString().split('T')[0],
-              description: replaceTargetItem.description,
-              author: replaceTargetItem.author,
-              authorId: replaceTargetItem.authorId || loggedInUid,
-              institution: replaceTargetItem.institution,
+              description: targetItem.description,
+              author: targetItem.author,
+              authorId: targetItem.authorId || loggedInUid,
+              institution: targetItem.institution,
               pdfBase64: base64,
               pageCount: Math.max(1, Math.floor(file.size / 30000))
             })
           });
           const data = await res.json();
-          if (data.downloadUrl && !storagePath) {
+          if (data.downloadUrl) {
             updatedUrl = `${data.downloadUrl}?v=${Date.now()}`;
           }
         } catch (err) {
           console.warn('Server vault update error:', err);
         }
 
-        // 4. Update Firestore
+        // 4. Update Firestore with setDoc (merge: true) to never fail on non-existent docs
         try {
-          await updateDoc(doc(db, 'pdf_store', targetId), {
+          await setDoc(doc(db, 'pdf_store', targetId), {
+            id: targetId,
+            title: targetItem.title,
+            category: targetItem.category,
             fileSize: `${sizeInMb} MB`,
             uploadDate: new Date().toISOString().split('T')[0],
             downloadUrl: updatedUrl,
             storagePath: storagePath || null,
+            author: targetItem.author,
+            authorId: targetItem.authorId || loggedInUid,
+            institution: targetItem.institution || '',
+            description: targetItem.description || '',
+            isUserUploaded: true,
+            pageCount: Math.max(1, Math.floor(file.size / 30000)),
             updatedAt: serverTimestamp()
-          });
+          }, { merge: true });
         } catch (err) {
           console.warn('Firestore update warning:', err);
         }
 
         // 5. Update local state
-        const updatedItems = items.map(it => it.id === targetId ? {
+        const updatedItems = items.map(it => (it.id === targetId || it.title === targetItem.title) ? {
           ...it,
           fileSize: `${sizeInMb} MB`,
           downloadUrl: updatedUrl,
@@ -791,23 +809,23 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
         setItems(updatedItems);
         saveAllPdfItemsLocally(updatedItems);
 
-        // 5. Update preview item if currently previewing
-        if (previewingItem?.id === targetId) {
-          setPreviewingItem({
-            ...previewingItem,
+        // 6. Update preview item if currently previewing
+        if (previewingItem?.id === targetId || previewingItem?.title === targetItem.title) {
+          setPreviewingItem(prev => prev ? ({
+            ...prev,
             fileSize: `${sizeInMb} MB`,
-            downloadUrl: updatedUrl
-          });
+            downloadUrl: updatedUrl,
+            pageCount: Math.max(1, Math.floor(file.size / 30000))
+          }) : null);
           setPreviewTimestamp(Date.now());
         }
 
-        alert(`Document "${replaceTargetItem.title}" file successfully updated in the vault!`);
+        setReplaceSuccessMsg(`✓ Real PDF "${file.name}" (${sizeInMb} MB) successfully loaded and saved!`);
       } catch (err) {
         console.error('Failed to replace file:', err);
-        alert('Failed to replace file. Please try again.');
+        alert('Failed to save file. Please try again.');
       } finally {
         setIsReplacingFile(false);
-        setReplaceTargetItem(null);
         if (replaceFileInputRef.current) {
           replaceFileInputRef.current.value = '';
         }
@@ -835,13 +853,36 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
     setIsNewDiscussionModalOpen(true);
   };
 
-  const handlePreviewPdf = (item: PdfStoreItem) => {
+  const handlePreviewPdf = async (item: PdfStoreItem) => {
     if (!isUserLoggedIn) {
       if (onLoginRequest) onLoginRequest();
       else alert('Please sign in or log in to preview or open PDF files.');
       return;
     }
     setPreviewingItem(item);
+    setReplaceSuccessMsg(null);
+    replaceTargetItemRef.current = item;
+
+    // Check IndexedDB immediately for instant offline real PDF blob
+    try {
+      const localBase64 = await getPdfBlobLocally(item.id);
+      if (localBase64) {
+        const base64Content = localBase64.includes(',') ? localBase64.split(',')[1] : localBase64;
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const objectUrl = URL.createObjectURL(blob);
+        setPreviewBlobUrl(objectUrl);
+        return;
+      }
+    } catch (e) {
+      console.warn('Local blob preview check failed:', e);
+    }
+    setPreviewBlobUrl(null);
   };
 
   const onRequestDeletePdf = (item: PdfStoreItem) => {
@@ -2167,22 +2208,66 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                   </div>
                 </div>
                 <button
-                  onClick={() => setPreviewingItem(null)}
+                  onClick={() => {
+                    setPreviewingItem(null);
+                    setPreviewBlobUrl(null);
+                    setReplaceSuccessMsg(null);
+                  }}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                 >
                   <X size={20} />
                 </button>
               </div>
 
+              {/* Success Feedback Banner if replaced */}
+              {replaceSuccessMsg && (
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-3 px-4 flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-200 font-bold">
+                  <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                  <span>{replaceSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Action Banner for Real PDF Upload / Overwrite */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-medium">
+                  <AlertCircle size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>{previewBlobUrl ? 'Viewing your uploaded PDF directly.' : 'Want to replace this with your actual physical multi-page PDF file?'}</span>
+                </div>
+                {isUserLoggedIn ? (
+                  <button
+                    onClick={() => handleTriggerReplaceFile(previewingItem)}
+                    disabled={isReplacingFile}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                  >
+                    {isReplacingFile ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
+                    <span>{isReplacingFile ? 'Saving PDF...' : 'Upload Real PDF Now'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setPreviewingItem(null);
+                      if (onLoginRequest) onLoginRequest();
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                  >
+                    <LogIn size={13} />
+                    <span>Login to Upload Real PDF</span>
+                  </button>
+                )}
+              </div>
+
               {/* Embedded Document / Base64 Viewer */}
               <div className="space-y-4">
-                {previewingItem.downloadUrl ? (
+                {(previewBlobUrl || previewingItem.downloadUrl) ? (
                   <div className="w-full h-96 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 relative">
                     <iframe
                       src={
-                        previewingItem.downloadUrl.includes('?')
-                          ? `${previewingItem.downloadUrl}&t=${previewTimestamp}&title=${encodeURIComponent(previewingItem.title)}`
-                          : `${previewingItem.downloadUrl}?t=${previewTimestamp}&title=${encodeURIComponent(previewingItem.title)}`
+                        previewBlobUrl ||
+                        (previewingItem.downloadUrl
+                          ? (previewingItem.downloadUrl.includes('?')
+                              ? `${previewingItem.downloadUrl}&t=${previewTimestamp}&title=${encodeURIComponent(previewingItem.title)}`
+                              : `${previewingItem.downloadUrl}?t=${previewTimestamp}&title=${encodeURIComponent(previewingItem.title)}`)
+                          : `/api/pdf-store/file/${previewingItem.id}?t=${previewTimestamp}&title=${encodeURIComponent(previewingItem.title)}`)
                       }
                       title={previewingItem.title}
                       className="w-full h-full"
@@ -2208,11 +2293,11 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      const url = previewingItem.downloadUrl
+                      const url = previewBlobUrl || (previewingItem.downloadUrl
                         ? (previewingItem.downloadUrl.includes('?')
                             ? `${previewingItem.downloadUrl}&title=${encodeURIComponent(previewingItem.title)}`
                             : `${previewingItem.downloadUrl}?title=${encodeURIComponent(previewingItem.title)}`)
-                        : `/api/pdf-store/file/${previewingItem.id}?title=${encodeURIComponent(previewingItem.title)}`;
+                        : `/api/pdf-store/file/${previewingItem.id}?title=${encodeURIComponent(previewingItem.title)}`);
                       window.open(url, '_blank');
                     }}
                     className="px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-bold text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer"

@@ -2530,7 +2530,12 @@ app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
         : `inline; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
     );
     res.setHeader("Content-Length", result.buffer.length);
-    res.setHeader("Cache-Control", "public, max-age=86400"); // Cache 24h
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    if (result.meta?.isSyntheticFallback) {
+      res.setHeader("X-Is-Synthetic-Fallback", "true");
+    }
     return res.send(result.buffer);
   } catch (err: any) {
     console.error("[PDF Vault File Retrieval Error]:", err);

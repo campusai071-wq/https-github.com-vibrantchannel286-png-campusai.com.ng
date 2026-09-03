@@ -5,5 +5,21 @@
     "category": "Study Document",
     "fileSize": "19.4 KB",
     "updatedAt": "2026-09-03T07:35:26.817Z"
+  },
+  "test-doc-1": {
+    "id": "test-doc-1",
+    "title": "Test Doc",
+    "category": "User Upload",
+    "fileSize": "0.00 MB",
+    "uploadDate": "2026-09-03",
+    "description": "Study document for Post-UTME / JAMB preparation.",
+    "author": "Candidate",
+    "authorId": "",
+    "institution": "CampusAI Vault",
+    "downloadUrl": "/api/pdf-store/file/test-doc-1",
+    "isUserUploaded": true,
+    "pageCount": 1,
+    "createdAt": "2026-09-03T17:41:06.310Z",
+    "updatedAt": "2026-09-03T17:41:06.310Z"
   }
 }

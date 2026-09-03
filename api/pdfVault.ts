@@ -48,14 +48,34 @@ export function savePdfToVault(id: string, meta: any, base64OrBuffer: string | B
       buffer = base64OrBuffer;
     }
 
-    const filePath = path.join(VAULT_DIR, `${id}.pdf`);
+    const cleanId = id.trim();
+    const filePath = path.join(VAULT_DIR, `${cleanId}.pdf`);
     fs.writeFileSync(filePath, buffer);
 
     const allMeta = loadMetadata();
-    allMeta[id] = { ...meta, id, fileSize: `${(buffer.length / (1024 * 1024)).toFixed(2)} MB`, updatedAt: new Date().toISOString() };
-    saveMetadata(allMeta);
+    const updatedMeta = {
+      ...meta,
+      id: cleanId,
+      fileSize: `${(buffer.length / (1024 * 1024)).toFixed(2)} MB`,
+      updatedAt: new Date().toISOString(),
+      isSyntheticFallback: false
+    };
+    allMeta[cleanId] = updatedMeta;
 
-    memoryCache.set(id, { meta: allMeta[id], buffer });
+    // Also store copy by sanitized title so requests by title or slug find the real file immediately
+    const sanitizedTitle = (meta?.title || "").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+    if (sanitizedTitle && sanitizedTitle !== cleanId) {
+      const titlePath = path.join(VAULT_DIR, `${sanitizedTitle}.pdf`);
+      try {
+        fs.writeFileSync(titlePath, buffer);
+      } catch {}
+      allMeta[sanitizedTitle] = { ...updatedMeta, id: sanitizedTitle };
+      memoryCache.set(sanitizedTitle, { meta: updatedMeta, buffer });
+    }
+
+    saveMetadata(allMeta);
+    memoryCache.set(cleanId, { meta: updatedMeta, buffer });
+    console.log(`[PDF Vault] Saved real user PDF (${(buffer.length / 1024).toFixed(1)} KB) for ${cleanId} (title: ${meta?.title})`);
     return true;
   } catch (err) {
     console.error("[PDF Vault] Failed to save PDF:", err);
@@ -65,19 +85,45 @@ export function savePdfToVault(id: string, meta: any, base64OrBuffer: string | B
 
 export function getPdfFromVault(id: string): { buffer: Buffer; meta: any } | null {
   try {
+    const cleanId = id.trim();
     // 1. Check memory cache
-    if (memoryCache.has(id)) {
-      return memoryCache.get(id)!;
+    if (memoryCache.has(cleanId)) {
+      const cached = memoryCache.get(cleanId)!;
+      // If cached item is a synthetic fallback, but physical real file exists on disk, prefer disk
+      if (!cached.meta?.isSyntheticFallback) {
+        return cached;
+      }
     }
 
-    // 2. Check disk file
-    const filePath = path.join(VAULT_DIR, `${id}.pdf`);
-    if (fs.existsSync(filePath)) {
-      const buffer = fs.readFileSync(filePath);
+    // 2. Check disk file direct match
+    const directPath = path.join(VAULT_DIR, `${cleanId}.pdf`);
+    if (fs.existsSync(directPath)) {
+      const buffer = fs.readFileSync(directPath);
       const allMeta = loadMetadata();
-      const meta = allMeta[id] || { id, title: id };
-      memoryCache.set(id, { meta, buffer });
+      const meta = allMeta[cleanId] || { id: cleanId, title: cleanId };
+      memoryCache.set(cleanId, { meta, buffer });
       return { buffer, meta };
+    }
+
+    // 3. Check disk file with alternate casing or cleaned name
+    if (fs.existsSync(VAULT_DIR)) {
+      const files = fs.readdirSync(VAULT_DIR);
+      const normalizedQuery = cleanId.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const matchFile = files.find(f => {
+        if (!f.endsWith(".pdf")) return false;
+        const normalizedFile = f.replace(/\.pdf$/i, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return normalizedFile === normalizedQuery;
+      });
+
+      if (matchFile) {
+        const foundPath = path.join(VAULT_DIR, matchFile);
+        const buffer = fs.readFileSync(foundPath);
+        const allMeta = loadMetadata();
+        const foundId = matchFile.replace(/\.pdf$/i, "");
+        const meta = allMeta[foundId] || allMeta[cleanId] || { id: cleanId, title: cleanId };
+        memoryCache.set(cleanId, { meta, buffer });
+        return { buffer, meta };
+      }
     }
   } catch (err) {
     console.error("[PDF Vault] Error retrieving PDF:", err);
@@ -91,14 +137,14 @@ export function getAllVaultItems(): any[] {
 }
 
 /**
- * Generates an authentic, comprehensive academic study and past questions guide
- * when a physical file is missing or was uploaded prior to persistent disk storage.
- * Saves the generated PDF directly to the vault disk so it is permanently cached.
+ * Generates an authentic, academic study revision guide
+ * ONLY when physical user PDF is not available yet.
+ * Does NOT overwrite physical files on disk.
  */
 export function generateOrRecoverStudyPdf(id: string, metaInput?: any): { buffer: Buffer; meta: any } {
   // Check if already in vault
   const existing = getPdfFromVault(id);
-  if (existing) {
+  if (existing && !existing.meta?.isSyntheticFallback) {
     return existing;
   }
 
@@ -409,17 +455,16 @@ export function generateOrRecoverStudyPdf(id: string, metaInput?: any): { buffer
   const arrayBuf = doc.output("arraybuffer");
   const buffer = Buffer.from(arrayBuf);
 
-  // Permanently save to disk vault!
-  const filePath = path.join(VAULT_DIR, `${id}.pdf`);
-  try {
-    fs.writeFileSync(filePath, buffer);
-    const updatedMeta = { ...meta, id, fileSize: `${(buffer.length / 1024).toFixed(1)} KB`, updatedAt: new Date().toISOString() };
-    allMeta[id] = updatedMeta;
-    saveMetadata(allMeta);
-    memoryCache.set(id, { meta: updatedMeta, buffer });
-  } catch (e) {
-    console.warn("[PDF Vault] Failed to cache generated PDF to disk:", e);
-  }
+  const fallbackMeta = {
+    ...meta,
+    id,
+    fileSize: `${(buffer.length / 1024).toFixed(1)} KB`,
+    updatedAt: new Date().toISOString(),
+    isSyntheticFallback: true
+  };
 
-  return { buffer, meta };
+  // Cache in memory only as fallback so physical files on disk always take precedence
+  memoryCache.set(id, { meta: fallbackMeta, buffer });
+
+  return { buffer, meta: fallbackMeta };
 }
