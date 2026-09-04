@@ -580,30 +580,89 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     organization: "FUTA",
     page_type: "informational",
     category: "Academics",
-    subcategory: "Faculties and Departments",
-    title: "FUTA Schools, Faculties and Academic Structure",
-    summary: "Overview of schools and major professional degree programs offered at the Federal University of Technology, Akure (FUTA).",
+    subcategory: "Schools, Colleges and Academic Structure",
+    title: "FUTA Schools, Colleges, Academic Departments & Specialized Centres",
+    summary: "Complete overview of the 13+ academic schools, College of Health Sciences, specialized research centres, and departments at the Federal University of Technology, Akure (FUTA).",
     steps: [],
     requirements: [],
     eligibility_rules: [],
     key_facts: [
-      "SEET (School of Engineering and Engineering Technology): Mechanical, Civil, Electrical/Electronics, Mechatronics, Computer, Agricultural & Environmental Engineering, Petroleum & Chemical Engineering.",
-      "SOC (School of Computing): Computer Science, Cyber Security, Software Engineering, Information Technology, Information Systems.",
-      "SAAT (School of Agriculture and Agricultural Technology): Crop Production, Animal Production, Agricultural Economics, Fisheries and Aquaculture.",
-      "SOS (School of Sciences): Microbiology, Biochemistry, Industrial Chemistry, Mathematics, Physics, Statistics, Biology.",
-      "SEMS (School of Earth and Mineral Sciences): Applied Geology, Applied Geophysics, Mining Engineering, Remote Sensing & GIS.",
-      "SET (School of Environmental Technology): Architecture, Quantity Surveying, Estate Management, Building, Urban & Regional Planning.",
-      "SHHT (School of Health and Health Technology): Nursing Science, Human Anatomy, Physiology, Public Health."
+      "College of Health Sciences (CHS): Comprising School of Basic Medical Sciences (SBMS), School of Basic Clinical Sciences (SBCS), and School of Clinical Sciences (SCS) — Medicine and Surgery, Nursing Science, Human Anatomy, Physiology, Biomedical Technology.",
+      "School of Computing (SOC): Computer Science, Cyber Security, Software Engineering, Information Technology, Information Systems.",
+      "School of Electrical Systems Engineering (SESE): Electrical & Electronics Engineering, Computer Engineering, Information & Communication Technology.",
+      "School of Infrastructure, Minerals & Manufacturing Engineering (SIMME): Civil & Environmental Engineering, Mechanical Engineering, Metallurgical & Materials Engineering, Mining Engineering, Industrial & Production Engineering.",
+      "School of Earth and Mineral Sciences (SEMS): Applied Geology, Applied Geophysics, Marine Science & Technology, Meteorology, Remote Sensing & GIS.",
+      "School of Physical Sciences (SPS): Industrial Mathematics, Physics, Chemistry, Statistics.",
+      "School of Life Sciences (SLS): Biochemistry, Biology, Biotechnology, Microbiology.",
+      "School of Environmental Technology (SET): Building, Estate Management, Industrial Design, Quantity Surveying, Surveying & Geoinformatics, Urban & Regional Planning.",
+      "School of Agriculture and Agricultural Technology (SAAT): Agricultural Extension & Communication, Animal Production & Health, Agricultural & Resource Economics, Crop, Soil & Pest Management, Ecotourism & Wildlife, Fisheries & Aquaculture, Food Science & Technology, Forestry & Wood Technology.",
+      "School of Logistics and Innovation Technology (SLIT): Logistics and Transport Management, Innovation and Technology Management.",
+      "School of Postgraduate Studies (SPGS): Postgraduate Diplomas, Masters (M.Sc./M.Tech), and Ph.D. degrees across disciplines.",
+      "Newly Established Schools: School of Architecture, School of Science and Technology Education.",
+      "Specialized Centres: Computer Resource Centre (CRC), University Advancement Centre (UAC), Centre for Career Services (CCS), International Strategy Office, Centre for Gender Issues in Science & Technology (CEGIST), Centre for Entrepreneurship (CENT), Open and Distance Learning (ODL), Sports Centre, Centre for Renewable Energy Technology (CRET), WASCAL (West African Science Service Center on Climate Change), Technology Park and Incubation Centre, Global Software Hub."
     ],
     important_notes: [
-      "All FUTA programs are accredited by NUC and relevant professional bodies (COREN, NCN, NIOB, NIA, etc.)."
+      "All FUTA degree programs are fully accredited by the National Universities Commission (NUC) and respective regulatory bodies including COREN, MDCN, NMCN, ARCON, QSRBN, TOPREC, CORBON, and CPN.",
+      "Established in 1981, FUTA is one of Nigeria's premier top-ranking universities of technology with over 50 academic departments."
     ],
-    keywords: ["futa schools", "futa courses", "seet futa", "soc futa", "futa engineering", "futa computer science"],
-    related_topics: ["FUTA Admission Guidelines", "Master Courses"],
+    keywords: [
+      "futa schools", "futa courses", "soc futa", "sems futa", "chs futa", "sese futa", "simme futa",
+      "saat futa", "slit futa", "sps futa", "sls futa", "set futa", "futa engineering", "futa computer science",
+      "futa medicine", "futa architecture", "futa centres", "cret futa", "wascal futa", "crc futa"
+    ],
+    related_topics: ["FUTA Admission Guidelines", "Master Courses", "FUTA Institutional Profile"],
     official_source: "https://www.futa.edu.ng",
     source_type: "Official Institution Portal",
-    last_verified: "2026-08-10",
-    version: "2024/2026"
+    last_verified: "2026-09-04",
+    version: "2025/2026"
+  },
+  {
+    id: "futa_institutional_profile_and_governance",
+    organization: "FUTA",
+    page_type: "informational",
+    category: "Institution Profile",
+    subcategory: "Governance, Statistics & Institutional Data",
+    title: "Federal University of Technology, Akure (FUTA) - Institutional Profile, Governance & Official Data",
+    summary: "Official institutional data, governance leadership, vision, mission, core values (ICARE), budget allocations, student population demographics, support hotlines, and research breakthroughs for the Federal University of Technology, Akure (FUTA).",
+    steps: [],
+    requirements: [
+      "Institution: Federal University of Technology, Akure (FUTA)",
+      "Established: 1981",
+      "Location: P.M.B. 704, Akure, Ondo State, Nigeria",
+      "Motto: Technology for Self-Reliance"
+    ],
+    eligibility_rules: [],
+    key_facts: [
+      "Governance Leadership: Pro-Chancellor & Chairman of Governing Council is Dr. Olugbenga A. Awe (appointed by the Federal Government). Executive administration includes Vice Chancellor's Office, DVC Academic, DVC Development, Registry, and Bursary.",
+      "Vision: To be a world class University of Technology and a centre of excellence in training, research and service delivery.",
+      "Mission: To promote technological advancement by providing conducive environment for research, teaching and learning engenders development of products that are technologically oriented, self-reliant and relevant to society.",
+      "Core Values (ICARE): Integrity, Creativity, Accountability, Respect, and Excellence.",
+      "Annual Personnel Allocation: ₦10,904,666,153.00",
+      "Annual Overhead Allocation: ₦451,589,534.00",
+      "Annual Capital Allocation: ₦1,039,371,080.00",
+      "Current TETFund Allocation: ₦2,560,562,362.66",
+      "Student Population Statistics: Total Population of 31,078 students (Undergraduate Total: 20,099 [14,622 Male, 5,477 Female]; Postgraduate Population: 10,979).",
+      "Research Breakthroughs & Honors: Development of unique low-cost medical ventilator by FUTA researchers, Alumnus international research awards in China, Cardiff Metropolitan University AI & Women in Tech collaboration, Tech-Them Young Next-Gen Techies Initiative at FUTA Techhub.",
+      "Official Academic Journals: FJRS, ATA, JOST, FJMT, JEET, JEAR, JOVICOD, FJLS.",
+      "Official Student Portals: Undergraduate Portal (UG), Postgraduate Portal (PG), Open & Distance Learning (ODL), Centre for Continuing Education (CCE), School of Professional Development (SPD), E-Transcript Portal.",
+      "Official Support Hotlines: +234 906 670 7545, +234 907 616 5061 (Powered by Computer Resource Centre FUTA)."
+    ],
+    important_notes: [
+      "Address: The Federal University of Technology Akure, P.M.B. 704, Akure, Ondo State.",
+      "Official Website: https://www.futa.edu.ng",
+      "Strategic Plan: FUTA Strategic Plan 2024 - 2030."
+    ],
+    keywords: [
+      "futa", "futa profile", "futa pro chancellor", "olugbenga awe", "futa vc", "futa governing council",
+      "futa student population", "futa budget", "futa tetfund", "futa mission", "futa vision",
+      "futa icare", "futa support line", "futa phone number", "futa address", "futa contact",
+      "futa portal", "futa cce", "futa odl", "futa journals", "futa research ventilator", "futa akure"
+    ],
+    related_topics: ["FUTA Schools, Faculties and Academic Structure", "FUTA Departmental Cutoffs", "FUTA Admission Guidelines"],
+    official_source: "https://www.futa.edu.ng",
+    source_type: "Official Institution Portal",
+    last_verified: "2026-09-04",
+    version: "2025/2026"
   },
   {
     id: "lautech_post_utme_screening_2025_2026",
@@ -1332,6 +1391,176 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     source_type: "Official Government Dashboard",
     last_verified: "2026-08-28",
     version: "2024/2026"
+  },
+  {
+    id: "kwasu_hostel_balloting_fees_schedule",
+    organization: "Kwara State University (KWASU)",
+    page_type: "policy",
+    category: "Accommodation",
+    subcategory: "Hostel Balloting & Fees",
+    title: "KWASU Student Hostel Balloting & Accommodation Fees Schedule",
+    summary: "Official schedule of hostel accommodation and balloting fees for Kwara State University (KWASU) Malete, detailing fees per block across affiliated and managed student hostels including Omowumi, Mopelola, Ejanla, Croyant, Ajeem, Agit, and Amina Castle.",
+    steps: [
+      "Log in to the official KWASU student portal during the balloting window.",
+      "Navigate to the Accommodation / Hostel Balloting module.",
+      "Select your preferred hostel and block from the available listed options (e.g. Croyant, Ajeem, Amina Castle, Mopelola, Omowumi, Ejanla, Agit).",
+      "Generate the accommodation payment invoice corresponding to the chosen hostel (fees range from ₦95,000 to ₦115,000 depending on hostel and block).",
+      "Complete payment via the accredited online payment gateway or bank channel before the reservation deadline to secure bed allocation."
+    ],
+    requirements: [
+      "Active KWASU student portal account with matriculation/application number",
+      "Completed school fees or acceptance fee payment (for freshers)",
+      "Prompt fee payment upon selecting a bed space during the active balloting period"
+    ],
+    eligibility_rules: [
+      "Hostel bed space allocation operates on a first-come, first-served basis through the active balloting portal.",
+      "Bed spaces are tied strictly to the balloting student and cannot be transferred or sublet."
+    ],
+    key_facts: [
+      "Croyant Hostel (Block 1): ₦115,000 per bed space",
+      "Ajeem1 Hostel (Block 1): ₦115,000 per bed space",
+      "Ajeem2 Hostel (Block 1): ₦115,000 per bed space",
+      "Agit1 Hostel (Block 1): ₦115,000 per bed space",
+      "Omowumi Hostel (Block 2): ₦100,000 per bed space",
+      "Omowumi Hostel (Block 1): ₦95,000 per bed space",
+      "Mopelola Hostel (Block 1): ₦95,000 per bed space",
+      "Ejanla Hostel (Block 1): ₦95,000 per bed space",
+      "Amina Castle A Hostel (Block 1): ₦95,000 per bed space",
+      "Amina Castle B Hostel (Block 1): ₦95,000 per bed space"
+    ],
+    important_notes: [
+      "Balloting takes place strictly via the official KWASU portal.",
+      "Hostels like Croyant, Ajeem, and Agit are priced at ₦115,000 per session, while Omowumi Block 1, Mopelola, Ejanla, and Amina Castle A & B are priced at ₦95,000 per session.",
+      "Ensure prompt payment after balloting to prevent automatic revocation of the allocated room block."
+    ],
+    keywords: [
+      "kwasu hostel", "kwasu balloting", "hostel balloting", "omowumi hostel",
+      "mopelola hostel", "ejanla hostel", "croyant hostel", "ajeem1", "ajeem2", "ajeem hostel",
+      "agit1", "agit hostel", "amina castle", "amina castle a", "amina castle b",
+      "kwasu accommodation", "malete hostels", "kwara state university hostel fees", "kwasu fees"
+    ],
+    related_topics: ["Student Accommodation", "KWASU Portal", "Fresher Budgeting"],
+    official_source: "https://portal.kwasu.edu.ng",
+    source_type: "Official Institution Balloting Portal",
+    last_verified: "2026-09-04",
+    version: "2025/2026"
+  },
+  {
+    id: "futa_agricultural_environmental_engineering_profile",
+    organization: "FUTA",
+    page_type: "policy",
+    category: "Department Profile & Regulations",
+    subcategory: "Agricultural and Environmental Engineering (AGE)",
+    title: "FUTA Department of Agricultural and Environmental Engineering (B.Eng. AGE) - Programme Profile, Regulations & Degree Requirements",
+    summary: "Comprehensive academic handbook and regulations for the Bachelor of Engineering (B.Eng.) in Agricultural and Environmental Engineering at the Federal University of Technology, Akure (FUTA). Details HOD leadership, COREN accreditation, admission requirements, student population, degree duration, workload limits, 5.0 CGPA computation system, degree classifications, and graduation unit thresholds.",
+    steps: [
+      "Admission (100L UTME or 200L Direct Entry) meeting departmental subject criteria.",
+      "Semester Course Registration adhering to minimum 15 units and maximum 24 units workload.",
+      "Direct Entry students audit and pass mandatory foundation courses: GNS 101, GNS 102, GNS 103, MEE 101, and MEE 102.",
+      "Completion of Continuous Assessment (max 40%) and Semester Examinations (60%).",
+      "Completion of SWEP (Students' Work Experience Programme - AGE 210), SIWES / Industrial Attachments, laboratory practicals, and 500-level final year design project.",
+      "Attainment of minimum required credit units (196 units for UTME; 153 units for Direct Entry) with minimum CGPA of 1.00."
+    ],
+    requirements: [
+      "UTME Entry Requirements: Minimum of 5 credit passes in O'Level (WAEC/NECO/GCE/NABTEB) at not more than two (2) sittings in English Language, Mathematics, Physics, Chemistry, and any of Biology, Agricultural Science, or Technical Drawing.",
+      "UTME Subject Combination: English Language, Mathematics, Physics, and Chemistry.",
+      "Direct Entry (DE) Requirements: (1) National Diploma (ND) at Upper Credit level or equivalent in Agricultural Engineering or related disciplines from recognized polytechnics/institutions; OR (2) GCE Advanced Level / IJMB passes with not less than grade 'C' in at least two of Chemistry, Physics, and Mathematics.",
+      "Degree Minimum Units: 196 units for 5-year UTME candidates; 153 units for 4-year Direct Entry candidates.",
+      "Minimum Cumulative Grade Point Average (CGPA): 1.00 on a 5.00 grading scale."
+    ],
+    eligibility_rules: [
+      "Programme Duration: Normal duration is 5 academic sessions (10 semesters) for UTME students, with maximum allowable residency of 15 semesters. Normal duration is 4 academic sessions (8 semesters) for Direct Entry students, with maximum allowable residency of 12 semesters.",
+      "Student Workload Limits: Minimum of 15 course units and maximum of 24 course units per semester.",
+      "Direct Entry Mandatory Audit: Must audit and pass GNS 101, GNS 102, GNS 103, MEE 101, and MEE 102. If failed as audit courses, they must be registered formally as credit courses."
+    ],
+    key_facts: [
+      "Department Leadership: Head of Department (HOD) is Prof. F. R. FALAYI (Email: age@futa.edu.ng | Phone: +234 803 394 4486).",
+      "Degree Awarded: Bachelor of Engineering (B.Eng.) in Agricultural and Environmental Engineering.",
+      "Professional Accreditation: Fully accredited by the Council for the Regulation of Engineering in Nigeria (COREN) and affiliated with the Nigerian Institution of Agricultural Engineers (NIAE - Division of NSE).",
+      "Student Population Breakdown (475 Total): 100 Level: 81; 200 Level: 86; 300 Level: 95; 400 Level: 88; 500 Level: 125.",
+      "Official 5.0 Grading System Scale: A (70-100% = 5 GP), B (60-69% = 4 GP), C (50-59% = 3 GP), D (45-49% = 2 GP), E (40-44% = 1 GP), F (0-39% = 0 GP).",
+      "Degree Classification Thresholds: First Class Honours (CGPA 4.50 - 5.00), Second Class Honours Upper Division (CGPA 3.50 - 4.49), Second Class Honours Lower Division (CGPA 2.40 - 3.49), Third Class Honours (CGPA 1.50 - 2.39), Pass (CGPA 1.00 - 1.49).",
+      "Semester Academic Schedule: 15 weeks reserved for teaching and lectures, followed by 2 weeks of degree examinations.",
+      "Continuous Assessment & Evaluation: Continuous Assessment carries a maximum of 40%, with final semester examination carrying 60%.",
+      "Departmental Professional Association: Students are active members of the Nigerian Institution of Agricultural Engineers Student Body (NIAESB).",
+      "Departmental Journal: Journal of Agricultural Engineering & Technology (JAET), published annually by NIAE / NSE."
+    ],
+    important_notes: [
+      "Definitions: TLU (Total Load Units per semester), CLU (Cumulative Load Units to date), TCP (Total Credit Points = Units × Grade Point), CCP (Cumulative Credit Points to date), GPA = TCP / TLU, CGPA = Total CCP / Total CLU.",
+      "Department Sections: Technical, Administrative, and Academic, with dedicated laboratories supervised by senior technologists and academic staff in charge.",
+      "Student Welfare: Each student is assigned a designated academic staff adviser for mentorship and academic counselling."
+    ],
+    keywords: [
+      "futa age", "futa agricultural and environmental engineering", "prof falayi", "age futa",
+      "futa b.eng age", "futa engineering grading system", "futa cgpa scale", "futa first class cgpa",
+      "futa age admission requirements", "futa direct entry engineering", "futa swep age 210",
+      "futa age graduation requirements", "futa age course outline", "futa niaesb", "jaet futa"
+    ],
+    related_topics: ["FUTA Courseware and Synopses", "FUTA Schools, Faculties and Academic Structure", "FUTA Departmental Cutoffs"],
+    official_source: "https://www.futa.edu.ng/age",
+    source_type: "Official Departmental Portal",
+    last_verified: "2026-09-04",
+    version: "2025/2026"
+  },
+  {
+    id: "futa_age_curriculum_coursewares_synopses",
+    organization: "FUTA",
+    page_type: "informational",
+    category: "Coursewares & Synopses",
+    subcategory: "Agricultural and Environmental Engineering Curriculum (100L - 500L)",
+    title: "FUTA B.Eng. Agricultural and Environmental Engineering - Complete Course Outline, Synopses & Coursewares (100L - 500L)",
+    summary: "Detailed curriculum breakdown, credit unit weightings, course outlines, and full course synopses for all levels (100L to 500L) in the Department of Agricultural and Environmental Engineering at the Federal University of Technology, Akure (FUTA).",
+    steps: [
+      "100 Level (Harmattan 21 Units, Rain 20 Units): Foundational physical sciences, mathematics, engineering drawing, workshop practice, and general studies.",
+      "200 Level (Harmattan 21 Units, Rain 20 Units + SWEP 4 Units): Applied mechanics, computer programming (Fortran), science of materials, fluid mechanics, strength of materials, thermodynamics, general agriculture practical plots, and SWEP.",
+      "300 Level (Harmattan 21 Units, Rain 21 Units): Engineering statistics, mechanics of machines, engineering mathematics I & II, hydraulics, hydrology, machine drawing & design, farm structures, and soil mechanics.",
+      "400 Level: Advanced farm power & machinery, agricultural materials handling, irrigation & drainage, thermodynamics & heat transfer, farm electrification, and SIWES industrial internship.",
+      "500 Level: Advanced machinery design, land clearing & development, engineering economics, advanced hydraulics, soil & water conservation, rural water supply & sanitation, farm transportation, and final year B.Eng. research project."
+    ],
+    requirements: [
+      "Core 100L Courses: CHE 101 (3U), CHE 103 (1U), PHY 101 (3U), PHY 103 (2U), PHY 107 (1U), MTS 101 (3U), MEE 101 (3U), GNS 101 (2U), CVE 105 (2U), GNS 103 (1U), CHE 102 (3U), CHE 104 (1U), PHY 102 (3U), PHY 108 (1U), MTS 102 (3U), MTS 104 (3U), MEE 102 (2U), GNS 102 (2U), GNS 106 (2U).",
+      "Core 200L Courses: CHE 205 (2U), MTS 201 (3U), CSC 201 (3U), MEE 201 (2U), MEE 207 (3U), EEE 201 (3U), MNE 201 (1U), MME 201 (3U), CSP 201 (1U), MTS 202 (3U), CVE 202 (3U), MEE 202 (3U), MEE 206 (3U), AGE 204 (3U), PMT 210 (3U), CSP 210 (2U), AGE 210 (SWEP - 4U).",
+      "Core 300L Courses: AGE 301 (2U), AGE 311 (2U), AGE 315 (2U), AGE 323 (3U), MTS 315 (3U), AGE 325 (2U), APH 201 (2U), AGY 209 (2U), MME 311 (3U), AGE 304 (3U), AGE 312 (3U), AGE 314 (3U), AGE 328 (3U), AGE 336 (3U), MTS 316 (3U).",
+      "Core 400L & 500L Courses: AGE 403, AGE 405, AGE 407, AGE 409, AGE 411, AGE 413, AGE 415, AGE 417, AGE 503, AGE 504, AGE 506/552, AGE 509, AGE 511/525, AGE 512, AGE 519, AGE 522, AGE 528, AGE 531/575."
+    ],
+    eligibility_rules: [],
+    key_facts: [
+      "CSC 201 (Introduction to Computer Programming / Fortran): Covers Fortran 03 (Fortran 2003) with legacy Fortran 77/95 concepts, structure, arrays, subroutines, and scientific computation for engineering students.",
+      "AGE 204 (Basic Fluid Mechanics): Fluid statics, hydrostatic forces on submerged bodies, conservation laws, fluid dynamics, and viscous flows.",
+      "CVE 202 (Strength of Materials I): Force equilibrium, free body diagrams, stress and strain, Young's modulus, axially loaded bars, temperature stresses, hoop stresses in cylinders and rings, bending moment and shear force diagrams.",
+      "MEE 202 (Engineering Drawing II): Orthographic, isometric, auxiliary projections, intersection of surfaces and developments, sectional views, curves of interpenetration, assembly drawings, and CAD standards.",
+      "MEE 206 (Basic Engineering Thermodynamics): State of matter, zeroth, first and second laws of thermodynamics, closed and open systems, entropy, heat and work transfers, and ideal gas cycles.",
+      "CSP 201 & CSP 210 (General Agriculture Theory & Practical): Practical field planting plot allocation for arable crop management, livestock production, fisheries, forestry nurseries, farm machinery, and tractor driving.",
+      "MEE 207 (Applied Mechanics) & MME 201 (Science of Materials): Particle kinematics, rigid body dynamics, crystal structures, mechanical, electrical, optical, and magnetic properties of engineering materials.",
+      "AGE 301 (Engineering Statistics): Descriptive statistics, probability distributions (normal, binomial), linear and multiple regression, correlation, ANOVA, and engineering statistical modeling.",
+      "AGE 315 (Introduction to Environmental Engineering): Water and wastewater treatment, air pollution and noise control, solid and hazardous waste management, ecosystem protection, and environmental sample analysis.",
+      "AGE 323 (Mechanics of Machines): General dynamics, mechanisms, belt, gear, and chain drives, cams and followers, balancing of rotating masses, simple harmonic motion, and vehicular brake/clutch systems.",
+      "MTS 315 & MTS 316 (Engineering Mathematics I & II): ODEs, Wronskian, series solutions, Bessel, Legendre, and Hypergeometric functions, Laplace transforms, Fourier series and transforms, PDEs (heat, wave, Laplace equations), and separation of variables.",
+      "AGE 304 (Theory of Farm Structures): Farm building design for plant and animal production, storage structures, pin-jointed trusses, method of joints, elastic design, and limit state structural design.",
+      "AGE 312 (Basic Hydraulics) & AGE 314 (Basic Hydrology): Liquid statics and dynamics, pipe networks, pump selection, turbines (Pelton, radial, axial), Manning's and Chezy's open channel flow, hydrologic cycle, precipitation measurement, runoff estimation, evapotranspiration, and river gauging.",
+      "AGE 328 (Machine Drawing and Design) & AGE 336 (Basic Soil Mechanics): Machine component design, shafts, belts, CAD drafting, soil stress distribution, bearing capacity, and soil conservation fundamentals.",
+      "AGE 413 (Engineering Thermodynamics and Heat Transfer) & AGE 415 (Farm Power and Machinery): Conduction, convection, radiation, farm tractor force analysis, internal combustion engines (spark and compression ignition), primary/secondary tillage implements, and sprayers.",
+      "AGE 511 / AGE 525 (Land Clearing & Development): Environmental impact assessment, land acquisition laws in Nigeria, vegetation profiles, heavy clearing equipment economics, budgeting, and soil conservation.",
+      "AGE 519 (Agricultural Machinery) & AGE 552 (Design of Agricultural Machinery): Agricultural mechanization planning, planter calibration, fertilizer distributors, harvesting machinery, grain dryers, machinery replacement economics, and low-cost machine fabrication.",
+      "AGE 575 (Advanced Hydraulics): Internal pipe flow turbulence, pressure drop correlations, non-uniform open channel flow, and rectangular, triangular, and trapezoidal weir discharge hydraulics."
+    ],
+    important_notes: [
+      "Coursewares and synopses are available for digital download in PDF format on the FUTA courseware portal.",
+      "All 200L students must complete SWEP (Students' Work Experience Programme - AGE 210, 4 units) during the long vacation.",
+      "Direct Entry students must register for required audited courses in their 200 level first and second semesters."
+    ],
+    keywords: [
+      "futa age courses", "futa age synopsis", "csc 201 futa", "age 204 futa", "cve 202 futa",
+      "mee 202 futa", "mee 206 futa", "age 301 futa", "age 311 futa", "age 315 futa",
+      "age 323 futa", "mts 315 futa", "mts 316 futa", "age 304 futa", "age 312 futa",
+      "age 314 futa", "age 328 futa", "age 336 futa", "age 413 futa", "age 415 futa",
+      "age 519 futa", "age 525 futa", "age 552 futa", "age 575 futa", "futa coursewares"
+    ],
+    related_topics: ["FUTA Department of Agricultural and Environmental Engineering", "FUTA Schools, Faculties and Academic Structure"],
+    official_source: "https://www.futa.edu.ng/age/courseware",
+    source_type: "Official Departmental Courseware Portal",
+    last_verified: "2026-09-04",
+    version: "2025/2026"
   }
 ];
 

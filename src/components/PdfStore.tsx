@@ -73,6 +73,105 @@ export interface DiscussionNotification {
   read: boolean;
 }
 
+export const DEFAULT_OFFICIAL_PDFS: PdfStoreItem[] = [
+  {
+    id: 'jamb-math-pq-2026',
+    title: 'Download JAMB Past Questions for Mathematics (PDF 694KB)',
+    category: 'Past Questions',
+    fileSize: '694 KB',
+    uploadDate: '2026-08-20',
+    description: 'We have created a free PDF containing JAMB Mathematics past questions and detailed solutions. This resource includes a variety of questions from recent years, along with step-by-step explanations to guide your revision.',
+    author: 'JAMB Examination Archives & CampusAI Academic Team',
+    authorId: 'official-admin',
+    institution: 'Joint Admissions and Matriculation Board',
+    pageCount: 38
+  },
+  {
+    id: 'jamb-english-pq-2026',
+    title: 'Download JAMB Past Questions for Use of English (PDF 820KB)',
+    category: 'Past Questions',
+    fileSize: '820 KB',
+    uploadDate: '2026-08-22',
+    description: 'Comprehensive JAMB Use of English past questions booklet covering Comprehension passages, Lexis & Structure, Oral Forms, and prescribed literature analysis.',
+    author: 'CampusAI Editorial Board',
+    authorId: 'official-admin',
+    institution: 'JAMB UTME',
+    pageCount: 44
+  },
+  {
+    id: 'jamb-physics-pq-2026',
+    title: 'Download JAMB Past Questions for Physics (PDF 710KB)',
+    category: 'Past Questions',
+    fileSize: '710 KB',
+    uploadDate: '2026-08-25',
+    description: 'Authentic JAMB Physics past questions with high-yield formula index, diagrams, mechanics, optics, electricity, and modern physics calculations.',
+    author: 'CampusAI Academic Team',
+    authorId: 'official-admin',
+    institution: 'JAMB UTME',
+    pageCount: 36
+  },
+  {
+    id: 'jamb-chemistry-pq-2026',
+    title: 'Download JAMB Past Questions for Chemistry (PDF 740KB)',
+    category: 'Past Questions',
+    fileSize: '740 KB',
+    uploadDate: '2026-08-25',
+    description: 'Complete JAMB Chemistry past papers spanning Organic chemistry, Stoichiometry, Electrolysis, Periodic Table trends, and Equilibrium working.',
+    author: 'CampusAI Academic Team',
+    authorId: 'official-admin',
+    institution: 'JAMB UTME',
+    pageCount: 35
+  },
+  {
+    id: 'jamb-biology-pq-2026',
+    title: 'Download JAMB Past Questions for Biology (PDF 680KB)',
+    category: 'Past Questions',
+    fileSize: '680 KB',
+    uploadDate: '2026-08-26',
+    description: 'Detailed past questions booklet on Genetics, Ecology, Anatomy, Plant physiology, and high-frequency diagram questions.',
+    author: 'CampusAI Academic Team',
+    authorId: 'official-admin',
+    institution: 'JAMB UTME',
+    pageCount: 34
+  },
+  {
+    id: 'waec-math-pq-2026',
+    title: 'Download WAEC General Mathematics Past Questions & Solutions (PDF 850KB)',
+    category: 'Past Questions',
+    fileSize: '850 KB',
+    uploadDate: '2026-08-27',
+    description: 'Official WAEC SSCE General Mathematics objective and theory sample questions with marking guide breakdowns.',
+    author: 'WAEC Examination Board',
+    authorId: 'official-admin',
+    institution: 'West African Examinations Council (WAEC)',
+    pageCount: 48
+  },
+  {
+    id: 'unilag-postutme-pq-2026',
+    title: 'Download UNILAG Post-UTME Screening Past Questions (PDF 910KB)',
+    category: 'Post-UTME Guide',
+    fileSize: '910 KB',
+    uploadDate: '2026-08-28',
+    description: 'University of Lagos 40-question high-speed screening aptitude past papers spanning English, Mathematics, and General Paper.',
+    author: 'CampusAI Post-UTME Consortium',
+    authorId: 'official-admin',
+    institution: 'University of Lagos (UNILAG)',
+    pageCount: 28
+  },
+  {
+    id: 'ui-postutme-pq-2026',
+    title: 'Download UI Post-UTME Screening Past Questions & Solutions (PDF 880KB)',
+    category: 'Post-UTME Guide',
+    fileSize: '880 KB',
+    uploadDate: '2026-08-29',
+    description: 'University of Ibadan Post-UTME CBT screening model questions with departmental benchmark analysis.',
+    author: 'CampusAI Post-UTME Consortium',
+    authorId: 'official-admin',
+    institution: 'University of Ibadan (UI)',
+    pageCount: 30
+  }
+];
+
 interface PdfStoreProps {
   user?: any;
   onLoginRequest?: () => void;
@@ -89,7 +188,7 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
 
   // PDF Store States
-  const [items, setItems] = useState<PdfStoreItem[]>([]);
+  const [items, setItems] = useState<PdfStoreItem[]>(DEFAULT_OFFICIAL_PDFS);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -339,8 +438,12 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
             return timeB - timeA;
           });
 
-          setItems(loadedPdfs);
-          localStorage.setItem(LOCAL_STORAGE_PDF_KEY, JSON.stringify(loadedPdfs));
+          // Combine official default past questions with cloud items
+          const cloudIds = new Set(loadedPdfs.map(p => p.id));
+          const combined = [...loadedPdfs, ...DEFAULT_OFFICIAL_PDFS.filter(d => !cloudIds.has(d.id))];
+
+          setItems(combined);
+          localStorage.setItem(LOCAL_STORAGE_PDF_KEY, JSON.stringify(combined));
 
           // Also check if any local items need to be published to Firestore
           const rawStored = localStorage.getItem(LOCAL_STORAGE_PDF_KEY);

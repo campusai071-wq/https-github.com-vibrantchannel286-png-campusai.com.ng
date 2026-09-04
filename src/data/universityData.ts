@@ -133,12 +133,21 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
   "Federal University of Technology, Akure": {
     name: "Federal University of Technology, Akure",
     founded: "1981",
-    motto: "Technology for Self-Reliance",
-    bestKnownFor: "Engineering, Computing, Environmental Sciences, Medical Sciences, Earth Sciences, and Agriculture. One of Nigeria's top-ranked technology universities.",
-    campusVibe: "Academic, rigorous, and technology-driven.",
+    motto: "Technology for Self-Reliance (Core Values: ICARE)",
+    bestKnownFor: "Engineering (SESE, SIMME), Computing (SOC), Health Sciences (CHS), Earth & Mineral Sciences (SEMS), Environmental Technology (SET), Agriculture (SAAT), and Innovation (SLIT). Top-ranking Federal University of Technology in Nigeria.",
+    campusVibe: "Academic, rigorous, technologically advanced, and research-focused. 31,000+ student body located in Akure, Ondo State.",
     facultyStudentRatio: "1:28",
-    researchOutput: "Very High - Leading in applied scientific research, engineering, and technology incubation.",
-    facilities: ["FUTA Digital Resource Centre", "FUTA Library", "FUTA ICT Center", "University Health Center", "School of Science Park"],
+    researchOutput: "Very High - Low-cost medical ventilator development, WASCAL Climate Change Centre, Centre for Renewable Energy Technology (CRET), Techhub Global Software Incubator, and Cardiff Met AI partnership.",
+    facilities: [
+      "Computer Resource Centre (CRC)",
+      "Albert Ilemobade Library",
+      "Technology Park and Incubation Centre",
+      "Centre for Renewable Energy Technology (CRET)",
+      "University Health Centre",
+      "Sports Centre",
+      "University Advancement Centre (UAC)",
+      "WASCAL Research Hub"
+    ],
     scoringSystem: {
       hasJamb: true,
       hasPostUtme: false,
@@ -157,7 +166,8 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
       "Urban & Regional Planning", "Computer Science", "Information Technology", "Information Systems",
       "Cyber Security", "Software Engineering", "Biochemistry", "Biology", "Biotechnology", "Chemistry",
       "Microbiology", "Industrial Mathematics", "Physics", "Statistics", "Pharmacy", "Medical Laboratory Science",
-      "Nursing Science", "Human Anatomy", "Biomedical Technology", "Human Physiology", "Medicine and Surgery"
+      "Nursing Science", "Human Anatomy", "Biomedical Technology", "Human Physiology", "Medicine and Surgery",
+      "Logistics and Transport Management"
     ]
   },
   "Ogun State College of Nursing Sciences": {

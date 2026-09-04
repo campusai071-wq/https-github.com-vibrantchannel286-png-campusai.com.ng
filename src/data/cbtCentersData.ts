@@ -1455,6 +1455,7 @@ export const STATE_CAMPUSES: Record<string, Array<{ name: string; address: strin
   ],
   "Kwara": [
     { name: "University of Ilorin (UNILORIN)", address: "Main Campus, Tanke, Ilorin", lga: "Ilorin South", type: "Federal University" },
+    { name: "Kwara State University (KWASU)", address: "Main Campus, Malete", lga: "Moro", type: "State University" },
     { name: "Kwara State Polytechnic", address: "Old Jebba Road, Ilorin", lga: "Ilorin East", type: "State Polytechnic" },
     { name: "Federal Polytechnic Offa", address: "Mini Campus, Offa", lga: "Offa", type: "Federal Polytechnic" }
   ],
@@ -1504,6 +1505,11 @@ export const STATE_HOSTELS: Record<string, Array<{ name: string; address: string
   "FCT Abuja": [
     { name: "Gwagwalada Main Campus Student Village", address: "Near Specialist Hospital Road, Gwagwalada", lga: "Gwagwalada", notes: "Student accommodation enclave close to UNIABUJA Permanent Site." },
     { name: "Jabi / Idu Student Quarters", address: "Research District, Jabi", lga: "Abuja Municipal", notes: "Modern student apartments for Nile, Baze, and regional exam candidates." }
+  ],
+  "Kwara": [
+    { name: "KWASU Balloting Hostels (Malete Hub)", address: "Campus Enclave & Tarmac, Malete", lga: "Moro", notes: "Official balloting hostels: Croyant (Block 1: ₦115,000), Ajeem1 & Ajeem2 (Block 1: ₦115,000), Agit1 (Block 1: ₦115,000), Omowumi (Block 1: ₦95,000, Block 2: ₦100,000), Mopelola (Block 1: ₦95,000), Ejanla (Block 1: ₦95,000), Amina Castle A & B (Block 1: ₦95,000)." },
+    { name: "Tanke & University Road Student Lodges", address: "Tanke / University Road, Ilorin", lga: "Ilorin South", notes: "Primary off-campus student accommodation hub serving UNILORIN students." },
+    { name: "Sanrab & Fate Student Apartments", address: "Tanke Buka / Sanrab / Fate, Ilorin", lga: "Ilorin South", notes: "High-density student lodge and apartment district with direct transit to campus." }
   ]
 };
 

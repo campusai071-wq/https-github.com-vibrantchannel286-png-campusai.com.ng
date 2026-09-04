@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { FormulaSheet } from './FormulaSheet';
 import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  Legend
+} from 'recharts';
+import {
   Home,
   BookOpen,
   Monitor,
@@ -40,7 +53,14 @@ import {
   Check,
   ChevronDown,
   Download,
-  Lock
+  Lock,
+  ArrowUpRight,
+  ArrowDownRight,
+  Trash2,
+  Plus,
+  Info,
+  Layers,
+  Activity
 } from 'lucide-react';
 
 import institutionsTree from '../data/institutionsTree.json';
@@ -301,7 +321,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [targetUniversity, setTargetUniversity] = useState('');
   const [targetCourse, setTargetCourse] = useState('');
   const [targetScore, setTargetScore] = useState<number | ''>('');
-  const [progressHistory, setProgressHistory] = useState<{ month: string, score: number }[]>([]);
+  const [progressHistory, setProgressHistory] = useState<Array<{
+    id?: string;
+    month: string;
+    score: number;
+    date?: string;
+    examType?: string;
+    testMode?: string;
+    target?: number;
+    note?: string;
+  }>>([]);
+  const [showExamInstructions, setShowExamInstructions] = useState(true);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -333,7 +363,22 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [newScoreInput, setNewScoreInput] = useState<number | ''>('');
 
   const currentCbtEquivalent = progressHistory.length > 0 ? progressHistory[progressHistory.length - 1]?.score : 0;
+  const previousCbtEquivalent = progressHistory.length > 1 ? progressHistory[progressHistory.length - 2]?.score : null;
+  const scoreDelta = previousCbtEquivalent !== null ? currentCbtEquivalent - previousCbtEquivalent : 0;
+  const highestScore = progressHistory.length > 0 ? Math.max(...progressHistory.map(p => p.score)) : 0;
+  const averageScore = progressHistory.length > 0 ? Math.round(progressHistory.reduce((acc, curr) => acc + curr.score, 0) / progressHistory.length) : 0;
   const gap = Math.max(0, (typeof targetScore === 'number' ? targetScore : 0) - currentCbtEquivalent);
+
+  // Chart data formatting
+  const chartData = useMemo(() => {
+    return progressHistory.map((item, idx) => ({
+      name: item.month || `Test ${idx + 1}`,
+      score: item.score,
+      target: typeof targetScore === 'number' && targetScore > 0 ? targetScore : 250,
+      date: item.date || item.month,
+      examType: (item.examType || 'UTME').toUpperCase()
+    }));
+  }, [progressHistory, targetScore]);
 
   const flatInstitutions = useMemo(() => {
     const list: string[] = [];
@@ -508,8 +553,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setActiveSubjectKey(selectedSubjects[0]);
 
       const totalQuestions = Object.values(results).reduce((sum, arr) => sum + arr.length, 0);
-      // JAMB standard is 90 minutes for full mode
-      const minutes = testMode === 'full' ? 90 : Math.max(10, Math.round(totalQuestions * 1.2));
+      // Set minutes according to authentic official standards:
+      // JAMB Full Exam: 120 minutes (2 hours) for 180 questions (English 60, other 3 subjects 40 each)
+      // WAEC Full Exam: 60 minutes per subject
+      // Post-UTME Full Exam: 45 minutes
+      // Practice Mode: 1.2 minutes per question
+      let minutes = Math.max(10, Math.round(totalQuestions * 1.2));
+      if (testMode === 'full') {
+        if (examType === 'jamb') {
+          minutes = 120;
+        } else if (examType === 'waec') {
+          minutes = Math.max(60, selectedSubjects.length * 50);
+        } else if (examType === 'post_utme') {
+          minutes = 45;
+        }
+      }
       const endTimeValue = Date.now() + minutes * 60 * 1000;
       setEndTime(endTimeValue);
       setTimeLeft(minutes * 60);
@@ -608,12 +666,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     jambEquivalentScore = Math.round(jambEquivalentScore) || 0;
 
     const currentMonth = new Date().toLocaleString('default', { month: 'short' });
+    const formattedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     setProgressHistory(prev => {
       const newHistory = [...prev];
-      // Check if last entry is this month, if so, we can add a new one or update
-      newHistory.push({ month: `${currentMonth} (Attempt)`, score: jambEquivalentScore });
-      // Keep only last 12 attempts to avoid infinite array
-      if (newHistory.length > 12) return newHistory.slice(newHistory.length - 12);
+      newHistory.push({
+        id: `attempt-${Date.now()}`,
+        month: `${currentMonth} (${examType.toUpperCase()})`,
+        score: jambEquivalentScore,
+        date: formattedDate,
+        examType: examType,
+        testMode: testMode,
+        target: typeof targetScore === 'number' ? targetScore : undefined,
+        note: `${selectedSubjects.length} subjects • ${testMode === 'full' ? 'Timed Full Exam' : 'Practice Drill'}`
+      });
+      // Keep only last 20 attempts
+      if (newHistory.length > 20) return newHistory.slice(newHistory.length - 20);
       return newHistory;
     });
 
@@ -962,9 +1029,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 border border-emerald-500/30">
                 <Target size={14} /> 2027 JAMB Target & Score Analytics System
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Set Your Dream University & Course Target</h1>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Set Your Target Course, University & Track Score Graph</h1>
               <p className="text-slate-300 text-xs sm:text-sm mt-2 max-w-xl leading-relaxed">
-                Enter your desired institution, course, and target UTME score. CampusAI automatically tracks your CBT equivalent, gap analysis, priority subjects, and monthly progression.
+                Enter your desired institution, course, and target score. CampusAI automatically saves every CBT practice attempt and plots your score trajectory graph over time.
               </p>
             </div>
 
@@ -975,7 +1042,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">University / Institution</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Target University / Institution</label>
                   <select
                     value={targetUniversity}
                     onChange={(e) => setTargetUniversity(e.target.value)}
@@ -989,7 +1056,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Course of Study</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Target Course of Study</label>
                   <select
                     value={targetCourse}
                     onChange={(e) => setTargetCourse(e.target.value)}
@@ -1013,7 +1080,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       const val = parseInt(e.target.value);
                       setTargetScore(isNaN(val) ? '' : val);
                     }}
-                    placeholder="e.g. 250"
+                    placeholder="e.g. 280"
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-black text-lg focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -1022,69 +1089,162 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
             {/* Analysis Metrics Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Current CBT Equivalent</span>
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Latest CBT Score</span>
+                  {scoreDelta !== 0 && (
+                    <span className={`inline-flex items-center gap-0.5 text-xs font-black px-2 py-0.5 rounded-full ${scoreDelta > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                      {scoreDelta > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                      {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                    </span>
+                  )}
+                </div>
                 <div className="text-3xl font-black text-slate-950 mt-2">{currentCbtEquivalent} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
-                <p className="text-[11px] text-emerald-600 font-bold mt-1">Based on recent practice tests</p>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Target Score</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">{targetScore} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
-                <p className="text-[11px] text-slate-500 font-bold mt-1">{targetUniversity}</p>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Score Gap</span>
-                <div className="text-3xl font-black text-amber-600 mt-2">+{gap} <span className="text-xs text-slate-400 font-normal">marks</span></div>
-                <p className="text-[11px] text-slate-500 font-bold mt-1">Needed for {targetCourse}</p>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Priority Subjects</span>
-                <div className="text-sm font-black text-slate-950 mt-3">{prioritySubjects}</div>
-                <p className="text-[11px] text-emerald-600 font-bold mt-1">High weight for {targetCourse}</p>
-              </div>
-            </div>
-
-            {/* Next Recommended Test & AI Action */}
-            <div className="bg-gradient-to-r from-emerald-900 to-teal-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="space-y-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-emerald-500/30">
-                  AI Next Recommendation
-                </span>
-                <h3 className="text-xl font-black tracking-tight">{nextRecommendedTest}</h3>
-                <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
-                  To close your +{gap} mark gap for {targetCourse}, our AI recommends mastering this high-yield topic immediately in the CBT Exam module.
+                <p className="text-[11px] text-emerald-600 font-bold mt-1">
+                  {progressHistory.length > 0 ? `From attempt on ${progressHistory[progressHistory.length - 1]?.date || 'recent test'}` : 'No CBT tests taken yet'}
                 </p>
               </div>
-              <button
-                onClick={() => setActiveTab('cbt')}
-                className="px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-emerald-500/20 flex-shrink-0 flex items-center gap-2"
-              >
-                Start Recommended Test <ChevronRight size={16} />
-              </button>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Target Goal</span>
+                <div className="text-3xl font-black text-emerald-600 mt-2">{targetScore || '--'} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
+                <p className="text-[11px] text-slate-500 font-bold mt-1 truncate">{targetUniversity || 'Select university'}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Score Gap to Target</span>
+                <div className={`text-3xl font-black mt-2 ${gap > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  {gap > 0 ? `+${gap}` : 'Target Met 🎉'} <span className="text-xs text-slate-400 font-normal">{gap > 0 ? 'marks needed' : ''}</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-bold mt-1 truncate">For {targetCourse || 'chosen course'}</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Average & Best Mock</span>
+                <div className="text-2xl font-black text-slate-950 mt-2">
+                  Avg: {averageScore} <span className="text-xs text-slate-400 font-normal">| Best: <strong className="text-emerald-600">{highestScore}</strong></span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-bold mt-1">{progressHistory.length} total attempts logged</p>
+              </div>
             </div>
 
-            {/* Progress Tracking Timeline & Growth Chart */}
+            {/* Score Trend Interactive Recharts Graph */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={22} className="text-emerald-600" />
+                    <h2 className="text-lg font-black text-slate-950">Score Trajectory & Progress Trend Graph</h2>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Visualizes whether your CBT scores are trending upwards or dipping across practice attempts.
+                  </p>
+                </div>
+                {targetScore && (
+                  <div className="flex items-center gap-3 text-xs font-bold">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Your Score
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                      <span className="w-2.5 h-0.5 border-t-2 border-dashed border-amber-500"></span> Target: {targetScore}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {chartData.length === 0 ? (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                  <Activity size={36} className="mx-auto text-slate-300 mb-2" />
+                  <h3 className="text-sm font-bold text-slate-700">No Graph Data Available Yet</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    Take your first CBT Exam in the Test tab or log an external tutorial mock below to see your performance graph generate automatically.
+                  </p>
+                </div>
+              ) : (
+                <div className="w-full h-72 pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#059669" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#059669" stopOpacity={0.0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 400]} tickCount={9} />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const score = data.score;
+                            const target = typeof targetScore === 'number' ? targetScore : 250;
+                            const diff = score - target;
+                            return (
+                              <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-800 text-xs space-y-1">
+                                <p className="font-extrabold text-emerald-400">{label}</p>
+                                <p className="text-slate-300">Date: <span className="font-semibold text-white">{data.date}</span></p>
+                                <p className="text-slate-300">Score: <strong className="text-xl text-white font-black">{score} / 400</strong></p>
+                                <p className="text-slate-300">
+                                  Status: {diff >= 0 ? (
+                                    <span className="text-emerald-400 font-bold">+{diff} above target</span>
+                                  ) : (
+                                    <span className="text-amber-400 font-bold">{Math.abs(diff)} marks needed</span>
+                                  )}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      {typeof targetScore === 'number' && targetScore > 0 && (
+                        <ReferenceLine y={targetScore} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: `Target: ${targetScore}`, fill: '#d97706', fontSize: 11, position: 'top' }} />
+                      )}
+                      <Area type="monotone" dataKey="score" stroke="#059669" strokeWidth={3} fillOpacity={1} fill="url(#scoreGradient)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Trajectory Banner */}
+              {progressHistory.length >= 2 && (
+                <div className={`p-4 rounded-2xl border flex items-center gap-3 ${scoreDelta >= 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                  {scoreDelta >= 0 ? <ArrowUpRight size={24} className="text-emerald-600 flex-shrink-0" /> : <ArrowDownRight size={24} className="text-amber-600 flex-shrink-0" />}
+                  <div className="text-xs">
+                    <strong>{scoreDelta >= 0 ? 'Upward Trajectory:' : 'Score Fluctuation:'}</strong>{' '}
+                    {scoreDelta >= 0
+                      ? `You improved by +${scoreDelta} marks on your latest attempt! Keep practicing past questions to secure admission into ${targetCourse || 'your dream course'}.`
+                      : `Your score changed by ${scoreDelta} marks from the previous session. Use AI Hints and Study Hub to review difficult questions.`
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Test Attempt Log & Manual Score Logger */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-emerald-600" /> Progress Tracking & Monthly Growth
+                    <Activity size={20} className="text-emerald-600" /> CBT Attempts History & Mock Log
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">Students can actually see themselves improving month by month toward their {targetScore} target.</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Every CBT test completed in CampusAI is saved here. You can also manually log tutorial or school mock scores.
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <input
                     type="text"
                     value={newMonthInput}
                     onChange={(e) => setNewMonthInput(e.target.value)}
-                    placeholder="Month (e.g. Jan)"
-                    className="w-28 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                    placeholder="e.g. Mock 1 / Sept"
+                    className="w-32 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
                   />
                   <input
                     type="number"
+                    min={0}
+                    max={400}
                     value={newScoreInput}
                     onChange={(e) => {
                       const val = parseInt(e.target.value);
@@ -1096,58 +1256,91 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   <button
                     onClick={() => {
                       if (newMonthInput && typeof newScoreInput === 'number') {
-                        setProgressHistory([...progressHistory, { month: newMonthInput, score: newScoreInput }]);
+                        const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        setProgressHistory(prev => [
+                          ...prev,
+                          {
+                            id: `manual-${Date.now()}`,
+                            month: newMonthInput,
+                            score: newScoreInput,
+                            date: now,
+                            examType: 'Mock Log'
+                          }
+                        ]);
                         setNewMonthInput('');
                         setNewScoreInput('');
                       }
                     }}
-                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 transition-all"
                   >
-                    Add Score
+                    <Plus size={14} /> Log Score
                   </button>
                 </div>
               </div>
 
-              {/* Timeline Display */}
-              {progressHistory.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50 mt-4">
-                  <TrendingUp size={32} className="mx-auto text-slate-300 mb-3" />
-                  <h3 className="text-sm font-bold text-slate-700">No Progress Recorded Yet</h3>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Start taking CBT practice exams or manually log your scores above to start building your JAMB progress timeline.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 pt-4">
-                  {progressHistory.map((item, index) => {
-                    const isLatest = index === progressHistory.length - 1;
-                    return (
-                      <div key={index} className={`p-4 rounded-2xl border text-center relative ${isLatest ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
-                        {isLatest && (
-                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider">
-                            Current
-                          </span>
-                        )}
-                        <span className="text-xs font-bold text-slate-500 block">{item.month}</span>
-                        <div className="text-2xl font-black text-slate-950 mt-2">{item.score}</div>
-                        <span className="text-[10px] text-slate-400 block mt-1">UTME Score</span>
-                      </div>
-                    );
-                  })}
+              {/* Table of Attempts */}
+              {progressHistory.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider">
+                        <th className="pb-3">Attempt / Session</th>
+                        <th className="pb-3">Date</th>
+                        <th className="pb-3">Exam Type</th>
+                        <th className="pb-3">Score / 400</th>
+                        <th className="pb-3">Vs Previous</th>
+                        <th className="pb-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                      {progressHistory.map((item, idx) => {
+                        const prev = idx > 0 ? progressHistory[idx - 1] : null;
+                        const delta = prev ? item.score - prev.score : 0;
+                        return (
+                          <tr key={item.id || idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 font-bold text-slate-900">{item.month}</td>
+                            <td className="py-3 text-slate-500">{item.date || '--'}</td>
+                            <td className="py-3">
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                                {item.examType || 'UTME'}
+                              </span>
+                            </td>
+                            <td className="py-3 font-black text-slate-900 text-sm">
+                              {item.score}
+                            </td>
+                            <td className="py-3">
+                              {idx === 0 ? (
+                                <span className="text-slate-400 text-[11px]">Baseline</span>
+                              ) : delta > 0 ? (
+                                <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                                  <ArrowUpRight size={14} /> +{delta}
+                                </span>
+                              ) : delta < 0 ? (
+                                <span className="text-rose-600 font-bold flex items-center gap-0.5">
+                                  <ArrowDownRight size={14} /> {delta}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-bold">0</span>
+                              )}
+                            </td>
+                            <td className="py-3 text-right">
+                              <button
+                                onClick={() => {
+                                  setProgressHistory(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                                title="Delete attempt"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
-
-              {/* Visual Progress Bar to Target */}
-              <div className="space-y-2 pt-4 border-t border-slate-100">
-                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-slate-600">Progress to Target ({currentCbtEquivalent} / {targetScore || '-'})</span>
-                  <span className="text-emerald-600">{Math.round((currentCbtEquivalent / (typeof targetScore === 'number' ? targetScore : 1)) * 100)}% Achieved</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                    style={{ width: `${typeof targetScore === 'number' && targetScore > 0 ? Math.min(100, Math.max(5, (currentCbtEquivalent / targetScore) * 100)) : 0}%` }}
-                  ></div>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -1295,6 +1488,59 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   </div>
                   </>
                 )}
+
+                  {/* Official Examination Standards & Instructions Guide */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Info size={18} className="text-emerald-600" />
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                          Official Examination Standards & Instructions
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowExamInstructions(!showExamInstructions)}
+                        className="text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                      >
+                        {showExamInstructions ? 'Hide Instructions' : 'View Instructions'}
+                      </button>
+                    </div>
+
+                    {showExamInstructions && (
+                      <div className="text-xs text-slate-600 space-y-2.5 pt-2 border-t border-slate-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="bg-white p-3 rounded-xl border border-slate-200">
+                            <span className="font-extrabold text-slate-900 block text-[11px] uppercase text-emerald-700">JAMB UTME Standard</span>
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                              <strong>180 Questions total</strong>: English has <strong>60 questions</strong>, other 3 subjects have <strong>40 questions each</strong>. Total time: <strong>120 minutes (2 Hours)</strong>.
+                            </p>
+                          </div>
+                          <div className="bg-white p-3 rounded-xl border border-slate-200">
+                            <span className="font-extrabold text-slate-900 block text-[11px] uppercase text-emerald-700">WAEC SSCE Standard</span>
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                              <strong>50 Objective Questions</strong> per subject. Authentic syllabus test mode with 60 minutes per subject.
+                            </p>
+                          </div>
+                          <div className="bg-white p-3 rounded-xl border border-slate-200">
+                            <span className="font-extrabold text-slate-900 block text-[11px] uppercase text-emerald-700">Post-UTME Screening</span>
+                            <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                              Drawn directly from official university past question archives (UNILAG, UI, OAU, UNIBEN, KWASU, LAUTECH, etc.). <strong>45 mins</strong> screening.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-emerald-900">
+                          <strong className="text-emerald-950 font-black">Official 8-Key CBT Shortcuts:</strong>
+                          <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">A</kbd> <kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">B</kbd> <kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">C</kbd> <kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">D</kbd> Select Option</span>
+                          <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">N</kbd> Next</span>
+                          <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">P</kbd> Previous</span>
+                          <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">S</kbd> Submit Test</span>
+                          <span><kbd className="px-1.5 py-0.5 bg-white rounded border border-emerald-300 font-mono font-bold">R</kbd> Bookmark</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {error && (
                     <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-2xl flex items-center gap-3">
