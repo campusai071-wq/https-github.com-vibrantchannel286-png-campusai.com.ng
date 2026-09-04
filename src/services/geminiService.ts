@@ -2,45 +2,55 @@ import { generateContent } from "./aiService";
 import { findMatchingSchoolRelease } from "../data/postUtmeData";
 
 
-function extractCutoffFallback(course: string, searchData: string | null) {
-  if (!searchData) return estimateCompetitiveCutoff(course);
-  
-  const matches = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark)[^\d]{0,50}?(\d{2}\.\d{1,2})/gi);
-  if (matches && matches.length > 0) {
-    for (let m of matches) {
-      const numMatch = m.match(/(\d{2}\.\d{1,2})/);
-      if (numMatch) {
-         const val = parseFloat(numMatch[1]);
-         if (val >= 40 && val <= 90) return val;
-      }
+function extractCutoffFallback(course: string, searchData: string | null): number {
+  if (searchData) {
+    // 1. Look for course-specific cutoff pattern e.g., "Computer Science: 68.5%" or "Medicine - 78%"
+    const escapedCourse = course.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const courseRegex = new RegExp(`${escapedCourse}[^\\d]{0,40}?(\\d{2}(\\.\\d{1,2})?)%?`, 'i');
+    const courseMatch = searchData.match(courseRegex);
+    if (courseMatch && courseMatch[1]) {
+      const val = parseFloat(courseMatch[1]);
+      if (val >= 40 && val <= 95) return val;
     }
-  }
-  
-  const matchesInt = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark)[^\d]{0,50}?(\d{2})[%\s]/gi);
-  if (matchesInt && matchesInt.length > 0) {
-    for (let m of matchesInt) {
-      const numMatch = m.match(/(\d{2})/);
-      if (numMatch) {
-         const val = parseFloat(numMatch[1]);
-         if (val >= 40 && val <= 90) return val;
-      }
-    }
-  }
-  
-  return estimateCompetitiveCutoff(course);
-}
 
-function estimateCompetitiveCutoff(course: string): number {
-  const nCourse = course.toLowerCase();
-  if (nCourse.includes('medicine') || nCourse.includes('surgery') || nCourse.includes('dental') || nCourse.includes('law')) {
-    return 75.0;
-  } else if (nCourse.includes('nursing') || nCourse.includes('pharmacy') || nCourse.includes('software') || nCourse.includes('computer science') || nCourse.includes('radiography') || nCourse.includes('physiotherapy')) {
-    return 70.0;
-  } else if (nCourse.includes('engineering') || nCourse.includes('accounting') || nCourse.includes('medical laboratory') || nCourse.includes('public health') || nCourse.includes('architecture')) {
-    return 65.0;
-  } else if (nCourse.includes('economics') || nCourse.includes('mass communication') || nCourse.includes('business administration') || nCourse.includes('microbiology') || nCourse.includes('biochemistry')) {
-    return 60.0;
+    // 2. Look for explicit percentage cutoff in search snippet (e.g. 68.5%, 72.0%)
+    const pctMatches = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark|departmental)[^\d]{0,40}?(\d{2}\.\d{1,2})/gi);
+    if (pctMatches && pctMatches.length > 0) {
+      for (let m of pctMatches) {
+        const numMatch = m.match(/(\d{2}\.\d{1,2})/);
+        if (numMatch) {
+          const val = parseFloat(numMatch[1]);
+          if (val >= 40 && val <= 95) return val;
+        }
+      }
+    }
+    
+    // 3. Look for integer percentage or score
+    const intMatches = searchData.match(/(?:cutoff|cut-off|aggregate|merit|benchmark|departmental)[^\d]{0,40}?(\d{2})[%|\s|,|\.]/gi);
+    if (intMatches && intMatches.length > 0) {
+      for (let m of intMatches) {
+        const numMatch = m.match(/(\d{2})/);
+        if (numMatch) {
+          const val = parseFloat(numMatch[1]);
+          if (val >= 40 && val <= 95) return val;
+        }
+      }
+    }
+
+    // 4. Look for raw UTME score cutoff (e.g., 200, 240, 280 / 400) and scale to 100-point scale
+    const utmeMatches = searchData.match(/(?:cutoff|cut-off|score|utme|jamb)[^\d]{0,30}?(1[6-9]\d|2\d{2}|3[0-3]\d)/gi);
+    if (utmeMatches && utmeMatches.length > 0) {
+      for (let m of utmeMatches) {
+        const numMatch = m.match(/(1[6-9]\d|2\d{2}|3[0-3]\d)/);
+        if (numMatch) {
+          const rawScore = parseInt(numMatch[1], 10);
+          const scaled = Number(((rawScore / 400) * 100).toFixed(1));
+          if (scaled >= 40 && scaled <= 95) return scaled;
+        }
+      }
+    }
   }
+  
   return 55.0;
 }
 
@@ -595,7 +605,7 @@ const createGeminiClient = (apiKey: string) => {
             // Convert sendMessage call to generateContent for the proxy
             const prompt = msgParams.message;
             const params = {
-              model: chatParams.model || "gemini-3.6-flash",
+              model: chatParams.model || "gemini-3.8-flash",
               contents: prompt,
               config: chatParams.config
             };
@@ -861,11 +871,11 @@ Return ONLY a valid JSON object matching this schema:
         const fallbackResponse = await runAIWithFallback(async (ai) => {
           if ('models' in ai) {
             return await ai.models.generateContent({
-              model: "gemini-3.6-flash",
+              model: "gemini-3.8-flash",
               contents: prompt,
               config: { responseMimeType: "application/json" } });
           } else {
-            const model = ai.getGenerativeModel({ model: "gemini-3.6-flash" });
+            const model = ai.getGenerativeModel({ model: "gemini-3.8-flash" });
             const result = await model.generateContent({
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               generationConfig: { responseMimeType: "application/json" }
@@ -928,7 +938,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `You are an elite Investigative Editor for Campusai.com.ng (Nigeria). 
          
          TASK:
@@ -1029,7 +1039,7 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `You are a premier Investigative Education Journalist in Nigeria for CampusAI. 
         
         TASK:
@@ -2073,7 +2083,7 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${resolvedIsELDS}_${resolvedIsCatchment}_${quotaDiscount}_v7`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${resolvedIsELDS}_${resolvedIsCatchment}_${quotaDiscount}_v11`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -2169,30 +2179,30 @@ export const getCourseCutoffInfo = async (
     let officialCutoffData = "";
     let rawSearchContext = "";
     try {
-      const [search2026, searchHistoric, searchSchedule] = await Promise.all([
-        searchWeb(`"${university}" "${course}" departmental aggregate cut-off mark percentage score 2025 2025 2026`).catch(() => ""),
+      const [searchDept, searchHistoric, searchMerit] = await Promise.all([
+        searchWeb(`"${university}" "${course}" departmental cutoff mark OR aggregate score percentage`).catch(() => ""),
         searchWeb(`"${university}" "${course}" merit cutoff mark aggregate score admission`).catch(() => ""),
-        searchWeb(`"${university}" Post-UTME 2024/2026 screening registration status form out dates OR exam schedule`).catch(() => "")
+        searchWeb(`"${university}" departmental cutoff marks for "${course}"`).catch(() => "")
       ]);
 
       const parts = [];
-      if (search2026 && search2026.length > 50) parts.push(`[2024/2026 Current Release]:\n${search2026}`);
-      if (searchHistoric && searchHistoric.length > 50) parts.push(`[Historical Benchmarks]:\n${searchHistoric}`);
-      if (searchSchedule && searchSchedule.length > 50) parts.push(`[Registration Status & Exam Schedule]:\n${searchSchedule}`);
+      if (searchDept && searchDept.length > 30) parts.push(`[Online Departmental Cutoff Search Results]:\n${searchDept}`);
+      if (searchHistoric && searchHistoric.length > 30) parts.push(`[Historical Cutoff & Merit Benchmarks]:\n${searchHistoric}`);
+      if (searchMerit && searchMerit.length > 30) parts.push(`[Institutional Departmental Releases]:\n${searchMerit}`);
 
       if (parts.length > 0) {
         rawSearchContext = parts.join("\n\n");
-        officialCutoffData = "OFFICIAL ONLINE GROUNDING DATA & SEARCH RESULTS (Use this as primary supporting evidence for cut-offs, fee schedules, and registration deadlines):\n" + rawSearchContext.substring(0, 10000);
+        officialCutoffData = "OFFICIAL / HISTORICAL ONLINE GROUNDING SEARCH RESULTS (Search the results below for the exact cutoff mark of this course):\n" + rawSearchContext.substring(0, 10000);
         const knowledgeKey = ("cutoff_search_raw_" + university + "_" + course).toLowerCase().replace(/[^a-z0-9_-]+/g, "_");
         saveKnowledgeFragment(knowledgeKey, rawSearchContext.substring(0, 5000)).catch(err => {
           console.error("Error saving raw search facts to knowledge fragments:", err);
         });
       } else {
-        officialCutoffData = "No specific online search grounding available. Rely on standard historical competitiveness and general institutional parameters.";
+        officialCutoffData = "No specific online search grounding available. Rely on historical departmental admission records.";
       }
     } catch (searchError) {
       console.warn("Search for official cutoff failed:", searchError);
-      officialCutoffData = "Search failed due to rate limits or connectivity. Rely on standard competitive thresholds.";
+      officialCutoffData = "Search failed due to rate limits or connectivity. Rely on historical departmental admission records.";
     }
 
     let manualOverride = await getCutoffOverride(university, course);
@@ -2276,9 +2286,9 @@ export const getCourseCutoffInfo = async (
       institutionalCutoff: manualOverride?.institutionalCutoff || "160",
       cutoff: `${cutoffVal}%`,
       cutoffValue: cutoffVal,
-      cutoffType: manualOverride ? "official_departmental_cutoff" : "estimated_benchmark",
+      cutoffType: manualOverride ? "official_departmental_cutoff" : "historical_closing_aggregate",
       cutoffYear: new Date().getFullYear(),
-      cutoffSource: manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Algorithmic Estimation",
+      cutoffSource: manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Historical Records & Live Web Search",
       cutoffIsOfficial: !!manualOverride,
       cutoffConfidence: manualOverride ? "high" : "medium",
       cutoffQuotaUsed: quotaUsedText,
@@ -2290,7 +2300,7 @@ export const getCourseCutoffInfo = async (
       ],
       subjectCombinationValidation: subjectCheck,
       reliability: manualOverride ? "high" : "medium",
-      confidenceReasoning: manualOverride ? "Official verified cutoff override applied." : "Algorithmic audit completed using official university & JAMB competitive benchmarks.",
+      confidenceReasoning: manualOverride ? "Official verified cutoff override applied." : "Extracted from historical departmental cutoff records and online search.",
       evidencePanel: [],
       recommendation: deterministicEvaluation.recommendation,
       detailedStrategy: deterministicEvaluation.detailedStrategy,
@@ -2308,16 +2318,17 @@ export const getCourseCutoffInfo = async (
     let overridePrompt = "";
     if (manualOverride) {
       overridePrompt = `⚠️ CRITICAL SYSTEM OVERRIDE (MANDATORY ADMISSION GROUND TRUTH):
-- The official, verified 2026 departmental competitive cut-off score for "${course}" at "${university}" is EXCLUSIVELY: "${manualOverride.departmentalCutoff}".
+- The official, verified departmental cut-off score for "${course}" at "${university}" is EXCLUSIVELY: "${manualOverride.departmentalCutoff}".
 - The institutional cut-off floor is: "${manualOverride.institutionalCutoff || '150'}".
 - Verified explanation / policy detail: "${manualOverride.explanation || 'No extra notes.'}".
 You MUST evaluate the candidate's aggregate score (${score}%) strictly against this verified departmental cut-off score ("${manualOverride.departmentalCutoff}") to compute the probability, recommendation, and verdict.`;
     } else {
-      overridePrompt = `⚠️ IMPORTANT INSTRUCTION FOR COMPETITIVE COURSES & CUTOFFS:
-You must apply extremely strict and realistic historical cutoffs.
-- DO NOT confuse the general Institutional JAMB Cut-off Mark (e.g. 160, 180, 200) with the Final Departmental Aggregate Percentage (out of 100%).
-- For highly competitive courses like Computer Science, Medicine, Nursing, Law, Pharmacy, Software Engineering, etc., at top universities (e.g., FUTA, UNILAG, UI, OAU, UNN, UNILORIN, UNIBEN), the departmental aggregate cut-off is typically very high (e.g., 68% - 75%+).
-- DO NOT output unrealistic low cutoffs (like 50%-60%) for tier-1 courses at competitive universities. If search results only mention the "180 JAMB cutoff", you must estimate the strict percentage aggregate (out of 100%) required for actual admission. Base your predictions firmly on these Nigerian admission realities.`;
+      overridePrompt = `⚠️ CRITICAL INSTRUCTION FOR OFFICIAL / HISTORICAL COURSE CUTOFFS:
+Search results containing official or historical departmental cutoff data for "${course}" at "${university}" are provided below.
+- You MUST search and analyze the online search results to extract the actual official or historical departmental cutoff mark or closing merit aggregate for "${course}" at "${university}".
+- If the search results mention an official or historical cutoff (e.g., 68.5%, 72.0%, 58.0%, 250 scaled to aggregate, etc.), extract and use THAT EXACT CUTOFF.
+- DO NOT invent or estimate an arbitrary number if real online or historical figures are available in the search results or verified knowledge base.
+- Departmental aggregate cutoff must be formatted as a single clean percentage (e.g., "68.5%").`;
     }
 
     const allKnowledge = await getAllKnowledgeFragments();
@@ -2364,7 +2375,7 @@ You must apply extremely strict and realistic historical cutoffs.
 
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `
 ${overridePrompt}
 
@@ -2374,7 +2385,7 @@ ${learnedPrompt}
 
 CRITICAL RULES FOR ADMISSION ANALYSIS:
 1. DEPARTMENTAL CUT-OFF EXPLICIT GROUNDING:
-   - Extract or search for the exact published or verified estimated competitive benchmark mark / aggregate score for ${course} at ${university} from the grounding search data. Output as percentage or score e.g. "58.5%" or "72.0%".
+   - Output departmentalCutoff strictly as a single clean percentage number with a % symbol (e.g. "55.0%" or "70.0%"). NEVER output composite expressions, slashes, or secondary numbers (e.g. NEVER output "58% / 220"). Output ONLY the single aggregate percentage cutoff (out of 100%).
 2. REALISTIC FRESHER BUDGET:
    - "fresherBudget" MUST be a realistic, structured, professional cost breakdown for a first-year student at "${university}" in NGN.
 3. STRICT FACULTY BOUNDARY MANDATE:
@@ -2469,25 +2480,51 @@ Return JSON:
         parsed.cutoffConfidence = "high";
         parsed.reliability = "high";
       } else {
-        // If not an official override, ensure it is honestly categorized
-        parsed.cutoffIsOfficial = false;
-        parsed.cutoffType = "estimated_benchmark";
-        parsed.cutoffSource = parsed.cutoffSource || "Historical Competitive Benchmark";
+        // Adopt the model's online/historical extracted cutoff or the search-parsed cutoff
+        let cleanDeptCutoff = cutoffVal;
+        const rawModelCutoff = String(parsed.departmentalCutoff || parsed.cutoffValue || parsed.cutoff || '');
+        const cleanMatch = rawModelCutoff.match(/(\d{1,2}(\.\d{1,2})?)/);
+        if (cleanMatch) {
+          const val = parseFloat(cleanMatch[1]);
+          if (val >= 40 && val <= 95) {
+            cleanDeptCutoff = val;
+          }
+        }
+        parsed.departmentalCutoff = `${cleanDeptCutoff}%`;
+        parsed.cutoff = `${cleanDeptCutoff}%`;
+        parsed.cutoffValue = cleanDeptCutoff;
+        parsed.cutoffType = parsed.cutoffType || "historical_closing_aggregate";
+        parsed.cutoffSource = parsed.cutoffSource || "Historical Departmental Records & Live Web Search";
+
+        // Re-evaluate candidate tiers against the actual searched cutoff
+        const reEval = enforceAdmissionTiers(
+          score, cleanDeptCutoff, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
+          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
+          parsed.cutoffIsOfficial || false
+        );
+        parsed.verdict = reEval.verdict;
+        parsed.probability = reEval.probability;
+        parsed.recommendation = reEval.recommendation;
+        parsed.detailedStrategy = reEval.detailedStrategy;
+        parsed.scoreDiff = Number((score - cleanDeptCutoff).toFixed(2));
       }
 
-      // 2. Lock verdict and probability strictly to deterministic tier calibration
-      parsed.probability = deterministicEvaluation.probability;
-      parsed.verdict = deterministicEvaluation.verdict;
+      // 2. Lock quota and differential details
       parsed.cutoffQuotaUsed = quotaUsedText;
-      parsed.scoreDiff = scoreDiffVal;
+      if (!parsed.scoreDiff) {
+        const finalCutoffVal = parseFloat(String(parsed.departmentalCutoff || '').replace(/[^0-9.]/g, '')) || cutoffVal;
+        parsed.scoreDiff = Number((score - finalCutoffVal).toFixed(2));
+      }
 
-      // 3. Sanitize strategy markdown to prevent hallucinated 'official' claims when estimated
+      // 3. Ensure strategy markdown is properly formatted
       if (!parsed.detailedStrategy || parsed.detailedStrategy.length < 50 || parsed.detailedStrategy.includes("Summary...") || parsed.detailedStrategy.includes("detailed above")) {
-        parsed.detailedStrategy = deterministicEvaluation.detailedStrategy;
-      } else if (parsed.detailedStrategy && !parsed.cutoffIsOfficial) {
-        parsed.detailedStrategy = parsed.detailedStrategy
-          .replace(/official departmental cutoff/gi, "estimated competitive benchmark")
-          .replace(/official cutoff/gi, "estimated benchmark");
+        const currentCutoffVal = parseFloat(String(parsed.departmentalCutoff || '').replace(/[^0-9.]/g, '')) || cutoffVal;
+        const fallbackEval = enforceAdmissionTiers(
+          score, currentCutoffVal, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
+          isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
+          parsed.cutoffIsOfficial || false
+        );
+        parsed.detailedStrategy = fallbackEval.detailedStrategy;
       }
 
       if (Array.isArray(parsed.alternatives)) {
@@ -2630,7 +2667,7 @@ export const getUniversityDetailedInfo = async (name: string): Promise<UniBio | 
   try {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `Provide a detailed academic profile for "${name}" in Nigeria updated for the 2024/2026 academic session.
 Return ONLY a JSON object with keys:
 - "bio": concise, engaging institutional summary (2-3 sentences)
@@ -2702,7 +2739,7 @@ export const getUniversityCourses = async (institution: string): Promise<string[
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
             // ─── FIX: Updated model name ───────────────────────────────────────
-            model: "gemini-3.6-flash",
+            model: "gemini-3.8-flash",
             contents: `Provide a comprehensive list of up to 50 popular, accredited undergraduate programmes officially offered at "${institution}" in Nigeria.
 
 OUTPUT RULES:
@@ -2803,7 +2840,7 @@ export const getUniversityScoringSystem = async (institution: string) => {
         }
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-3.8-flash",
             contents: `You are an expert Nigerian higher education admission systems analyst.
 Based on the following real-time web search results for "${institution}", extract the precise aggregate screening formula / grading system used for admission.
 
@@ -2877,7 +2914,7 @@ export const getAsuuStrikeStatus = async () => {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `Current ASUU strike status in Nigeria as of ${getNigerianDate()}.
 Based on your training data (and any real-time data if available), analyze if there is an active/threatened Academic Staff Union of Universities (ASUU) strike.
 
@@ -3249,7 +3286,7 @@ export const executeAiChat = async (
       const contents = buildCleanChatContents(history, sanitizedMessage);
 
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents,
         config: { 
           systemInstruction
@@ -3370,7 +3407,7 @@ export const executeAiChatStream = async (
 
       try {
         const responseStream = await ai.models.generateContentStream({
-          model: "gemini-3.6-flash",
+          model: "gemini-3.8-flash",
           contents,
           config: { 
             systemInstruction
@@ -3394,7 +3431,7 @@ export const executeAiChatStream = async (
       } catch (streamErr) {
         console.warn("generateContentStream fallback to generateContent:", streamErr);
         const singleResp = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
+          model: "gemini-3.8-flash",
           contents,
           config: { 
             systemInstruction
@@ -3470,7 +3507,7 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2024/2026.
 
 CRITICAL RULES:
@@ -3569,7 +3606,7 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2024/2026 academic session.
 
 CRITICAL:

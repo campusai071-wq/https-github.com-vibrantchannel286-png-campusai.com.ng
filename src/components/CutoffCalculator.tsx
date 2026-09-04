@@ -2600,20 +2600,27 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       
       let finalVerdict = result?.verdict || 'Guest Calculation Audit';
       let finalProbability = typeof result?.probability === 'number' ? result.probability : 50;
+      let isDisqualified = false;
+      let parsedCutoffVal = 55;
 
       if (result) {
         // Calculate deterministic values for authenticated users
-        const isDisqualified = result.probability === 0 || 
+        isDisqualified = result.probability === 0 || 
           (result.verdict && result.verdict.toLowerCase().includes('disqualif')) ||
           result.departmentalCutoff === 'N/A' ||
           result.subjectCombinationValidation?.valid === false;
 
-        const rawCutoff = (result.departmentalCutoff || result.cutoff || '').toString().replace(/[^0-9.]/g, '');
-        const parsedCutoffVal = parseFloat(rawCutoff) || (isDisqualified ? 0 : 55);
+        const rawCutoffMatch = (result.departmentalCutoff || result.cutoff || '').toString().match(/(\d+(\.\d+)?)/);
+        parsedCutoffVal = rawCutoffMatch ? parseFloat(rawCutoffMatch[1]) : (isDisqualified ? 0 : 55);
+        if (parsedCutoffVal > 100 && (parseFloat(aggregateScore.toString()) || 0) <= 100) {
+          // If a raw JAMB-scale cutoff (e.g. 220) was returned for a 100% aggregate university, scale appropriately
+          parsedCutoffVal = parsedCutoffVal / 4;
+        }
 
         if (isDisqualified) {
           finalVerdict = result.verdict || 'Disqualified / Invalid Subject Combination';
           finalProbability = 0;
+          parsedCutoffVal = 0;
         } else if (parsedCutoffVal > 0) {
           const deterministic = enforceAdmissionTiers(
             parseFloat(aggregateScore.toString()) || 0,
@@ -2634,6 +2641,16 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           if (typeof deterministic?.probability === 'number') finalProbability = deterministic.probability;
         }
 
+        const cleanDeptCutoff = isDisqualified ? 'N/A' : `${Number(parsedCutoffVal.toFixed(2))}%`;
+        result.departmentalCutoff = cleanDeptCutoff;
+        result.cutoff = cleanDeptCutoff;
+        result.cutoffValue = parsedCutoffVal;
+        result.probability = finalProbability;
+        result.verdict = finalVerdict;
+
+        enrichedResult = { ...result, predictionId };
+        setAiResult(enrichedResult);
+
         // GA4 Event: admission_analysis
         trackAdmissionAnalysis({
           university: targetUni.name,
@@ -2642,7 +2659,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           verdict: finalVerdict,
           probability: finalProbability,
           is_official_cutoff: !!result.cutoffIsOfficial,
-          cutoff_used: result.cutoffValue || result.departmentalCutoff || result.cutoff || '',
+          cutoff_used: cleanDeptCutoff,
           quota: result.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
         });
       }
@@ -2664,7 +2681,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         verdict: finalVerdict,
         confidence: result?.reliability || 'Medium',
         predictedProbability: finalProbability,
-        departmentalCutoff: result?.departmentalCutoff || result?.cutoff || '',
+        departmentalCutoff: isDisqualified ? 'N/A' : (result?.departmentalCutoff || `${Number(parsedCutoffVal.toFixed(2))}%`),
         institutionalCutoff: result?.institutionalCutoff || '',
         stateOfOrigin: stateOfOrigin || '',
         isELDSState: !!isELDSState,

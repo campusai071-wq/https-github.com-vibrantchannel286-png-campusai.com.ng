@@ -10,7 +10,7 @@ export const analyzeCGPA = async (
   try {
     const response = await runAIWithFallback(async (ai: any) => {
       return await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.8-flash",
         contents: `You are an expert academic advisor for a student at ${university} studying ${course}.
 Analyze the following CGPA trajectory and semester breakdown:
 ${semesterSummary}

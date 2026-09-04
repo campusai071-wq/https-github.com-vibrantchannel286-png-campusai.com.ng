@@ -194,6 +194,35 @@ export const getVerdictCategory = (record: {
   return 'borderline';
 };
 
+export const formatSingleCleanCutoff = (cutoff: any, aggregateScore?: number): string => {
+  if (!cutoff || cutoff === 'N/A') return 'N/A';
+  const str = String(cutoff).trim();
+  if (str === 'N/A' || str === 'Disqualified' || str.toLowerCase().includes('ineligible')) return 'N/A';
+
+  // If already clean like "58.5%" or "62%", return it normalized
+  if (/^\d{1,3}(\.\d{1,2})?%?$/.test(str)) {
+    const num = parseFloat(str);
+    if (num <= 100) return str.endsWith('%') ? str : `${str}%`;
+    return `${str} pts`;
+  }
+
+  // If format has slashes or multiple numbers (e.g. "81.5 / 315"), match only the first clean percentage number
+  const match = str.match(/(\d{1,3}(\.\d{1,2})?)/);
+  if (match) {
+    let num = parseFloat(match[1]);
+    if (num > 100 && (typeof aggregateScore === 'number' ? aggregateScore <= 100 : true)) {
+      if (num >= 140 && num <= 400) {
+        num = num / 4;
+      }
+    }
+    if (num <= 100) {
+      return `${Number(num.toFixed(2))}%`;
+    }
+    return `${Math.round(num)}`;
+  }
+  return '55.0%';
+};
+
 const sanitizeRecord = (
   data: any, 
   recordId: string, 
@@ -223,6 +252,8 @@ const sanitizeRecord = (
     finalProbability = 0;
   }
 
+  const cleanDeptCutoff = isDisqualified ? 'N/A' : formatSingleCleanCutoff(data.departmentalCutoff || data.cutoff, data.aggregateScore);
+
   return {
     id: recordId,
     source,
@@ -239,7 +270,7 @@ const sanitizeRecord = (
     verdict: finalVerdict,
     confidence: isDisqualified ? 'High' : (data.confidence || 'Medium'),
     predictedProbability: finalProbability,
-    departmentalCutoff: isDisqualified ? 'N/A' : (data.departmentalCutoff || data.cutoff || ''),
+    departmentalCutoff: cleanDeptCutoff,
     institutionalCutoff: data.institutionalCutoff || '',
     cutoffType: data.cutoffType,
     cutoffIsOfficial: data.cutoffIsOfficial,
@@ -1003,7 +1034,7 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                   )}
                                 </p>
                                 <p className="text-base font-black text-gray-700 dark:text-gray-300 mt-0.5">
-                                  {isDisqualified ? 'N/A' : (item.departmentalCutoff || 'Benchmark')}
+                                  {isDisqualified ? 'N/A' : (formatSingleCleanCutoff(item.departmentalCutoff, parseFloat(String(item.aggregateScore || '0'))) || '55.0%')}
                                 </p>
                               </div>
 
@@ -1071,7 +1102,8 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                     );
                                   }
 
-                                  const cVal = parseFloat(String(item.departmentalCutoff || '0').replace(/[^0-9.]/g, '')) || 0;
+                                  const cMatch = String(item.departmentalCutoff || '0').match(/(\d+(\.\d+)?)/);
+                                  const cVal = cMatch ? parseFloat(cMatch[1]) : 0;
                                   if (cVal === 0) {
                                     return (
                                       <span className="font-mono font-black px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">

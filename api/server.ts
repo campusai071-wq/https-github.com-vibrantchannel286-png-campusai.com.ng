@@ -617,7 +617,7 @@ Each question object MUST follow this exact schema:
 ]`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         temperature: 0.95,
@@ -877,7 +877,7 @@ Format response as JSON with this structure:
 }`;
 
         const aiRes = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             temperature: 0.4,
@@ -967,7 +967,7 @@ Provide a structured, encouraging JSON output adhering strictly to this schema:
 }`;
 
     const aiRes = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         temperature: 0.5,
@@ -1612,16 +1612,13 @@ const getActiveApiKey = (): string => {
 };
 
 const createGeminiClient = (apiKey: string): any => {
-  if (apiKey.startsWith('AQ')) {
-    return {
-      type: 'AIP',
-      client: new GoogleGenAI({
-        apiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      })
-    };
-  }
-  return { type: 'LEGACY', client: new GoogleGenerativeAI(apiKey) };
+  return {
+    type: 'AIP',
+    client: new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    })
+  };
 };
 
 function isGibberishResponse(text: string): boolean {
@@ -1684,7 +1681,7 @@ interface AIFallbackResult {
 }
 
 async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackResult | null> {
-  const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-3.6-flash', label = '' } = opts;
+  const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-3.8-flash', label = '' } = opts;
   const tag = label ? `[AI Fallback:${label}]` : '[AI Fallback]';
   const startTime = Date.now();
 
@@ -1722,9 +1719,9 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
       const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
       const candidateModels = Array.from(new Set([
         geminiModel,
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-flash-lite-latest'
+        'gemini-3.8-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-flash-latest'
       ]));
 
       for (const mName of candidateModels) {
@@ -1733,50 +1730,26 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           const gemini = createGeminiClient(activeKey);
           let text = "";
 
-          if (gemini.type === 'AIP') {
-            const config: any = {};
-            if (systemInstruction) config.systemInstruction = systemInstruction;
-            if (jsonMode) config.responseMimeType = "application/json";
-            const formattedContents = messages.length > 0
-              ? messages.map(m => ({
-                  role: m.role === 'assistant' ? 'model' : 'user',
-                  parts: [{ text: m.content }]
-                }))
-              : (promptText || "Hello");
+          const config: any = {};
+          if (systemInstruction) config.systemInstruction = systemInstruction;
+          if (jsonMode) config.responseMimeType = "application/json";
+          const formattedContents = messages.length > 0
+            ? messages.map(m => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }]
+              }))
+            : (promptText || "Hello");
 
-            const result = await fetchWithTimeout(
-              (gemini.client as GoogleGenAI).models.generateContent({
-                model: mName,
-                contents: formattedContents,
-                config
-              }),
-              15000,
-              "Gemini AIP timeout"
-            );
-            text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          } else {
-            const model = (gemini.client as GoogleGenerativeAI).getGenerativeModel({
+          const result = await fetchWithTimeout(
+            (gemini.client as GoogleGenAI).models.generateContent({
               model: mName,
-              systemInstruction
-            });
-            const formattedContents = messages.length > 0
-              ? messages.map(m => ({
-                  role: m.role === 'assistant' ? 'model' : 'user',
-                  parts: [{ text: m.content }]
-                }))
-              : [{ role: 'user', parts: [{ text: promptText || "Hello" }] }];
-
-            const genResult = await fetchWithTimeout(
-              model.generateContent({
-                contents: formattedContents,
-                generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
-              }),
-              15000,
-              "Gemini SDK timeout"
-            );
-            const response = await genResult.response;
-            text = response.text();
-          }
+              contents: formattedContents,
+              config
+            }),
+            30000,
+            "Gemini AIP timeout"
+          );
+          text = result.text || result.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
           if (text && !isGibberishResponse(text)) {
             consecutiveGeminiFailures = 0;
@@ -1980,18 +1953,8 @@ function detectUniversityAndCourse(text: string) {
     { key: "unilorin", name: "University of Ilorin (UNILORIN)", type: "Federal" },
   ];
 
-  const courses = [
-    { key: "medicine", name: "Medicine and Surgery", cutoff: "81.5% / 315", combi: "English, Physics, Chemistry, Biology" },
-    { key: "law", name: "Law", cutoff: "78.0% / 290", combi: "English, Literature-in-English, Government, Christian Religious Studies / Islamic Studies" },
-    { key: "computer", name: "Computer Science", cutoff: "74.5% / 275", combi: "English, Mathematics, Physics, Chemistry" },
-    { key: "nursing", name: "Nursing Science", cutoff: "76.8% / 285", combi: "English, Physics, Chemistry, Biology" },
-    { key: "pharmacy", name: "Pharmacy", cutoff: "77.5% / 295", combi: "English, Physics, Chemistry, Biology" },
-    { key: "mechanical", name: "Mechanical Engineering", cutoff: "73.2% / 270", combi: "English, Mathematics, Physics, Chemistry" },
-    { key: "accounting", name: "Accounting", cutoff: "72.0% / 260", combi: "English, Mathematics, Economics, Financial Accounting / Government" },
-  ];
-
-  let detectedUni = "University of Lagos (UNILAG)";
-  let detectedUniKey = "unilag";
+  let detectedUni = "Target University";
+  let detectedUniKey = "university";
   let detectedUniType = "Federal";
   const textLower = text.toLowerCase();
 
@@ -2004,17 +1967,32 @@ function detectUniversityAndCourse(text: string) {
     }
   }
 
-  let detectedCourse = "Medicine and Surgery";
-  let detectedCutoff = "81.5% / 315";
-  let detectedCombi = "English, Physics, Chemistry, Biology";
+  // Dynamically extract program/course name from prompt if present
+  let detectedCourse = "Target Degree Program";
+  const progMatch = text.match(/(?:program|course|department):\s*([^\n\r,]+)/i);
+  if (progMatch && progMatch[1]) {
+    detectedCourse = progMatch[1].trim();
+  }
 
-  for (const course of courses) {
-    if (textLower.includes(course.key) || textLower.includes(course.name.toLowerCase())) {
-      detectedCourse = course.name;
-      detectedCutoff = course.cutoff;
-      detectedCombi = course.combi;
-      break;
-    }
+  // Calculate realistic course-specific competitive benchmark
+  const nCourse = detectedCourse.toLowerCase();
+  let detectedCutoff = "55.0%";
+  let detectedCombi = "English Language and 3 relevant departmental subjects";
+
+  if (nCourse.includes('medicine') || nCourse.includes('surgery') || nCourse.includes('dental') || nCourse.includes('law')) {
+    detectedCutoff = "75.0%";
+    detectedCombi = nCourse.includes('law') ? "English, Literature-in-English, Government, CRS/IRS" : "English, Physics, Chemistry, Biology";
+  } else if (nCourse.includes('nursing') || nCourse.includes('pharmacy') || nCourse.includes('software') || nCourse.includes('computer') || nCourse.includes('radiography') || nCourse.includes('physiotherapy')) {
+    detectedCutoff = "70.0%";
+    detectedCombi = nCourse.includes('computer') || nCourse.includes('software') ? "English, Mathematics, Physics, Chemistry" : "English, Physics, Chemistry, Biology";
+  } else if (nCourse.includes('engineering') || nCourse.includes('accounting') || nCourse.includes('medical lab') || nCourse.includes('public health') || nCourse.includes('architecture')) {
+    detectedCutoff = "65.0%";
+    detectedCombi = nCourse.includes('accounting') ? "English, Mathematics, Economics, Financial Accounting / Government" : "English, Mathematics, Physics, Chemistry";
+  } else if (nCourse.includes('economics') || nCourse.includes('mass com') || nCourse.includes('business admin') || nCourse.includes('microbiology') || nCourse.includes('biochemistry')) {
+    detectedCutoff = "60.0%";
+    detectedCombi = nCourse.includes('economics') ? "English, Mathematics, Economics, Government" : "English, Biology, Chemistry, Physics";
+  } else {
+    detectedCutoff = "55.0%";
   }
 
   return { uniName: detectedUni, uniKey: detectedUniKey, uniType: detectedUniType, courseName: detectedCourse, cutoff: detectedCutoff, combi: detectedCombi };
@@ -2303,7 +2281,7 @@ app.post("/api/ai/transcribe", async (req: any, res: any) => {
     });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.5-transcribe",
       contents: [
         {
           inlineData: {
@@ -3735,7 +3713,7 @@ app.post("/api/search", async (req: any, res: any) => {
         const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
         const result = await withTimeout(
           ai.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: 'gemini-3.8-flash',
             contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
             config: { tools: [{ googleSearch: {} }] }
           }),
@@ -4242,15 +4220,8 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
       try {
         if (item.type === 'Gemini') {
           const gemini = createGeminiClient(item.rawKey);
-          if (gemini.type === 'AIP') {
-            const result = await gemini.client.models.generateContent({ model: 'gemini-3.6-flash', contents: 'ping' });
-            if (result && result.text) status = 'Active'; else error = 'Empty response';
-          } else {
-            const model = gemini.client.getGenerativeModel({ model: 'gemini-3.6-flash' });
-            const result = await model.generateContent('ping');
-            const response = await result.response;
-            if (response.text()) status = 'Active'; else error = 'Empty response';
-          }
+          const result = await gemini.client.models.generateContent({ model: 'gemini-3.8-flash', contents: 'ping' });
+          if (result && result.text) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });
           const testModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama-3.2-11b-vision-preview', 'mixtral-8x7b-32768'];
