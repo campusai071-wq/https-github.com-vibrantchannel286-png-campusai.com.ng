@@ -13,6 +13,15 @@ interface QuotaModalProps {
 }
 
 const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade, isGuest, onLoginRequest }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -22,17 +31,23 @@ const QuotaModal: React.FC<QuotaModalProps> = ({ isOpen, onClose, onUpgrade, isG
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-xl" 
+            className="absolute inset-0 bg-black/80 backdrop-blur-xl cursor-pointer" 
           />
           <motion.div 
             initial={{ scale: 0.9, opacity: 0, y: 20 }} 
             animate={{ scale: 1, opacity: 1, y: 0 }} 
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
             className="relative bg-white dark:bg-gray-950 w-full max-w-lg rounded-[32px] md:rounded-[48px] overflow-y-auto max-h-[90vh] no-scrollbar shadow-2xl border border-gray-100 dark:border-gray-800"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             
-            <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:scale-110 transition-transform z-10">
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Close modal"
+              className="absolute top-6 right-6 p-2.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full hover:scale-110 active:scale-95 transition-all z-50 cursor-pointer shadow-sm"
+            >
               <X size={20} />
             </button>
 

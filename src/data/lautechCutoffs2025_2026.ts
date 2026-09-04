@@ -514,6 +514,24 @@ export function getLAUTECHCutoffByCourse(courseName: string): LAUTECHCourseCutof
   });
 }
 
+export function getLAUTECHAggregateBenchmark(utmeCutoff: number, programme?: string): number {
+  const p = (programme || '').toLowerCase();
+  if (p.includes('medicine') || p.includes('surgery') || p.includes('mbbs')) return 74.5;
+  if (p.includes('nursing')) return 68.0;
+  if (p.includes('medical laboratory')) return 65.0;
+  if (p.includes('computer science')) return 64.0;
+  if (p.includes('cyber security')) return 61.0;
+  if (p.includes('information system') || p.includes('information technology')) return 58.5;
+  if (p.includes('computer engineering') || p.includes('electrical')) return 60.0;
+  if (p.includes('mechanical') || p.includes('civil')) return 58.0;
+  if (p.includes('accounting') || p.includes('business')) return 57.5;
+  if (p.includes('mass comm')) return 57.0;
+
+  // Baseline formula for LAUTECH aggregate benchmark on 80:20 scale:
+  // (utmeCutoff / 400 * 80) + 18.0 (typical baseline O'Level credits of 18/20)
+  return Math.round(((utmeCutoff / 400) * 80 + 18.0) * 10) / 10;
+}
+
 export function getLAUTECHFaculties(): string[] {
   const faculties = new Set<string>();
   LAUTECH_CUTOFFS_2025_2026.forEach(c => faculties.add(c.faculty));

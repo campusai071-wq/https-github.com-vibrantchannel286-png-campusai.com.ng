@@ -65,7 +65,7 @@ import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
-import { getLAUTECHCutoffByCourse } from "../data/lautechCutoffs2025_2026";
+import { getLAUTECHCutoffByCourse, getLAUTECHAggregateBenchmark } from "../data/lautechCutoffs2025_2026";
 import { getFUHSICutoffByCourse } from "../data/fuhsiCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
@@ -2108,12 +2108,13 @@ export const getCourseCutoffInfo = async (
       if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
         const lautechCutoff = getLAUTECHCutoffByCourse(course);
         if (lautechCutoff) {
+          const aggBenchmark = getLAUTECHAggregateBenchmark(lautechCutoff.utmeCutoff, lautechCutoff.programme);
           manualOverride = {
             institution: "Ladoke Akintola University of Technology (LAUTECH)",
             course: lautechCutoff.programme,
-            departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
-            institutionalCutoff: "170",
-            explanation: `Official LAUTECH 2026/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+            departmentalCutoff: `${aggBenchmark}%`,
+            institutionalCutoff: `${lautechCutoff.utmeCutoff}`,
+            explanation: `Official LAUTECH 2025/2026 Guidelines: Minimum UTME Screening Cutoff is ${lautechCutoff.utmeCutoff}/400. Final 80:20 Merit Aggregate Benchmark is ${aggBenchmark}% (${lautechCutoff.faculty}). Formula: JAMB (80%) + O-Level (20%). There is NO written Post-UTME exam.`
           };
         }
       }
@@ -2225,12 +2226,13 @@ export const getCourseCutoffInfo = async (
     if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
       const lautechCutoff = getLAUTECHCutoffByCourse(course);
       if (lautechCutoff) {
+        const aggBenchmark = getLAUTECHAggregateBenchmark(lautechCutoff.utmeCutoff, lautechCutoff.programme);
         manualOverride = {
           institution: "Ladoke Akintola University of Technology (LAUTECH)",
           course: lautechCutoff.programme,
-          departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
-          institutionalCutoff: "170",
-          explanation: `Official LAUTECH 2026/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+          departmentalCutoff: `${aggBenchmark}%`,
+          institutionalCutoff: `${lautechCutoff.utmeCutoff}`,
+          explanation: `Official LAUTECH 2025/2026 Guidelines: Minimum UTME Screening Cutoff is ${lautechCutoff.utmeCutoff}/400. Final 80:20 Merit Aggregate Benchmark is ${aggBenchmark}% (${lautechCutoff.faculty}). Formula: JAMB (80%) + O-Level (20%). There is NO written Post-UTME exam.`
         };
       }
     }
@@ -2340,6 +2342,8 @@ You must apply extremely strict and realistic historical cutoffs.
     let usesPostUtme = true;
     if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) {
       usesPostUtme = false;
+    } else if (f.includes('lautech') || normUni.includes('lautech') || normUni.includes('ladoke') || f.includes('80_20') || f.includes('80:20')) {
+      usesPostUtme = false;
     } else if (f.includes('lasu') || normUni.includes('lasu') || f.includes('60_40') || f.includes('60:40') || f.includes('point_based')) {
       usesPostUtme = false;
     } else if (f.includes('fuoye') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') || normUni.includes('oye ekiti')) {
@@ -2375,13 +2379,18 @@ CRITICAL RULES FOR ADMISSION ANALYSIS:
    - "fresherBudget" MUST be a realistic, structured, professional cost breakdown for a first-year student at "${university}" in NGN.
 3. STRICT FACULTY BOUNDARY MANDATE:
    - "alternatives" MUST contain 2 to 4 actual alternative courses offered at ${university} matching candidates written JAMB subjects (${cleanJambSubjects.join(', ')}). Set matchPercentage high (e.g. "85%", "92%", "98%") reflecting strong OLevel/JAMB overlap.
+   - Alternatives MUST have LOWER or equal competitive cutoffs compared to "${course}". NEVER recommend harder or higher cutoff courses (e.g. if candidate chose Information Systems, NEVER recommend Computer Science or Cyber Security which require higher cutoffs).
 4. STRATEGIC ADVISEMENT BY STRICT TIER ASSIGNMENT:
    Compare candidate aggregate (${score}%) directly against cutoff (${cutoffVal}%):
-   - Tier 1: BORDERLINE (Score == Cutoff) -> "Borderline", Probability 50-60%.
-   - Tier 2: STRONG (Score is 1-5.99% above) -> "Strong", Probability 65-79%.
+   - Tier 1: BORDERLINE (Score within ±1.5% of Cutoff) -> "Borderline", Probability 45-60%.
+   - Tier 2: STRONG (Score is 1.51-5.99% above) -> "Strong", Probability 65-79%.
    - Tier 3: VERY STRONG (Score >= 6% above) -> "Very Strong / Excellent", Probability 80-98%.
-   - Tier 4: BELOW CUTOFF (Score < Cutoff) -> "Low Probability", Probability < 30%.
-5. DETAILED STRATEGY MARKDOWN:
+   - Tier 4: BELOW CUTOFF (Score < Cutoff by >1.5%) -> "Low Probability", Probability < 35%.
+5. STRICT ZERO-HALLUCINATION & SCALE CONSISTENCY:
+   - Uses Written Post-UTME Exam: ${usesPostUtme ? 'YES' : 'NO'}. If NO, you are STRICTLY FORBIDDEN from inventing or mentioning a written Post-UTME exam, dividing scores by 2, or claiming the candidate needs to sit or score in a Post-UTME exam. Explain that screening is purely based on JAMB and O-Level results.
+   - Scale Consistency: Candidate Aggregate (${score}%) and Cutoff (${cutoffVal}%) are both on a 0-100% scale. DO NOT compare a percentage aggregate with raw 400-point JAMB scores.
+   - The admission probability mentioned in '### 1. Verdict Summary' MUST be exactly ${deterministicEvaluation.probability}%. Do not contradict the calibrated model probability.
+6. DETAILED STRATEGY MARKDOWN:
    Must contain three sections: '### 1. Verdict Summary', '### 2. The Reality Check', and '### 3. Actionable Next Steps'.
 
 - Institution: ${university}
@@ -2532,12 +2541,13 @@ Return JSON:
     if (!manualOverride && (nUni.includes("lautech") || nUni.includes("ladoke") || nUni.includes("ogbomoso"))) {
       const lautechCutoff = getLAUTECHCutoffByCourse(course);
       if (lautechCutoff) {
+        const aggBenchmark = getLAUTECHAggregateBenchmark(lautechCutoff.utmeCutoff, lautechCutoff.programme);
         manualOverride = {
           institution: "Ladoke Akintola University of Technology (LAUTECH)",
           course: lautechCutoff.programme,
-          departmentalCutoff: `${lautechCutoff.utmeCutoff}`,
-          institutionalCutoff: "170",
-          explanation: `Official LAUTECH 2026/2026 UTME Cutoff: ${lautechCutoff.utmeCutoff} - ${lautechCutoff.faculty}`
+          departmentalCutoff: `${aggBenchmark}%`,
+          institutionalCutoff: `${lautechCutoff.utmeCutoff}`,
+          explanation: `Official LAUTECH 2025/2026 Guidelines: Minimum UTME Screening Cutoff is ${lautechCutoff.utmeCutoff}/400. Final 80:20 Merit Aggregate Benchmark is ${aggBenchmark}% (${lautechCutoff.faculty}). Formula: JAMB (80%) + O-Level (20%). There is NO written Post-UTME exam.`
         };
       }
     }

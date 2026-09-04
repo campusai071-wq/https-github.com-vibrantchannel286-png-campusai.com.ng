@@ -178,6 +178,7 @@ interface PostUtmeStatusInfo {
 interface CutoffCalculatorProps {
   user: any;
   onLoginRequest: () => void;
+  onSignUpRequest?: () => void;
   onPremiumRequired: () => void;
   onDiscussWithAI: (p: string) => void;
   initialSchoolName?: string;
@@ -1261,6 +1262,7 @@ const SchoolUgcSection: React.FC<SchoolUgcSectionProps> = ({
 const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   user,
   onLoginRequest,
+  onSignUpRequest,
   onPremiumRequired,
   onDiscussWithAI,
   initialSchoolName,
@@ -2347,7 +2349,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   const handleLaunchAudit = async () => {
     if (!user && calculationCount >= 1) {
-      onLoginRequest?.();
+      if (onSignUpRequest) {
+        onSignUpRequest();
+      } else {
+        onLoginRequest?.();
+      }
       return;
     }
     

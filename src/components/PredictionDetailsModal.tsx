@@ -1079,18 +1079,30 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                       </span>
                                     );
                                   }
-                                  const diff = aggNum - cVal;
+                                  let diff = aggNum - cVal;
+                                  let isJambScale = false;
+                                  if (cVal > 100 && aggNum <= 100) {
+                                    const jScore = parseFloat(String(item.jambScore || '0')) || 0;
+                                    if (jScore > 0) {
+                                      diff = jScore - cVal;
+                                      isJambScale = true;
+                                    } else {
+                                      diff = aggNum - (cVal / 4);
+                                    }
+                                  }
                                   const isPositive = diff >= 0;
                                   return (
                                     <span className={`font-mono font-black px-2 py-0.5 rounded-md ${
                                       isPositive 
                                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' 
-                                        : diff >= -1.5 
+                                        : (diff >= -1.5 || (isJambScale && diff >= -10))
                                           ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
                                           : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
                                     }`}>
-                                      {isPositive ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`}
-                                      {diff >= -1.5 && diff < 0 ? ' (Borderline)' : ''}
+                                      {isJambScale 
+                                        ? (isPositive ? `+${diff.toFixed(0)} pts Surplus (vs JAMB Cutoff)` : `${diff.toFixed(0)} pts Deficit (vs JAMB Cutoff)`)
+                                        : (isPositive ? `+${diff.toFixed(2)}% Surplus` : `${diff.toFixed(2)}% Deficit`)}
+                                      {diff >= -1.5 && diff < 0 && !isJambScale ? ' (Borderline)' : ''}
                                     </span>
                                   );
                                 })()}

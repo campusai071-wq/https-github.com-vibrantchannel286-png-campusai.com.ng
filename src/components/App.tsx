@@ -137,7 +137,7 @@ const CalculatorSkeleton = () => (
   </div>
 );
 
-const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpen, selectedSchoolForChances, setSelectedSchoolForChances, onGoHome }: any) => {
+const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setAuthModalMode, setIsScholarPackOpen, selectedSchoolForChances, setSelectedSchoolForChances, onGoHome }: any) => {
   const location = useLocation();
   const navigate = useNavigate();
   const rawPath = location.pathname.toLowerCase();
@@ -186,7 +186,8 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setIsScholarPackOpe
       <Suspense fallback={<CalculatorSkeleton />}>
         <CutoffCalculator 
           user={user} 
-          onLoginRequest={() => setIsAuthModalOpen ? setIsAuthModalOpen(true) : navigate('/login')} 
+          onLoginRequest={() => { setAuthModalMode?.('signup'); setIsAuthModalOpen(true); }}
+          onSignUpRequest={() => { setAuthModalMode?.('signup'); setIsAuthModalOpen(true); }}
           onPremiumRequired={() => setIsScholarPackOpen(true)}
           onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
           initialSchoolName={computedSchoolName}
@@ -1072,7 +1073,8 @@ const AppContent: React.FC = () => {
               <Suspense fallback={<CalculatorSkeleton />}>
                 <CutoffCalculator 
                   user={user} 
-                  onLoginRequest={() => setIsAuthModalOpen(true)} 
+                  onLoginRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }} 
+                  onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }} 
                   onPremiumRequired={() => setIsScholarPackOpen(true)}
                   onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
                   initialSchoolName={selectedSchoolForChances}
@@ -1089,6 +1091,7 @@ const AppContent: React.FC = () => {
             <SchoolCalculatorWrapper 
               user={user}
               setIsAuthModalOpen={setIsAuthModalOpen}
+              setAuthModalMode={setAuthModalMode}
               setIsScholarPackOpen={setIsScholarPackOpen}
               selectedSchoolForChances={selectedSchoolForChances}
               setSelectedSchoolForChances={setSelectedSchoolForChances}

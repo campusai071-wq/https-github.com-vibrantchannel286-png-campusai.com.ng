@@ -47,6 +47,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
     }
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -202,15 +213,47 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-          <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 20, opacity: 0 }} className="relative bg-white dark:bg-gray-900 w-full max-w-md rounded-[32px] md:rounded-[48px] overflow-y-auto max-h-[90vh] no-scrollbar shadow-2xl p-8 md:p-10 text-center">
-            <button onClick={onClose} aria-label="Close" className="absolute top-6 right-6 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400"><X size={24} /></button>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer pointer-events-auto"
+          />
+          <motion.div
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 20, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white dark:bg-gray-900 w-full max-w-md rounded-[32px] md:rounded-[48px] overflow-y-auto max-h-[90vh] no-scrollbar shadow-2xl p-8 md:p-10 text-center z-10"
+          >
+            {/* Direct Close Button in Top Right */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              aria-label="Close"
+              className="absolute top-5 right-5 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 pointer-events-auto border border-gray-200/50 dark:border-gray-700/50"
+            >
+              <X size={20} className="stroke-[2.5]" />
+            </button>
 
-            <div className="relative mb-8">
-              <div className={`w-16 h-16 md:w-20 md:h-20 ${mode === 'reset' ? 'bg-orange-500' : mode === 'signup' ? 'bg-emerald-500' : 'bg-blue-600'} rounded-[28px] flex items-center justify-center text-white mx-auto shadow-xl transition-colors duration-500`}>
-                {mode === 'reset' ? <RefreshCw size={36} className={isLoading ? 'animate-spin' : ''} /> : mode === 'signup' ? <UserPlus size={36} /> : <Brain size={36} />}
+            <div className="mb-8 relative z-10">
+              <div className="relative w-16 h-16 md:w-20 md:h-20 mx-auto">
+                <div className={`w-full h-full ${mode === 'reset' ? 'bg-orange-500' : mode === 'signup' ? 'bg-emerald-500' : 'bg-blue-600'} rounded-[28px] flex items-center justify-center text-white shadow-xl transition-colors duration-500 relative z-10`}>
+                  {mode === 'reset' ? <RefreshCw size={36} className={isLoading ? 'animate-spin' : ''} /> : mode === 'signup' ? <UserPlus size={36} /> : <Brain size={36} />}
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  className={`absolute inset-0 border-2 border-dashed ${mode === 'reset' ? 'border-orange-400/30' : mode === 'signup' ? 'border-emerald-400/30' : 'border-blue-400/30'} rounded-[32px] -m-2 pointer-events-none z-0`}
+                />
               </div>
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} className={`absolute inset-0 border-2 border-dashed ${mode === 'reset' ? 'border-orange-400/30' : mode === 'signup' ? 'border-emerald-400/30' : 'border-blue-400/30'} rounded-[32px] -m-2`} />
             </div>
 
             <h3 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">
@@ -348,6 +391,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className={`w-4 h-4 bg-white p-0.5 rounded-full ${mode === 'signup' && !agreedToTerms ? 'grayscale opacity-50' : ''}`} alt="G" />
               {mode === 'signup' && !agreedToTerms ? 'Awaiting Protocol Consent' : 'Sync with Google'}
             </button>
+
+            {/* Explicit Cancel & Dismiss Button */}
+            <div className="mt-4 pt-1">
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="w-full py-3.5 px-4 text-xs font-black uppercase tracking-wider text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-all flex items-center justify-center gap-2 cursor-pointer border border-dashed border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 active:scale-[0.99]"
+              >
+                <span>Cancel & Return</span>
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
