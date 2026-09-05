@@ -1020,6 +1020,18 @@ const AppContent: React.FC = () => {
               />
             </div>
           } />
+          <Route path="/cbt-history" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                setPaymentConfig={setPaymentConfig} 
+                onLoginRequest={() => { setAuthModalMode('login'); setIsAuthModalOpen(true); }}
+                onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }}
+                initialTab="history"
+              />
+            </div>
+          } />
           <Route path="/cbt-locator" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
               <SEO title="JAMB CBT Center & Campus Locator | Google Maps Grounding" description="Find accredited JAMB CBT examination centers, university campuses, and nearby student accommodation across Nigeria with Google Maps grounded location search." canonical="/cbt-locator" />

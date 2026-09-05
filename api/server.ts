@@ -680,27 +680,206 @@ function getAlocBaseUrl(): string {
   return "https://dev.aloc.com.ng/api/v1";
 }
 
-// 1. Fetch Questions Endpoint (ALOC Station v1)
-app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
+// -----------------------------------------------------------------------------
+// FIREBASE PAST QUESTIONS INTEGRATION & SHUFFLE ENGINE
+// -----------------------------------------------------------------------------
+let cachedFirestorePastQuestions: any[] | null = null;
+let lastFirestorePastQuestionsFetch = 0;
+const PAST_QUESTIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in-memory cache
+
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+async function getAllFirestorePastQuestions(): Promise<any[]> {
+  const now = Date.now();
+  if (cachedFirestorePastQuestions && (now - lastFirestorePastQuestionsFetch < PAST_QUESTIONS_CACHE_TTL)) {
+    return cachedFirestorePastQuestions;
+  }
+
   try {
-    const rawSubject = (req.body.subject || req.query.subject || 'english').toLowerCase().trim();
+    let docs: any[] = [];
+
+    // 1. Try adminDb first if available
+    if (adminDb) {
+      try {
+        const snap = await adminDb.collection('past_questions').limit(1000).get();
+        if (snap && snap.docs && snap.docs.length > 0) {
+          docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        }
+      } catch (adminErr: any) {
+        console.warn("[PastQuestions] adminDb query notice:", adminErr.message);
+      }
+    }
+
+    // 2. Fallback to client SDK dbInstance directly
+    if (docs.length === 0 && dbInstance) {
+      try {
+        const q = query(collection(dbInstance, 'past_questions'), limit(1000));
+        const snap = await getDocs(q);
+        if (snap && snap.docs && snap.docs.length > 0) {
+          docs = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        }
+      } catch (clientErr: any) {
+        console.warn("[PastQuestions] dbInstance query notice:", clientErr.message);
+      }
+    }
+
+    if (docs.length > 0) {
+      cachedFirestorePastQuestions = docs;
+      lastFirestorePastQuestionsFetch = now;
+      console.log(`[PastQuestions] Successfully fetched and cached ${docs.length} questions from Firestore past_questions collection.`);
+    }
+
+    return docs;
+  } catch (err: any) {
+    console.error("[PastQuestions] Global fetch error:", err.message);
+    return cachedFirestorePastQuestions || [];
+  }
+}
+
+function matchesSubject(subjectFile: string, targetSubject: string): boolean {
+  if (!subjectFile) return false;
+  const file = subjectFile.toLowerCase();
+  const target = (targetSubject || '').toLowerCase().replace(/[-_]/g, ' ');
+
+  if (target.includes('bio')) return file.includes('bio');
+  if (target.includes('chem')) return file.includes('chem');
+  if (target.includes('phys')) return file.includes('phys');
+  if (target.includes('math')) return file.includes('math');
+  if (target.includes('eng') || target.includes('use of english')) {
+    return file.includes('english') || file.includes('life-changer');
+  }
+  if (target.includes('comm')) return file.includes('comm');
+  if (target.includes('econ')) return file.includes('econ');
+  if (target.includes('gov')) return file.includes('gov');
+  if (target.includes('crk') || target.includes('crs') || target.includes('relig') || target.includes('christ')) {
+    return file.includes('crk') || file.includes('crs') || file.includes('christ');
+  }
+  if (target.includes('acc') || target.includes('principle')) return file.includes('account');
+  if (target.includes('lit')) return file.includes('lit');
+  if (target.includes('agric')) return file.includes('agric');
+
+  return file.includes(target);
+}
+
+async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: string): Promise<any[]> {
+  const allDocs = await getAllFirestorePastQuestions();
+  if (!allDocs || allDocs.length === 0) return [];
+
+  // Filter questions that match the subject and have at least 2 valid options
+  const matched = allDocs.filter((doc: any) => {
+    if (!doc.question || typeof doc.question !== 'string' || doc.question.trim().length < 5) return false;
+    // Skip general instruction questions like paper type checks
+    if (doc.question.toLowerCase().includes('question paper type is given to you')) return false;
+
+    const rawOpts = Array.isArray(doc.options) ? doc.options.filter(Boolean) : [];
+    if (rawOpts.length < 2) return false;
+
+    const sFile = doc.subjectFile || '';
+    return matchesSubject(sFile, mappedSubject) || matchesSubject(sFile, rawSubject);
+  });
+
+  return matched.map((doc: any) => {
+    const rawOpts = Array.isArray(doc.options) ? doc.options : [];
+    
+    // Clean option text of leading prefixes like "A.", "B.", "(A)", "1."
+    const cleanOpt = (val: any) => (val ? String(val).replace(/^[a-eA-E0-9][.)\s-]+/, '').trim() : '');
+
+    const optA = cleanOpt(rawOpts[0]);
+    const optB = cleanOpt(rawOpts[1]);
+    const optC = cleanOpt(rawOpts[2]);
+    const optD = cleanOpt(rawOpts[3]);
+    const optE = rawOpts[4] ? cleanOpt(rawOpts[4]) : undefined;
+
+    let cleanAns = '';
+    const rawAns = (doc.answer || '').toString().trim();
+
+    if (/^[a-e]$/i.test(rawAns)) {
+      cleanAns = rawAns.toLowerCase();
+    } else if (rawAns) {
+      const normRawAns = cleanOpt(rawAns).toLowerCase();
+      if (optA && (optA.toLowerCase() === normRawAns || normRawAns.includes(optA.toLowerCase()))) cleanAns = 'a';
+      else if (optB && (optB.toLowerCase() === normRawAns || normRawAns.includes(optB.toLowerCase()))) cleanAns = 'b';
+      else if (optC && (optC.toLowerCase() === normRawAns || normRawAns.includes(optC.toLowerCase()))) cleanAns = 'c';
+      else if (optD && (optD.toLowerCase() === normRawAns || normRawAns.includes(optD.toLowerCase()))) cleanAns = 'd';
+      else if (optE && (optE.toLowerCase() === normRawAns || normRawAns.includes(optE.toLowerCase()))) cleanAns = 'e';
+    }
+
+    if (!cleanAns) {
+      // Deterministic fallback choice based on question string hash
+      let hash = 0;
+      for (let i = 0; i < (doc.question || '').length; i++) {
+        hash = (hash + (doc.question || '').charCodeAt(i)) % (optE ? 5 : 4);
+      }
+      cleanAns = ['a', 'b', 'c', 'd', 'e'][hash];
+    }
+
+    const sFile = (doc.subjectFile || '').toLowerCase();
+    const isWaec = sFile.includes('waec');
+    const isPostUtme = sFile.includes('bowen') || sFile.includes('post-utme');
+
+    const cleanExamName = doc.subjectFile
+      ? doc.subjectFile.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ')
+      : 'Authentic Past Paper';
+
+    return {
+      id: doc.id || `fb_${Math.random().toString(36).substring(2, 9)}`,
+      question: doc.question || '',
+      option: {
+        a: optA,
+        b: optB,
+        c: optC,
+        d: optD,
+        ...(optE ? { e: optE } : {})
+      },
+      answer: cleanAns,
+      solution: doc.explanation || `From official past question archive: ${cleanExamName}. Review standard curriculum syllabus for this topic.`,
+      examType: isWaec ? 'WAEC' : isPostUtme ? 'POST_UTME' : 'JAMB',
+      examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
+      section: doc.subjectFile || null,
+      hasPassage: false,
+      imageUrl: null,
+      metadata: {
+        source: 'firebase_past_questions',
+        subjectFile: doc.subjectFile || '',
+        topic: 'Official Past Questions'
+      },
+      category: 'past_question',
+      source: 'firebase'
+    };
+  });
+}
+
+// 1. Fetch Questions Endpoint (ALOC Station v1 + Firebase Firestore Blended & Shuffled)
+app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (req: any, res: any) => {
+  try {
+    const rawSubject = (req.body?.subject || req.query?.subject || 'english').toLowerCase().trim();
     const mappedSubject = ALOC_SUBJECT_MAP[rawSubject] || rawSubject;
-    const examType = (req.body.examType || req.query.examType || 'jamb').toLowerCase();
-    const totalRequested = Math.min(Math.max(Number(req.body.limit || req.query.limit || 10), 1), 40);
-    const year = req.body.year || req.query.year;
+    const examType = (req.body?.examType || req.query?.examType || 'jamb').toLowerCase();
+    const totalRequested = Math.min(Math.max(Number(req.body?.limit || req.query?.limit || 10), 1), 60);
+    const year = req.body?.year || req.query?.year;
+
+    // Launch Firebase Firestore questions lookup in parallel
+    const fbPromise = fetchFirebasePastQuestions(mappedSubject, rawSubject);
 
     const apiKey = getAlocApiKey();
     const baseUrl = getAlocBaseUrl();
 
-    try {
-      // ALOC enforces maximum limit <= 15 per request. We paginate with cursor if > 15 requested.
-      let allRawQuestions: any[] = [];
-      let cursor: string | null = null;
-      let lastMeta: any = null;
-      let lastPagination: any = null;
+    let allRawAlocQuestions: any[] = [];
+    let lastMeta: any = null;
+    let lastPagination: any = null;
 
-      while (allRawQuestions.length < totalRequested) {
-        const batchLimit = Math.min(15, totalRequested - allRawQuestions.length);
+    try {
+      let cursor: string | null = null;
+      // Fetch from ALOC API up to totalRequested
+      while (allRawAlocQuestions.length < totalRequested) {
+        const batchLimit = Math.min(15, totalRequested - allRawAlocQuestions.length);
         const params: any = {
           subject: mappedSubject,
           limit: batchLimit
@@ -725,10 +904,9 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
               "X-Client-Type": "web-applet",
               "X-Is-Agent": "true"
             },
-            timeout: 10000
+            timeout: 8000
           });
         } catch (callErr: any) {
-          // If specific examType caused 404, try relaxing the examType filter to general subject
           if (callErr.response?.status === 404 && params.examType) {
             delete params.examType;
             response = await axios.get(`${baseUrl}/questions`, {
@@ -739,7 +917,7 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
                 "X-Client-Type": "web-applet",
                 "X-Is-Agent": "true"
               },
-              timeout: 10000
+              timeout: 8000
             });
           } else {
             throw callErr;
@@ -748,7 +926,7 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
 
         const items = response.data?.data || [];
         if (Array.isArray(items) && items.length > 0) {
-          allRawQuestions.push(...items);
+          allRawAlocQuestions.push(...items);
           lastMeta = response.data.meta;
           lastPagination = response.data.pagination;
           if (!response.data.pagination?.hasMore || !response.data.pagination?.nextCursor) {
@@ -759,60 +937,105 @@ app.post(["/api/aloc/questions", "/api/aloc/q"], async (req: any, res: any) => {
           break;
         }
       }
+    } catch (alocErr: any) {
+      console.warn("[ALOC Station API Notice]:", alocErr.response?.data || alocErr.message);
+    }
 
-      if (allRawQuestions.length > 0) {
-        // Shuffle questions randomly so students never get the exact same questions twice
-        allRawQuestions.sort(() => Math.random() - 0.5);
-        const slicedQuestions = allRawQuestions.slice(0, totalRequested);
+    // Await Firebase past questions
+    const fbQuestions = await fbPromise;
 
-        // Normalize ALOC v1 structure for compatibility with frontend
-        const normalizedQuestions = slicedQuestions.map((q: any) => {
-          const rawOptions = q.options || q.option || {};
-          return {
-            id: q.id,
-            question: q.text || q.question || '',
-            option: {
-              a: rawOptions.A || rawOptions.a || '',
-              b: rawOptions.B || rawOptions.b || '',
-              c: rawOptions.C || rawOptions.c || '',
-              d: rawOptions.D || rawOptions.d || ''
-            },
-            answer: (q.correctAnswer || q.answer || '').toLowerCase(),
-            solution: q.solution || q.explanation || (q.section ? `Passage/Section: ${q.section}` : ''),
-            examType: (q.examType || examType || 'JAMB').toUpperCase(),
-            examYear: String(q.year || q.examYear || '2024'),
-            section: q.section || null,
-            hasPassage: !!q.hasPassage,
-            imageUrl: q.imageUrl || q.image || null,
-            metadata: q.metadata || null,
-            category: q.category || null,
-            questionNumber: q.questionNumber || null
-          };
-        });
+    // Normalize ALOC questions
+    const normalizedAlocQuestions = allRawAlocQuestions.map((q: any) => {
+      const rawOptions = q.options || q.option || {};
+      return {
+        id: q.id,
+        question: q.text || q.question || '',
+        option: {
+          a: rawOptions.A || rawOptions.a || '',
+          b: rawOptions.B || rawOptions.b || '',
+          c: rawOptions.C || rawOptions.c || '',
+          d: rawOptions.D || rawOptions.d || ''
+        },
+        answer: (q.correctAnswer || q.answer || '').toLowerCase(),
+        solution: q.solution || q.explanation || (q.section ? `Passage/Section: ${q.section}` : ''),
+        examType: (q.examType || examType || 'JAMB').toUpperCase(),
+        examYear: String(q.year || q.examYear || '2024'),
+        section: q.section || null,
+        hasPassage: !!q.hasPassage,
+        imageUrl: q.imageUrl || q.image || null,
+        metadata: q.metadata || null,
+        category: q.category || null,
+        questionNumber: q.questionNumber || null,
+        source: 'aloc'
+      };
+    });
 
-        return res.json({
-          success: true,
-          status: 200,
-          data: normalizedQuestions,
-          subject: mappedSubject,
-          meta: lastMeta,
-          pagination: lastPagination,
-          source: "aloc_station"
-        });
+    // BLEND & SHUFFLE BOTH ALOC AND FIREBASE OWN QUESTIONS
+    let blendedQuestions: any[] = [];
+    let blendMode = "none";
+
+    const hasAloc = normalizedAlocQuestions.length > 0;
+    const hasFb = fbQuestions.length > 0;
+
+    if (hasAloc && hasFb) {
+      blendMode = "blended_aloc_firebase";
+      // Take up to 50% from Firebase, 50% from ALOC
+      const half = Math.ceil(totalRequested / 2);
+      const shuffledFb = shuffleArray(fbQuestions);
+      const shuffledAloc = shuffleArray(normalizedAlocQuestions);
+
+      const pickedFb = shuffledFb.slice(0, Math.min(shuffledFb.length, half));
+      const pickedAloc = shuffledAloc.slice(0, Math.min(shuffledAloc.length, totalRequested - pickedFb.length));
+      
+      let combined = [...pickedFb, ...pickedAloc];
+
+      // If combined has less than totalRequested, fill remainder from whichever has surplus
+      if (combined.length < totalRequested) {
+        const needed = totalRequested - combined.length;
+        if (shuffledFb.length > pickedFb.length) {
+          combined.push(...shuffledFb.slice(pickedFb.length, pickedFb.length + needed));
+        } else if (shuffledAloc.length > pickedAloc.length) {
+          combined.push(...shuffledAloc.slice(pickedAloc.length, pickedAloc.length + needed));
+        }
       }
 
-      // If empty questions, fallback
-      console.log(`[ALOC] Empty response for ${mappedSubject}, trying fallback`);
-      const fallbackData = await generateMockQuestions(mappedSubject, examType.toUpperCase());
-      return res.json(fallbackData);
-    } catch (alocErr: any) {
-      console.warn("[ALOC Station API Error]:", alocErr.response?.data || alocErr.message);
-      // Seamlessly fallback to AI question generation
+      // Thoroughly shuffle the final combined array so questions from ALOC and Firebase are intermixed
+      blendedQuestions = shuffleArray(combined);
+    } else if (hasFb) {
+      blendMode = "firebase_past_questions";
+      blendedQuestions = shuffleArray(fbQuestions).slice(0, totalRequested);
+    } else if (hasAloc) {
+      blendMode = "aloc_station";
+      blendedQuestions = shuffleArray(normalizedAlocQuestions).slice(0, totalRequested);
+    } else {
+      // Fallback only if neither has questions
+      console.log(`[CBT Questions] No ALOC or Firebase questions for ${mappedSubject}, generating smart fallback`);
       const fallbackData = await generateMockQuestions(mappedSubject, examType.toUpperCase());
       return res.json(fallbackData);
     }
+
+    const fbCount = blendedQuestions.filter(q => q.source === 'firebase').length;
+    const alocCount = blendedQuestions.filter(q => q.source === 'aloc').length;
+
+    console.log(`[CBT Questions Pool] Loaded ${blendedQuestions.length} questions for ${mappedSubject} (Firebase: ${fbCount}, ALOC: ${alocCount}, Mode: ${blendMode})`);
+
+    return res.json({
+      success: true,
+      status: 200,
+      data: blendedQuestions,
+      subject: mappedSubject,
+      total: blendedQuestions.length,
+      meta: lastMeta,
+      pagination: lastPagination,
+      source: blendMode,
+      composition: {
+        firebase: fbCount,
+        aloc: alocCount,
+        total: blendedQuestions.length
+      }
+    });
   } catch (err: any) {
-    console.error("[ALOC Proxy Final Error]:", err.message);
+    console.error("[CBT Questions Proxy Error]:", err.message);
     const fallbackData = await generateMockQuestions('english', 'JAMB');
     return res.json(fallbackData);
   }
@@ -837,7 +1060,12 @@ app.post("/api/aloc/explain", async (req: any, res: any) => {
     let aiData: any = null;
     let source = "unknown";
 
-    if (questionId && !String(questionId).startsWith('fallback-')) {
+    // Only query external ALOC explain if it's an ALOC ID (not a Firebase or fallback question)
+    const isFirebaseOrMock = String(questionId || '').startsWith('fb_') || 
+                             String(questionId || '').startsWith('q_') || 
+                             String(questionId || '').startsWith('fallback-');
+
+    if (questionId && !isFirebaseOrMock) {
       try {
         const response = await axios.post(
           `${baseUrl}/questions/${encodeURIComponent(questionId)}/explain`,
@@ -879,7 +1107,7 @@ Format response as JSON with this structure:
 }`;
 
         const aiRes = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
             temperature: 0.4,

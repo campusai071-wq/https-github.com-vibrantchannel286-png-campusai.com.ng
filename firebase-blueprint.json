@@ -273,6 +273,20 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "title", "slug", "category", "summary", "content"]
+    },
+    "PastQuestion": {
+      "title": "Past Question",
+      "description": "Authentic past examination question record.",
+      "type": "object",
+      "properties": {
+        "subjectFile": { "type": "string" },
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "answer": { "type": "string" },
+        "explanation": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["question", "options"]
     }
   },
   "firestore": {
@@ -407,6 +421,18 @@
     "discussions/{threadId}/replies/{replyId}": {
       "schema": "object",
       "description": "Replies and answers in community discussion threads."
+    },
+    "past_questions/{questionId}": {
+      "schema": "PastQuestion",
+      "description": "Collection of authentic past examination questions from PDF ingestion."
+    },
+    "exam_sessions/{sessionId}": {
+      "schema": "object",
+      "description": "Temporary session state storing shuffled question IDs and progress for CBT exam resume."
+    },
+    "cbt_history/{historyId}": {
+      "schema": "object",
+      "description": "Persistent history of completed CBT exam attempts, subject breakdown, and scores."
     }
   }
 }

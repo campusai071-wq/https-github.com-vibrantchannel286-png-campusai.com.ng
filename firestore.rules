@@ -370,5 +370,20 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if true;
     }
+
+    match /past_questions/{questionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /exam_sessions/{sessionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /cbt_history/{historyId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

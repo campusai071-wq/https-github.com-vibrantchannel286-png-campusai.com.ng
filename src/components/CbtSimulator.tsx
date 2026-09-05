@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, limit as fsLimit } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
 import { FormulaSheet } from './FormulaSheet';
 import {
   ResponsiveContainer,
@@ -60,7 +62,10 @@ import {
   Plus,
   Info,
   Layers,
-  Activity
+  Activity,
+  Play,
+  ShieldCheck,
+  History
 } from 'lucide-react';
 
 import institutionsTree from '../data/institutionsTree.json';
@@ -74,7 +79,7 @@ import masterCourses from '../data/masterCourses.json';
 interface Question {
   id: string | number;
   question: string;
-  option: { a: string; b: string; c: string; d: string };
+  option: { a: string; b: string; c: string; d: string; e?: string };
   answer: string;
   solution?: string;
   examType?: string;
@@ -83,11 +88,59 @@ interface Question {
   hasPassage?: boolean;
   imageUrl?: string | null;
   category?: string | null;
+  source?: 'aloc' | 'firebase' | string;
   metadata?: {
     topic?: string;
     subtopic?: string;
     difficultyScore?: number;
+    source?: string;
+    subjectFile?: string;
   };
+}
+
+interface ExamSessionState {
+  sessionId: string;
+  userId: string;
+  userEmail?: string;
+  examType: string;
+  testMode: 'practice' | 'full';
+  selectedSubjects: string[];
+  activeSubjectKey: string;
+  shuffledQuestionIds: Record<string, (string | number)[]>;
+  questionsBySubject: Record<string, Question[]>;
+  answersBySubject: Record<string, Record<string | number, string>>;
+  currentIndexBySubject: Record<string, number>;
+  completedSubjects: Record<string, boolean>;
+  bookmarkedQuestions: Record<string | number, boolean>;
+  durationMinutes: number;
+  endTime: number;
+  timeLeft: number;
+  timeElapsedSeconds: number;
+  status: 'in_progress' | 'completed' | 'abandoned';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CbtExamRecord {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  examType: string;
+  testMode: string;
+  score: number;
+  totalRawScore: number;
+  totalQuestions: number;
+  percentage: number;
+  selectedSubjects: string[];
+  subjectBreakdown: Array<{
+    subjectKey: string;
+    subjectLabel: string;
+    score: number;
+    total: number;
+  }>;
+  timeElapsedSeconds: number;
+  formattedDate: string;
+  createdAt: string;
 }
 
 interface ExplanationData {
@@ -210,7 +263,7 @@ interface CbtSimulatorProps {
   setPaymentConfig?: (config: { type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string }) => void;
   onLoginRequest?: () => void;
   onSignUpRequest?: () => void;
-  initialTab?: 'cbt' | 'study' | 'target-system' | 'ai-advisor';
+  initialTab?: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor';
 }
 
 export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, onLoginRequest, onSignUpRequest, initialTab = 'cbt' }: CbtSimulatorProps) {
@@ -310,8 +363,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       </div>
     );
   }
-  // Navigation tabs: 'cbt' | 'study' | 'target-system' | 'ai-advisor'
-  const [activeTab, setActiveTab] = useState<'cbt' | 'study' | 'target-system' | 'ai-advisor'>(initialTab);
+  // Navigation tabs: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'
+  const [activeTab, setActiveTab] = useState<'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -455,6 +508,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [completedSubjects, setCompletedSubjects] = useState<Record<string, boolean>>({});
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Record<string | number, boolean>>({});
 
+  // ----- Exam Session Persistence in Firestore -----
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    return localStorage.getItem('campus_cbt_active_session_id') || null;
+  });
+  const [pendingResumeSession, setPendingResumeSession] = useState<ExamSessionState | null>(null);
+  const [isCheckingSavedSession, setIsCheckingSavedSession] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [showFormulas, setShowFormulas] = useState(false);
   const [error, setError] = useState('');
@@ -492,7 +552,246 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [chatInput, setChatInput] = useState('');
   const [loadingChat, setLoadingChat] = useState(false);
 
-  // Toggle subject selection in CBT setup
+  // ----- CBT Exam History Persistence in Firestore -----
+  const [cbtHistoryList, setCbtHistoryList] = useState<CbtExamRecord[]>(() => {
+    try {
+      const cached = localStorage.getItem('campusai_cbt_history_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'jamb' | 'waec' | 'post_utme'>('all');
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+
+  // Load persistent CBT history from Firestore for user
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const fetchCbtHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const q = query(
+          collection(db, 'cbt_history'),
+          where('userId', '==', user.uid)
+        );
+        const snap = await getDocs(q);
+        const fetched: CbtExamRecord[] = [];
+        snap.forEach((d) => {
+          fetched.push({ id: d.id, ...(d.data() as any) });
+        });
+
+        // Client-side sort descending by date (avoids index errors)
+        fetched.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+        setCbtHistoryList(fetched);
+        try {
+          localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(fetched.slice(0, 50)));
+        } catch (e) {
+          console.warn('Failed to cache CBT history locally', e);
+        }
+
+        // Synchronize with target system trajectory chart
+        if (fetched.length > 0) {
+          const syncedProgress = fetched.map((item) => ({
+            id: item.id,
+            month: `${new Date(item.createdAt).toLocaleString('default', { month: 'short' })} (${item.examType.toUpperCase()})`,
+            score: item.score,
+            date: item.formattedDate,
+            examType: item.examType,
+            testMode: item.testMode,
+            target: typeof targetScore === 'number' ? targetScore : undefined,
+            note: `${item.selectedSubjects?.length || 0} subjects • ${item.testMode === 'full' ? 'Timed Full Exam' : 'Practice Drill'}`
+          })).reverse();
+          setProgressHistory(syncedProgress);
+        }
+      } catch (err) {
+        console.error('[CBT] Failed to load CBT history from Firestore:', err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchCbtHistory();
+  }, [user?.uid]);
+
+  const handleDeleteHistoryRecord = async (recordId: string) => {
+    if (!confirm('Are you sure you want to delete this CBT attempt from your history?')) return;
+    try {
+      await deleteDoc(doc(db, 'cbt_history', recordId));
+      setCbtHistoryList((prev) => {
+        const updated = prev.filter((item) => item.id !== recordId);
+        try {
+          localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(updated.slice(0, 50)));
+        } catch (e) {
+          console.warn('Failed to update CBT cache', e);
+        }
+        return updated;
+      });
+      setProgressHistory((prev) => prev.filter((item) => item.id !== recordId));
+    } catch (err) {
+      console.error('[CBT] Failed to delete CBT record from Firestore:', err);
+    }
+  };
+
+  const filteredHistoryList = useMemo(() => {
+    return cbtHistoryList.filter((record) => {
+      if (historyFilter !== 'all' && record.examType !== historyFilter) return false;
+      if (historySearchQuery.trim()) {
+        const q = historySearchQuery.toLowerCase();
+        const matchesDate = (record.formattedDate || '').toLowerCase().includes(q);
+        const matchesSubjects = (record.selectedSubjects || []).some((s) => s.toLowerCase().includes(q));
+        const matchesSubLabels = (record.subjectBreakdown || []).some((sb) => sb.subjectLabel?.toLowerCase().includes(q));
+        if (!matchesDate && !matchesSubjects && !matchesSubLabels) return false;
+      }
+      return true;
+    });
+  }, [cbtHistoryList, historyFilter, historySearchQuery]);
+
+  // Check for active unfinished exam session in Firestore on mount to allow resume
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      try {
+        const storedSessionId = localStorage.getItem('campus_cbt_active_session_id');
+        if (!storedSessionId) return;
+
+        setIsCheckingSavedSession(true);
+        const sessionRef = doc(db, 'exam_sessions', storedSessionId);
+        const sessionSnap = await getDoc(sessionRef);
+
+        if (sessionSnap.exists()) {
+          const sessionData = sessionSnap.data() as ExamSessionState;
+          if (sessionData && sessionData.status === 'in_progress') {
+            const now = Date.now();
+            const createdMs = sessionData.createdAt ? new Date(sessionData.createdAt).getTime() : now;
+            // Check if session was created within the past 6 hours
+            if (now - createdMs < 6 * 60 * 60 * 1000) {
+              setPendingResumeSession(sessionData);
+              setActiveSessionId(storedSessionId);
+            } else {
+              // Expired session: mark abandoned
+              await updateDoc(sessionRef, { status: 'abandoned', updatedAt: new Date().toISOString() });
+              localStorage.removeItem('campus_cbt_active_session_id');
+              setActiveSessionId(null);
+            }
+          }
+        } else {
+          localStorage.removeItem('campus_cbt_active_session_id');
+          setActiveSessionId(null);
+        }
+      } catch (err) {
+        console.error('[CBT] Error checking active exam session:', err);
+      } finally {
+        setIsCheckingSavedSession(false);
+      }
+    };
+
+    checkActiveSession();
+  }, [user]);
+
+  // Start and save exam session state to Firestore with shuffled question IDs
+  const startExamSession = async (
+    fetchedQuestions: Record<string, Question[]>,
+    durationMinutes: number,
+    calculatedEndTime: number
+  ): Promise<string | null> => {
+    try {
+      const uId = user?.uid || 'guest';
+      const newSessionId = `cbt_${uId}_${Date.now()}`;
+
+      // Extract shuffled question IDs by subject
+      const shuffledQuestionIds: Record<string, (string | number)[]> = {};
+      Object.entries(fetchedQuestions).forEach(([sub, qList]) => {
+        shuffledQuestionIds[sub] = qList.map((q) => q.id);
+      });
+
+      const sessionState: ExamSessionState = {
+        sessionId: newSessionId,
+        userId: uId,
+        userEmail: user?.email || '',
+        examType,
+        testMode,
+        selectedSubjects,
+        activeSubjectKey: selectedSubjects[0] || 'english-language',
+        shuffledQuestionIds,
+        questionsBySubject: fetchedQuestions,
+        answersBySubject: {},
+        currentIndexBySubject: {},
+        completedSubjects: {},
+        bookmarkedQuestions: {},
+        durationMinutes,
+        endTime: calculatedEndTime,
+        timeLeft: durationMinutes * 60,
+        timeElapsedSeconds: 0,
+        status: 'in_progress',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, 'exam_sessions', newSessionId), sessionState);
+      localStorage.setItem('campus_cbt_active_session_id', newSessionId);
+      setActiveSessionId(newSessionId);
+      setPendingResumeSession(null);
+      return newSessionId;
+    } catch (err) {
+      console.error('[CBT] Failed to save exam session in Firestore:', err);
+      return null;
+    }
+  };
+
+  // Resume mixed-source exam session from Firestore
+  const resumeExamSession = () => {
+    if (!pendingResumeSession) return;
+    const s = pendingResumeSession;
+
+    setQuestionsBySubject(s.questionsBySubject || {});
+    setSelectedSubjects(s.selectedSubjects || []);
+    setActiveSubjectKey(s.activeSubjectKey || s.selectedSubjects?.[0] || 'english-language');
+    setExamType(s.examType || 'jamb');
+    setTestMode(s.testMode || 'practice');
+    setAnswersBySubject(s.answersBySubject || {});
+    setCurrentIndexBySubject(s.currentIndexBySubject || {});
+    setCompletedSubjects(s.completedSubjects || {});
+    setBookmarkedQuestions(s.bookmarkedQuestions || {});
+
+    const now = Date.now();
+    const remainingMs = s.endTime - now;
+    if (remainingMs > 0) {
+      setEndTime(s.endTime);
+      setTimeLeft(Math.floor(remainingMs / 1000));
+    } else {
+      // Grace period if timer elapsed while browser was closed
+      const graceTime = Math.max(60, s.timeLeft || 300);
+      setEndTime(now + graceTime * 1000);
+      setTimeLeft(graceTime);
+    }
+
+    setTimeElapsedSeconds(s.timeElapsedSeconds || 0);
+    setIsTimerRunning(true);
+    setActiveSessionId(s.sessionId);
+    setStarted(true);
+    setShowResults(false);
+    setPendingResumeSession(null);
+  };
+
+  // Discard saved exam session
+  const discardExamSession = async () => {
+    const sid = pendingResumeSession?.sessionId || activeSessionId;
+    if (sid) {
+      try {
+        await updateDoc(doc(db, 'exam_sessions', sid), {
+          status: 'abandoned',
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('[CBT] Error discarding exam session:', err);
+      }
+    }
+    localStorage.removeItem('campus_cbt_active_session_id');
+    setActiveSessionId(null);
+    setPendingResumeSession(null);
+  };
   const toggleSubject = (key: string) => {
     setSelectedSubjects((prev) => {
       if (prev.includes(key)) {
@@ -502,6 +801,89 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       if (prev.length >= 4) return prev; // Capped at 4 subjects
       return [...prev, key];
     });
+  };
+
+  // Helper to fetch directly from Firebase Firestore past_questions collection as client fallback
+  const fetchQuestionsFromClientFirestore = async (subjectKey: string, limitCount: number = 40): Promise<Question[]> => {
+    try {
+      const q = query(collection(db, 'past_questions'), fsLimit(300));
+      const snap = await getDocs(q);
+      const results: Question[] = [];
+      const target = subjectKey.toLowerCase().replace(/[-_]/g, ' ');
+
+      snap.forEach((docSnap) => {
+        const d = docSnap.data() as any;
+        const sFile = (d.subjectFile || '').toLowerCase();
+
+        let isMatch = false;
+        if (target.includes('bio') && sFile.includes('bio')) isMatch = true;
+        else if (target.includes('chem') && sFile.includes('chem')) isMatch = true;
+        else if (target.includes('phys') && sFile.includes('phys')) isMatch = true;
+        else if (target.includes('math') && sFile.includes('math')) isMatch = true;
+        else if ((target.includes('eng') || target.includes('use of english')) && (sFile.includes('english') || sFile.includes('life-changer'))) isMatch = true;
+        else if (target.includes('comm') && sFile.includes('comm')) isMatch = true;
+        else if (target.includes('econ') && sFile.includes('econ')) isMatch = true;
+        else if (target.includes('gov') && sFile.includes('gov')) isMatch = true;
+        else if ((target.includes('crk') || target.includes('crs') || target.includes('christ')) && (sFile.includes('crk') || sFile.includes('crs'))) isMatch = true;
+        else if ((target.includes('acc') || target.includes('principle')) && sFile.includes('account')) isMatch = true;
+        else if (target.includes('lit') && sFile.includes('lit')) isMatch = true;
+        else if (target.includes('agric') && sFile.includes('agric')) isMatch = true;
+        else if (sFile.includes(target)) isMatch = true;
+
+        if (isMatch && d.question && Array.isArray(d.options) && d.options.filter(Boolean).length >= 2) {
+          if (d.question.toLowerCase().includes('question paper type is given to you')) return;
+
+          const rawOpts = d.options;
+          const cleanOpt = (val: any) => (val ? String(val).replace(/^[a-eA-E0-9][.)\s-]+/, '').trim() : '');
+          const optA = cleanOpt(rawOpts[0]);
+          const optB = cleanOpt(rawOpts[1]);
+          const optC = cleanOpt(rawOpts[2]);
+          const optD = cleanOpt(rawOpts[3]);
+          const optE = rawOpts[4] ? cleanOpt(rawOpts[4]) : undefined;
+
+          let ans = (d.answer || '').toString().toLowerCase().trim();
+          if (!/^[a-e]$/.test(ans)) {
+            const normAns = cleanOpt(ans).toLowerCase();
+            if (optA && (optA.toLowerCase() === normAns || normAns.includes(optA.toLowerCase()))) ans = 'a';
+            else if (optB && (optB.toLowerCase() === normAns || normAns.includes(optB.toLowerCase()))) ans = 'b';
+            else if (optC && (optC.toLowerCase() === normAns || normAns.includes(optC.toLowerCase()))) ans = 'c';
+            else if (optD && (optD.toLowerCase() === normAns || normAns.includes(optD.toLowerCase()))) ans = 'd';
+            else if (optE && (optE.toLowerCase() === normAns || normAns.includes(optE.toLowerCase()))) ans = 'e';
+            else {
+              let hash = 0;
+              for (let i = 0; i < (d.question || '').length; i++) hash = (hash + (d.question || '').charCodeAt(i)) % 4;
+              ans = ['a', 'b', 'c', 'd'][hash];
+            }
+          }
+
+          results.push({
+            id: docSnap.id,
+            question: d.question,
+            option: { a: optA, b: optB, c: optC, d: optD, ...(optE ? { e: optE } : {}) },
+            answer: ans,
+            solution: d.explanation || `From official past question archive: ${d.subjectFile ? d.subjectFile.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ') : 'JAMB/WAEC Archive'}`,
+            examType: sFile.includes('waec') ? 'WAEC' : 'JAMB',
+            examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
+            source: 'firebase',
+            metadata: {
+              source: 'firebase_past_questions',
+              subjectFile: d.subjectFile
+            }
+          });
+        }
+      });
+
+      // Shuffle questions
+      for (let i = results.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [results[i], results[j]] = [results[j], results[i]];
+      }
+
+      return results.slice(0, limitCount);
+    } catch (err) {
+      console.error('[CBT] Client Firestore past questions query error:', err);
+      return [];
+    }
   };
 
   // Start CBT test
@@ -526,22 +908,34 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
            ? (subjectKey === 'english-language' ? 60 : 40)
            : questionsPerSubject;
 
-        const response = await fetch('/api/aloc/questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: subjectKey,
-            examType,
-            limit,
-          }),
-        });
-        const data = await response.json();
+        let questionsArray: Question[] = [];
 
-        if (!response.ok || !data.success) {
-          throw new Error(`Failed to load ${subjectKey}: ${data.message || 'Server error'}`);
+        try {
+          const response = await fetch('/api/aloc/questions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subject: subjectKey,
+              examType,
+              limit,
+            }),
+          });
+          const data = await response.json();
+
+          if (response.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
+            questionsArray = data.data;
+          } else {
+            console.warn(`[CBT] API response empty or notice for ${subjectKey}:`, data.message);
+          }
+        } catch (apiErr) {
+          console.warn(`[CBT] API fetch failed for ${subjectKey}, falling back to Firestore:`, apiErr);
         }
 
-        const questionsArray = data.data;
+        // Direct client Firestore fallback if API is unavailable or returned empty
+        if (!questionsArray || questionsArray.length === 0) {
+          questionsArray = await fetchQuestionsFromClientFirestore(subjectKey, limit);
+        }
+
         if (questionsArray && Array.isArray(questionsArray) && questionsArray.length > 0) {
           results[subjectKey] = questionsArray;
         } else {
@@ -573,6 +967,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setTimeLeft(minutes * 60);
       setIsTimerRunning(true);
       setStarted(true);
+
+      // Save shuffled question IDs and temporary session state to Firestore
+      await startExamSession(results, minutes, endTimeValue);
     } catch (err: any) {
       console.error('Error starting CBT session:', err);
       setError(err.message || 'Failed to start examination. Check your internet connection.');
@@ -630,10 +1027,23 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   };
 
   const handleSelect = (subjectKey: string, questionId: string | number, optionKey: string) => {
-    setAnswersBySubject((prev) => ({
-      ...prev,
-      [subjectKey]: { ...(prev[subjectKey] || {}), [questionId]: optionKey },
-    }));
+    setAnswersBySubject((prev) => {
+      const updatedSubjectAnswers = { ...(prev[subjectKey] || {}), [questionId]: optionKey };
+      const updated = {
+        ...prev,
+        [subjectKey]: updatedSubjectAnswers,
+      };
+
+      // Auto-sync answers to Firestore temporary session state
+      if (activeSessionId) {
+        updateDoc(doc(db, 'exam_sessions', activeSessionId), {
+          answersBySubject: updated,
+          updatedAt: new Date().toISOString()
+        }).catch((err) => console.warn('[CBT] Failed to sync answer to Firestore session:', err));
+      }
+
+      return updated;
+    });
   };
 
   const toggleBookmark = (questionId: string | number) => {
@@ -645,6 +1055,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     setIsTimerRunning(false);
     setShowSubmitModal(false);
     setShowResults(true);
+
+    // Finalize temporary session state in Firestore
+    if (activeSessionId) {
+      updateDoc(doc(db, 'exam_sessions', activeSessionId), {
+        status: 'completed',
+        answersBySubject,
+        timeElapsedSeconds,
+        updatedAt: new Date().toISOString()
+      }).catch((e) => console.warn('[CBT] Error finalizing exam session in Firestore:', e));
+      localStorage.removeItem('campus_cbt_active_session_id');
+      setActiveSessionId(null);
+    }
 
     const totalRawScore = calculateScore();
     
@@ -717,6 +1139,48 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         wrongQuestions,
         correctQuestions
       };
+    });
+
+    // Save completed exam attempt to Firestore cbt_history collection permanently
+    const historyId = `cbt_att_${Date.now()}`;
+    const newRecord: CbtExamRecord = {
+      id: historyId,
+      userId: user?.uid || 'guest',
+      userEmail: user?.email || '',
+      examType,
+      testMode,
+      score: finalScore,
+      totalRawScore,
+      totalQuestions,
+      percentage: totalQuestions > 0 ? Math.round((totalRawScore / totalQuestions) * 100) : 0,
+      selectedSubjects,
+      subjectBreakdown: subjectBreakdown.map((sb) => ({
+        subjectKey: sb.subjectKey,
+        subjectLabel: sb.subjectLabel,
+        score: sb.score,
+        total: sb.total,
+      })),
+      timeElapsedSeconds,
+      formattedDate,
+      createdAt: new Date().toISOString(),
+    };
+
+    setDoc(doc(db, 'cbt_history', historyId), newRecord)
+      .then(() => {
+        console.log('[CBT] Exam attempt successfully saved to Firestore:', historyId);
+      })
+      .catch((err) => {
+        console.error('[CBT] Error saving exam attempt to Firestore:', err);
+      });
+
+    setCbtHistoryList((prev) => {
+      const updated = [newRecord, ...prev];
+      try {
+        localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(updated.slice(0, 50)));
+      } catch (e) {
+        console.warn('Failed to cache CBT history locally', e);
+      }
+      return updated;
     });
 
     setLoadingAiAnalysis(true);
@@ -937,6 +1401,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         </button>
         <button
           onClick={() => {
+            setActiveTab('history');
+            navigate('/cbt-history');
+          }}
+          className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
+            activeTab === 'history' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <History size={20} />
+          <span className="text-[10px]">History</span>
+        </button>
+        <button
+          onClick={() => {
             setActiveTab('study');
             navigate('/study-hub');
           }}
@@ -991,6 +1467,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'cbt' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               Test
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('history');
+                navigate('/cbt-history');
+              }}
+              className={`px-2.5 py-1 rounded-lg ${activeTab === 'history' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
+            >
+              History
             </button>
             <button
               onClick={() => {
@@ -1375,6 +1860,68 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             {!started ? (
               /* Setup Screen */
               <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-6">
+                {/* Resume Exam Session Alert Banner */}
+                {pendingResumeSession && (
+                  <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border-2 border-emerald-500/60 rounded-3xl p-6 sm:p-7 shadow-2xl text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                          <RotateCcw size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950">
+                              Active Exam In Progress
+                            </span>
+                            <span className="text-xs text-emerald-300 font-semibold flex items-center gap-1">
+                              <ShieldCheck size={13} /> Saved in Firestore
+                            </span>
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-black text-white mt-1.5">
+                            Resume Your Mixed-Source Exam?
+                          </h3>
+                          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
+                            You have an active <strong className="text-white capitalize">{pendingResumeSession.examType}</strong> session with{' '}
+                            <strong className="text-emerald-400">
+                              {Object.values(pendingResumeSession.questionsBySubject || {}).reduce((sum, arr) => sum + (arr?.length || 0), 0)} questions
+                            </strong>{' '}
+                            across {pendingResumeSession.selectedSubjects?.join(', ')}. All shuffled questions and selected answers were restored.
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+                            <span>
+                              Remaining Time: <strong className="text-emerald-300">{Math.max(1, Math.round((pendingResumeSession.endTime - Date.now()) / 60000))} mins</strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Answered:{' '}
+                              <strong className="text-white">
+                                {Object.values(pendingResumeSession.answersBySubject || {}).reduce((s, m) => s + Object.keys(m || {}).length, 0)} questions
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 w-full md:w-auto shrink-0 pt-2 md:pt-0">
+                        <button
+                          onClick={resumeExamSession}
+                          className="flex-1 md:flex-initial px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Play size={15} fill="currentColor" />
+                          <span>Resume Exam</span>
+                        </button>
+                        <button
+                          onClick={discardExamSession}
+                          className="px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
                   <div className="relative z-10">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 border border-emerald-500/30">
@@ -1388,14 +1935,26 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 </div>
 
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <h2 className="text-lg font-extrabold text-slate-800">Exam Setup</h2>
-                    <button 
-                      onClick={() => setShowFormulas(!showFormulas)}
-                      className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-100 transition-colors"
-                    >
-                      <BookOpen size={14} /> {showFormulas ? 'Hide' : 'View'} Formulas
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab('history');
+                          navigate('/cbt-history');
+                        }}
+                        className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <History size={13} className="text-slate-500" />
+                        <span>Past History ({cbtHistoryList.length})</span>
+                      </button>
+                      <button 
+                        onClick={() => setShowFormulas(!showFormulas)}
+                        className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-100 transition-colors"
+                      >
+                        <BookOpen size={14} /> {showFormulas ? 'Hide' : 'View'} Formulas
+                      </button>
+                    </div>
                   </div>
                   {showFormulas ? (
                     <div className="h-[400px] overflow-y-auto border rounded-2xl p-4">
@@ -1595,9 +2154,14 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-extrabold uppercase tracking-wider mb-2 border border-emerald-500/30">
-                        Exam Session Completed
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-extrabold uppercase tracking-wider border border-emerald-500/30">
+                          Exam Session Completed
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-emerald-300 text-xs font-bold border border-slate-700">
+                          <ShieldCheck size={13} className="text-emerald-400" /> Saved to CBT History
+                        </span>
+                      </div>
                       <h2 className="text-2xl sm:text-3xl font-black">Official Test Score Report</h2>
                       <p className="text-slate-300 text-xs sm:text-sm mt-1">
                         {examType.toUpperCase()} Exam • Completed in {Math.floor(timeElapsedSeconds / 60)} minutes
@@ -1630,15 +2194,28 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setStarted(false);
-                        setShowResults(false);
-                      }}
-                      className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs sm:text-sm transition-all shadow-md flex items-center gap-2"
-                    >
-                      <RotateCcw size={16} /> Take Another Test
-                    </button>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={() => {
+                          setStarted(false);
+                          setShowResults(false);
+                          setActiveTab('history');
+                          navigate('/cbt-history');
+                        }}
+                        className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs sm:text-sm transition-all border border-slate-700 flex items-center gap-2 cursor-pointer shadow-md"
+                      >
+                        <History size={16} className="text-emerald-400" /> View Saved History
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStarted(false);
+                          setShowResults(false);
+                        }}
+                        className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs sm:text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                      >
+                        <RotateCcw size={16} /> Take Another Test
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1957,9 +2534,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm relative">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
-                        Question {currentIndex + 1} of {currentSubjectQuestions.length}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                          Question {currentIndex + 1} of {currentSubjectQuestions.length}
+                        </span>
+                        {activeSessionId && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <ShieldCheck size={11} className="text-emerald-500" />
+                            Session Saved
+                          </span>
+                        )}
+                      </div>
                       <button
                         onClick={() => toggleBookmark(currentQuestion.id)}
                         className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
@@ -2088,6 +2673,287 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* -------------------------------------------------------------------
+            TAB: CBT EXAM HISTORY & PAST ATTEMPTS (PERSISTED IN FIRESTORE)
+           ------------------------------------------------------------------- */}
+        {activeTab === 'history' && (
+          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
+                      <History size={13} /> Performance Records
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-emerald-300 text-xs font-semibold border border-slate-700">
+                      <ShieldCheck size={13} className="text-emerald-400" /> Saved in Firestore Database
+                    </span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight">CBT Exam History & Saved Tests</h1>
+                  <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+                    Review your completed JAMB UTME, WAEC SSCE, and Post-UTME mock attempts. All your scores, subject breakdowns, and timing records are permanently preserved.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveTab('cbt');
+                    navigate('/cbt-simulator');
+                  }}
+                  className="px-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                >
+                  <Play size={14} fill="currentColor" />
+                  <span>Start New CBT Exam</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Performance KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tests</span>
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                    <Activity size={18} />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 mt-2">
+                  {cbtHistoryList.length}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  Completed simulations logged
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Highest Score</span>
+                  <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                    <Award size={18} />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 mt-2">
+                  {cbtHistoryList.length > 0 ? Math.max(...cbtHistoryList.map((h) => h.score)) : 0}
+                  <span className="text-sm font-bold text-slate-400 ml-1">/ 400</span>
+                </div>
+                <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  Personal best aggregate
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Score</span>
+                  <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                    <TrendingUp size={18} />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 mt-2">
+                  {cbtHistoryList.length > 0
+                    ? Math.round(cbtHistoryList.reduce((acc, h) => acc + h.score, 0) / cbtHistoryList.length)
+                    : 0}
+                  <span className="text-sm font-bold text-slate-400 ml-1">/ 400</span>
+                </div>
+                <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  Mean performance across tests
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Accuracy</span>
+                  <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+                    <CheckCircle2 size={18} />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 mt-2">
+                  {cbtHistoryList.length > 0
+                    ? Math.round(cbtHistoryList.reduce((acc, h) => acc + (h.percentage || 0), 0) / cbtHistoryList.length)
+                    : 0}%
+                </div>
+                <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  Overall question precision
+                </div>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+                <button
+                  onClick={() => setHistoryFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${historyFilter === 'all' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  All Exams ({cbtHistoryList.length})
+                </button>
+                <button
+                  onClick={() => setHistoryFilter('jamb')}
+                  className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${historyFilter === 'jamb' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  JAMB UTME ({cbtHistoryList.filter((x) => x.examType === 'jamb').length})
+                </button>
+                <button
+                  onClick={() => setHistoryFilter('waec')}
+                  className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${historyFilter === 'waec' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  WAEC SSCE ({cbtHistoryList.filter((x) => x.examType === 'waec').length})
+                </button>
+                <button
+                  onClick={() => setHistoryFilter('post_utme')}
+                  className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer ${historyFilter === 'post_utme' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Post-UTME ({cbtHistoryList.filter((x) => x.examType === 'post_utme').length})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={historySearchQuery}
+                  onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  placeholder="Filter by subject or date..."
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Exam Attempts List */}
+            {isLoadingHistory ? (
+              <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
+                <RefreshCw size={28} className="mx-auto text-emerald-500 animate-spin mb-3" />
+                <h3 className="text-sm font-bold text-slate-800">Loading your CBT exam history...</h3>
+                <p className="text-xs text-slate-400 mt-1">Retrieving persistent records from Firestore database</p>
+              </div>
+            ) : filteredHistoryList.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center shadow-sm space-y-3">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                  <History size={32} />
+                </div>
+                <h3 className="text-base font-black text-slate-800">
+                  {cbtHistoryList.length === 0 ? 'No CBT Exam Attempts Logged Yet' : 'No Attempts Found for Selected Filter'}
+                </h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  {cbtHistoryList.length === 0
+                    ? 'When you take and submit a simulated exam in the CBT Exam tab, your full score report, subject breakdown, and time spent are automatically preserved in Firestore and displayed here.'
+                    : 'Try selecting "All Exams" or clearing your search term.'}
+                </p>
+                {cbtHistoryList.length === 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('cbt');
+                      navigate('/cbt-simulator');
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-2xl shadow-md transition-all cursor-pointer mt-2"
+                  >
+                    <Play size={14} fill="currentColor" /> Take First CBT Exam
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredHistoryList.map((record, index) => {
+                  const examTypeBadge = record.examType === 'waec' 
+                    ? { bg: 'bg-blue-50 text-blue-700 border-blue-200', label: 'WAEC SSCE' }
+                    : record.examType === 'post_utme'
+                    ? { bg: 'bg-purple-50 text-purple-700 border-purple-200', label: 'POST-UTME' }
+                    : { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'JAMB UTME' };
+
+                  return (
+                    <div
+                      key={record.id || index}
+                      className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center font-black text-sm shrink-0">
+                            #{filteredHistoryList.length - index}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${examTypeBadge.bg}`}>
+                                {examTypeBadge.label}
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                {record.testMode === 'full' ? 'Timed 120-min Simulation' : 'Practice Drill'}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <ShieldCheck size={12} className="text-emerald-500" /> Firestore Saved
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-3">
+                              <span>Date: {record.formattedDate || (record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--')}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Clock size={12} /> {Math.floor(record.timeElapsedSeconds / 60)}m {record.timeElapsedSeconds % 60}s
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 self-end sm:self-center">
+                          <div className="text-right">
+                            <div className="text-2xl sm:text-3xl font-black text-slate-900">
+                              {record.score}
+                              <span className="text-xs font-bold text-slate-400 ml-1">
+                                {record.examType === 'post_utme' ? '%' : '/ 400'}
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-bold text-emerald-600">
+                              {record.percentage}% accuracy ({record.totalRawScore}/{record.totalQuestions} marks)
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteHistoryRecord(record.id)}
+                            className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                            title="Delete this CBT record"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Subject breakdown chips */}
+                      {record.subjectBreakdown && record.subjectBreakdown.length > 0 && (
+                        <div className="pt-4">
+                          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-2">
+                            Subject Breakdown & Scaled Scores
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            {record.subjectBreakdown.map((sb, sIdx) => {
+                              const scaledSub = Math.round((sb.score / (sb.total || 1)) * 100);
+                              return (
+                                <div
+                                  key={sIdx}
+                                  className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between"
+                                >
+                                  <div className="truncate mr-2">
+                                    <div className="text-xs font-bold text-slate-800 truncate">
+                                      {sb.subjectLabel}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium">
+                                      {sb.score} / {sb.total} correct
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="text-xs font-black text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-lg">
+                                      {scaledSub}/100
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
