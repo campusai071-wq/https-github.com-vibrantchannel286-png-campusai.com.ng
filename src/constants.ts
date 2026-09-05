@@ -12,6 +12,32 @@ export const ADMISSION_DATES = {
 
 export const MOCK_NEWS: NewsItem[] = [
   {
+    id: 'waec-gce-timetable-2026-release',
+    slug: 'waec-gce-timetable-2026-download-second-series-pdf',
+    title: 'WAEC GCE Timetable 2026: Download Second Series Examination Schedule (PDF)',
+    category: 'Scholarships',
+    date: 'August 30, 2026',
+    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1000',
+    excerpt: 'The West African Examinations Council (WAEC) has officially released the international examination timetable for the 2026 WASSCE for Private Candidates (Second Series / GCE). Download the official PDF timetable here.',
+    fullContent: `The West African Examinations Council (WAEC) has officially released the complete examination timetable for the 2026 West African Senior School Certificate Examination (WASSCE) for Private Candidates (Second Series), commonly known as WAEC GCE.
+
+### DOWNLOAD THE OFFICIAL WAEC GCE TIMETABLE (PDF)
+
+Candidates can download the complete official timetable in PDF format using the link below:
+
+[Download 2026 WAEC GCE Second Series Timetable (PDF)](/api/pdf-store/file/waec-gce-timetable-2026?download=1)
+
+*Note: This PDF contains the full timetable with all subjects, paper codes, and examination dates. Candidates are advised to download and print it for easy reference.*
+
+### Examination Guidelines & Instructions for Candidates
+
+1. **Arrival & Biometric Check**: All candidates are mandated to report at their assigned examination center at least **45 minutes** prior to paper commencement.
+2. **Prohibited Items**: Cell phones, electronic organizers, programmable calculators, smart wristwatches, and unauthorized papers are strictly banned from examination halls.
+3. **Materials Required**: Non-programmable mathematical log tables and standard scientific calculators are allowed only for designated science and commercial papers.`,
+    sourceUrl: 'https://waecnigeria.org',
+    isImportant: true
+  },
+  {
     id: 'jamb-policy-meeting-2026',
     slug: 'jamb-holds-2026-policy-meeting-on-monday-11th-may-2026',
     title: 'JAMB Holds 2026 Policy Meeting on Monday, 11th May, 2026',

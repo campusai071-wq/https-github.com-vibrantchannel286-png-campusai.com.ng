@@ -1474,7 +1474,105 @@ export const STATE_CAMPUSES: Record<string, Array<{ name: string; address: strin
   ],
   "Abia": [
     { name: "Michael Okpara University of Agriculture, Umudike (MOUAU)", address: "MOUAU Main Campus, Umudike", lga: "Ikwuano", type: "Federal University" },
-    { name: "Abia State University (ABSU)", address: "Uturu Main Campus, Uturu", lga: "Isuikwuato", type: "State University" }
+    { name: "Abia State University (ABSU)", address: "Uturu Main Campus, Uturu", lga: "Isuikwuato", type: "State University" },
+    { name: "Abia State Polytechnic", address: "Aba-Owerri Road, Aba", lga: "Aba South", type: "State Polytechnic" }
+  ],
+  "Cross River": [
+    { name: "University of Calabar (UNICAL)", address: "UNICAL Main Campus, Etagbor / Mary Slessor Avenue, Calabar", lga: "Calabar Municipal", type: "Federal University" },
+    { name: "Cross River University of Technology (UNICROSS)", address: "Ekpo Abasi Street, Calabar", lga: "Calabar South", type: "State University" },
+    { name: "Federal College of Education (FCE) Obudu", address: "College Campus, Obudu", lga: "Obudu", type: "Federal College of Education" },
+    { name: "Arthur Jarvis University", address: "Akpabuyo Main Campus, Akpabuyo", lga: "Akpabuyo", type: "Private University" }
+  ],
+  "Bayelsa": [
+    { name: "Niger Delta University (NDU)", address: "Wilberforce Island, Amassoma", lga: "Southern Ijaw", type: "State University" },
+    { name: "Federal University Otuoke (FUOTUOKE)", address: "Main Gate Road, Otuoke", lga: "Ogbia", type: "Federal University" },
+    { name: "Bayelsa State Polytechnic", address: "Aleibiri Campus, Aleibiri", lga: "Ekeremor", type: "State Polytechnic" }
+  ],
+  "Benue": [
+    { name: "Joseph Sarwuan Tarka University (FUAM)", address: "North Bank / University Road, Makurdi", lga: "Makurdi", type: "Federal University" },
+    { name: "Benue State University (BSU)", address: "KM 1 Gboko Road, Makurdi", lga: "Makurdi", type: "State University" },
+    { name: "Benue State Polytechnic", address: "Ugbokolo Campus, Ugbokolo", lga: "Okpokwu", type: "State Polytechnic" }
+  ],
+  "Borno": [
+    { name: "University of Maiduguri (UNIMAID)", address: "Bama Road, Maiduguri", lga: "Maiduguri", type: "Federal University" },
+    { name: "Borno State University (BOSU)", address: "Njimtilo, Maiduguri", lga: "Maiduguri", type: "State University" },
+    { name: "Ramat Polytechnic", address: "Opposite Police Headquarters, Maiduguri", lga: "Maiduguri", type: "State Polytechnic" }
+  ],
+  "Adamawa": [
+    { name: "Modibbo Adama University (MAU)", address: "Mubi Road, Girei / Yola", lga: "Girei", type: "Federal University" },
+    { name: "Adamawa State University (ADSU)", address: "Mubi Main Campus, Mubi", lga: "Mubi North", type: "State University" },
+    { name: "Federal Polytechnic Mubi", address: "Mubi Campus, Mubi", lga: "Mubi North", type: "Federal Polytechnic" }
+  ],
+  "Bauchi": [
+    { name: "Abubakar Tafawa Balewa University (ATBU)", address: "Gubi Permanent Site, Ningi Road, Bauchi", lga: "Bauchi", type: "Federal University" },
+    { name: "Bauchi State University (BASUG)", address: "Gadau Main Campus, Itas-Gadau", lga: "Itas/Gadau", type: "State University" },
+    { name: "Federal Polytechnic Bauchi", address: "Gwallameji, Dass Road, Bauchi", lga: "Bauchi", type: "Federal Polytechnic" }
+  ],
+  "Ebonyi": [
+    { name: "Alex Ekwueme Federal University Ndufu-Alike (AE-FUNAI)", address: "AE-FUNAI Campus, Ikwo", lga: "Ikwo", type: "Federal University" },
+    { name: "Ebonyi State University (EBSU)", address: "CAS / Ishieke Campus, Abakaliki", lga: "Abakaliki", type: "State University" },
+    { name: "Akanu Ibiam Federal Polytechnic Unwana", address: "Unwana, Afikpo", lga: "Afikpo North", type: "Federal Polytechnic" }
+  ],
+  "Ekiti": [
+    { name: "Federal University Oye-Ekiti (FUOYE)", address: "Oye-Are Road, Oye-Ekiti", lga: "Oye", type: "Federal University" },
+    { name: "Ekiti State University (EKSU)", address: "Iworoko Road, Ado-Ekiti", lga: "Ado-Ekiti", type: "State University" },
+    { name: "Federal Polytechnic Ado-Ekiti", address: "Ijan Road, Ado-Ekiti", lga: "Ado-Ekiti", type: "Federal Polytechnic" },
+    { name: "Afe Babalola University (ABUAD)", address: "KM 8.5 Afe Babalola Way, Ado-Ekiti", lga: "Ado-Ekiti", type: "Private University" }
+  ],
+  "Gombe": [
+    { name: "Federal University Kashere", address: "Kashere Campus, Akko", lga: "Akko", type: "Federal University" },
+    { name: "Gombe State University (GSU)", address: "Tudun Wada, Gombe", lga: "Gombe", type: "State University" },
+    { name: "Federal Polytechnic Kaltungo", address: "Kaltungo Campus, Kaltungo", lga: "Kaltungo", type: "Federal Polytechnic" }
+  ],
+  "Jigawa": [
+    { name: "Federal University Dutse (FUD)", address: "Ibrahim Aliyu Bypass, Dutse", lga: "Dutse", type: "Federal University" },
+    { name: "Sule Lamido University (SLU)", address: "KM 2 Kano-Kafinhausa Road, Kafinhausa", lga: "Kafin Hausa", type: "State University" },
+    { name: "Hussaini Adamu Federal Polytechnic", address: "Kazaure Campus, Kazaure", lga: "Kazaure", type: "Federal Polytechnic" }
+  ],
+  "Katsina": [
+    { name: "Federal University Dutsin-Ma (FUDMA)", address: "Permanent Site, Dutsin-Ma", lga: "Dutsin-Ma", type: "Federal University" },
+    { name: "Umaru Musa Yar'adua University (UMYU)", address: "Dutsinma Road, Katsina", lga: "Katsina", type: "State University" },
+    { name: "Hassan Usman Katsina Polytechnic", address: "Dutsinma Road, Katsina", lga: "Katsina", type: "State Polytechnic" }
+  ],
+  "Kebbi": [
+    { name: "Federal University Birnin Kebbi (FUBK)", address: "Kalgo Road, Birnin Kebbi", lga: "Kalgo", type: "Federal University" },
+    { name: "Kebbi State University of Science & Technology (KSUSTA)", address: "Aliero Main Campus, Aliero", lga: "Aliero", type: "State University" },
+    { name: "Waziri Umaru Federal Polytechnic", address: "Haliru Abdu Secretariat Road, Birnin Kebbi", lga: "Birnin Kebbi", type: "Federal Polytechnic" }
+  ],
+  "Kogi": [
+    { name: "Federal University Lokoja (FULOKOJA)", address: "Felele Permanent Site, Lokoja", lga: "Lokoja", type: "Federal University" },
+    { name: "Prince Abubakar Audu University (PAAU / KSU)", address: "Anyigba Main Campus, Anyigba", lga: "Dekina", type: "State University" },
+    { name: "Federal Polytechnic Idah", address: "Idah Campus, Idah", lga: "Idah", type: "Federal Polytechnic" }
+  ],
+  "Nasarawa": [
+    { name: "Federal University of Lafia (FULAFIA)", address: "Makurdi Road, Lafia", lga: "Lafia", type: "Federal University" },
+    { name: "Nasarawa State University, Keffi (NSUK)", address: "Keffi-Akwanga Road, Keffi", lga: "Keffi", type: "State University" },
+    { name: "Federal Polytechnic Nasarawa", address: "Nasarawa Main Campus, Nasarawa", lga: "Nasarawa", type: "Federal Polytechnic" }
+  ],
+  "Niger": [
+    { name: "Federal University of Technology, Minna (FUTMINNA)", address: "Gidan Kwanu Main Campus, Minna", lga: "Bosso", type: "Federal University" },
+    { name: "Ibrahim Badamasi Babangida University (IBBU)", address: "Lapai Main Campus, Lapai", lga: "Lapai", type: "State University" },
+    { name: "Federal Polytechnic Bida", address: "Doko Road, Bida", lga: "Bida", type: "Federal Polytechnic" }
+  ],
+  "Sokoto": [
+    { name: "Usmanu Danfodiyo University, Sokoto (UDUS)", address: "Permanent Site, More, Sokoto", lga: "Wamakko", type: "Federal University" },
+    { name: "Sokoto State University (SSU)", address: "Birnin Kebbi Road, Sokoto", lga: "Dange Shuni", type: "State University" },
+    { name: "Umaru Ali Shinkafi Polytechnic", address: "Farfaru Campus, Sokoto", lga: "Sokoto South", type: "State Polytechnic" }
+  ],
+  "Taraba": [
+    { name: "Federal University Wukari (FUWUKARI)", address: "Katsina-Ala Road, Wukari", lga: "Wukari", type: "Federal University" },
+    { name: "Taraba State University (TSU)", address: "ATC Area, Jalingo", lga: "Jalingo", type: "State University" },
+    { name: "Federal Polytechnic Bali", address: "Bali Campus, Bali", lga: "Bali", type: "Federal Polytechnic" }
+  ],
+  "Yobe": [
+    { name: "Federal University Gashua (FUGA)", address: "Nguru Road, Gashua", lga: "Bade", type: "Federal University" },
+    { name: "Yobe State University (YSU)", address: "KM 7 Gujba Road, Damaturu", lga: "Damaturu", type: "State University" },
+    { name: "Federal Polytechnic Damaturu", address: "Damaturu-Potiskum Road, Damaturu", lga: "Damaturu", type: "Federal Polytechnic" }
+  ],
+  "Zamfara": [
+    { name: "Federal University Gusau (FUGUS)", address: "Zaria Road, Gusau", lga: "Gusau", type: "Federal University" },
+    { name: "Federal Polytechnic Kaura Namoda", address: "Kaura Namoda Campus, Kaura Namoda", lga: "Kaura Namoda", type: "Federal Polytechnic" },
+    { name: "Zamfara State University (ZAMSUT)", address: "Talata Mafara Campus, Talata Mafara", lga: "Talata Mafara", type: "State University" }
   ]
 };
 
@@ -1483,6 +1581,39 @@ export const STATE_HOSTELS: Record<string, Array<{ name: string; address: string
     { name: "Akoka & St. Finbarr's Student Lodge Area", address: "Off St. Finbarr's Road / Pako, Akoka, Yaba", lga: "Lagos Mainland", notes: "Popular off-campus student accommodation for UNILAG & FCE Akoka students." },
     { name: "Iyana Iba / LASU Gate Student Residences", address: "Along Badagry Expressway, Iyana Iba, Ojo", lga: "Ojo", notes: "Clustered private student lodges within walking distance of LASU main gate." },
     { name: "Yaba Tech Community & Abule Ijesha Lodges", address: "Abule Ijesha / Commercial Avenue, Yaba", lga: "Lagos Mainland", notes: "Vibrant student residential apartments with continuous commercial services." }
+  ],
+  "Cross River": [
+    { name: "UNICAL Etagbor & Small Gate Student Lodges", address: "Etagbor / Mary Slessor Avenue, Calabar", lga: "Calabar Municipal", notes: "Premier off-campus accommodation hub for UNICAL students with student eateries." },
+    { name: "UNICROSS Ekpo Abasi & Anantigha Student Residences", address: "Ekpo Abasi Street / Anantigha, Calabar", lga: "Calabar South", notes: "High-density private student hostel district close to UNICROSS / CRUTECH campus." },
+    { name: "Satellite Town & Ikot Ansa Student Apartments", address: "Satellite Town / Murtala Mohammed Highway, Calabar", lga: "Calabar Municipal", notes: "Quiet, secure student lodges and candidate residential apartments." },
+    { name: "Obudu College Road Private Lodges", address: "Hospital Road / FCE Gate, Obudu", lga: "Obudu", notes: "Student accommodation enclave serving FCE Obudu candidates." }
+  ],
+  "Rivers": [
+    { name: "Choba & Alakahia Student Communities", address: "East-West Road / Choba, Port Harcourt", lga: "Obio/Akpor", notes: "Primary off-campus student housing district serving UNIPORT students." },
+    { name: "Rumuolumeni Student Quarters", address: "St. John's Road, Rumuolumeni, Port Harcourt", lga: "Obio/Akpor", notes: "Off-campus residential apartments serving IAUE students." },
+    { name: "RSU Nkpolu & Ikwerre Road Lodges", address: "Nkpolu-Oroworukwo, Port Harcourt", lga: "Port Harcourt", notes: "Accessible student accommodation corridor near Rivers State University." }
+  ],
+  "Akwa Ibom": [
+    { name: "Ikpa Road & Nwaniba Student Lodges", address: "Ikpa Road / Nwaniba, Uyo", lga: "Uyo", notes: "Major off-campus student residential zones serving UNIUYO Town & Permanent Site." },
+    { name: "Ikot Osurua Student Community", address: "Ikot Osurua Campus Road, Ikot Ekpene", lga: "Ikot Ekpene", notes: "Hostel lodges and self-contain units serving Akwa Ibom State Poly." }
+  ],
+  "Enugu": [
+    { name: "Odim Gate & Hilltop Student Quarters", address: "Odim Gate / Hilltop, Nsukka", lga: "Nsukka", notes: "Famous off-campus student hostel sector for UNN students." },
+    { name: "Agbani Student Enclave", address: "Permanent Site Road, Agbani", lga: "Nkanu West", notes: "Vibrant student lodges and residential flats surrounding ESUT." },
+    { name: "IMT Campus Road Residences", address: "Independence Layout, Enugu", lga: "Enugu North", notes: "Student apartments serving IMT and UNEC candidates." }
+  ],
+  "Anambra": [
+    { name: "Ifite Awka Student Residential Hub", address: "Ifite Road / UNIZIK School Gate, Awka", lga: "Awka South", notes: "Central off-campus student accommodation hub for UNIZIK students." },
+    { name: "Oko Poly Student Community Lodges", address: "Main Road, Oko", lga: "Orumba North", notes: "High-density private hostels serving Federal Polytechnic Oko." }
+  ],
+  "Imo": [
+    { name: "Ihiagwa & Eziobodo Student Lodges", address: "FUTO Road, Ihiagwa / Eziobodo, Owerri", lga: "Owerri West", notes: "Primary off-campus student housing clusters serving FUTO students." },
+    { name: "Aladinma & Bishop's Court Lodges", address: "Aladinma Estate, Owerri", lga: "Owerri Municipal", notes: "Convenient student housing near IMSU campus." },
+    { name: "Old Nekede Road Student Quarters", address: "Polytechnic Road, Nekede, Owerri", lga: "Owerri West", notes: "Affordable student apartments for Fed Poly Nekede." }
+  ],
+  "Abia": [
+    { name: "Umudike Village Student Residences", address: "Ikot Ekpene Road, Umudike", lga: "Ikwuano", notes: "Primary off-campus student accommodation hub for MOUAU candidates." },
+    { name: "Uturu Town Student Lodges", address: "ABSU Gate / Uturu, Okigwe-Uturu Road", lga: "Isuikwuato", notes: "Student accommodation enclave serving ABSU students." }
   ],
   "Oyo": [
     { name: "Agbowo Student Residential Community", address: "Directly opposite University of Ibadan Main Gate, Agbowo, Ibadan", lga: "Ibadan North", notes: "Premier off-campus accommodation hub for UI students with 24/7 student eateries." },
@@ -1510,13 +1641,78 @@ export const STATE_HOSTELS: Record<string, Array<{ name: string; address: string
     { name: "KWASU Balloting Hostels (Malete Hub)", address: "Campus Enclave & Tarmac, Malete", lga: "Moro", notes: "Official balloting hostels: Croyant (Block 1: ₦115,000), Ajeem1 & Ajeem2 (Block 1: ₦115,000), Agit1 (Block 1: ₦115,000), Omowumi (Block 1: ₦95,000, Block 2: ₦100,000), Mopelola (Block 1: ₦95,000), Ejanla (Block 1: ₦95,000), Amina Castle A & B (Block 1: ₦95,000)." },
     { name: "Tanke & University Road Student Lodges", address: "Tanke / University Road, Ilorin", lga: "Ilorin South", notes: "Primary off-campus student accommodation hub serving UNILORIN students." },
     { name: "Sanrab & Fate Student Apartments", address: "Tanke Buka / Sanrab / Fate, Ilorin", lga: "Ilorin South", notes: "High-density student lodge and apartment district with direct transit to campus." }
+  ],
+  "Kano": [
+    { name: "Kabuga & Gwarzo Road Student Lodges", address: "Kabuga / Gwarzo Road, Kano", lga: "Gwale", notes: "Primary student residential sector near BUK New Campus." },
+    { name: "Kofar Nassarawa Student Quarters", address: "City Center, Kano", lga: "Kano Municipal", notes: "Student hostels near Maitama Sule University." }
+  ],
+  "Kaduna": [
+    { name: "Samaru & Kongo Student Residential Enclave", address: "Samaru Main Street / Kongo, Zaria", lga: "Sabon Gari", notes: "Major off-campus student accommodation for ABU students." },
+    { name: "Barnawa & Tudun Wada Student Lodges", address: "Barnawa / Tudun Wada, Kaduna", lga: "Kaduna South", notes: "Hostels near KADPOLY & KASU campuses." }
+  ],
+  "Plateau": [
+    { name: "Naraguta & Bauchi Road Student Village", address: "Naraguta Village / Bauchi Road, Jos", lga: "Jos North", notes: "Student residence community adjoining UNIJOS campus." },
+    { name: "Farin Gada Student Hostels", address: "Farin Gada Market Road, Jos", lga: "Jos North", notes: "Vibrant student residential district near UNIJOS." }
+  ],
+  "Benue": [
+    { name: "North Bank Student Community", address: "North Bank / University Road, Makurdi", lga: "Makurdi", notes: "Student apartments serving Joseph Sarwuan Tarka University." },
+    { name: "Wurukum & Gyado Villa Student Lodges", address: "Gboko Road, Wurukum, Makurdi", lga: "Makurdi", notes: "High-density housing serving BSU students." }
+  ],
+  "Ondo": [
+    { name: "South Gate & North Gate Student Lodges", address: "FUTA South Gate Road, Akure", lga: "Akure South", notes: "High-density student lodge corridor serving FUTA." },
+    { name: "Akungba Student Residential Community", address: "Medoline / Palace Road, Akungba-Akoko", lga: "Akoko South-West", notes: "Vast student accommodation enclave for AAUA students." }
+  ],
+  "Osun": [
+    { name: "Mayfair & Asherifa Student Enclave", address: "Mayfair / Asherifa, Ile-Ife", lga: "Ife Central", notes: "Premier off-campus accommodation zone for OAU students." },
+    { name: "Oke Baale Student Lodges", address: "Oke Baale, Osogbo", lga: "Osogbo", notes: "Student hostels near UNIOSUN Main Campus." }
+  ],
+  "Bayelsa": [
+    { name: "Amassoma Student Community", address: "Wilberforce Island, Amassoma", lga: "Southern Ijaw", notes: "Major student residential area for NDU students." },
+    { name: "Otuoke Student Lodges", address: "Main Gate Road, Otuoke", lga: "Ogbia", notes: "Student housing around FUOTUOKE campus." }
+  ],
+  "Kogi": [
+    { name: "Felele Student Quarters", address: "Abuja-Lokoja Highway, Felele, Lokoja", lga: "Lokoja", notes: "Student residential enclave near FULOKOJA Permanent Site." },
+    { name: "Anyigba Main Student Village", address: "Stadium Road, Anyigba", lga: "Dekina", notes: "Student accommodations surrounding PAAU campus." }
+  ],
+  "Nasarawa": [
+    { name: "Angwan Lambu Student Lodges", address: "Angwan Lambu / Keffi-Akwanga Road, Keffi", lga: "Keffi", notes: "Vibrant student residential district for NSUK students." },
+    { name: "Lafia University Quarters", address: "Makurdi Road, Lafia", lga: "Lafia", notes: "Lodges near FULAFIA campus." }
+  ],
+  "Niger": [
+    { name: "Gidan Kwanu Student Village", address: "FUTMINNA Main Gate, Gidan Kwanu, Minna", lga: "Bosso", notes: "Large off-campus student hub for FUTMINNA students." },
+    { name: "Bosso Low Cost & Campus Quarters", address: "Bosso Road, Minna", lga: "Bosso", notes: "Student residences near FUTMINNA Bosso campus." }
+  ],
+  "Sokoto": [
+    { name: "More & Dandima Student Enclave", address: "More / Airport Road, Sokoto", lga: "Wamakko", notes: "Student accommodation serving UDUS candidates." }
+  ],
+  "Borno": [
+    { name: "Bama Road & 202 Housing Estate Student Lodges", address: "Bama Road, Maiduguri", lga: "Maiduguri", notes: "Student housing district near UNIMAID campus." }
+  ],
+  "Adamawa": [
+    { name: "Sangere & Girei Student Quarters", address: "Mubi Road, Girei / Yola", lga: "Girei", notes: "Student enclave near Modibbo Adama University." }
+  ],
+  "Bauchi": [
+    { name: "Gwallameji Student Village", address: "Dass Road, Gwallameji, Bauchi", lga: "Bauchi", notes: "High-density student accommodation near Fed Poly Bauchi & ATBU." }
+  ],
+  "Ebonyi": [
+    { name: "Ishieke Student Enclave", address: "Ishieke / Ogoja Road, Abakaliki", lga: "Abakaliki", notes: "Student lodges near EBSU Ishieke campus." }
+  ],
+  "Ekiti": [
+    { name: "Iworoko Student Community", address: "Ado-Iworoko Road, Iworoko", lga: "Irepodun/Ifelodun", notes: "Primary student housing district for EKSU students." },
+    { name: "Oye Student Village", address: "Oye-Are Road, Oye-Ekiti", lga: "Oye", notes: "Accommodation zone for FUOYE students." }
   ]
 };
 
 export function getCampusesForState(stateName: string, query?: string): any[] {
   const normalized = (stateName || "Lagos").trim();
   const coords = STATE_COORDINATES[normalized] || { lat: 6.5244, lng: 3.3792, zoom: 11 };
-  const campuses = STATE_CAMPUSES[normalized] || STATE_CAMPUSES["Lagos"];
+  
+  // NEVER fall back to Lagos if another state is requested!
+  const campuses = STATE_CAMPUSES[normalized] || [
+    { name: `${normalized} State University Campus`, address: `Main Campus Road, ${normalized}`, lga: `${normalized} Central`, type: "State University" },
+    { name: `Federal University of ${normalized}`, address: `Permanent Site, ${normalized}`, lga: `${normalized} North`, type: "Federal University" },
+    { name: `Federal Polytechnic ${normalized}`, address: `Polytechnic Way, ${normalized}`, lga: `${normalized} South`, type: "Federal Polytechnic" }
+  ];
 
   const filtered = query
     ? campuses.filter(c => c.name.toLowerCase().includes(query.toLowerCase()) || c.address.toLowerCase().includes(query.toLowerCase()))
@@ -1539,7 +1735,13 @@ export function getCampusesForState(stateName: string, query?: string): any[] {
 export function getHostelsForState(stateName: string, query?: string): any[] {
   const normalized = (stateName || "Lagos").trim();
   const coords = STATE_COORDINATES[normalized] || { lat: 6.5244, lng: 3.3792, zoom: 11 };
-  const hostels = STATE_HOSTELS[normalized] || STATE_HOSTELS["Lagos"];
+
+  // NEVER fall back to Lagos if another state is requested!
+  const hostels = STATE_HOSTELS[normalized] || [
+    { name: `${normalized} University Gate & Campus Enclave Lodges`, address: `University Road / School Gate, ${normalized}`, lga: `${normalized} Central`, notes: `Popular off-campus student accommodation enclave in ${normalized}.` },
+    { name: `${normalized} Student Village & Off-Campus Residences`, address: `College Road / Student Community, ${normalized}`, lga: `${normalized} South`, notes: `Vibrant student residential district with regular transit in ${normalized}.` },
+    { name: `Polytechnic Corridor Student Apartments`, address: `Polytechnic Way, ${normalized}`, lga: `${normalized} North`, notes: `Affordable student lodges and self-contain units in ${normalized}.` }
+  ];
 
   const filtered = query
     ? hostels.filter(h => h.name.toLowerCase().includes(query.toLowerCase()) || h.address.toLowerCase().includes(query.toLowerCase()))

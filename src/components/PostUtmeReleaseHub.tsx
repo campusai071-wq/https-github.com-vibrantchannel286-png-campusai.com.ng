@@ -7,6 +7,7 @@ import { searchPostUtmeFormReleases, verifySingleSchoolPostUtme, SyncedPostUtmeF
 import { getCloudNews, getPostUtmeReleases, savePostUtmeReleases, getPostUtmeReleasesFull } from '../services/dbService';
 import universityData from '../data/universities'; // standard raw list array
 import { BASELINE_RELEASES } from '../data/postUtmeData';
+import { FUTMINNA_CUTOFFS_2026_2027, FUTMINNA_UPASE_INFO } from '../data/futminnaCutoffs2026_2027';
 
 interface PostUtmeReleaseHubProps {
   onCalculateChances: (schoolName: string) => void;
@@ -412,6 +413,7 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
   // States for cross-referencing news feed
   const [isNewsSyncing, setIsNewsSyncing] = useState(false);
   const [newsSyncResult, setNewsSyncResult] = useState<{ updatedCount: number; matchedSchools: string[] } | null>(null);
+  const [showFutminnaModal, setShowFutminnaModal] = useState(false);
 
   const extractDeadlineFromText = (text: string): string | undefined => {
     if (!text) return undefined;
@@ -2486,6 +2488,15 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
                     <p className="text-[10px] text-gray-400 leading-normal">{s.eligibilityText}</p>
                   </div>
                 )}
+
+                {s.schoolName.toLowerCase().includes("futminna") && (
+                  <button
+                    onClick={() => setShowFutminnaModal(true)}
+                    className="w-full mt-3 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles size={13} className="text-cyan-200" /> View Official 2026/2027 UPASE Cut-off Table
+                  </button>
+                )}
               </div>
 
               {/* Action Buttons list */}
@@ -2580,6 +2591,116 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
         })}
         </div>
       )}
+
+      {/* FUTMINNA 2026/2027 UPASE CUT-OFF MARKS MODAL */}
+      <AnimatePresence>
+        {showFutminnaModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-slate-900 border border-slate-700/80 rounded-[32px] max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-400 font-black text-[9px] uppercase tracking-widest rounded-full border border-blue-500/30">
+                      Official 2026/2027 Session
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 font-black text-[9px] uppercase tracking-widest rounded-full border border-emerald-500/30">
+                      UPASE Open
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white">
+                    Federal University of Technology, Minna (FUTMINNA)
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Opening: {FUTMINNA_UPASE_INFO.openingDate} | Closing: {FUTMINNA_UPASE_INFO.closingDate}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowFutminnaModal(false)}
+                  className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Body / Table */}
+              <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-blue-950/40 border border-blue-500/20 rounded-2xl text-xs text-blue-200">
+                  <div>
+                    <p className="font-bold">Official Registration Portal:</p>
+                    <a href={FUTMINNA_UPASE_INFO.portalUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline font-mono break-all">
+                      {FUTMINNA_UPASE_INFO.portalUrl}
+                    </a>
+                  </div>
+                  <a
+                    href={FUTMINNA_UPASE_INFO.portalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm shrink-0 flex items-center gap-1.5"
+                  >
+                    Register on Portal <ExternalLink size={12} />
+                  </a>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-800 rounded-2xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-800/80 text-slate-300 text-[10px] font-black uppercase tracking-wider">
+                        <th className="p-3.5">S/N</th>
+                        <th className="p-3.5">Department / Programme</th>
+                        <th className="p-3.5">School / Faculty</th>
+                        <th className="p-3.5 text-center">Cut-off Mark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-xs text-slate-300">
+                      {FUTMINNA_CUTOFFS_2026_2027.map((item) => (
+                        <tr key={item.sn} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3.5 font-mono text-slate-500">{item.sn}</td>
+                          <td className="p-3.5 font-bold text-white flex items-center gap-2">
+                            {item.programme}
+                            {item.isNew && (
+                              <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[8px] font-black rounded uppercase tracking-wider border border-amber-500/30">
+                                NEW
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-slate-400">{item.faculty}</td>
+                          <td className="p-3.5 text-center">
+                            <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-black text-xs rounded-lg">
+                              {item.cutoff}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <span>Total Programmes: {FUTMINNA_CUTOFFS_2026_2027.length} accredited courses</span>
+                <button
+                  onClick={() => setShowFutminnaModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all"
+                >
+                  Close Table
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

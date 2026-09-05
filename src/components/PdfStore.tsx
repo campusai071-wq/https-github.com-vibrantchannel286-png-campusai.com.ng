@@ -6,7 +6,7 @@ import {
   Share2, ShieldCheck, FolderDown, X, ExternalLink, RefreshCw,
   MessageSquare, MessageCircle, ThumbsUp, Send, UserCheck, Lightbulb,
   HelpCircle, Users, PlusCircle, MessageCirclePlus, LogIn, User as UserIcon, Lock,
-  Bell, CheckCheck, Bot
+  Bell, CheckCheck, Bot, Link
 } from 'lucide-react';
 import SEO from './SEO';
 import { db, auth } from '../services/firebaseConfig';
@@ -169,6 +169,19 @@ export const DEFAULT_OFFICIAL_PDFS: PdfStoreItem[] = [
     authorId: 'official-admin',
     institution: 'University of Ibadan (UI)',
     pageCount: 30
+  },
+  {
+    id: 'waec-gce-timetable-2026',
+    title: 'Download 2026 WAEC GCE Second Series Timetable (PDF)',
+    category: 'General Notes',
+    fileSize: '166 KB',
+    uploadDate: '2026-08-30',
+    description: 'Official WAEC WASSCE for Private Candidates (Second Series) examination timetable containing complete dates, paper codes, morning and afternoon sessions, and guidelines for candidates.',
+    author: 'West African Examinations Council (WAEC)',
+    authorId: 'official-admin',
+    institution: 'WAEC Nigeria',
+    pageCount: 3,
+    downloadUrl: 'https://myschool.ng/storage/blog_files/vmFx7tFaHz77FNjsyB1OG7D6tdoqa8pttOz2lmVD.pdf'
   }
 ];
 
@@ -194,10 +207,13 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   
   // Upload form state
+  const [uploadMethod, setUploadMethod] = useState<'url' | 'file'>('url');
+  const [uploadDocUrl, setUploadDocUrl] = useState('');
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<PdfStoreItem['category']>('User Upload');
   const [uploadInstitution, setUploadInstitution] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadPageCount, setUploadPageCount] = useState('60');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
@@ -480,15 +496,17 @@ export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginReque
       const stored = localStorage.getItem(LOCAL_STORAGE_PDF_KEY);
       if (stored) {
         const parsed: PdfStoreItem[] = JSON.parse(stored);
-        setItems(parsed);
+        const storedIds = new Set(parsed.map(p => p.id));
+        const combined = [...parsed, ...DEFAULT_OFFICIAL_PDFS.filter(d => !storedIds.has(d.id))];
+        setItems(combined);
         if (syncFn && parsed.length > 0) {
           syncFn(parsed, new Set<string>());
         }
       } else {
-        setItems([]);
+        setItems(DEFAULT_OFFICIAL_PDFS);
       }
     } catch (e) {
-      setItems([]);
+      setItems(DEFAULT_OFFICIAL_PDFS);
     }
   };
 
@@ -675,44 +693,136 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
 
       setSelectedFile(file);
       if (!uploadTitle) {
-        setUploadTitle(file.name.replace(/\.pdf$/i, ''));
+        setUploadTitle(file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' '));
       }
 
-      setIsProcessingFile(true);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFileDataUrl(reader.result as string);
+      // Read as DataURL only for files <= 10MB to prevent browser freezing on 60+ page documents
+      if (file.size <= 10 * 1024 * 1024) {
+        setIsProcessingFile(true);
+        const reader = new FileReader();
+        reader.onload = () => {
+          setFileDataUrl(reader.result as string);
+          setIsProcessingFile(false);
+        };
+        reader.onerror = () => {
+          setFileDataUrl(null);
+          setIsProcessingFile(false);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFileDataUrl(null);
         setIsProcessingFile(false);
-      };
-      reader.onerror = () => {
-        setUploadError('Failed to read PDF file.');
-        setIsProcessingFile(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !fileDataUrl) {
-      setUploadError('Please select a PDF file to upload.');
-      return;
-    }
+    setUploadError('');
+
     if (!uploadTitle.trim()) {
       setUploadError('Please enter a document title.');
+      return;
+    }
+
+    const pdfDocId = `pdf-${Date.now()}`;
+    const authorName = defaultDisplayName || 'Student Candidate';
+    const parsedPageCount = parseInt(uploadPageCount) || 60;
+
+    // PATH 1: Add via PDF Document Link / Google Drive URL (Recommended for 50+ page booklets, exactly like WAEC)
+    if (uploadMethod === 'url') {
+      const rawUrl = uploadDocUrl.trim();
+      if (!rawUrl) {
+        setUploadError('Please enter a valid PDF link or Google Drive shared link.');
+        return;
+      }
+      if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+        setUploadError('The document link must begin with http:// or https://');
+        return;
+      }
+
+      setIsProcessingFile(true);
+
+      const newItem: PdfStoreItem = {
+        id: pdfDocId,
+        title: uploadTitle.trim(),
+        category: uploadCategory,
+        fileSize: 'Online Document (Full)',
+        uploadDate: new Date().toISOString().split('T')[0],
+        description: uploadDescription.trim() || 'Online past questions / study material booklet link.',
+        author: authorName,
+        authorId: loggedInUid,
+        institution: uploadInstitution.trim() || 'Campus Vault',
+        downloadUrl: rawUrl,
+        isUserUploaded: true,
+        pageCount: parsedPageCount
+      };
+
+      // 1. Notify server vault so that proxy downloading and streaming stream the true upstream document
+      try {
+        await fetch('/api/pdf-store/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: pdfDocId,
+            title: uploadTitle.trim(),
+            category: uploadCategory,
+            fileSize: 'Online Document (Full)',
+            uploadDate: newItem.uploadDate,
+            description: newItem.description,
+            author: authorName,
+            authorId: loggedInUid,
+            institution: newItem.institution,
+            downloadUrl: rawUrl,
+            pageCount: parsedPageCount
+          })
+        });
+      } catch (err) {
+        console.warn('Server vault notification warning:', err);
+      }
+
+      // 2. Persist in Firestore so the document is visible immediately across all devices without needing to re-upload!
+      try {
+        await setDoc(doc(db, 'pdf_store', pdfDocId), {
+          ...newItem,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Firestore setDoc warning:', err);
+      }
+
+      // 3. Save locally
+      const updatedList = [newItem, ...items];
+      setItems(updatedList);
+      saveAllPdfItemsLocally(updatedList);
+
+      setPreviewBlobUrl(null);
+      setPreviewingItem(newItem);
+      setReplaceSuccessMsg(`✓ Real PDF document "${uploadTitle.trim()}" successfully linked! Accessible across all devices.`);
+
+      setIsProcessingFile(false);
+      setUploadTitle('');
+      setUploadDocUrl('');
+      setUploadCategory('User Upload');
+      setUploadInstitution('');
+      setUploadDescription('');
+      setIsUploadModalOpen(false);
+      return;
+    }
+
+    // PATH 2: Upload physical PDF file from device
+    if (!selectedFile) {
+      setUploadError('Please select a PDF file from your device.');
       return;
     }
 
     setIsProcessingFile(true);
 
     const sizeInMb = (selectedFile.size / (1024 * 1024)).toFixed(2);
-    const pdfDocId = `pdf-${Date.now()}`;
-    const authorName = defaultDisplayName || 'Student Candidate';
-
     let serverDownloadUrl = `/api/pdf-store/file/${pdfDocId}`;
     let firebaseStoragePath: string | undefined = undefined;
 
-    // 1. Primary Cloud Storage: Upload directly to Firebase Cloud Storage bucket
+    // 1. Optional Primary Cloud Storage: Upload to Firebase Storage bucket if configured
     try {
       const storageRes = await uploadPdfToFirebaseStorage(pdfDocId, selectedFile, {
         title: uploadTitle.trim(),
@@ -724,41 +834,44 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
         firebaseStoragePath = storageRes.storagePath;
       }
     } catch (err) {
-      console.warn('Firebase Storage upload warning, continuing with disk vault fallback:', err);
+      console.warn('Firebase Storage upload warning, continuing with raw server vault fallback:', err);
     }
 
-    // 2. Client IndexedDB for instant offline access & local speed
+    // 2. Stream physical raw binary directly to backend disk vault (zero size limit / no base64 memory crash)
     try {
-      await savePdfBlobLocally(pdfDocId, fileDataUrl);
-    } catch (err) {
-      console.warn('IndexedDB save error:', err);
-    }
+      const queryParams = new URLSearchParams({
+        id: pdfDocId,
+        title: uploadTitle.trim(),
+        category: uploadCategory,
+        author: authorName,
+        authorId: loggedInUid || '',
+        institution: uploadInstitution.trim() || 'Campus Vault',
+        description: uploadDescription.trim() || 'User uploaded multi-page study document.',
+        pageCount: String(parsedPageCount || Math.max(1, Math.floor(selectedFile.size / 35000)))
+      });
 
-    // 3. Redundant Server Disk Vault for persistent multi-device streaming
-    try {
-      const res = await fetch('/api/pdf-store/upload', {
+      const res = await fetch(`/api/pdf-store/upload-raw?${queryParams.toString()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: pdfDocId,
-          title: uploadTitle.trim(),
-          category: uploadCategory,
-          fileSize: `${sizeInMb} MB`,
-          uploadDate: new Date().toISOString().split('T')[0],
-          description: uploadDescription.trim() || 'User uploaded study document for Post-UTME / JAMB preparation.',
-          author: authorName,
-          authorId: loggedInUid,
-          institution: uploadInstitution.trim() || 'Custom Document',
-          pdfBase64: fileDataUrl,
-          pageCount: Math.max(1, Math.floor(selectedFile.size / 30000))
-        })
+        headers: {
+          'Content-Type': 'application/pdf'
+        },
+        body: selectedFile
       });
       const data = await res.json();
       if (data.success && data.downloadUrl && !firebaseStoragePath) {
         serverDownloadUrl = data.downloadUrl;
       }
     } catch (err) {
-      console.warn('Server PDF vault upload warning, proceeding with direct URL', err);
+      console.warn('Server raw upload error, continuing:', err);
+    }
+
+    // 3. Client IndexedDB for instant offline access & local speed (if under 10MB)
+    if (fileDataUrl) {
+      try {
+        await savePdfBlobLocally(pdfDocId, fileDataUrl);
+      } catch (err) {
+        console.warn('IndexedDB save warning:', err);
+      }
     }
 
     const newItem: PdfStoreItem = {
@@ -774,10 +887,10 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
       downloadUrl: serverDownloadUrl,
       storagePath: firebaseStoragePath,
       isUserUploaded: true,
-      pageCount: Math.max(1, Math.floor(selectedFile.size / 30000))
+      pageCount: parsedPageCount || Math.max(1, Math.floor(selectedFile.size / 35000))
     };
 
-    // 3. Save lightweight record to Firestore so all devices see the new document
+    // 4. Save lightweight record to Firestore so all devices see the new document
     try {
       await setDoc(doc(db, 'pdf_store', pdfDocId), {
         ...newItem,
@@ -787,21 +900,20 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
       console.warn('Firestore setDoc for PDF warning', err);
     }
 
-    // Save locally
+    // 5. Save locally
     const updatedList = [newItem, ...items];
     setItems(updatedList);
     saveAllPdfItemsLocally(updatedList);
 
     // Open viewer immediately with instant blob URL so user sees their actual PDF right away
-    if (selectedFile) {
-      const instantBlobUrl = URL.createObjectURL(selectedFile);
-      setPreviewBlobUrl(instantBlobUrl);
-      setPreviewingItem(newItem);
-      setReplaceSuccessMsg(`✓ Real PDF "${uploadTitle.trim()}" successfully uploaded and ready!`);
-    }
+    const instantBlobUrl = URL.createObjectURL(selectedFile);
+    setPreviewBlobUrl(instantBlobUrl);
+    setPreviewingItem(newItem);
+    setReplaceSuccessMsg(`✓ Real PDF "${uploadTitle.trim()}" (${sizeInMb} MB, ${parsedPageCount} pages) successfully uploaded and ready!`);
 
     setIsProcessingFile(false);
     setUploadTitle('');
+    setUploadDocUrl('');
     setUploadCategory('User Upload');
     setUploadInstitution('');
     setUploadDescription('');
@@ -841,43 +953,50 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
     const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
     const targetId = targetItem.id;
 
-    const reader = new FileReader();
-    reader.onload = async () => {
+    try {
+      // 2. Stream physical raw binary directly to server vault (zero size limit / no base64 memory crash)
+      let updatedUrl = `/api/pdf-store/file/${targetId}?v=${Date.now()}`;
+      let storagePath = targetItem.storagePath;
+
+      const queryParams = new URLSearchParams({
+        id: targetId,
+        title: targetItem.title,
+        category: targetItem.category,
+        author: targetItem.author || defaultDisplayName || 'Student Candidate',
+        authorId: targetItem.authorId || loggedInUid || '',
+        institution: targetItem.institution || 'Campus Vault',
+        description: targetItem.description || 'User updated multi-page study document.',
+        pageCount: String(Math.max(1, Math.floor(file.size / 35000)))
+      });
+
       try {
-        const base64 = reader.result as string;
-
-        // 2. Save directly to local IndexedDB for rapid client retrieval
-        await savePdfBlobLocally(targetId, base64);
-
-        let updatedUrl = `/api/pdf-store/file/${targetId}?v=${Date.now()}`;
-        let storagePath = targetItem.storagePath;
-
-        // 3. Post to server vault to permanently write to disk
-        try {
-          const res = await fetch('/api/pdf-store/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: targetId,
-              title: targetItem.title,
-              category: targetItem.category,
-              fileSize: `${sizeInMb} MB`,
-              uploadDate: new Date().toISOString().split('T')[0],
-              description: targetItem.description,
-              author: targetItem.author,
-              authorId: targetItem.authorId || loggedInUid,
-              institution: targetItem.institution,
-              pdfBase64: base64,
-              pageCount: Math.max(1, Math.floor(file.size / 30000))
-            })
-          });
-          const data = await res.json();
-          if (data.downloadUrl) {
-            updatedUrl = `${data.downloadUrl}?v=${Date.now()}`;
-          }
-        } catch (err) {
-          console.warn('Server vault update error:', err);
+        const res = await fetch(`/api/pdf-store/upload-raw?${queryParams.toString()}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/pdf'
+          },
+          body: file
+        });
+        const data = await res.json();
+        if (data.downloadUrl) {
+          updatedUrl = `${data.downloadUrl}?v=${Date.now()}`;
         }
+      } catch (err) {
+        console.warn('Server vault raw update warning:', err);
+      }
+
+      // Also save to IndexedDB if <= 10MB
+      if (file.size <= 10 * 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            await savePdfBlobLocally(targetId, reader.result as string);
+          } catch (e) {
+            console.warn('IndexedDB save warning:', e);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
 
         // 4. Update Firestore with setDoc (merge: true) to never fail on non-existent docs
         try {
@@ -933,8 +1052,6 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
           replaceFileInputRef.current.value = '';
         }
       }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Modal Opener Wrappers with Guest Auth Check
@@ -956,12 +1073,18 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
     setIsNewDiscussionModalOpen(true);
   };
 
+  const triggerBlobDownload = (blob: Blob, filename: string) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  };
+
   const handlePreviewPdf = async (item: PdfStoreItem) => {
-    if (!isUserLoggedIn) {
-      if (onLoginRequest) onLoginRequest();
-      else alert('Please sign in or log in to preview or open PDF files.');
-      return;
-    }
     setPreviewingItem(item);
     setReplaceSuccessMsg(null);
     replaceTargetItemRef.current = item;
@@ -1001,12 +1124,6 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
   };
 
   const handleDownload = async (item: PdfStoreItem) => {
-    if (!isUserLoggedIn) {
-      if (onLoginRequest) onLoginRequest();
-      else alert('Please sign in or log in to download PDF files.');
-      return;
-    }
-
     setDownloadingId(item.id);
     const safeFilename = `${(item.title || 'document').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
 
@@ -1022,23 +1139,18 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = safeFilename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+        triggerBlobDownload(blob, safeFilename);
         setDownloadingId(null);
         return;
       }
 
-      // 2. Fetch binary stream directly from Firebase Storage or server vault
-      let targetUrl = `/api/pdf-store/file/${item.id}?download=1&title=${encodeURIComponent(item.title)}`;
+      // 2. Fetch binary stream directly from proxy or server vault (exactly like WAEC timetable)
+      let targetUrl = `/api/pdf-store/file/${encodeURIComponent(item.id)}?download=1&title=${encodeURIComponent(item.title)}`;
       if (item.downloadUrl) {
-        if (item.downloadUrl.startsWith('http')) {
-          targetUrl = item.downloadUrl;
+        if (item.downloadUrl.startsWith('http://') || item.downloadUrl.startsWith('https://')) {
+          targetUrl = `/api/pdf/proxy-download?url=${encodeURIComponent(item.downloadUrl)}&title=${encodeURIComponent(item.title)}`;
+        } else if (!item.downloadUrl.includes('/api/')) {
+          targetUrl = `/api/pdf-store/file/${encodeURIComponent(item.downloadUrl)}?download=1&title=${encodeURIComponent(item.title)}`;
         } else {
           targetUrl = item.downloadUrl.includes('?')
             ? `${item.downloadUrl}&download=1&title=${encodeURIComponent(item.title)}`
@@ -1050,33 +1162,38 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
       if (res.ok) {
         const blob = await res.blob();
         if (blob.size > 100) {
-          const objectUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = objectUrl;
-          a.download = safeFilename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+          triggerBlobDownload(blob, safeFilename);
+          setDownloadingId(null);
+          return;
+        }
+      }
+
+      // Secondary check: direct vault id request
+      const fallbackUrl = `/api/pdf-store/file/${encodeURIComponent(item.id)}?download=1&title=${encodeURIComponent(item.title)}`;
+      const fbRes = await fetch(fallbackUrl);
+      if (fbRes.ok) {
+        const blob = await fbRes.blob();
+        if (blob.size > 100) {
+          triggerBlobDownload(blob, safeFilename);
           setDownloadingId(null);
           return;
         }
       }
     } catch (err) {
-      console.warn('[PDF Download Error] Falling back to client generator:', err);
+      console.warn('[PDF Download Error] Fetching proxy failed:', err);
     }
 
-    // 3. Fallback client generation: creates verified study guide blob instantly so download NEVER fails
+    // 3. If an external URL exists (e.g. Google Drive / shared link), directly trigger browser download/open so the user ALWAYS gets the original multi-page file!
+    if (item.downloadUrl && (item.downloadUrl.startsWith('http://') || item.downloadUrl.startsWith('https://'))) {
+      window.open(item.downloadUrl, '_blank');
+      setDownloadingId(null);
+      return;
+    }
+
+    // 4. Emergency offline fallback: creates verified study guide blob only if completely offline and no URL exists
     try {
       const fallbackBlob = generateClientStudyPdf(item.title, item.category, item.author);
-      const objectUrl = URL.createObjectURL(fallbackBlob);
-      const a = document.createElement('a');
-      a.href = objectUrl;
-      a.download = safeFilename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+      triggerBlobDownload(fallbackBlob, safeFilename);
     } catch (e) {
       console.error('Final fallback error:', e);
     } finally {
@@ -1652,8 +1769,8 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                           onClick={() => handlePreviewPdf(item)}
                           className="flex-1 py-2 px-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          {isUserLoggedIn ? <Eye size={14} /> : <Lock size={13} className="text-amber-500" />}
-                          <span>{isUserLoggedIn ? 'Preview' : 'Login to View'}</span>
+                          <Eye size={14} />
+                          <span>Preview</span>
                         </button>
 
                         <button
@@ -1663,12 +1780,10 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                         >
                           {downloadingId === item.id ? (
                             <RefreshCw size={14} className="animate-spin" />
-                          ) : isUserLoggedIn ? (
-                            <Download size={14} />
                           ) : (
-                            <Lock size={13} className="text-emerald-200" />
+                            <Download size={14} />
                           )}
-                          <span>{downloadingId === item.id ? 'Downloading...' : isUserLoggedIn ? 'Download' : 'Login to Download'}</span>
+                          <span>{downloadingId === item.id ? 'Downloading...' : 'Download'}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -2024,13 +2139,41 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                   <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <Upload size={20} />
                   </div>
-                  <h3 className="font-black text-lg text-gray-900 dark:text-white">Upload PDF to Store</h3>
+                  <h3 className="font-black text-lg text-gray-900 dark:text-white">Add PDF to Campus Vault</h3>
                 </div>
                 <button
                   onClick={() => setIsUploadModalOpen(false)}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                 >
                   <X size={18} />
+                </button>
+              </div>
+
+              {/* Upload Method Selector */}
+              <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setUploadMethod('url'); setUploadError(''); }}
+                  className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    uploadMethod === 'url'
+                      ? 'bg-white dark:bg-gray-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Link size={14} />
+                  <span>Add PDF by URL / Link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUploadMethod('file'); setUploadError(''); }}
+                  className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    uploadMethod === 'file'
+                      ? 'bg-white dark:bg-gray-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Upload size={14} />
+                  <span>Upload from Device</span>
                 </button>
               </div>
 
@@ -2042,42 +2185,66 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">
-                    Select PDF File (.pdf) *
-                  </label>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 text-center hover:border-emerald-500 dark:hover:border-emerald-500 bg-gray-50 dark:bg-gray-800/50 cursor-pointer transition-colors"
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    {selectedFile ? (
-                      <div className="space-y-1">
-                        <CheckCircle2 className="mx-auto text-emerald-500" size={28} />
-                        <p className="font-bold text-gray-900 dark:text-white truncate max-w-xs mx-auto">
-                          {selectedFile.name}
-                        </p>
-                        <p className="text-[10px] text-gray-400">
-                          {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
+                {uploadMethod === 'url' ? (
+                  <div className="space-y-2">
+                    <label className="block text-gray-700 dark:text-gray-300 font-bold">
+                      Direct PDF Link or Google Drive URL *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://drive.google.com/file/d/... or https://domain.com/questions.pdf"
+                        value={uploadDocUrl}
+                        onChange={(e) => setUploadDocUrl(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs font-medium"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                      <Sparkles size={14} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <div>
+                        <strong>Recommended for 50+ page booklets:</strong> Paste a Google Drive share link or direct link (like the WAEC GCE Timetable). It works immediately on all phones, tablets, and laptops without re-uploading!
                       </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <Upload className="mx-auto text-gray-400" size={28} />
-                        <p className="font-bold text-gray-700 dark:text-gray-300">
-                          Click to browse or drag & drop PDF here
-                        </p>
-                        <p className="text-[10px] text-gray-400">Maximum recommended file size: 25MB</p>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">
+                      Select PDF File (.pdf) *
+                    </label>
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-5 text-center hover:border-emerald-500 dark:hover:border-emerald-500 bg-gray-50 dark:bg-gray-800/50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      {selectedFile ? (
+                        <div className="space-y-1">
+                          <CheckCircle2 className="mx-auto text-emerald-500" size={28} />
+                          <p className="font-bold text-gray-900 dark:text-white truncate max-w-xs mx-auto">
+                            {selectedFile.name}
+                          </p>
+                          <p className="text-[10px] text-gray-400">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Streams directly to vault storage
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Upload className="mx-auto text-gray-400" size={28} />
+                          <p className="font-bold text-gray-700 dark:text-gray-300">
+                            Click to browse or drag & drop PDF here
+                          </p>
+                          <p className="text-[10px] text-gray-400">Multi-page files (60+ pages) supported via direct binary streaming</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">
@@ -2086,7 +2253,7 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                   <input
                     type="text"
                     required
-                    placeholder="e.g. UNILAG 2025 Post-UTME Past Questions"
+                    placeholder="e.g. JAMB 2026 Complete Past Questions & Solutions (60 Pages)"
                     value={uploadTitle}
                     onChange={(e) => setUploadTitle(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs font-bold"
@@ -2103,10 +2270,10 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                       onChange={(e) => setUploadCategory(e.target.value as any)}
                       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs font-bold"
                     >
-                      <option value="User Upload">User Upload</option>
-                      <option value="JAMB Syllabus">JAMB Syllabus</option>
                       <option value="Past Questions">Past Questions</option>
+                      <option value="JAMB Syllabus">JAMB Syllabus</option>
                       <option value="Post-UTME Guide">Post-UTME Guide</option>
+                      <option value="User Upload">User Upload</option>
                       <option value="Result Slip">Result Slip</option>
                       <option value="General Notes">General Notes</option>
                     </select>
@@ -2114,16 +2281,31 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
 
                   <div>
                     <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">
-                      Target Institution / Course
+                      Total Document Pages
                     </label>
                     <input
-                      type="text"
-                      placeholder="e.g. UNILAG / Use of English"
-                      value={uploadInstitution}
-                      onChange={(e) => setUploadInstitution(e.target.value)}
+                      type="number"
+                      min="1"
+                      max="1000"
+                      placeholder="e.g. 60"
+                      value={uploadPageCount}
+                      onChange={(e) => setUploadPageCount(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs font-bold"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 font-bold mb-1">
+                    Target Institution / Exam Type
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. JAMB UTME / UNILAG Post-UTME / WAEC"
+                    value={uploadInstitution}
+                    onChange={(e) => setUploadInstitution(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs font-bold"
+                  />
                 </div>
 
                 <div>
@@ -2132,7 +2314,7 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Brief description of the PDF content..."
+                    placeholder="Brief description of past questions, subjects included, answer explanations..."
                     value={uploadDescription}
                     onChange={(e) => setUploadDescription(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 outline-none focus:border-emerald-500 text-xs"
@@ -2152,8 +2334,8 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                     disabled={isProcessingFile}
                     className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
                   >
-                    <Upload size={14} />
-                    <span>Upload PDF</span>
+                    {uploadMethod === 'url' ? <Link size={14} /> : <Upload size={14} />}
+                    <span>{uploadMethod === 'url' ? 'Save & Link PDF' : 'Upload File to Vault'}</span>
                   </button>
                 </div>
               </form>
@@ -2330,35 +2512,6 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                 </div>
               )}
 
-              {/* Action Banner for Real PDF Upload / Overwrite */}
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-medium">
-                  <AlertCircle size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>{previewBlobUrl ? 'Viewing your uploaded PDF directly.' : 'Want to replace this with your actual physical multi-page PDF file?'}</span>
-                </div>
-                {isUserLoggedIn ? (
-                  <button
-                    onClick={() => handleTriggerReplaceFile(previewingItem)}
-                    disabled={isReplacingFile}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
-                  >
-                    {isReplacingFile ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
-                    <span>{isReplacingFile ? 'Saving PDF...' : 'Upload Real PDF Now'}</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setPreviewingItem(null);
-                      if (onLoginRequest) onLoginRequest();
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-                  >
-                    <LogIn size={13} />
-                    <span>Login to Upload Real PDF</span>
-                  </button>
-                )}
-              </div>
-
               {/* Embedded Document / Base64 Viewer */}
               <div className="space-y-4">
                 {(previewBlobUrl || previewingItem.downloadUrl) ? (
@@ -2409,18 +2562,6 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                     <ExternalLink size={13} />
                     <span>Fullscreen / Tab</span>
                   </button>
-
-                  {isUserLoggedIn && (
-                    <button
-                      onClick={() => handleTriggerReplaceFile(previewingItem)}
-                      disabled={isReplacingFile}
-                      className="px-3.5 py-2 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-amber-500/20 disabled:opacity-50"
-                      title="Re-upload or update this PDF document file"
-                    >
-                      {isReplacingFile ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
-                      <span>{isReplacingFile ? 'Updating...' : 'Re-upload File'}</span>
-                    </button>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2">

@@ -2856,9 +2856,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               <div className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[8px] font-black uppercase tracking-widest text-cyan-400">
                 Merit Logic v5.5
               </div>
-              <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-none text-white">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none text-white">
                 Admissions <span className="text-cyan-400">Strategist</span>
-              </h2>
+              </h1>
             </div>
             
             {/* Tab selector */}
@@ -4948,7 +4948,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                       <Markdown
                         components={{
                           p: ({ children }) => <p className="mb-2.5 text-gray-200 text-xs leading-relaxed">{children}</p>,
-                          h1: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
+                          h1: ({ children }) => <h2 className="font-extrabold text-cyan-400 text-sm uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h2>,
                           h2: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
                           h3: ({ children }) => <h3 className="font-extrabold text-cyan-400 text-xs uppercase tracking-wide mt-4 mb-2 pb-1 border-b border-white/10 flex items-center gap-1.5">{children}</h3>,
                           ul: ({ children }) => <ul className="space-y-1.5 my-2 text-xs text-gray-300 pl-1">{children}</ul>,

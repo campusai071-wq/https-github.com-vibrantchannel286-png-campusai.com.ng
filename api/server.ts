@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import cors from "cors";
+import compression from "compression";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
@@ -22,7 +23,7 @@ import { handleArticleImageRequest } from "./articleImage.js";
 import universityData from "../src/data/universities.js";
 import { MOCK_NEWS } from "../src/constants.js";
 import { getCentersForState, getCampusesForState, getHostelsForState, STATE_COORDINATES } from "../src/data/cbtCentersData.js";
-import { savePdfToVault, getPdfFromVault, getAllVaultItems, generateOrRecoverStudyPdf } from "./pdfVault.js";
+import { savePdfToVault, savePdfMetadata, getPdfFromVault, getAllVaultItems, generateOrRecoverStudyPdf } from "./pdfVault.js";
 
 const getFirebaseAppletConfig = (): any => {
   try {
@@ -75,6 +76,7 @@ function safeEquals(a: string, b: string): boolean {
 
 // --- Global Logger (Log EVERYTHING) ---
 export const app = express();
+app.use(compression());
 app.use(cors({ origin: "*" }));
 const PORT = 3000;
 
@@ -2317,20 +2319,20 @@ app.post("/api/ai/maps-grounding", async (req: any, res: any) => {
   const baseVerified = category === 'campuses' ? baseCampuses : (category === 'hostels' ? baseHostels : baseCenters);
   const stateCoords = STATE_COORDINATES[stateName] || { lat: 6.5244, lng: 3.3792, zoom: 11 };
 
+  const categoryTitles: Record<string, string> = {
+    cbt_centers: `Accredited CBT Centers in ${stateName}`,
+    campuses: `University & Polytechnic Campuses in ${stateName}`,
+    hostels: `Student Hostels & Lodges in ${stateName}`
+  };
+  const categorySummaries: Record<string, string> = {
+    cbt_centers: `Showing verified JAMB CBT examination facilities across ${stateName}.`,
+    campuses: `Showing verified higher educational institutions across ${stateName}.`,
+    hostels: `Showing verified student residential areas and off-campus lodges across ${stateName}.`
+  };
+
   try {
     // If query is blank or generic, return the accredited centers or verified campuses/hostels directly
     if (!searchQuery || searchQuery.toLowerCase() === 'all' || searchQuery.toLowerCase() === stateName.toLowerCase()) {
-      const categoryTitles: Record<string, string> = {
-        cbt_centers: `Accredited CBT Centers in ${stateName}`,
-        campuses: `University & Polytechnic Campuses in ${stateName}`,
-        hostels: `Student Hostels & Lodges in ${stateName}`
-      };
-      const categorySummaries: Record<string, string> = {
-        cbt_centers: `Showing verified JAMB CBT examination facilities across ${stateName}.`,
-        campuses: `Showing verified higher educational institutions across ${stateName}.`,
-        hostels: `Showing verified student residential areas and off-campus lodges across ${stateName}.`
-      };
-
       return res.json({
         success: true,
         data: {
@@ -2362,11 +2364,12 @@ Always return JSON:
     }
   ]
 }
-Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateName}, Nigeria.`;
+Find 4 to 8 accurate, authentic locations matching "${searchQuery}" strictly in ${stateName} State, Nigeria.
+CRITICAL MANDATE: All locations MUST be strictly located within ${stateName} State, Nigeria. Under no circumstance return locations from Lagos, Abuja, Ibadan, or any other state when ${stateName} is requested.`;
 
     const aiPromise = callAIWithFallback({
       systemInstruction: systemPrompt,
-      messages: [{ role: 'user', content: `Locate verified ${category.replace('_', ' ')} in ${stateName}, Nigeria for: "${searchQuery}". Return JSON.` }],
+      messages: [{ role: 'user', content: `Locate verified ${category.replace('_', ' ')} strictly in ${stateName}, Nigeria for query: "${searchQuery}". Ensure every result is within ${stateName}. Return JSON.` }],
       jsonMode: true,
       maxTokens: 1200,
       label: 'maps_grounding'
@@ -2380,7 +2383,7 @@ Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateNa
       if (parsed && Array.isArray(parsed.locations) && parsed.locations.length > 0) {
         const enriched = parsed.locations.map((loc: any, idx: number) => ({
           ...loc,
-          state: loc.state || stateName,
+          state: stateName,
           lat: typeof loc.lat === 'number' && !isNaN(loc.lat) ? loc.lat : stateCoords.lat + (idx * 0.008 - 0.004),
           lng: typeof loc.lng === 'number' && !isNaN(loc.lng) ? loc.lng : stateCoords.lng + (idx * 0.008 - 0.004),
           mapSearchQuery: loc.mapSearchQuery || `${loc.name}, ${stateName}`
@@ -2389,8 +2392,8 @@ Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateNa
         return res.json({
           success: true,
           data: {
-            title: parsed.title || `Locations in ${stateName} (${searchQuery})`,
-            summary: parsed.summary || `Verified locations found in ${stateName}.`,
+            title: parsed.title || `${categoryTitles[category] || 'Locations in ' + stateName} (${searchQuery})`,
+            summary: parsed.summary || categorySummaries[category] || `Verified locations found in ${stateName}.`,
             locations: enriched
           },
           source: 'ai_grounded'
@@ -2402,15 +2405,15 @@ Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateNa
     const filteredVerified = baseVerified.filter(c =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.lga.toLowerCase().includes(searchQuery.toLowerCase())
+      (c.lga && c.lga.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     const finalLocations = filteredVerified.length > 0 ? filteredVerified : baseVerified;
 
     return res.json({
       success: true,
       data: {
-        title: `Accredited Centers in ${stateName} (${searchQuery})`,
-        summary: `Showing verified examination and institutional facilities in ${stateName}.`,
+        title: `${categoryTitles[category] || 'Accredited Facilities'} in ${stateName} (${searchQuery})`,
+        summary: categorySummaries[category] || `Showing verified facilities in ${stateName}.`,
         locations: finalLocations
       },
       source: 'accredited_database'
@@ -2421,8 +2424,8 @@ Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateNa
     return res.json({
       success: true,
       data: {
-        title: `Accredited Centers in ${stateName} (${searchQuery || 'CBT'})`,
-        summary: `Showing verified institutional and examination facilities in ${stateName} from verified database.`,
+        title: `${categoryTitles[category] || 'Verified Facilities'} in ${stateName}`,
+        summary: categorySummaries[category] || `Showing verified facilities in ${stateName} from verified database.`,
         locations: baseVerified
       },
       source: 'accredited_database_fallback'
@@ -2433,15 +2436,147 @@ Find 4 to 8 accurate, realistic locations matching "${searchQuery}" in ${stateNa
 // ------------------------------------------------------------------
 // PDF STORE FILE VAULT & DURABLE SERVER-SIDE STORAGE
 // ------------------------------------------------------------------
+
+// Normalizes Google Drive, Dropbox, and web links to direct downloadable PDF streams
+function normalizePdfUrl(inputUrl: string): { url: string; isGoogleDrive: boolean; fileId?: string } {
+  if (!inputUrl) return { url: "", isGoogleDrive: false };
+  const cleanUrl = inputUrl.trim();
+
+  // Google Drive Shared Link formats:
+  // - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+  // - https://drive.google.com/open?id=FILE_ID
+  // - https://drive.google.com/uc?id=FILE_ID
+  const gDriveMatch = cleanUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=)([a-zA-Z0-9_-]+)/i);
+  if (gDriveMatch && gDriveMatch[1]) {
+    const fileId = gDriveMatch[1];
+    return {
+      url: `https://drive.google.com/uc?export=download&id=${fileId}`,
+      isGoogleDrive: true,
+      fileId
+    };
+  }
+
+  // Dropbox share links (force download)
+  if (cleanUrl.includes("dropbox.com")) {
+    const directDropbox = cleanUrl.replace("?dl=0", "?dl=1").replace("&dl=0", "&dl=1");
+    return { url: directDropbox, isGoogleDrive: false };
+  }
+
+  return { url: cleanUrl, isGoogleDrive: false };
+}
+
+// Resilient fetch for external PDFs (Google Drive virus scan confirm pages, timeout resilience, etc.)
+async function fetchExternalPdf(rawUrl: string, requestedTitle: string): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const { url, isGoogleDrive, fileId } = normalizePdfUrl(rawUrl);
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for large multi-page PDFs
+
+    let upstreamRes = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/pdf,*/*;q=0.9",
+      }
+    });
+
+    // Check if Google Drive returned a virus scan confirmation page (common for PDFs larger than 10MB)
+    if (isGoogleDrive && fileId) {
+      const contentType = upstreamRes.headers.get("content-type") || "";
+      if (contentType.includes("text/html")) {
+        const htmlText = await upstreamRes.text();
+        const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/i) ||
+                             htmlText.match(/name="confirm"\s+value="([^"]+)"/i) ||
+                             htmlText.match(/download_warning_[^=]+=([a-zA-Z0-9_-]+)/i);
+        if (confirmMatch) {
+          const confirmToken = confirmMatch[1];
+          const confirmUrl = `https://drive.google.com/uc?export=download&confirm=${confirmToken}&id=${fileId}`;
+          upstreamRes = await fetch(confirmUrl, {
+            signal: controller.signal,
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+              "Accept": "application/pdf,*/*;q=0.9",
+            }
+          });
+        }
+      }
+    }
+
+    clearTimeout(timeoutId);
+
+    if (upstreamRes.ok) {
+      const contentType = upstreamRes.headers.get("content-type") || "application/pdf";
+      const arrayBuf = await upstreamRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuf);
+      if (buffer.length > 300) {
+        return { buffer, contentType: contentType.includes("pdf") ? contentType : "application/pdf" };
+      }
+    }
+  } catch (e) {
+    console.warn(`[PDF Fetch Error] Failed fetching external URL ${rawUrl}:`, e);
+  }
+  return null;
+}
+
+// 1. Raw binary file upload endpoint (bypasses JSON base64 limits for large 60+ page PDFs up to 150MB)
+app.post("/api/pdf-store/upload-raw", express.raw({ type: () => true, limit: "150mb" }), (req: any, res: any) => {
+  try {
+    const id = (req.query.id as string) || `pdf-${Date.now()}`;
+    const title = (req.query.title as string) || "Uploaded Document";
+    const category = (req.query.category as string) || "User Upload";
+    const author = (req.query.author as string) || "Student Candidate";
+    const authorId = (req.query.authorId as string) || "";
+    const institution = (req.query.institution as string) || "Campus Repository";
+    const description = (req.query.description as string) || "User uploaded multi-page study document.";
+    const pageCount = parseInt(req.query.pageCount as string) || 1;
+
+    if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({ error: "Empty or invalid file body received." });
+    }
+
+    const buffer: Buffer = req.body;
+    const sizeInMb = (buffer.length / (1024 * 1024)).toFixed(2);
+    const fileUrl = `/api/pdf-store/file/${id}`;
+
+    const docMeta = {
+      id,
+      title: title.trim(),
+      category,
+      fileSize: `${sizeInMb} MB`,
+      uploadDate: new Date().toISOString().split("T")[0],
+      description,
+      author,
+      authorId,
+      institution,
+      downloadUrl: fileUrl,
+      isUserUploaded: true,
+      pageCount,
+      createdAt: new Date().toISOString()
+    };
+
+    savePdfToVault(id, docMeta, buffer);
+
+    console.log(`[PDF Vault Raw Upload] Successfully saved multi-page physical PDF ${id} (${sizeInMb} MB, ${pageCount} pages)`);
+    return res.json({ success: true, downloadUrl: fileUrl, doc: docMeta });
+  } catch (err: any) {
+    console.error("[PDF Vault Raw Upload Error]:", err);
+    return res.status(500).json({ error: "Failed to store physical PDF file" });
+  }
+});
+
+// 2. Metadata & URL or Base64 upload endpoint
 app.post("/api/pdf-store/upload", (req: any, res: any) => {
   try {
-    const { id, title, category, fileSize, uploadDate, description, author, authorId, institution, pdfBase64, pageCount } = req.body;
+    const { id, title, category, fileSize, uploadDate, description, author, authorId, institution, pdfBase64, pageCount, downloadUrl } = req.body;
     if (!id || !title) {
       return res.status(400).json({ error: "Missing required fields: id and title" });
     }
 
     const pdfDocId = id;
-    const fileUrl = `/api/pdf-store/file/${pdfDocId}`;
+    const finalDownloadUrl = downloadUrl && (downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://"))
+      ? downloadUrl
+      : `/api/pdf-store/file/${pdfDocId}`;
 
     const docMeta = {
       id: pdfDocId,
@@ -2453,7 +2588,7 @@ app.post("/api/pdf-store/upload", (req: any, res: any) => {
       author: author || "Candidate",
       authorId: authorId || "",
       institution: institution || "CampusAI Vault",
-      downloadUrl: fileUrl,
+      downloadUrl: finalDownloadUrl,
       isUserUploaded: true,
       pageCount: pageCount || 1,
       createdAt: new Date().toISOString()
@@ -2463,22 +2598,19 @@ app.post("/api/pdf-store/upload", (req: any, res: any) => {
       // Save permanently to disk storage & in-memory cache
       savePdfToVault(pdfDocId, docMeta, pdfBase64);
     } else {
-      // Check existing or initialize
-      const existing = getPdfFromVault(pdfDocId);
-      if (!existing) {
-        // Pre-generate study PDF placeholder so download never fails
-        generateOrRecoverStudyPdf(pdfDocId, docMeta);
-      }
+      // Save metadata record so lookups and external URL proxying know about this item
+      savePdfMetadata(pdfDocId, docMeta);
     }
 
-    return res.json({ success: true, downloadUrl: fileUrl, doc: docMeta });
+    return res.json({ success: true, downloadUrl: finalDownloadUrl, doc: docMeta });
   } catch (err: any) {
     console.error("[PDF Vault Upload Error]:", err);
     return res.status(500).json({ error: "Failed to store PDF file" });
   }
 });
 
-app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
+// 3. Document download & streaming endpoint
+app.get("/api/pdf-store/file/:id", async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const isDownload = req.query.download === "1" || req.query.download === "true";
@@ -2487,17 +2619,63 @@ app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
     // 1. Retrieve physical / cached PDF from vault disk
     let result = getPdfFromVault(id);
 
-    // 2. If not found on disk, dynamically recover & generate full academic study guide
-    if (!result || !result.buffer || result.buffer.length === 0) {
-      console.log(`[PDF Vault] File ${id} not found on disk, generating study document...`);
-      result = generateOrRecoverStudyPdf(id, {
-        id,
-        title: requestedTitle,
-        category: "Study Document"
-      });
+    // If item was stored with an external URL (Google Drive, Web URL) and has no local file:
+    if (result && !result.buffer && result.meta?.downloadUrl && (result.meta.downloadUrl.startsWith("http://") || result.meta.downloadUrl.startsWith("https://"))) {
+      const fetched = await fetchExternalPdf(result.meta.downloadUrl, requestedTitle);
+      if (fetched) {
+        // Cache to vault disk so future requests serve instantly without network overhead
+        try {
+          savePdfToVault(id, result.meta || { id, title: requestedTitle }, fetched.buffer);
+        } catch (e) {
+          console.warn("[PDF Vault] Failed to cache external PDF to disk:", e);
+        }
+        const title = result.meta?.title || requestedTitle;
+        const safeFilename = encodeURIComponent(title.replace(/[^a-zA-Z0-9_-]/g, "_")) + ".pdf";
+        res.setHeader("Content-Type", fetched.contentType);
+        res.setHeader(
+          "Content-Disposition",
+          isDownload
+            ? `attachment; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
+            : `inline; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
+        );
+        res.setHeader("Content-Length", fetched.buffer.length);
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        return res.send(fetched.buffer);
+      } else {
+        return res.status(400).json({
+          error: "Unable to retrieve PDF from the provided external link. Please check if the URL is a direct public PDF link or try uploading the file directly."
+        });
+      }
     }
 
-    const title = result.meta?.title || requestedTitle;
+    // 2. If physical file exists on disk, stream it directly!
+    if (result && result.buffer && result.buffer.length > 0) {
+      const title = result.meta?.title || requestedTitle;
+      const safeFilename = encodeURIComponent(title.replace(/[^a-zA-Z0-9_-]/g, "_")) + ".pdf";
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        isDownload
+          ? `attachment; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
+          : `inline; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
+      );
+      res.setHeader("Content-Length", result.buffer.length);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      return res.send(result.buffer);
+    }
+
+    // 3. If not found on disk, dynamically recover study document
+    console.log(`[PDF Vault] File ${id} not found on disk, generating study document...`);
+    const fallback = generateOrRecoverStudyPdf(id, {
+      id,
+      title: requestedTitle,
+      category: "Study Document"
+    });
+
+    const title = fallback.meta?.title || requestedTitle;
     const safeFilename = encodeURIComponent(title.replace(/[^a-zA-Z0-9_-]/g, "_")) + ".pdf";
 
     res.setHeader("Content-Type", "application/pdf");
@@ -2507,17 +2685,12 @@ app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
         ? `attachment; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
         : `inline; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`
     );
-    res.setHeader("Content-Length", result.buffer.length);
+    res.setHeader("Content-Length", fallback.buffer.length);
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    if (result.meta?.isSyntheticFallback) {
-      res.setHeader("X-Is-Synthetic-Fallback", "true");
-    }
-    return res.send(result.buffer);
+    res.setHeader("X-Is-Synthetic-Fallback", "true");
+    return res.send(fallback.buffer);
   } catch (err: any) {
     console.error("[PDF Vault File Retrieval Error]:", err);
-    // Even in error, generate fallback PDF instead of 404 to avoid breaking mobile downloads
     try {
       const fallback = generateOrRecoverStudyPdf(req.params.id || "document", {
         title: "CampusAI Academic Past Questions & Study Guide"
@@ -2528,6 +2701,60 @@ app.get("/api/pdf-store/file/:id", (req: any, res: any) => {
     } catch {
       return res.status(500).send("Error serving PDF document.");
     }
+  }
+});
+
+// 4. Resilient PDF Proxy & Download Pipeline (handles Google Drive, Dropbox, and web links)
+app.get("/api/pdf/proxy-download", async (req: any, res: any) => {
+  try {
+    const rawUrl = req.query.url as string;
+    const requestedTitle = (req.query.title as string) || "examination_document";
+    const isInline = req.query.inline === "1" || req.query.inline === "true";
+    const safeFilename = encodeURIComponent(requestedTitle.replace(/[^a-zA-Z0-9_-]/g, "_")) + ".pdf";
+
+    if (!rawUrl) {
+      return res.status(400).send("Missing target document URL.");
+    }
+
+    // 1. Internal vault or relative API path
+    if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+      const cleanId = rawUrl.replace(/^\/api\/pdf-store\/file\//, "").split("?")[0];
+      const vaultRes = getPdfFromVault(cleanId);
+      const finalBuffer = vaultRes?.buffer || generateOrRecoverStudyPdf(cleanId, { title: requestedTitle }).buffer;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        isInline ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`
+      );
+      res.setHeader("Content-Length", finalBuffer.length);
+      return res.send(finalBuffer);
+    }
+
+    // 2. External URL: Attempt full external fetch (supports Google Drive virus scan bypass, Dropbox, etc.)
+    const fetched = await fetchExternalPdf(rawUrl, requestedTitle);
+    if (fetched) {
+      res.setHeader("Content-Type", fetched.contentType);
+      res.setHeader(
+        "Content-Disposition",
+        isInline ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`
+      );
+      res.setHeader("Content-Length", fetched.buffer.length);
+      return res.send(fetched.buffer);
+    }
+
+    // 3. Fallback: Generate or recover authentic study document so it NEVER breaks
+    console.log(`[PDF Proxy] Serving generated authentic document for: ${requestedTitle}`);
+    const fallback = generateOrRecoverStudyPdf(safeFilename, { title: requestedTitle });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      isInline ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`
+    );
+    res.setHeader("Content-Length", fallback.buffer.length);
+    return res.send(fallback.buffer);
+  } catch (err: any) {
+    console.error("[PDF Proxy Error]:", err);
+    return res.status(500).send("Error downloading PDF document.");
   }
 });
 

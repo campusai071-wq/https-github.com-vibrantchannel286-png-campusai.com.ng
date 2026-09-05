@@ -649,21 +649,23 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     const totalRawScore = calculateScore();
     
     // Automatically save CBT attempt to Target Progress
-    // Psychometric score calculation per subject
-    let jambEquivalentScore = 0;
-    selectedSubjects.forEach((subKey) => {
-      const pool = questionsBySubject[subKey] || [];
-      const answers = answersBySubject[subKey] || {};
-      let subScore = 0;
-      pool.forEach((q) => {
-        if (answers[q.id]?.toLowerCase() === q.answer.toLowerCase()) subScore++;
+    let finalScore = 0;
+    if (examType === 'post_utme') {
+      finalScore = totalQuestions > 0 ? Math.round((totalRawScore / totalQuestions) * 100) : 0;
+    } else {
+      selectedSubjects.forEach((subKey) => {
+        const pool = questionsBySubject[subKey] || [];
+        const answers = answersBySubject[subKey] || {};
+        let subScore = 0;
+        pool.forEach((q) => {
+          if (answers[q.id]?.toLowerCase() === q.answer.toLowerCase()) subScore++;
+        });
+        // JAMB Psychometric Scaling: (Raw / Total) * 100
+        const scaledScore = pool.length > 0 ? (subScore / pool.length) * 100 : 0;
+        finalScore += scaledScore;
       });
-      // JAMB Psychometric Scaling: (Raw / Total) * 100
-      const scaledScore = pool.length > 0 ? (subScore / pool.length) * 100 : 0;
-      jambEquivalentScore += scaledScore;
-    });
-    
-    jambEquivalentScore = Math.round(jambEquivalentScore) || 0;
+      finalScore = Math.round(finalScore) || 0;
+    }
 
     const currentMonth = new Date().toLocaleString('default', { month: 'short' });
     const formattedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -672,7 +674,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       newHistory.push({
         id: `attempt-${Date.now()}`,
         month: `${currentMonth} (${examType.toUpperCase()})`,
-        score: jambEquivalentScore,
+        score: finalScore,
         date: formattedDate,
         examType: examType,
         testMode: testMode,
@@ -1099,16 +1101,36 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     </span>
                   )}
                 </div>
-                <div className="text-3xl font-black text-slate-950 mt-2">{currentCbtEquivalent} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
-                <p className="text-[11px] text-emerald-600 font-bold mt-1">
-                  {progressHistory.length > 0 ? `From attempt on ${progressHistory[progressHistory.length - 1]?.date || 'recent test'}` : 'No CBT tests taken yet'}
-                </p>
+                {(() => {
+                  const lastAttempt = progressHistory.length > 0 ? progressHistory[progressHistory.length - 1] : null;
+                  const isPostUtme = lastAttempt?.examType === 'post_utme';
+                  return (
+                    <>
+                      <div className="text-3xl font-black text-slate-950 mt-2">
+                        {currentCbtEquivalent} <span className="text-xs text-slate-400 font-normal">{isPostUtme ? '/ 100%' : '/ 400'}</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-600 font-bold mt-1">
+                        {lastAttempt ? `From attempt on ${lastAttempt.date}` : 'No CBT tests taken yet'}
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Target Goal</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">{targetScore || '--'} <span className="text-xs text-slate-400 font-normal">/ 400</span></div>
-                <p className="text-[11px] text-slate-500 font-bold mt-1 truncate">{targetUniversity || 'Select university'}</p>
+                {(() => {
+                  const lastAttempt = progressHistory.length > 0 ? progressHistory[progressHistory.length - 1] : null;
+                  const isPostUtme = lastAttempt?.examType === 'post_utme';
+                  return (
+                    <>
+                      <div className="text-3xl font-black text-emerald-600 mt-2">
+                        {targetScore || '--'} <span className="text-xs text-slate-400 font-normal">{isPostUtme ? '/ 100%' : '/ 400'}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-bold mt-1 truncate">{targetUniversity || 'Select university'}</p>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">

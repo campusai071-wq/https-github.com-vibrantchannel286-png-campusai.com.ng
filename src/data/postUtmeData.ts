@@ -227,6 +227,18 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
     citationUrl: "https://myschoolgist.com/news/delsu-post-utme-form/",
     eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
   },
+  "Federal University of Technology, Minna": {
+    isOut: true,
+    statusText: "Registration Active",
+    details: "FUTMINNA 2026/2027 University Pre-Admission Screening Exercise (UPASE) is officially OPEN (15 June – 6 September 2026, 11:59 PM). Official departmental cut-off marks range from 150 to 250 across 78 undergraduate programmes.",
+    portalLink: "https://eportal.futminna.edu.ng/ePortal_V2/utme/",
+    cutoffScore: "150",
+    registrationFee: 2000,
+    publishDate: "15 June 2026",
+    deadlineDate: "6 September 2026",
+    citationUrl: "https://eportal.futminna.edu.ng/ePortal_V2/utme/",
+    eligibilityText: "Candidates who chose FUTMINNA as first choice in 2026 UTME and scored minimum departmental cutoff (150–250). O-Level results must be uploaded to JAMB CAPS."
+  },
   "Ladoke Akintola University of Technology": {
     isOut: true,
     statusText: "Registration Active",

@@ -21,6 +21,7 @@ import SEO from './SEO';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NewsCard } from './NewsGrid';
+import { OfficialPdfDownloadCard } from './OfficialPdfDownloadCard';
 
 interface NewsDetailViewProps {
   news?: NewsItem;
@@ -1047,11 +1048,56 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                 remarkPlugins={[remarkGfm]}
                 components={{
                   img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} referrerPolicy="no-referrer" /> : null),
-                  p: ({ node, children, ...props }) => (
-                    <div className="mb-6 leading-relaxed font-normal text-gray-800 dark:text-gray-200">{children}</div>
-                  ),
+                  h3: ({ node, children, ...props }) => {
+                    const text = String(children || '');
+                    if (text.toUpperCase().includes('DOWNLOAD THE OFFICIAL') && text.toUpperCase().includes('(PDF)')) {
+                      return (
+                        <div className="pb-2 mb-3 mt-6 border-b-2 border-blue-600 dark:border-blue-500 not-prose">
+                          <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <span>📥</span>
+                            <span>{text.replace(/^📥\s*/, '')}</span>
+                          </h3>
+                        </div>
+                      );
+                    }
+                    return <h3 className="text-xl font-bold mt-6 mb-3 text-gray-900 dark:text-white">{children}</h3>;
+                  },
+                  p: ({ node, children, ...props }) => {
+                    const text = String(children || '');
+                    if (text.trim().startsWith('Note:') || text.trim().startsWith('📌 Note:') || text.trim().startsWith('*Note:*')) {
+                      return (
+                        <div className="my-4 border-l-4 border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-3.5 rounded-r-xl not-prose">
+                          <p className="text-sm sm:text-base text-gray-800 dark:text-gray-200 leading-relaxed italic">
+                            <strong className="font-bold not-italic text-gray-900 dark:text-white mr-1.5">📌 Note:</strong>
+                            {text.replace(/^(📌\s*)?\*?Note:\*?\s*/i, '')}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="mb-6 leading-relaxed font-normal text-gray-800 dark:text-gray-200">{children}</div>
+                    );
+                  },
                   a: ({ node, children, href, ...props }) => {
                     const cleanHref = href || '';
+                    const text = (Array.isArray(children) ? children.join(' ') : String(children || '')).trim();
+
+                    // Check if this is an official PDF or downloadable document link
+                    const isPdfLink =
+                      cleanHref.match(/\.pdf(\?.*)?$/i) ||
+                      cleanHref.includes('/api/pdf-store/file/') ||
+                      cleanHref.includes('/api/pdf/proxy-download') ||
+                      text.toLowerCase().includes('(pdf)') ||
+                      (text.toLowerCase().includes('download') && cleanHref.toLowerCase().includes('pdf'));
+
+                    if (isPdfLink) {
+                      return (
+                        <OfficialPdfDownloadCard
+                          url={cleanHref}
+                          title={text}
+                        />
+                      );
+                    }
 
                     // 1. YouTube Video & Shorts
                     const ytMatch = cleanHref.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);

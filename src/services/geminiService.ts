@@ -77,6 +77,7 @@ import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
 import { getLAUTECHCutoffByCourse, getLAUTECHAggregateBenchmark } from "../data/lautechCutoffs2025_2026";
 import { getFUHSICutoffByCourse } from "../data/fuhsiCutoffs2026_2027";
+import { getFUTMINNACutoffByCourse } from "../data/futminnaCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -452,7 +453,24 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 
 ### 2. EXPANDED KNOWLEDGE BASE [NEVER HALLUCINATE]
 
-**A. STATUTORY JAMB RULES (2026)**
+**A. ENTITY, GEOGRAPHIC & INSTITUTIONAL DISAMBIGUATION (ZERO-CONTRADICTION RULE)**
+- **State-Owned vs. Geographically Located Universities**:
+  - Never confuse a **State-owned university** (e.g., Lagos State University - LASU, Ogun State / OOU, Osun State / UNIOSUN) with **universities located within that State** (e.g., in Lagos State: University of Lagos / UNILAG is a Federal University located in Lagos; in Oyo State: University of Ibadan / UI is in Oyo State; in Kaduna: ABU Zaria is in Kaduna State).
+  - You are STRICTLY FORBIDDEN from stating "there is no university in Lagos State that offers [Course]" if UNILAG, LASU, or another Lagos-based institution offers it. Always differentiate precisely: "LASU (the state-owned university) does not offer it, but UNILAG (the federal university situated in Lagos State) offers B.Eng. Metallurgical & Materials Engineering."
+
+**B. INTER-UNIVERSITY & INTRA-UNIVERSITY TRANSFER PROTOCOL (RIGOROUS FACTUAL GROUNDING)**
+- **Decentralized Senate Regulations**: Inter-university and intra-faculty transfers in Nigeria are NOT governed by a single universal NUC formula. Each receiving university's Senate sets its own distinct eligibility criteria, CGPA floor, and admissible entry level:
+  - *Institutional Variance Examples*: Federal University Lokoja (FULokoja) accepts 2.50+ CGPA; FUNAAB requires 3.50+ CGPA for Science & Engineering; UNILAG requires completion of at least 200 Level for intra/inter-faculty transfers; UNN restricts transfer admission to no higher than 200L.
+  - **No Sweeping Generalizations**: NEVER state that a 3.50 CGPA or 1-year duration is a "universal NUC or national Nigerian mandate". Always state: "Transfer requirements are strictly determined by the receiving university."
+  - **Zero Fabricated Statistics**: NEVER claim "most transfers fail" or invent failure rates without citing official institutional publications. State truthfully: "Inter-university transfer is competitive, dependent on available vacancies in the receiving department, and requires bilateral clearances."
+  - **No Conflation with JAMB Infractions**: Do NOT claim that accepting an admission and later undergoing legitimate inter-university transfer constitutes "Multiple Applications" or "Admission Abandonment". A properly documented academic transfer processed through official university admissions committees and transcripts is a legitimate institutional pathway.
+  - **Fact vs. Policy vs. Advice Separation**: When advising on transfers or complex decisions, clearly demarcate:
+    - 📌 **Verified Fact:** (Confirmed institutional offerings, faculty structures, accreditations)
+    - 📜 **Official Policy:** (Published guidelines from the receiving institution)
+    - ⚠️ **Institutional Variance:** (Conditions that vary by school and programme)
+    - 💡 **Strategist Recommendation:** (Your actionable practical counsel for the candidate)
+
+**C. STATUTORY JAMB RULES (2026)**
 - Minimum age for admission: 16 years by October 31, 2026.
 - JAMB CAPS: Student must accept admission within 4 WEEKS of offer or it auto-reverts.
 - Post-UTME Screening Fee Cap: ₦2,000 (excluding bank charges). If a school charges more, flag it as "Bank/Portal charges inclusive".
@@ -664,10 +682,11 @@ export const runAIWithFallback = async (
       const isInvalid = msg.includes('invalid') || msg.includes('400') || msg.includes('not valid');
       const isBlocked = msg.includes('403') || msg.includes('permission') || msg.includes('blocked');
       const isTimeout = msg.includes('timeout') || msg.includes('timed out');
+      const isUnavailable = msg.includes('503') || msg.includes('unavailable') || msg.includes('high demand') || msg.includes('overloaded');
       recordKeyActivity(apiKey, false, isQuota || isBlocked);
       
-      if (isQuota || isInvalid || isBlocked || isTimeout) {
-        console.warn(`API Key ${attemptIndex + 1} ${isTimeout ? 'timed out' : isQuota ? 'exhausted' : isBlocked ? 'blocked' : 'invalid'}, rotating...`);
+      if (isQuota || isInvalid || isBlocked || isTimeout || isUnavailable) {
+        console.warn(`API Key ${attemptIndex + 1} ${isTimeout ? 'timed out' : isQuota ? 'exhausted' : isBlocked ? 'blocked' : isUnavailable ? 'unavailable / 503' : 'invalid'}, rotating...`);
         continue;
       }
       
@@ -2261,6 +2280,18 @@ export const getCourseCutoffInfo = async (
         };
       }
     }
+    if (!manualOverride && (nUni.includes("futminna") || nUni.includes("minna") || (nUni.includes("technology") && nUni.includes("minna")))) {
+      const futminnaCutoff = getFUTMINNACutoffByCourse(course);
+      if (futminnaCutoff) {
+        manualOverride = {
+          institution: "Federal University of Technology, Minna (FUTMINNA)",
+          course: futminnaCutoff.programme,
+          departmentalCutoff: `${futminnaCutoff.cutoff}%`,
+          institutionalCutoff: "150",
+          explanation: `Official FUTMINNA 2026/2027 UPASE Cut-Off: ${futminnaCutoff.cutoff} (Min UTME Cutoff) - ${futminnaCutoff.faculty} (${futminnaCutoff.school})${futminnaCutoff.isNew ? ' [NEWLY APPROVED PROGRAMME]' : ''}. Registration Portal: https://eportal.futminna.edu.ng/ePortal_V2/utme/ (Open 15 June – 6 Sept 2026).`
+        };
+      }
+    }
 
     // ─── 3. DETERMINISTIC FOUNDATION EVALUATION ────────────────────────────────
     let cutoffVal = extractCutoffFallback(course, officialCutoffData || null);
@@ -2600,6 +2631,18 @@ Return JSON:
           departmentalCutoff: `${targetCutoff}%`,
           institutionalCutoff: "160",
           explanation: `Official FUHSI 2026/2027 Cutoff: Merit (${fuhsiCutoff.merit}%), Osun (${fuhsiCutoff.states.osun}%), Oyo (${fuhsiCutoff.states.oyo}%), Ondo (${fuhsiCutoff.states.ondo}%), Ogun (${fuhsiCutoff.states.ogun}%), Ekiti (${fuhsiCutoff.states.ekiti}%), Lagos (${fuhsiCutoff.states.lagos}%)`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("futminna") || nUni.includes("minna") || (nUni.includes("technology") && nUni.includes("minna")))) {
+      const futminnaCutoff = getFUTMINNACutoffByCourse(course);
+      if (futminnaCutoff) {
+        manualOverride = {
+          institution: "Federal University of Technology, Minna (FUTMINNA)",
+          course: futminnaCutoff.programme,
+          departmentalCutoff: `${futminnaCutoff.cutoff}%`,
+          institutionalCutoff: "150",
+          explanation: `Official FUTMINNA 2026/2027 UPASE Cut-Off: ${futminnaCutoff.cutoff} (Min UTME Cutoff) - ${futminnaCutoff.faculty} (${futminnaCutoff.school})${futminnaCutoff.isNew ? ' [NEWLY APPROVED PROGRAMME]' : ''}. Registration Portal: https://eportal.futminna.edu.ng/ePortal_V2/utme/ (Open 15 June – 6 Sept 2026).`
         };
       }
     }

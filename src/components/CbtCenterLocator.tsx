@@ -7,7 +7,7 @@ import {
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 import { OpenStreetMapViewer } from './OpenStreetMapViewer';
 import { VoiceInputButton } from './VoiceInputButton';
-import { getCentersForState, STATE_COORDINATES, CbtCenter } from '../data/cbtCentersData';
+import { getCentersForState, getCampusesForState, getHostelsForState, STATE_COORDINATES, CbtCenter } from '../data/cbtCentersData';
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
@@ -53,14 +53,27 @@ export const CbtCenterLocator: React.FC = () => {
     'Showing verified, accredited JAMB CBT examination and testing centers in Lagos.'
   );
 
-  // Update list when state changes (if no custom search was run)
+  // Update list when state or category changes
   useEffect(() => {
-    const stateData = getCentersForState(selectedState);
+    let stateData: LocationItem[] = [];
+    let summaryText = '';
+
+    if (category === 'campuses') {
+      stateData = getCampusesForState(selectedState);
+      summaryText = `Showing verified university & tertiary campuses in ${selectedState}.`;
+    } else if (category === 'hostels') {
+      stateData = getHostelsForState(selectedState);
+      summaryText = `Showing verified student accommodation & off-campus hostels in ${selectedState}.`;
+    } else {
+      stateData = getCentersForState(selectedState);
+      summaryText = `Showing verified, accredited JAMB CBT centers in ${selectedState}.`;
+    }
+
     setLocations(stateData);
     setSelectedLocation(stateData[0] || null);
     setSelectedMarker(null);
-    setSummary(`Showing verified, accredited JAMB CBT centers in ${selectedState}.`);
-  }, [selectedState]);
+    setSummary(summaryText);
+  }, [selectedState, category]);
 
   // Center coordinates for map view
   const mapCenter = useMemo(() => {
@@ -100,6 +113,7 @@ export const CbtCenterLocator: React.FC = () => {
         const baseCoords = STATE_COORDINATES[selectedState] || { lat: 6.5244, lng: 3.3792 };
         const enriched = receivedLocations.map((loc, idx) => ({
           ...loc,
+          state: loc.state || selectedState,
           lat: loc.lat || baseCoords.lat + (idx * 0.008 - 0.004),
           lng: loc.lng || baseCoords.lng + (idx * 0.008 - 0.004)
         }));
@@ -115,11 +129,15 @@ export const CbtCenterLocator: React.FC = () => {
       }
     } catch (err: any) {
       console.warn("[CBT Center Locator Search Error]:", err);
-      // Fall back to local verified centers
-      const fallback = getCentersForState(selectedState);
+      // Fall back to local verified category data for this state
+      const fallback = category === 'campuses'
+        ? getCampusesForState(selectedState)
+        : category === 'hostels'
+          ? getHostelsForState(selectedState)
+          : getCentersForState(selectedState);
       setLocations(fallback);
-      setSelectedLocation(fallback[0]);
-      setSummary(`Showing offline verified centers for ${selectedState}.`);
+      setSelectedLocation(fallback[0] || null);
+      setSummary(`Showing offline verified ${category === 'campuses' ? 'campuses' : (category === 'hostels' ? 'student accommodation' : 'CBT centers')} for ${selectedState}.`);
     } finally {
       setLoading(false);
     }
@@ -290,12 +308,21 @@ export const CbtCenterLocator: React.FC = () => {
           {[
             `CBT centers in ${selectedState}`,
             `University campuses in ${selectedState}`,
-            `JAMB center near Ikeja/Surulere`,
-            `Off-campus hostels near campus`
+            `Student hostels in ${selectedState}`,
+            `Off-campus lodges near campus`
           ].map((preset) => (
             <button
               key={preset}
-              onClick={() => handleQuickPreset(preset)}
+              onClick={() => {
+                if (preset.includes('campus') || preset.includes('University')) {
+                  if (category !== 'campuses') setCategory('campuses');
+                } else if (preset.includes('hostel') || preset.includes('lodges')) {
+                  if (category !== 'hostels') setCategory('hostels');
+                } else {
+                  if (category !== 'cbt_centers') setCategory('cbt_centers');
+                }
+                handleQuickPreset(preset);
+              }}
               className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-700 transition-all cursor-pointer"
             >
               {preset}
@@ -331,14 +358,22 @@ export const CbtCenterLocator: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setMapEngine('google')}
+                onClick={() => {
+                  if (googleMapsApiKey) {
+                    setMapEngine('google');
+                  } else {
+                    const searchTerm = query.trim() || `${selectedState} CBT centers and universities`;
+                    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerm)}`;
+                    window.open(gmapsUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   mapEngine === 'google'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Google Maps
+                Google Maps ↗
               </button>
             </div>
           </div>
@@ -456,7 +491,7 @@ export const CbtCenterLocator: React.FC = () => {
           <div className="bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 rounded-2xl p-4">
             <h3 className="text-xs font-bold text-emerald-900 dark:text-emerald-100 uppercase tracking-wide flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
-              Verified Accredited Centers ({locations.length})
+              {category === 'campuses' ? 'Verified Campuses & Institutions' : (category === 'hostels' ? 'Verified Student Accommodation' : 'Verified Accredited Centers')} ({locations.length})
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
               {summary}

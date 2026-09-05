@@ -21,5 +21,51 @@
     "pageCount": 1,
     "createdAt": "2026-09-03T17:41:06.310Z",
     "updatedAt": "2026-09-03T17:41:06.310Z"
+  },
+  "waec-gce-timetable-2026": {
+    "id": "waec-gce-timetable-2026",
+    "title": "Download 2026 WAEC GCE Second Series Timetable (PDF)",
+    "category": "General Notes",
+    "fileSize": "166 KB",
+    "uploadDate": "2026-08-30",
+    "description": "Official WAEC WASSCE for Private Candidates (Second Series) examination timetable containing complete dates, paper codes, morning and afternoon sessions, and guidelines for candidates.",
+    "author": "West African Examinations Council (WAEC)",
+    "authorId": "official-admin",
+    "institution": "WAEC Nigeria",
+    "downloadUrl": "https://myschool.ng/storage/blog_files/vmFx7tFaHz77FNjsyB1OG7D6tdoqa8pttOz2lmVD.pdf",
+    "pageCount": 3,
+    "isUserUploaded": false,
+    "isSyntheticFallback": false,
+    "updatedAt": "2026-09-05T06:34:36.000Z"
+  },
+  "pdf-1788591606130": {
+    "id": "pdf-1788591606130",
+    "title": "pat question",
+    "category": "Past Questions",
+    "fileSize": "Online Document (Full)",
+    "uploadDate": "2026-09-05",
+    "description": "Online past questions / study material booklet link.",
+    "author": "Iweh Emmanuel",
+    "authorId": "vR4fQBJz6VVeSk9SJCRr7JrD8032",
+    "institution": "jamb",
+    "downloadUrl": "https://myschoolgist.com/wp-content/uploads/2024/11/MATHEMATICS-JAMB-Past-Questions.pdf",
+    "isUserUploaded": true,
+    "pageCount": 64,
+    "createdAt": "2026-09-05T07:00:07.654Z",
+    "updatedAt": "2026-09-05T07:00:07.654Z"
+  },
+  "jamb-math-pq-2026": {
+    "id": "jamb-math-pq-2026",
+    "title": "JAMB Mathematics Past Questions & Answers (1983-2004) - 64 Pages",
+    "category": "Past Questions",
+    "fileSize": "2.4 MB",
+    "uploadDate": "2026-08-20",
+    "description": "Complete 64-page JAMB Mathematics Past Questions compilation (1983-2004) with comprehensive practice questions, diagrams, and step-by-step solutions for UTME candidates.",
+    "author": "JAMB Examination Archives & CampusAI Academic Team",
+    "authorId": "official-admin",
+    "institution": "Joint Admissions and Matriculation Board",
+    "pageCount": 64,
+    "isUserUploaded": false,
+    "isSyntheticFallback": false
   }
 }

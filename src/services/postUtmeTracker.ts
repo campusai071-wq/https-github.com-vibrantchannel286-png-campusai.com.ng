@@ -263,13 +263,15 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
     requirements: 'Target score 150+. Prepare O-Level result upload.'
   },
   "Federal University of Technology, Minna": {
-    status: 'NOT_OPEN',
-    statusText: 'Form Not Yet Open',
-    details: 'FUTMINNA 2025/2026 screening forms are currently awaiting official release.',
-    portalLink: 'https://www.futminna.edu.ng',
-    cutoffScore: '160',
+    status: 'OPEN',
+    statusText: 'Registration Active',
+    details: 'FUTMINNA 2026/2027 University Pre-Admission Screening Exercise (UPASE) portal is open (15 June – 6 September 2026, 11:59 PM). Departmental cut-off marks range from 150 to 250 across 78 courses.',
+    portalLink: 'https://eportal.futminna.edu.ng/ePortal_V2/utme/',
+    cutoffScore: '150',
     registrationFee: 2000,
-    requirements: 'Expected cutoff 160+.'
+    deadlineDate: '6 September 2026',
+    publishDate: '15 June 2026',
+    requirements: 'First choice candidates with UTME score meeting departmental cutoff (150–250). Upload O-Level results to JAMB CAPS.'
   },
   "Covenant University": {
     status: 'OPEN',
