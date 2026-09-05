@@ -70,6 +70,8 @@ import {
 
 import institutionsTree from '../data/institutionsTree.json';
 import masterCourses from '../data/masterCourses.json';
+import { trackCbtInteraction } from '../services/analytics';
+import AdUnit from './AdUnit';
 
 /**
  * ---------------------------------------------------------------------------
@@ -773,6 +775,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     setStarted(true);
     setShowResults(false);
     setPendingResumeSession(null);
+
+    trackCbtInteraction({
+      action: 'resume',
+      exam_type: s.examType || 'jamb',
+      test_mode: s.testMode || 'practice',
+      subject_count: s.selectedSubjects?.length || 0
+    });
   };
 
   // Discard saved exam session
@@ -968,6 +977,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setIsTimerRunning(true);
       setStarted(true);
 
+      trackCbtInteraction({
+        action: 'start',
+        exam_type: examType,
+        test_mode: testMode,
+        subject_count: selectedSubjects.length
+      });
+
       // Save shuffled question IDs and temporary session state to Firestore
       await startExamSession(results, minutes, endTimeValue);
     } catch (err: any) {
@@ -1106,6 +1122,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       // Keep only last 20 attempts
       if (newHistory.length > 20) return newHistory.slice(newHistory.length - 20);
       return newHistory;
+    });
+
+    trackCbtInteraction({
+      action: 'complete',
+      exam_type: examType,
+      test_mode: testMode,
+      subject_count: selectedSubjects.length,
+      score_percentage: examType === 'post_utme' ? (totalQuestions > 0 ? (totalRawScore / totalQuestions) * 100 : 0) : (finalScore / 4), // Normalize to 100
+      time_elapsed: timeElapsedSeconds
     });
 
     // Prepare subject breakdown for AI analysis
@@ -2218,6 +2243,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     </div>
                   </div>
                 </div>
+
+                <AdUnit type="leaderboard" className="mx-auto" />
 
                 {/* AI Score Analysis Box */}
                 <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm p-6 space-y-5 relative overflow-hidden">

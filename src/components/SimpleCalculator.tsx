@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import SEO from './SEO';
+import AdUnit from './AdUnit';
 import { incrementDailyCalculation } from '../services/statsService';
+import { trackCalculatorUsed } from '../services/analytics';
 
 const SimpleCalculator: React.FC = () => {
   const [jamb, setJamb] = useState('');
@@ -29,6 +31,13 @@ const SimpleCalculator: React.FC = () => {
     
     setResult(aggregate);
     incrementDailyCalculation(); // Track this
+    
+    trackCalculatorUsed({
+      calculator_type: 'simple_aggregate',
+      aggregate_score: aggregate,
+      jamb_score: isNaN(j) ? undefined : j,
+      post_utme_score: isNaN(p) ? undefined : p
+    });
   };
 
   return (
@@ -123,6 +132,7 @@ const SimpleCalculator: React.FC = () => {
           <a href="/calculator" className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline">Want Advanced Analysis?</a>
         </div>
       </div>
+      <AdUnit type="leaderboard" className="max-w-2xl mx-auto mt-8" />
     </div>
   );
 };

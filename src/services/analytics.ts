@@ -305,4 +305,26 @@ export const trackPurchase = (data: {
   claritySet('purchase_value', String(data.value));
 };
 
+// ─── 8. cbt_exam_interaction ────────────────────────────────────────────────
+export const trackCbtInteraction = (data: {
+  action: 'start' | 'complete' | 'abandon' | 'resume' | 'submit_early';
+  exam_type: string;
+  test_mode: string;
+  subject_count?: number;
+  score_percentage?: number;
+  time_elapsed?: number;
+}) => {
+  trackCustomEvent('cbt_interaction', {
+    action: data.action,
+    exam_type: data.exam_type,
+    test_mode: data.test_mode,
+    subject_count: data.subject_count,
+    score_percentage: data.score_percentage,
+    time_elapsed: data.time_elapsed,
+  });
+
+  if (data.exam_type) claritySet('cbt_exam_type', data.exam_type);
+  if (data.score_percentage !== undefined) claritySet('cbt_last_score', String(data.score_percentage));
+};
+
 

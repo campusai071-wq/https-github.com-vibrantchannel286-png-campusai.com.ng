@@ -22,6 +22,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NewsCard } from './NewsGrid';
 import { OfficialPdfDownloadCard } from './OfficialPdfDownloadCard';
+import AdUnit from './AdUnit';
 
 interface NewsDetailViewProps {
   news?: NewsItem;
@@ -1019,6 +1020,10 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             </div>
           )}
 
+          <div className="mb-10">
+            <AdUnit type="leaderboard" />
+          </div>
+
           <div className="markdown-body text-lg text-gray-800 dark:text-gray-200 leading-relaxed font-medium select-text pointer-events-auto">
             {isEditing ? (
               <div className="space-y-6">
@@ -1206,6 +1211,10 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
             </div>
           </div>
         )}
+
+        <div className="my-12">
+          <AdUnit type="rectangle" />
+        </div>
 
         {/* Aggregate Calculator CTA */}
         <div className="my-16 p-8 bg-white dark:bg-gray-900 rounded-[40px] border-4 border-blue-600 shadow-2xl relative overflow-hidden group">

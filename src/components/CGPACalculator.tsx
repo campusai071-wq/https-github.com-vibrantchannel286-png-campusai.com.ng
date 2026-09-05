@@ -7,6 +7,7 @@ import {
   GraduationCap, FileText, Plus, Trash2, RefreshCw, Download, ChevronDown, ChevronUp, ArrowRight
 } from 'lucide-react';
 import { analyzeCGPA } from '../services/premiumToolsService';
+import { trackCalculatorUsed } from '../services/analytics';
 
 interface Course {
   id: string;
@@ -288,6 +289,12 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
         user?.course || 'Tertiary Programme'
       );
       setAiAnalysis(advice);
+      
+      trackCalculatorUsed({
+        calculator_type: 'cgpa_analysis',
+        aggregate_score: cumulativeCGPA,
+        university: user?.institution || 'unspecified'
+      });
     } catch (e: any) {
       setAiAnalysis("Keep up consistent effort in core departmental courses and aim for straight A's in high-unit practicals.");
     } finally {

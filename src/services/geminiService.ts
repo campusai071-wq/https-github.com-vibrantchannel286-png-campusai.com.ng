@@ -1,6 +1,8 @@
 import { generateContent } from "./aiService";
 import { findMatchingSchoolRelease } from "../data/postUtmeData";
 
+export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
+
 
 function extractCutoffFallback(course: string, searchData: string | null): number {
   if (searchData) {
@@ -623,7 +625,7 @@ const createGeminiClient = (apiKey: string) => {
             // Convert sendMessage call to generateContent for the proxy
             const prompt = msgParams.message;
             const params = {
-              model: chatParams.model || "gemini-3.8-flash",
+              model: chatParams.model || DEFAULT_GEMINI_MODEL,
               contents: prompt,
               config: chatParams.config
             };
@@ -890,11 +892,11 @@ Return ONLY a valid JSON object matching this schema:
         const fallbackResponse = await runAIWithFallback(async (ai) => {
           if ('models' in ai) {
             return await ai.models.generateContent({
-              model: "gemini-3.8-flash",
+              model: DEFAULT_GEMINI_MODEL,
               contents: prompt,
               config: { responseMimeType: "application/json" } });
           } else {
-            const model = ai.getGenerativeModel({ model: "gemini-3.8-flash" });
+            const model = ai.getGenerativeModel({ model: DEFAULT_GEMINI_MODEL });
             const result = await model.generateContent({
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
               generationConfig: { responseMimeType: "application/json" }
@@ -957,7 +959,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `You are an elite Investigative Editor for Campusai.com.ng (Nigeria). 
          
          TASK:
@@ -1058,7 +1060,7 @@ export const expandNewsArticle = async (newsItem: NewsItem): Promise<string | nu
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `You are a premier Investigative Education Journalist in Nigeria for CampusAI. 
         
         TASK:
@@ -2444,7 +2446,7 @@ Search results containing official or historical departmental cutoff data for "$
 
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `
 ${overridePrompt}
 
@@ -2748,7 +2750,7 @@ export const getUniversityDetailedInfo = async (name: string): Promise<UniBio | 
   try {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `Provide a detailed academic profile for "${name}" in Nigeria updated for the 2024/2026 academic session.
 Return ONLY a JSON object with keys:
 - "bio": concise, engaging institutional summary (2-3 sentences)
@@ -2820,7 +2822,7 @@ export const getUniversityCourses = async (institution: string): Promise<string[
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
             // ─── FIX: Updated model name ───────────────────────────────────────
-            model: "gemini-3.8-flash",
+            model: DEFAULT_GEMINI_MODEL,
             contents: `Provide a comprehensive list of up to 50 popular, accredited undergraduate programmes officially offered at "${institution}" in Nigeria.
 
 OUTPUT RULES:
@@ -2921,7 +2923,7 @@ export const getUniversityScoringSystem = async (institution: string) => {
         }
         const response = await runAIWithFallback(async (ai) => {
           return await ai.models.generateContent({
-            model: "gemini-3.8-flash",
+            model: DEFAULT_GEMINI_MODEL,
             contents: `You are an expert Nigerian higher education admission systems analyst.
 Based on the following real-time web search results for "${institution}", extract the precise aggregate screening formula / grading system used for admission.
 
@@ -2995,7 +2997,7 @@ export const getAsuuStrikeStatus = async () => {
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         // ─── FIX: Updated model name ───────────────────────────────────────
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `Current ASUU strike status in Nigeria as of ${getNigerianDate()}.
 Based on your training data (and any real-time data if available), analyze if there is an active/threatened Academic Staff Union of Universities (ASUU) strike.
 
@@ -3367,7 +3369,7 @@ export const executeAiChat = async (
       const contents = buildCleanChatContents(history, sanitizedMessage);
 
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents,
         config: { 
           systemInstruction
@@ -3488,7 +3490,7 @@ export const executeAiChatStream = async (
 
       try {
         const responseStream = await ai.models.generateContentStream({
-          model: "gemini-3.8-flash",
+          model: DEFAULT_GEMINI_MODEL,
           contents,
           config: { 
             systemInstruction
@@ -3512,7 +3514,7 @@ export const executeAiChatStream = async (
       } catch (streamErr) {
         console.warn("generateContentStream fallback to generateContent:", streamErr);
         const singleResp = await ai.models.generateContent({
-          model: "gemini-3.8-flash",
+          model: DEFAULT_GEMINI_MODEL,
           contents,
           config: { 
             systemInstruction
@@ -3588,7 +3590,7 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2024/2026.
 
 CRITICAL RULES:
@@ -3687,7 +3689,7 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: DEFAULT_GEMINI_MODEL,
         contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2024/2026 academic session.
 
 CRITICAL:

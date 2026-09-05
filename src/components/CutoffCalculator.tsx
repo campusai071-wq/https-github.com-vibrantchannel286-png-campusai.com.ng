@@ -34,6 +34,7 @@ import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechC
 import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
+import AdUnit from './AdUnit';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
 import { AdmissionChecklist } from './AdmissionChecklist';
@@ -3129,6 +3130,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             </div>
           )}
 
+          <div className="mb-8">
+            <AdUnit type="leaderboard" />
+          </div>
+
           {/* Main form card */}
           {activeTab === 'calculate' ? (
             <div className="p-5 bg-white/5 rounded-[24px] border border-white/10 space-y-5 relative z-30">
@@ -4650,6 +4655,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           )}
                           
                           <ProbabilityGauge probability={aiResult.isOffered === false ? 0 : admissionProbability} />
+                          </div>
+
+                          <div className="my-8">
+                            <AdUnit type="billboard" />
                           </div>
 
                           {/* 3-Pillar Verification & Model Audit Matrix */}

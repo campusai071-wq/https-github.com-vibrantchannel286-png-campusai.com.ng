@@ -9,6 +9,7 @@ import FAQSection from './FAQSection';
 import PostUtmeTrackerSection from './PostUtmeTrackerSection';
 import { JambCapsLiveTracker } from './JambCapsLiveTracker';
 import Jamb2027Tracker from './Jamb2027Tracker';
+import AdUnit from './AdUnit';
 import { FileCheck, ArrowRight } from 'lucide-react';
 
 import { motion } from 'framer-motion';
@@ -81,6 +82,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
         
         {/* JAMB 2027 Countdown Tracker */}
         <Jamb2027Tracker />
+
+        <AdUnit type="leaderboard" className="my-8" />
         
         {/* JAMB CAPS Live Admission Statistics Tracker */}
         <JambCapsLiveTracker 
@@ -144,6 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLoginRequest, onScholarPa
       <PolicySection />
 
       <div id="news" className="container mx-auto px-4 md:px-8 py-16">
+        <AdUnit type="billboard" className="mb-12" />
         <NewsGrid 
           user={user} 
           onReadArticle={onReadArticle} 

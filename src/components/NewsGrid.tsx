@@ -19,6 +19,7 @@ import {
   getArticleLikesCount, toggleArticleLike
 } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
+import AdUnit from './AdUnit';
 import QuotaModal from './QuotaModal';
 import NewsEditModal from './NewsEditModal';
 
@@ -962,9 +963,11 @@ const NewsGrid: React.FC<NewsGridProps> = ({
               </button>
             ))}
           </div>
-
-
         </div>
+      </div>
+
+      <div className="mb-10">
+        <AdUnit type="leaderboard" />
       </div>
 
       {/* Active filter badge */}
@@ -1007,19 +1010,25 @@ const NewsGrid: React.FC<NewsGridProps> = ({
           {filteredNews.slice(0, visibleCount).map((news, index) => {
             const rel = getRelevantCategories(user?.role);
             return (
-              <NewsCard
-                key={`${news.id}-${index}`}
-                news={news}
-                onRead={() => onReadArticle(news)}
-                onDiscuss={() => handleDiscussAi(news)}
-                isBookmarked={bookmarks.includes(news.id)}
-                isRelevant={rel.includes(news.category)}
-                onTagClick={tag => setSearchQuery(tag)}
-                onToggleBookmark={toggleBookmark}
-                isAdmin={user?.email === 'eiweh123@gmail.com'}
-                onEdit={() => handleEditNews(news)}
-                onDelete={() => handleDeleteNews(news)}
-              />
+              <React.Fragment key={`${news.id}-${index}`}>
+                <NewsCard
+                  news={news}
+                  onRead={() => onReadArticle(news)}
+                  onDiscuss={() => handleDiscussAi(news)}
+                  isBookmarked={bookmarks.includes(news.id)}
+                  isRelevant={rel.includes(news.category)}
+                  onTagClick={tag => setSearchQuery(tag)}
+                  onToggleBookmark={toggleBookmark}
+                  isAdmin={user?.email === 'eiweh123@gmail.com'}
+                  onEdit={() => handleEditNews(news)}
+                  onDelete={() => handleDeleteNews(news)}
+                />
+                {index > 0 && index % 8 === 0 && (
+                  <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 py-4">
+                    <AdUnit type="leaderboard" />
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
         </div>

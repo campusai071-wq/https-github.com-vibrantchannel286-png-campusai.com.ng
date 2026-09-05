@@ -592,6 +592,37 @@ const ALOC_SUBJECT_MAP: Record<string, string> = {
   'insurance': 'insurance'
 };
 
+// Resilient Gemini Content Generator with automatic model fallback for 503/429 high demand spikes
+async function generateGeminiContentWithModelFallback(
+  ai: GoogleGenAI,
+  params: { contents: any; config?: any; models?: string[] }
+): Promise<any> {
+  const modelsToTry = params.models || ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: params.contents,
+        config: params.config
+      });
+      if (response && (response.text || response.candidates?.length)) {
+        return response;
+      }
+    } catch (err: any) {
+      lastError = err;
+      const msg = err?.message || String(err);
+      if (msg.includes('503') || msg.includes('high demand') || msg.includes('429') || msg.includes('UNAVAILABLE')) {
+        console.log(`[Gemini Fallback] Model ${model} temporarily busy/rate-limited, rotating to next candidate model...`);
+      } else {
+        console.warn(`[Gemini Fallback] Model ${model} warning: ${msg.substring(0, 150)}`);
+      }
+    }
+  }
+  throw lastError || new Error("All candidate Gemini models failed");
+}
+
 // Fallback: Generate high quality past questions with Gemini
 async function generateMockQuestions(subject: string, examType = 'JAMB') {
   try {
@@ -618,8 +649,7 @@ Each question object MUST follow this exact schema:
   }
 ]`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+    const response = await generateGeminiContentWithModelFallback(ai, {
       contents: prompt,
       config: {
         temperature: 0.95,
@@ -1106,8 +1136,7 @@ Format response as JSON with this structure:
   "commonMistakes": [{"mistake": "...", "whyWrong": "..."}]
 }`;
 
-        const aiRes = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+        const aiRes = await generateGeminiContentWithModelFallback(ai, {
           contents: prompt,
           config: {
             temperature: 0.4,
@@ -1196,8 +1225,7 @@ Provide a structured, encouraging JSON output adhering strictly to this schema:
   "encouragingClosingNote": "Inspiring closing word for Nigerian student."
 }`;
 
-    const aiRes = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+    const aiRes = await generateGeminiContentWithModelFallback(ai, {
       contents: prompt,
       config: {
         temperature: 0.5,
@@ -1911,7 +1939,7 @@ interface AIFallbackResult {
 }
 
 async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackResult | null> {
-  const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-3.8-flash', label = '' } = opts;
+  const { systemInstruction, messages, jsonMode = false, maxTokens = 3000, geminiModel = 'gemini-flash-latest', label = '' } = opts;
   const tag = label ? `[AI Fallback:${label}]` : '[AI Fallback]';
   const startTime = Date.now();
 
@@ -1947,12 +1975,13 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
     const activeKey = process.env.GEMINI_API_KEY;
     if (activeKey) {
       const maskedKey = `${activeKey.slice(0, 6)}...${activeKey.slice(-4)}`;
+      const preferred = (geminiModel && geminiModel !== 'gemini-3.8-flash') ? geminiModel : 'gemini-flash-latest';
       const candidateModels = Array.from(new Set([
-        geminiModel,
-        'gemini-3.8-flash',
+        'gemini-flash-latest',
+        preferred,
         'gemini-3.1-flash-lite',
-        'gemini-flash-latest'
-      ]));
+        'gemini-3.8-flash'
+      ].filter(Boolean) as string[]));
 
       for (const mName of candidateModels) {
         const t0 = Date.now();
@@ -1990,7 +2019,18 @@ async function callAIWithFallback(opts: AIFallbackOptions): Promise<AIFallbackRe
           }
         } catch (error: any) {
           const errorMsg = error.message || error.response?.data?.error?.message || String(error);
-          console.debug(`${tag} Gemini model ${mName} failed: ${errorMsg}`);
+          const isCapacityOrRateLimit =
+            errorMsg.includes('503') ||
+            errorMsg.includes('high demand') ||
+            errorMsg.includes('UNAVAILABLE') ||
+            errorMsg.includes('429') ||
+            errorMsg.includes('RESOURCE_EXHAUSTED');
+
+          if (isCapacityOrRateLimit) {
+            console.log(`${tag} Gemini model ${mName} temporarily high demand (503/429), failing over to next model...`);
+          } else {
+            console.log(`${tag} Gemini model ${mName} unavailable: ${errorMsg.substring(0, 150)}`);
+          }
           await logTelemetry('gemini', mName, false, Date.now() - t0, errorMsg);
         }
       }
@@ -4167,10 +4207,10 @@ app.post("/api/search", async (req: any, res: any) => {
       try {
         const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
         const result = await withTimeout(
-          ai.models.generateContent({
-            model: 'gemini-3.8-flash',
+          generateGeminiContentWithModelFallback(ai, {
             contents: `Please search the web for the following query and provide a highly detailed summary of the latest information, dates, facts, and updates. Query: "${query}"`,
-            config: { tools: [{ googleSearch: {} }] }
+            config: { tools: [{ googleSearch: {} }] },
+            models: ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']
           }),
           8000,
           `Gemini search grounding`
@@ -4675,7 +4715,10 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
       try {
         if (item.type === 'Gemini') {
           const gemini = createGeminiClient(item.rawKey);
-          const result = await gemini.client.models.generateContent({ model: 'gemini-3.8-flash', contents: 'ping' });
+          const result = await generateGeminiContentWithModelFallback(gemini.client, {
+            contents: 'ping',
+            models: ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']
+          });
           if (result && result.text) status = 'Active'; else error = 'Empty response';
         } else if (item.type === 'Groq') {
           const groq = new Groq({ apiKey: item.rawKey });

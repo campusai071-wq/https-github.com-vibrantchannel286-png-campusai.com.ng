@@ -5,7 +5,7 @@ import {
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power
+  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -1794,6 +1794,55 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           ) : (
                             <>
                               <Eye size={18} /> Enable / Show Top Banner
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Google Ads Simulation Toggle - Developer Mode */}
+                      <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                        localStorage.getItem('campusai_google_ads') === 'true'
+                          ? 'bg-amber-950/40 border-amber-500/50 text-amber-100 shadow-lg shadow-amber-950/50' 
+                          : 'bg-slate-800/60 border-slate-700 text-slate-200'
+                      }`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                              <Layout size={16} className={localStorage.getItem('campusai_google_ads') === 'true' ? "text-amber-400 animate-pulse" : "text-gray-500"} />
+                              Ad Placement Test
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                              localStorage.getItem('campusai_google_ads') === 'true'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                                : 'bg-gray-500/20 text-gray-300 border-gray-500/40'
+                            }`}>
+                              {localStorage.getItem('campusai_google_ads') === 'true' ? '⚡ Active' : '🚫 Disabled'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-300 leading-relaxed">
+                            Preview Google Ad placements across the platform. This is for layout testing only.
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const current = localStorage.getItem('campusai_google_ads') === 'true';
+                            localStorage.setItem('campusai_google_ads', (!current).toString());
+                            window.location.reload();
+                          }}
+                          className={`w-full py-3 px-4 rounded-xl font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            localStorage.getItem('campusai_google_ads') === 'true'
+                              ? 'bg-rose-600 hover:bg-rose-500 text-white' 
+                              : 'bg-amber-600 hover:bg-amber-500 text-white'
+                          }`}
+                        >
+                          {localStorage.getItem('campusai_google_ads') === 'true' ? (
+                            <>
+                              <EyeOff size={18} /> Disable Ad Simulation
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={18} /> Enable Ad Simulation
                             </>
                           )}
                         </button>
