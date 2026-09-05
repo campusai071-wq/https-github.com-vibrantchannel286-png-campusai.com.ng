@@ -1953,36 +1953,74 @@ export const enforceAdmissionTiers = (
       detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Very Strong / Excellent**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nCongratulations! Your aggregate score of **${score}%** significantly clears the typical estimated competitive benchmark of **${cutoffVal}%** by **+${diff.toFixed(2)}%** under the **${quotaText}**. You are in an exceptional winning position to secure a premium merit list spot at **${university}**.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS:** Access the CAPS portal to accept your admission as soon as it is officially offered.\n*   **Accept Admission Promptly:** Remember you have exactly 4 weeks to accept the admission on CAPS once offered.\n*   **Track Portal Fees:** Prepare your acceptance fees and monitor the school's official website for clearance deadlines.` + seasonalTimeline,
       recommendation: `Congratulations! Your aggregate score is exceptional and significantly clears the typical cutoff. You are in an outstanding position to secure a merit list spot. Focus on accepting your admission on CAPS.`
     };
-  } else if (diff < 0 && diff >= -1.5) {
-    // 4A. THE BORDERLINE DEFICIT TIER (Score is 0.01% to 1.50% BELOW Cutoff)
-    // Very narrow deficit: candidate is right on the threshold, strong candidate for catchment adjustment, VC discretion, or supplementary lists.
-    const prob = Math.min(Math.max(Math.round(48 + (diff * 8)), 36), 49);
-    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
+  } else if (diff < 0 && diff >= -2.0) {
+    // 4A. THE BORDERLINE CLOSE / SLIGHT MARGIN TIER (Score is 0.01% to 2.00% BELOW Estimated Benchmark)
+    const prob = Math.min(Math.max(Math.round(48 + (diff * 4)), 40), 49);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated historical competitive benchmark";
     return {
-      verdict: "Borderline / Competitive Deficit",
+      verdict: "Borderline / Close to Benchmark",
       probability: prob,
-      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Borderline / Competitive Deficit**\n- **Admission Probability:** **${prob}% (High Supplementary Potential)**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is narrowly below the ${benchmarkLabel} of **${cutoffVal}%** (a slight deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nWhile this narrow deficit makes primary First-Batch Merit admission competitive, candidates within 0.1% to 1.5% of the benchmark remain the prime candidates for Catchment quota adjustments, Educationally Less Developed States (ELDS) considerations, and Supplementary Admission List releases. You are well within striking distance, but you must remain proactive.\n\n### 3. Actionable Next Steps\n*   **Monitor JAMB CAPS Closely:** Check your JAMB CAPS profile daily for 'Admission in Progress' (AIP) or supplementary transfer offers.\n*   **Confirm O'Level Uploads:** Ensure your WAEC/NECO results are correctly uploaded on JAMB CAPS to avoid disqualification during batch processing.\n*   **Prepare a Targeted Backup:** Identify 1 or 2 closely related departments where your aggregate score exceeds the benchmark, ready to accept a transfer if offered.` + seasonalTimeline,
-      recommendation: `Your aggregate score of ${score}% is only ${Math.abs(diff).toFixed(2)}% below the ${benchmarkLabel} (${cutoffVal}%). You remain a strong candidate for catchment or supplementary lists. Track your JAMB CAPS portal daily.`
+      detailedStrategy: `### 1. Analysis Breakdown
+- **Academic Position:** Slightly below estimated historical benchmark (**${Math.abs(diff).toFixed(2)} percentage-point difference**)
+- **Probability Estimate:** **${prob}%** (Calibrated for historical estimation uncertainty)
+- **Verdict Status:** **Borderline / Competitive**
+
+### 2. The Reality Check
+Your aggregate score of **${score}%** is narrowly close to the ${benchmarkLabel} of **${cutoffVal}%** under the **${quotaText}** for **${course}** at **${university}**. 
+
+Because this benchmark is an estimated historical competitive threshold rather than an absolute hard cutoff, a **${Math.abs(diff).toFixed(2)} percentage-point difference** places you in a competitive borderline zone. While primary merit admission requires caution, candidates within this marginal band frequently secure admission through catchment adjustments, ELDS considerations, or supplementary batch lists.
+
+### 3. Actionable Next Steps
+*   **Monitor JAMB CAPS Closely:** Check your JAMB CAPS profile daily for 'Admission in Progress' (AIP) or supplementary transfer offers.
+*   **Confirm O'Level Uploads:** Ensure your WAEC/NECO results are correctly uploaded on JAMB CAPS to avoid disqualification during batch processing.
+*   **Prepare a Targeted Backup:** Identify 1 or 2 closely related departments where your aggregate score exceeds the benchmark, ready to accept a transfer if offered.` + seasonalTimeline,
+      recommendation: `Your aggregate score of ${score}% is only ${Math.abs(diff).toFixed(2)} percentage-points below the ${benchmarkLabel} (${cutoffVal}%). Since this is a historical benchmark rather than a hard cliff, you remain in a competitive borderline zone (${prob}% probability). Track your JAMB CAPS portal daily.`
     };
-  } else if (diff < -1.5 && diff >= -4.0) {
-    // 4B. THE MODERATE DEFICIT TIER (Score is 1.51% to 4.00% BELOW Cutoff)
-    const prob = Math.min(Math.max(Math.round(32 + ((diff + 1.5) * 5)), 18), 34);
-    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
+  } else if (diff < -2.0 && diff >= -4.0) {
+    // 4B. THE MODERATE DEFICIT TIER (Score is 2.01% to 4.00% BELOW Cutoff)
+    const prob = Math.min(Math.max(Math.round(35 + ((diff + 2.0) * 5)), 20), 38);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated historical competitive benchmark";
     return {
       verdict: "Low Probability / Supplementary Backup",
       probability: prob,
-      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Low Probability / Supplementary Backup**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is lower than the ${benchmarkLabel} of **${cutoffVal}%** (a deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nSecuring primary merit admission with a ${Math.abs(diff).toFixed(2)}% gap is challenging. While supplementary lists may absorb a small fraction of candidates, your primary admission probability for this specific programme is low. Proactive steps are necessary to protect your admission year.\n\n### 3. Actionable Next Steps\n*   **Explore JAMB Change of Course:** Consider pivoting to related allied programmes with lower cutoffs matching your subject combination.\n*   **Explore JAMB Change of Institution:** State or private universities with more favorable cutoff lines can guarantee admission this session.\n*   **Maintain CAPS Verification:** Ensure all O'Level results are verified on JAMB CAPS.` + seasonalTimeline,
-      recommendation: `Your aggregate score is ${Math.abs(diff).toFixed(2)}% below the ${benchmarkLabel}. Primary merit is unlikely. We advise exploring a JAMB Change of Course or Institution.`
+      detailedStrategy: `### 1. Analysis Breakdown
+- **Academic Position:** Moderately below historical benchmark (**${Math.abs(diff).toFixed(2)} percentage-point difference**)
+- **Probability Estimate:** **${prob}%**
+- **Verdict Status:** **Low Probability / Supplementary Backup**
+
+### 2. The Reality Check
+Your aggregate score of **${score}%** is lower than the ${benchmarkLabel} of **${cutoffVal}%** (a **${Math.abs(diff).toFixed(2)} percentage-point difference**) under the **${quotaText}** for **${course}** at **${university}**.
+
+Securing primary merit admission with this margin is challenging. While supplementary lists may absorb a fraction of candidates, your primary admission probability for this specific programme is low. Proactive steps are necessary to protect your admission year.
+
+### 3. Actionable Next Steps
+*   **Explore JAMB Change of Course:** Consider pivoting to related allied programmes with lower cutoffs matching your subject combination.
+*   **Explore JAMB Change of Institution:** State or private universities with more favorable cutoff lines can guarantee admission this session.
+*   **Maintain CAPS Verification:** Ensure all O'Level results are verified on JAMB CAPS.` + seasonalTimeline,
+      recommendation: `Your aggregate score is ${Math.abs(diff).toFixed(2)} percentage-points below the ${benchmarkLabel}. Primary merit is unlikely. We advise exploring a JAMB Change of Course or Institution.`
     };
   } else {
     // 4C. THE SEVERE DEFICIT TIER (Score is > 4.00% BELOW Cutoff)
-    const prob = Math.min(Math.max(Math.round(15 + ((diff + 4) * 1.5)), 5), 16);
-    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated competitive benchmark";
+    const prob = Math.min(Math.max(Math.round(15 + ((diff + 4) * 1.5)), 5), 18);
+    const benchmarkLabel = isOfficialCutoff ? "official departmental cutoff" : "estimated historical competitive benchmark";
     return {
       verdict: "Low Probability",
       probability: prob,
-      detailedStrategy: `### 1. Verdict Summary\n- **Verdict Status:** **Low Probability**\n- **Admission Probability:** **${prob}%**\n\n### 2. The Reality Check\nYour aggregate score of **${score}%** is significantly below the ${benchmarkLabel} of **${cutoffVal}%** (a deficit of **${diff.toFixed(2)}%**) under the **${quotaText}** for **${course}** at **${university}**.\n\nAt a deficit of ${Math.abs(diff).toFixed(2)}%, securing admission into this competitive programme is highly improbable. To avoid losing the entire 2024/2026 admission cycle, you should take immediate corrective action.\n\n### 3. Actionable Next Steps\n*   **Immediate JAMB Change of Course:** Change your course on JAMB CAPS to an alternative discipline where your score places you safely above the benchmark.\n*   **JAMB Change of Institution:** Consider institutions with lower aggregate cutoffs.\n*   **Verify Document Uploads:** Keep your O'Level grades uploaded on CAPS so new institutions can process your file seamlessly.` + seasonalTimeline,
-      recommendation: `Your aggregate score has a significant deficit (${Math.abs(diff).toFixed(2)}%) against the ${benchmarkLabel}. Pivot immediately via JAMB Change of Course or Institution to secure admission.`
+      detailedStrategy: `### 1. Analysis Breakdown
+- **Academic Position:** Significantly below historical benchmark (**${Math.abs(diff).toFixed(2)} percentage-point difference**)
+- **Probability Estimate:** **${prob}%**
+- **Verdict Status:** **Low Probability**
+
+### 2. The Reality Check
+Your aggregate score of **${score}%** is significantly below the ${benchmarkLabel} of **${cutoffVal}%** (a **${Math.abs(diff).toFixed(2)} percentage-point difference**) under the **${quotaText}** for **${course}** at **${university}**.
+
+At this deficit, securing admission into this competitive programme is highly improbable. To avoid losing the entire 2024/2026 admission cycle, you should take immediate corrective action.
+
+### 3. Actionable Next Steps
+*   **Immediate JAMB Change of Course:** Change your course on JAMB CAPS to an alternative discipline where your score places you safely above the benchmark.
+*   **JAMB Change of Institution:** Consider institutions with lower aggregate cutoffs.
+*   **Verify Document Uploads:** Keep your O'Level grades uploaded on CAPS so new institutions can process your file seamlessly.` + seasonalTimeline,
+      recommendation: `Your aggregate score has a significant deficit (${Math.abs(diff).toFixed(2)} percentage-points) against the ${benchmarkLabel}. Pivot immediately via JAMB Change of Course or Institution to secure admission.`
     };
   }
 };
