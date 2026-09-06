@@ -778,21 +778,25 @@ function matchesSubject(subjectFile: string, targetSubject: string): boolean {
   const file = subjectFile.toLowerCase();
   const target = (targetSubject || '').toLowerCase().replace(/[-_]/g, ' ');
 
-  if (target.includes('bio')) return file.includes('bio');
-  if (target.includes('chem')) return file.includes('chem');
-  if (target.includes('phys')) return file.includes('phys');
-  if (target.includes('math')) return file.includes('math');
-  if (target.includes('eng') || target.includes('use of english')) {
+  // Special Case: English vs Literature
+  if (target.includes('english') || target.includes('use of english')) {
+    // If we're looking for English, explicitly exclude Literature files even if they contain "English"
+    if (file.includes('literature') || file.includes('lit-in-eng')) return false;
     return file.includes('english') || file.includes('life-changer');
   }
-  if (target.includes('comm')) return file.includes('comm');
-  if (target.includes('econ')) return file.includes('econ');
-  if (target.includes('gov')) return file.includes('gov');
+
+  if (target.includes('lit')) return file.includes('literature') || file.includes('lit-in-eng') || file.includes('lit');
+  if (target.includes('bio')) return file.includes('biology') || file.includes('bio');
+  if (target.includes('chem')) return file.includes('chemistry') || file.includes('chem');
+  if (target.includes('phys')) return file.includes('physics') || file.includes('phys');
+  if (target.includes('math')) return file.includes('mathematics') || file.includes('math');
+  if (target.includes('comm')) return file.includes('commerce') || file.includes('comm');
+  if (target.includes('econ')) return file.includes('economics') || file.includes('econ');
+  if (target.includes('gov')) return file.includes('government') || file.includes('gov');
   if (target.includes('crk') || target.includes('crs') || target.includes('relig') || target.includes('christ')) {
     return file.includes('crk') || file.includes('crs') || file.includes('christ');
   }
   if (target.includes('acc') || target.includes('principle')) return file.includes('account');
-  if (target.includes('lit')) return file.includes('lit');
   if (target.includes('agric')) return file.includes('agric');
 
   return file.includes(target);
@@ -872,9 +876,9 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
       solution: doc.explanation || `From official past question archive: ${cleanExamName}. Review standard curriculum syllabus for this topic.`,
       examType: isWaec ? 'WAEC' : isPostUtme ? 'POST_UTME' : 'JAMB',
       examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
-      section: doc.subjectFile || null,
-      hasPassage: false,
-      imageUrl: null,
+      section: doc.passage || doc.section || doc.subjectFile || null,
+      hasPassage: !!(doc.passage || doc.section || doc.hasPassage),
+      imageUrl: doc.imageUrl || doc.image || null,
       metadata: {
         source: 'firebase_past_questions',
         subjectFile: doc.subjectFile || '',

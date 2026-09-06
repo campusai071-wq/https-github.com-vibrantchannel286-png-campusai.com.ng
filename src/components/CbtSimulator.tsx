@@ -501,6 +501,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [examType, setExamType] = useState('jamb');
   const [questionsPerSubject, setQuestionsPerSubject] = useState(20);
   const [testMode, setTestMode] = useState<'practice' | 'full'>('practice');
+  const [isTimed, setIsTimed] = useState(true);
+  const [customMinutes, setCustomMinutes] = useState<number | string>('');
   const [started, setStarted] = useState(false);
 
   // ----- CBT Exam Engine Data -----
@@ -825,17 +827,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         const sFile = (d.subjectFile || '').toLowerCase();
 
         let isMatch = false;
-        if (target.includes('bio') && sFile.includes('bio')) isMatch = true;
+        // Special Case: English vs Literature
+        if (target.includes('english') || target.includes('use of english')) {
+          if (sFile.includes('literature') || sFile.includes('lit-in-eng')) isMatch = false;
+          else if (sFile.includes('english') || sFile.includes('life-changer')) isMatch = true;
+        }
+        else if (target.includes('lit') && (sFile.includes('lit') || sFile.includes('literature'))) isMatch = true;
+        else if (target.includes('bio') && sFile.includes('bio')) isMatch = true;
         else if (target.includes('chem') && sFile.includes('chem')) isMatch = true;
         else if (target.includes('phys') && sFile.includes('phys')) isMatch = true;
         else if (target.includes('math') && sFile.includes('math')) isMatch = true;
-        else if ((target.includes('eng') || target.includes('use of english')) && (sFile.includes('english') || sFile.includes('life-changer'))) isMatch = true;
         else if (target.includes('comm') && sFile.includes('comm')) isMatch = true;
         else if (target.includes('econ') && sFile.includes('econ')) isMatch = true;
         else if (target.includes('gov') && sFile.includes('gov')) isMatch = true;
         else if ((target.includes('crk') || target.includes('crs') || target.includes('christ')) && (sFile.includes('crk') || sFile.includes('crs'))) isMatch = true;
         else if ((target.includes('acc') || target.includes('principle')) && sFile.includes('account')) isMatch = true;
-        else if (target.includes('lit') && sFile.includes('lit')) isMatch = true;
         else if (target.includes('agric') && sFile.includes('agric')) isMatch = true;
         else if (sFile.includes(target)) isMatch = true;
 
@@ -955,25 +961,30 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setQuestionsBySubject(results);
       setActiveSubjectKey(selectedSubjects[0]);
 
-      const totalQuestions = Object.values(results).reduce((sum, arr) => sum + arr.length, 0);
-      // Set minutes according to authentic official standards:
-      // JAMB Full Exam: 120 minutes (2 hours) for 180 questions (English 60, other 3 subjects 40 each)
-      // WAEC Full Exam: 60 minutes per subject
-      // Post-UTME Full Exam: 45 minutes
-      // Practice Mode: 1.2 minutes per question
-      let minutes = Math.max(10, Math.round(totalQuestions * 1.2));
-      if (testMode === 'full') {
-        if (examType === 'jamb') {
-          minutes = 120;
-        } else if (examType === 'waec') {
-          minutes = Math.max(60, selectedSubjects.length * 50);
-        } else if (examType === 'post_utme') {
-          minutes = 45;
+      let minutes = 0;
+      if (typeof customMinutes === 'number' && customMinutes > 0) {
+        minutes = customMinutes;
+      } else {
+        // Set minutes according to authentic official standards:
+        // JAMB Full Exam: 120 minutes (2 hours) for 180 questions (English 60, other 3 subjects 40 each)
+        // WAEC Full Exam: 60 minutes per subject
+        // Post-UTME Full Exam: 45 minutes
+        // Practice Mode: 0.75 minutes per question (45 seconds)
+        minutes = Math.max(5, Math.round(totalQuestions * 0.75));
+        if (testMode === 'full') {
+          if (examType === 'jamb') {
+            minutes = 120;
+          } else if (examType === 'waec') {
+            minutes = Math.max(60, selectedSubjects.length * 50);
+          } else if (examType === 'post_utme') {
+            minutes = 45;
+          }
         }
       }
-      const endTimeValue = Date.now() + minutes * 60 * 1000;
+
+      const endTimeValue = isTimed ? Date.now() + minutes * 60 * 1000 : Date.now() + 999 * 60 * 1000;
       setEndTime(endTimeValue);
-      setTimeLeft(minutes * 60);
+      setTimeLeft(isTimed ? minutes * 60 : 999 * 60);
       setIsTimerRunning(true);
       setStarted(true);
 
@@ -1988,112 +1999,152 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   ) : (
                     <>
                       <div>
+                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Timer & Settings</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-xl ${isTimed ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <Clock size={18} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">Timed Exam</div>
+                                <div className="text-[10px] text-slate-500">Auto-submit when time is up</div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setIsTimed(!isTimed)}
+                              className={`w-12 h-6 rounded-full relative transition-all ${isTimed ? 'bg-emerald-600' : 'bg-slate-300'}`}
+                            >
+                              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isTimed ? 'left-7' : 'left-1'}`} />
+                            </button>
+                          </div>
+
+                          <div className={`flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200 ${!isTimed && 'opacity-50 grayscale pointer-events-none'}`}>
+                            <div className="flex items-center gap-2 pl-1">
+                              <span className="text-xs font-bold text-slate-700">Custom Time:</span>
+                              <input
+                                type="number"
+                                placeholder="Auto"
+                                value={customMinutes}
+                                onChange={(e) => setCustomMinutes(e.target.value ? parseInt(e.target.value) : '')}
+                                className="w-16 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center bg-white"
+                              />
+                              <span className="text-xs font-semibold text-slate-500">mins</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-medium max-w-[80px] leading-tight">
+                              Leave empty for standard time
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
                         <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Select Exam Type</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { id: 'jamb', name: 'JAMB UTME', sub: '120 mins | 4 Subjects' },
-                        { id: 'waec', name: 'WAEC SSCE', sub: 'Subject Standard' },
-                        { id: 'post_utme', name: 'Post-UTME', sub: 'University Screening' },
-                      ].map((type) => (
-                        <button
-                          key={type.id}
-                          onClick={() => setExamType(type.id)}
-                          className={`p-3.5 rounded-2xl border text-left transition-all ${
-                            examType === type.id
-                              ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 shadow-sm font-bold'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          <span className="block text-sm font-bold">{type.name}</span>
-                          <span className="block text-[10px] text-slate-500 mt-0.5">{type.sub}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                        Choose Subjects ({selectedSubjects.length} / 4)
-                      </label>
-                      <span className="text-xs text-slate-400">English Language is compulsory</span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                      {SUBJECT_OPTIONS.map((s) => {
-                        const isSelected = selectedSubjects.includes(s.key);
-                        const isCompulsory = s.key === 'english-language';
-                        return (
-                          <button
-                            key={s.key}
-                            onClick={() => toggleSubject(s.key)}
-                            disabled={isCompulsory}
-                            className={`p-3 rounded-2xl border text-xs font-bold text-left flex items-center justify-between gap-2 transition-all ${
-                              isSelected
-                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                            } ${isCompulsory ? 'opacity-90 cursor-not-allowed' : ''}`}
-                          >
-                            <span className="truncate">{s.label}</span>
-                            {isSelected && <CheckCircle2 size={16} className="flex-shrink-0 text-white" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Test Mode</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setTestMode('practice')}
-                          className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
-                            testMode === 'practice'
-                              ? 'bg-slate-900 text-white border-slate-900'
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          Practice Mode
-                          <span className="block text-[10px] opacity-75 font-normal">Flexible Time & AI Hints</span>
-                        </button>
-                        <button
-                          onClick={() => setTestMode('full')}
-                          className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
-                            testMode === 'full'
-                              ? 'bg-slate-900 text-white border-slate-900'
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          Timed Full Exam
-                          <span className="block text-[10px] opacity-75 font-normal">120 Minutes Real Timer</span>
-                        </button>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { id: 'jamb', name: 'JAMB UTME', sub: '120 mins | 4 Subjects' },
+                            { id: 'waec', name: 'WAEC SSCE', sub: 'Subject Standard' },
+                            { id: 'post_utme', name: 'Post-UTME', sub: 'University Screening' },
+                          ].map((type) => (
+                            <button
+                              key={type.id}
+                              onClick={() => setExamType(type.id)}
+                              className={`p-3.5 rounded-2xl border text-left transition-all ${
+                                examType === type.id
+                                  ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 shadow-sm font-bold'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="block text-sm font-bold">{type.name}</span>
+                              <span className="block text-[10px] text-slate-500 mt-0.5">{type.sub}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                          Questions per Subject: <span className="text-emerald-700 font-black text-sm">{questionsPerSubject}</span>
-                        </label>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                            Choose Subjects ({selectedSubjects.length} / 4)
+                          </label>
+                          <span className="text-xs text-slate-400">English Language is compulsory</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                          {SUBJECT_OPTIONS.map((s) => {
+                            const isSelected = selectedSubjects.includes(s.key);
+                            const isCompulsory = s.key === 'english-language';
+                            return (
+                              <button
+                                key={s.key}
+                                onClick={() => toggleSubject(s.key)}
+                                disabled={isCompulsory}
+                                className={`p-3 rounded-2xl border text-xs font-bold text-left flex items-center justify-between gap-2 transition-all ${
+                                  isSelected
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                                } ${isCompulsory ? 'opacity-90 cursor-not-allowed' : ''}`}
+                              >
+                                <span className="truncate">{s.label}</span>
+                                {isSelected && <CheckCircle2 size={16} className="flex-shrink-0 text-white" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <input
-                        type="range"
-                        min={10}
-                        max={40}
-                        step={5}
-                        value={questionsPerSubject}
-                        onChange={(e) => setQuestionsPerSubject(Number(e.target.value))}
-                        className="w-full accent-emerald-600 h-2 bg-slate-100 rounded-lg cursor-pointer"
-                      />
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                        <span>10 (Quick Drill)</span>
-                        <span>20 (Standard)</span>
-                        <span>40 (Full JAMB)</span>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Test Mode</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setTestMode('practice')}
+                              className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
+                                testMode === 'practice'
+                                  ? 'bg-slate-900 text-white border-slate-900'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              Practice Mode
+                              <span className="block text-[10px] opacity-75 font-normal">Flexible Time & AI Hints</span>
+                            </button>
+                            <button
+                              onClick={() => setTestMode('full')}
+                              className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
+                                testMode === 'full'
+                                  ? 'bg-slate-900 text-white border-slate-900'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              Timed Full Exam
+                              <span className="block text-[10px] opacity-75 font-normal">120 Minutes Real Timer</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                              Questions per Subject: <span className="text-emerald-700 font-black text-sm">{questionsPerSubject}</span>
+                            </label>
+                          </div>
+                          <input
+                            type="range"
+                            min={10}
+                            max={40}
+                            step={5}
+                            value={questionsPerSubject}
+                            onChange={(e) => setQuestionsPerSubject(Number(e.target.value))}
+                            className="w-full accent-emerald-600 h-2 bg-slate-100 rounded-lg cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                            <span>10 (Quick Drill)</span>
+                            <span>20 (Standard)</span>
+                            <span>40 (Full JAMB)</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  </>
-                )}
+                    </>
+                  )}
 
                   {/* Official Examination Standards & Instructions Guide */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
@@ -2402,9 +2453,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               )}
                             </div>
 
-                            <div className="font-medium text-slate-900 mb-4 leading-relaxed text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: q.question }} />
+                            <div className="font-bold text-slate-900 mb-6 leading-relaxed text-base sm:text-lg" dangerouslySetInnerHTML={{ __html: q.question }} />
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base">
                               {Object.entries(q.option).map(([key, val]) => {
                                 const isSelected = userAnswer === key.toLowerCase();
                                 const isActualAnswer = q.answer.toLowerCase() === key.toLowerCase();
@@ -2597,7 +2648,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                         <div className="flex flex-col">
                            <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Question</h4>
                            <div
-                            className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed"
+                            className="text-lg sm:text-xl font-bold text-slate-900 leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
                           />
                           {currentQuestion.imageUrl && (
@@ -2610,7 +2661,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     ) : (
                       <>
                         <div
-                          className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed mb-6"
+                          className="text-lg sm:text-xl font-bold text-slate-900 leading-relaxed mb-6"
                           dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
                         />
 
@@ -2642,7 +2693,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                             >
                               {key}
                             </span>
-                            <span className="text-sm sm:text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: value }} />
+                            <span className="text-base sm:text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: value }} />
                           </button>
                         );
                       })}
