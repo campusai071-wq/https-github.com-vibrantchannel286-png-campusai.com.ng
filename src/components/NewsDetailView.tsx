@@ -672,6 +672,21 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     );
   }
 
+  const sanitizeMarkdown = (raw: string): string => {
+    if (!raw) return '';
+    let text = raw.trim();
+    if (text.startsWith('```markdown')) {
+      text = text.replace(/^```markdown\s*/i, '');
+    } else if (text.startsWith('```')) {
+      text = text.replace(/^```\s*/, '');
+    }
+    if (text.endsWith('```')) {
+      text = text.replace(/\s*```$/, '');
+    }
+    text = text.replace(/\\(\*\*|\*|#|`|_)/g, '$1');
+    return text.trim();
+  };
+
   const contentForTime = news.fullContent || (news as any).content || (news as any).content || news.excerpt || "";
   const readTime = Math.max(3, Math.ceil(contentForTime.split(' ').length / 200));
 
@@ -1185,7 +1200,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                   }
                 }}
               >
-                {news.fullContent || (news as any).content}
+                {sanitizeMarkdown(news.fullContent || (news as any).content)}
               </Markdown>
             ) : (
               <div className="py-12 border-2 border-dashed border-gray-100 dark:border-gray-900 rounded-[40px] text-center">
