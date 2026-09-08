@@ -80,6 +80,8 @@ import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
 import { getLAUTECHCutoffByCourse, getLAUTECHAggregateBenchmark } from "../data/lautechCutoffs2025_2026";
 import { getFUHSICutoffByCourse } from "../data/fuhsiCutoffs2026_2027";
 import { getFUTMINNACutoffByCourse } from "../data/futminnaCutoffs2026_2027";
+import { getYabatechCutoffByCourse } from "../data/yabatechCutoffs2026_2027";
+import { getFuoyeCutoffByCourse } from "../data/fuoyeCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -2202,6 +2204,39 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
+      if (!manualOverride && (nUni.includes("yaba") || nUni.includes("yabatech") || nUni.includes("yaba college of technology"))) {
+        const yabaCutoff = getYabatechCutoffByCourse(course);
+        if (yabaCutoff) {
+          const s = (stateOfOrigin || "").toLowerCase().trim();
+          let targetScore = yabaCutoff.meritScore;
+          if (s.includes('ekiti') && yabaCutoff.ekiti) targetScore = yabaCutoff.ekiti;
+          else if (s.includes('lagos') && yabaCutoff.lagos) targetScore = yabaCutoff.lagos;
+          else if (s.includes('ogun') && yabaCutoff.ogun) targetScore = yabaCutoff.ogun;
+          else if (s.includes('ondo') && yabaCutoff.ondo) targetScore = yabaCutoff.ondo;
+          else if (s.includes('osun') && yabaCutoff.osun) targetScore = yabaCutoff.osun;
+          else if (s.includes('oyo') && yabaCutoff.oyo) targetScore = yabaCutoff.oyo;
+
+          manualOverride = {
+            institution: "Yaba College of Technology (YABATECH)",
+            course: yabaCutoff.programme,
+            departmentalCutoff: `${targetScore}%`,
+            institutionalCutoff: "160",
+            explanation: `Official YABATECH 2026/2027 Merit & State Score: Merit (${yabaCutoff.meritScore}%), Lagos (${yabaCutoff.lagos || yabaCutoff.meritScore}%), Ogun (${yabaCutoff.ogun || yabaCutoff.meritScore}%), Oyo (${yabaCutoff.oyo || yabaCutoff.meritScore}%), Osun (${yabaCutoff.osun || yabaCutoff.meritScore}%), Ondo (${yabaCutoff.ondo || yabaCutoff.meritScore}%), Ekiti (${yabaCutoff.ekiti || yabaCutoff.meritScore}%)`
+          };
+        }
+      }
+      if (!manualOverride && (nUni.includes("fuoye") || nUni.includes("oye-ekiti") || nUni.includes("federal university, oye-ekiti"))) {
+        const fuoyeCutoff = getFuoyeCutoffByCourse(course);
+        if (fuoyeCutoff) {
+          manualOverride = {
+            institution: "Federal University Oye-Ekiti (FUOYE)",
+            course: fuoyeCutoff.programme,
+            departmentalCutoff: `${fuoyeCutoff.meritScore}%`,
+            institutionalCutoff: "150",
+            explanation: `Official FUOYE 2026/2027 Admission Merit Point for ${fuoyeCutoff.programme}: ${fuoyeCutoff.meritScore}% (Faculty: ${fuoyeCutoff.faculty}). Scoring System: JAMB (60%) + O'Level (30%) + Sitting Bonus (10%).`
+          };
+        }
+      }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
@@ -2329,6 +2364,39 @@ export const getCourseCutoffInfo = async (
           departmentalCutoff: `${futminnaCutoff.cutoff}%`,
           institutionalCutoff: "150",
           explanation: `Official FUTMINNA 2026/2027 UPASE Cut-Off: ${futminnaCutoff.cutoff} (Min UTME Cutoff) - ${futminnaCutoff.faculty} (${futminnaCutoff.school})${futminnaCutoff.isNew ? ' [NEWLY APPROVED PROGRAMME]' : ''}. Registration Portal: https://eportal.futminna.edu.ng/ePortal_V2/utme/ (Open 15 June – 6 Sept 2026).`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("yaba") || nUni.includes("yabatech") || nUni.includes("yaba college of technology"))) {
+      const yabaCutoff = getYabatechCutoffByCourse(course);
+      if (yabaCutoff) {
+        const s = (stateOfOrigin || "").toLowerCase().trim();
+        let targetScore = yabaCutoff.meritScore;
+        if (s.includes('ekiti') && yabaCutoff.ekiti) targetScore = yabaCutoff.ekiti;
+        else if (s.includes('lagos') && yabaCutoff.lagos) targetScore = yabaCutoff.lagos;
+        else if (s.includes('ogun') && yabaCutoff.ogun) targetScore = yabaCutoff.ogun;
+        else if (s.includes('ondo') && yabaCutoff.ondo) targetScore = yabaCutoff.ondo;
+        else if (s.includes('osun') && yabaCutoff.osun) targetScore = yabaCutoff.osun;
+        else if (s.includes('oyo') && yabaCutoff.oyo) targetScore = yabaCutoff.oyo;
+
+        manualOverride = {
+          institution: "Yaba College of Technology (YABATECH)",
+          course: yabaCutoff.programme,
+          departmentalCutoff: `${targetScore}%`,
+          institutionalCutoff: "160",
+          explanation: `Official YABATECH 2026/2027 Merit & State Score: Merit (${yabaCutoff.meritScore}%), Lagos (${yabaCutoff.lagos || yabaCutoff.meritScore}%), Ogun (${yabaCutoff.ogun || yabaCutoff.meritScore}%), Oyo (${yabaCutoff.oyo || yabaCutoff.meritScore}%), Osun (${yabaCutoff.osun || yabaCutoff.meritScore}%), Ondo (${yabaCutoff.ondo || yabaCutoff.meritScore}%), Ekiti (${yabaCutoff.ekiti || yabaCutoff.meritScore}%)`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fuoye") || nUni.includes("oye-ekiti") || nUni.includes("federal university, oye-ekiti"))) {
+      const fuoyeCutoff = getFuoyeCutoffByCourse(course);
+      if (fuoyeCutoff) {
+        manualOverride = {
+          institution: "Federal University Oye-Ekiti (FUOYE)",
+          course: fuoyeCutoff.programme,
+          departmentalCutoff: `${fuoyeCutoff.meritScore}%`,
+          institutionalCutoff: "150",
+          explanation: `Official FUOYE 2026/2027 Admission Merit Point for ${fuoyeCutoff.programme}: ${fuoyeCutoff.meritScore}% (Faculty: ${fuoyeCutoff.faculty}). Scoring System: JAMB (60%) + O'Level (30%) + Sitting Bonus (10%).`
         };
       }
     }
@@ -2683,6 +2751,39 @@ Return JSON:
           departmentalCutoff: `${futminnaCutoff.cutoff}%`,
           institutionalCutoff: "150",
           explanation: `Official FUTMINNA 2026/2027 UPASE Cut-Off: ${futminnaCutoff.cutoff} (Min UTME Cutoff) - ${futminnaCutoff.faculty} (${futminnaCutoff.school})${futminnaCutoff.isNew ? ' [NEWLY APPROVED PROGRAMME]' : ''}. Registration Portal: https://eportal.futminna.edu.ng/ePortal_V2/utme/ (Open 15 June – 6 Sept 2026).`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("yaba") || nUni.includes("yabatech") || nUni.includes("yaba college of technology"))) {
+      const yabaCutoff = getYabatechCutoffByCourse(course);
+      if (yabaCutoff) {
+        const s = (stateOfOrigin || "").toLowerCase().trim();
+        let targetScore = yabaCutoff.meritScore;
+        if (s.includes('ekiti') && yabaCutoff.ekiti) targetScore = yabaCutoff.ekiti;
+        else if (s.includes('lagos') && yabaCutoff.lagos) targetScore = yabaCutoff.lagos;
+        else if (s.includes('ogun') && yabaCutoff.ogun) targetScore = yabaCutoff.ogun;
+        else if (s.includes('ondo') && yabaCutoff.ondo) targetScore = yabaCutoff.ondo;
+        else if (s.includes('osun') && yabaCutoff.osun) targetScore = yabaCutoff.osun;
+        else if (s.includes('oyo') && yabaCutoff.oyo) targetScore = yabaCutoff.oyo;
+
+        manualOverride = {
+          institution: "Yaba College of Technology (YABATECH)",
+          course: yabaCutoff.programme,
+          departmentalCutoff: `${targetScore}%`,
+          institutionalCutoff: "160",
+          explanation: `Official YABATECH 2026/2027 Merit & State Score: Merit (${yabaCutoff.meritScore}%), Lagos (${yabaCutoff.lagos || yabaCutoff.meritScore}%), Ogun (${yabaCutoff.ogun || yabaCutoff.meritScore}%), Oyo (${yabaCutoff.oyo || yabaCutoff.meritScore}%), Osun (${yabaCutoff.osun || yabaCutoff.meritScore}%), Ondo (${yabaCutoff.ondo || yabaCutoff.meritScore}%), Ekiti (${yabaCutoff.ekiti || yabaCutoff.meritScore}%)`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fuoye") || nUni.includes("oye-ekiti") || nUni.includes("federal university, oye-ekiti"))) {
+      const fuoyeCutoff = getFuoyeCutoffByCourse(course);
+      if (fuoyeCutoff) {
+        manualOverride = {
+          institution: "Federal University Oye-Ekiti (FUOYE)",
+          course: fuoyeCutoff.programme,
+          departmentalCutoff: `${fuoyeCutoff.meritScore}%`,
+          institutionalCutoff: "150",
+          explanation: `Official FUOYE 2026/2027 Admission Merit Point for ${fuoyeCutoff.programme}: ${fuoyeCutoff.meritScore}% (Faculty: ${fuoyeCutoff.faculty}). Scoring System: JAMB (60%) + O'Level (30%) + Sitting Bonus (10%).`
         };
       }
     }

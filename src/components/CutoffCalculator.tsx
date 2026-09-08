@@ -32,6 +32,8 @@ import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026
 import { FUTA_CUTOFFS_2026_2027, getFUTASchools } from '../data/futaCutoffs2026_2027';
 import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechCutoffs2025_2026';
 import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
+import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
+import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -1543,6 +1545,16 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [fuhsiFacultyFilter, setFuhsiFacultyFilter] = useState('ALL');
   const [fuhsiStateQuota, setFuhsiStateQuota] = useState<'merit' | 'osun' | 'oyo' | 'ondo' | 'ogun' | 'ekiti' | 'lagos'>('merit');
 
+  // ── YABATECH 2026/2027 Cutoffs Explorer State ──
+  const [isYabatechCutoffsModalOpen, setIsYabatechCutoffsModalOpen] = useState(false);
+  const [yabatechCutoffSearch, setYabatechCutoffSearch] = useState('');
+  const [yabatechStateQuota, setYabatechStateQuota] = useState<'meritScore' | 'lagos' | 'ogun' | 'oyo' | 'osun' | 'ondo' | 'ekiti'>('meritScore');
+
+  // ── FUOYE 2026/2027 Cutoffs Explorer State ──
+  const [isFuoyeCutoffsModalOpen, setIsFuoyeCutoffsModalOpen] = useState(false);
+  const [fuoyeCutoffSearch, setFuoyeCutoffSearch] = useState('');
+  const [fuoyeFacultyFilter, setFuoyeFacultyFilter] = useState('ALL');
+
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
   const [simPost, setSimPost] = useState<number>(0);
@@ -3023,6 +3035,24 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View Official FUHSI 2026/2027 Cut-Off Marks (Merit & Catchment)
+                        </button>
+                      )}
+                      {currentSchoolSlug === 'yabatech' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsYabatechCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official YABATECH 2026/2027 Merit & Catchment Cut-Off Marks
+                        </button>
+                      )}
+                      {currentSchoolSlug === 'fuoye' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsFuoyeCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official FUOYE 2026/2027 Admission Merit Points
                         </button>
                       )}
                     </div>
@@ -7730,6 +7760,339 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* YABATECH 2026/2027 Cutoff Marks Explorer Modal */}
+      <AnimatePresence>
+        {isYabatechCutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsYabatechCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-gray-950 w-full max-w-5xl rounded-[32px] overflow-hidden shadow-2xl border border-red-500/20 my-auto z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-red-950/40 via-orange-950/20 to-gray-950 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 font-black">
+                    <GraduationCap size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white">Yaba College of Technology (YABATECH)</h3>
+                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
+                      National Diploma (Full-Time) {YABATECH_SESSION} Admissions Merit & Catchment Score Sheet ({YABATECH_CUTOFFS_2026_2027.length} Programmes)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsYabatechCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Controls bar */}
+              <div className="p-4 sm:px-6 bg-gray-900/50 border-b border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search YABATECH programmes..."
+                    value={yabatechCutoffSearch}
+                    onChange={e => setYabatechCutoffSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-black/40 text-xs rounded-xl border border-white/10 focus:border-red-500 outline-none text-white placeholder-gray-500"
+                  />
+                  {yabatechCutoffSearch && (
+                    <button onClick={() => setYabatechCutoffSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
+                  <span className="text-[9px] font-black uppercase text-gray-400">State Quota Filter:</span>
+                  {(['meritScore', 'lagos', 'ogun', 'oyo', 'osun', 'ondo', 'ekiti'] as const).map(qKey => (
+                    <button
+                      key={qKey}
+                      type="button"
+                      onClick={() => setYabatechStateQuota(qKey)}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                        yabatechStateQuota === qKey
+                          ? 'bg-red-600 text-white shadow-lg'
+                          : 'bg-white/5 hover:bg-white/10 text-gray-400'
+                      }`}
+                    >
+                      {qKey === 'meritScore' ? 'General Merit' : qKey}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 no-scrollbar">
+                {(() => {
+                  const filtered = YABATECH_CUTOFFS_2026_2027.filter(item =>
+                    item.programme.toLowerCase().includes(yabatechCutoffSearch.toLowerCase())
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="py-16 text-center text-gray-400 text-xs">
+                        No YABATECH programmes match your search query "{yabatechCutoffSearch}".
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-white/10 text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                            <th className="py-3 px-4">S/N</th>
+                            <th className="py-3 px-4">Programme / Course</th>
+                            <th className="py-3 px-4 text-center">Merit Cutoff</th>
+                            <th className="py-3 px-4 text-center">Lagos</th>
+                            <th className="py-3 px-4 text-center">Ogun</th>
+                            <th className="py-3 px-4 text-center">Oyo</th>
+                            <th className="py-3 px-4 text-center">Osun</th>
+                            <th className="py-3 px-4 text-center">Ondo</th>
+                            <th className="py-3 px-4 text-center">Ekiti</th>
+                            <th className="py-3 px-4 text-right">Select</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-gray-300">
+                          {filtered.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="py-3 px-4 font-mono text-gray-500">{item.sNo}</td>
+                              <td className="py-3 px-4 font-bold text-white group-hover:text-red-400 transition-colors">
+                                {item.programme}
+                              </td>
+                              <td className="py-3 px-4 text-center font-mono font-extrabold text-red-400">
+                                {item.meritScore.toFixed(2)}%
+                              </td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.lagos ? `${item.lagos.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.ogun ? `${item.ogun.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.oyo ? `${item.oyo.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.osun ? `${item.osun.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.ondo ? `${item.ondo.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-center font-mono text-gray-300">{item.ekiti ? `${item.ekiti.toFixed(2)}%` : '—'}</td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const uObj = universityData.find((u: any) => u.slug === 'yabatech') || { name: YABATECH_INSTITUTION_NAME, slug: 'yabatech' };
+                                    setTargetUni(uObj);
+                                    setUniSearch(uObj.name);
+                                    setTargetCourse(item.programme);
+                                    setIsYabatechCutoffsModalOpen(false);
+                                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                                  }}
+                                  className="px-3 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-black border border-red-500/20 rounded-lg font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ml-auto"
+                                >
+                                  Calculate <ArrowRight size={10} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-red-400" />
+                  <span>Official YABA College of Technology National Diploma (Full-Time) {YABATECH_SESSION} Admissions</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://yabatech.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-red-400 hover:underline flex items-center gap-1"
+                  >
+                    YABATECH Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsYabatechCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FUOYE 2026/2027 Cutoff Marks Explorer Modal */}
+      <AnimatePresence>
+        {isFuoyeCutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFuoyeCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-5xl bg-gray-900 border border-green-500/20 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-green-950/60 to-gray-900 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 font-black">
+                    FUOYE
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">{FUOYE_INSTITUTION_NAME}</h3>
+                    <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest">{FUOYE_SESSION} Official Admission Merit Scores & Faculties</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFuoyeCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Controls Bar */}
+              <div className="p-4 border-b border-white/5 bg-gray-950/60 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    value={fuoyeCutoffSearch}
+                    onChange={(e) => setFuoyeCutoffSearch(e.target.value)}
+                    placeholder="Search FUOYE course or faculty..."
+                    className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider shrink-0">Faculty:</span>
+                  <select
+                    value={fuoyeFacultyFilter}
+                    onChange={(e) => setFuoyeFacultyFilter(e.target.value)}
+                    className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-green-500/50"
+                  >
+                    <option value="ALL">All Faculties ({FUOYE_CUTOFFS_2026_2027.length} Programmes)</option>
+                    {Array.from(new Set(FUOYE_CUTOFFS_2026_2027.map(item => item.faculty))).map((fac, fIdx) => (
+                      <option key={fIdx} value={fac}>{fac}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Modal Body / Table */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {(() => {
+                  const filtered = FUOYE_CUTOFFS_2026_2027.filter(item => {
+                    const matchesSearch = item.programme.toLowerCase().includes(fuoyeCutoffSearch.toLowerCase()) ||
+                                          item.faculty.toLowerCase().includes(fuoyeCutoffSearch.toLowerCase());
+                    const matchesFaculty = fuoyeFacultyFilter === 'ALL' || item.faculty === fuoyeFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <p className="text-xs font-black uppercase">No programmes found matching your search.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-white/5">
+                            <th className="p-3">Programme / Course</th>
+                            <th className="p-3">Faculty</th>
+                            <th className="p-3 text-center">Merit Score</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-white/[0.02] transition-all">
+                              <td className="p-3 font-bold text-white">{item.programme}</td>
+                              <td className="p-3 text-gray-400 text-[11px]">{item.faculty}</td>
+                              <td className="p-3 text-center">
+                                <span className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg font-black text-xs">
+                                  {item.meritScore}%
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const uObj = universityData.find((u: any) => u.slug === 'fuoye') || { name: FUOYE_INSTITUTION_NAME, slug: 'fuoye' };
+                                    setTargetUni(uObj);
+                                    setUniSearch(uObj.name);
+                                    setTargetCourse(item.programme);
+                                    setIsFuoyeCutoffsModalOpen(false);
+                                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                                  }}
+                                  className="px-3 py-1 bg-green-500/10 hover:bg-green-500 text-green-400 hover:text-black border border-green-500/20 rounded-lg font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ml-auto"
+                                >
+                                  Calculate <ArrowRight size={10} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-green-400" />
+                  <span>Federal University Oye-Ekiti (FUOYE) {FUOYE_SESSION} Official Screening Admission Merit Points</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://fuoye.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-400 hover:underline flex items-center gap-1"
+                  >
+                    FUOYE Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsFuoyeCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </section>
