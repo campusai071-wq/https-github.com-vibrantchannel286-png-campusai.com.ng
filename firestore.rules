@@ -345,6 +345,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /unilag_programmes/{progId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     match /syllabus_topics/{topicId} {
       allow read: if true;
       allow write: if isAdmin();

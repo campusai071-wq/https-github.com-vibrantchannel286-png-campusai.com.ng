@@ -554,6 +554,152 @@ app.post("/api/ibass/institutions", async (req: any, res: any) => {
   }
 });
 
+// UNILAG Official Admissions Entry Requirements Proxy Endpoints
+app.get("/api/unilag/application-types", async (req: any, res: any) => {
+  try {
+    const url = "https://applicationsapi.unilag.edu.ng/api/entryrequirement/applicationtypes";
+    const response = await axios.get(url, {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "referrer": "https://applications.unilag.edu.ng/"
+      },
+      timeout: 15000
+    });
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error("[UNILAG Proxy Error - Application Types]:", err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data?.error || err.response?.data || err.message
+    });
+  }
+});
+
+app.get("/api/unilag/programmes", async (req: any, res: any) => {
+  try {
+    const applicationTypeId = req.query.applicationTypeId || req.query.type || "Undergraduate";
+    const url = `https://applicationsapi.unilag.edu.ng/api/entryrequirement/programmes?applicationTypeId=${encodeURIComponent(String(applicationTypeId))}`;
+    const response = await axios.get(url, {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "referrer": "https://applications.unilag.edu.ng/"
+      },
+      timeout: 15000
+    });
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error(`[UNILAG Proxy Error - Programmes (${req.query.applicationTypeId})]:`, err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data?.error || err.response?.data || err.message
+    });
+  }
+});
+
+app.post("/api/unilag/sync-firebase", async (req: any, res: any) => {
+  try {
+    const APP_TYPES = [
+      'Undergraduate', 'DLI', 'ICE', 'ICE (EDUCATION)', 'JUPEB SC',
+      'ULBS', 'ULBS-SP', 'ULBS-MP', 'TDPT', 'JointMasters',
+      'INTER-UNI. TRANSFER', 'Postgraduate (MPhil/PhD)', 'HRDC', '-'
+    ];
+
+    let totalFetched = 0;
+    let totalSaved = 0;
+    const allRecords: any[] = [];
+
+    for (const appType of APP_TYPES) {
+      try {
+        const u = `https://applicationsapi.unilag.edu.ng/api/entryrequirement/programmes?applicationTypeId=${encodeURIComponent(appType)}`;
+        const resp = await axios.get(u, {
+          headers: {
+            "accept": "application/json, text/plain, */*",
+            "referrer": "https://applications.unilag.edu.ng/"
+          },
+          timeout: 10000
+        });
+
+        if (resp.data && Array.isArray(resp.data.data)) {
+          for (const item of resp.data.data) {
+            const programmeID = item.programmeID || item.programmeName || 'UNKNOWN';
+            const cleanId = `unilag_${appType}_${programmeID}`
+              .toLowerCase()
+              .replace(/[^a-z0-9_-]/g, '_')
+              .replace(/_+/g, '_')
+              .slice(0, 120);
+
+            allRecords.push({
+              id: cleanId,
+              institution: 'University of Lagos (UNILAG)',
+              institutionSlug: 'unilag',
+              applicationType: appType,
+              programmeName: item.programmeName || item.programmeID,
+              programmeID: item.programmeID,
+              qualification: item.qualification || null,
+              source: 'https://applicationsapi.unilag.edu.ng',
+              updatedAt: new Date().toISOString()
+            });
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[UNILAG Sync] Error fetching type ${appType}:`, err.message);
+      }
+    }
+
+    totalFetched = allRecords.length;
+
+    // Batch save into Firestore
+    if (db && allRecords.length > 0) {
+      for (const item of allRecords) {
+        try {
+          const docRef = doc(db, 'unilag_programmes', item.id);
+          await setDoc(docRef, { ...item, timestamp: Timestamp.now() }, { merge: true });
+          totalSaved++;
+        } catch (e: any) {
+          console.warn(`[UNILAG Sync] Failed writing ${item.id}:`, e.message);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      totalFetched,
+      totalSaved,
+      message: `Successfully synchronized ${totalSaved} UNILAG programmes to Firebase Firestore.`
+    });
+  } catch (err: any) {
+    console.error("[UNILAG Sync Error]:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/unilag/requirements", async (req: any, res: any) => {
+  try {
+    const { programmeId, applicationTypeId } = req.query;
+    let url = `https://applicationsapi.unilag.edu.ng/api/entryrequirement/requirements`;
+    const params = new URLSearchParams();
+    if (programmeId) params.append("programmeId", String(programmeId));
+    if (applicationTypeId) params.append("applicationTypeId", String(applicationTypeId));
+    const qs = params.toString();
+    if (qs) url += `?${qs}`;
+
+    const response = await axios.get(url, {
+      headers: {
+        "accept": "application/json, text/plain, */*",
+        "referrer": "https://applications.unilag.edu.ng/"
+      },
+      timeout: 15000
+    });
+    return res.json(response.data);
+  } catch (err: any) {
+    console.error("[UNILAG Proxy Error - Requirements]:", err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data?.error || err.response?.data || err.message
+    });
+  }
+});
+
 // ALOC Station Assessment Infrastructure Proxy (v1)
 
 const ALOC_SUBJECT_MAP: Record<string, string> = {
