@@ -2058,7 +2058,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const olevel = activeOlevelPoints;
       let total = deNormalized + (post / 40) * 30 + olevel;
       if (sittings > 1) total -= 2;
-      return parseFloat(Math.max(0, total).toFixed(2));
+      return parseFloat(Math.min(100, Math.max(0, total)).toFixed(2));
     }
     const jamb = parseFloat(jambScore) || 0;
     const post = isPostUtmePending
@@ -2070,11 +2070,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const jambPoints = (jamb / 400) * 60;
       const olevelPoints = activeOlevelPoints;
       const sittingBonus = sittings === 1 ? 10 : 6;
-      return parseFloat((jambPoints + olevelPoints + sittingBonus).toFixed(2));
+      return parseFloat(Math.min(100, Math.max(0, jambPoints + olevelPoints + sittingBonus)).toFixed(2));
     }
     let total = calculateAggregateScore(jamb, post, activeOlevelPoints, uniName, computedScoringSystem);
     if (sittings > 1) total -= 2;
-    return parseFloat(Math.max(0, total).toFixed(2));
+    return parseFloat(Math.min(100, Math.max(0, total)).toFixed(2));
   }, [jambScore, postUtmeScore, targetUni, computedScoringSystem, activeOlevelPoints, sittings, isDirectEntry, dePoints]);
 
   const jambCutoffWarning = useMemo(() => {

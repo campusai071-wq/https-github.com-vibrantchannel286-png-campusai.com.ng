@@ -199,26 +199,17 @@ export const formatSingleCleanCutoff = (cutoff: any, aggregateScore?: number): s
   const str = String(cutoff).trim();
   if (str === 'N/A' || str === 'Disqualified' || str.toLowerCase().includes('ineligible')) return 'N/A';
 
-  // If already clean like "58.5%" or "62%", return it normalized
-  if (/^\d{1,3}(\.\d{1,2})?%?$/.test(str)) {
-    const num = parseFloat(str);
-    if (num <= 100) return str.endsWith('%') ? str : `${str}%`;
-    return `${str} pts`;
-  }
-
-  // If format has slashes or multiple numbers (e.g. "81.5 / 315"), match only the first clean percentage number
   const match = str.match(/(\d{1,3}(\.\d{1,2})?)/);
   if (match) {
     let num = parseFloat(match[1]);
-    if (num > 100 && (typeof aggregateScore === 'number' ? aggregateScore <= 100 : true)) {
+    if (num > 100) {
       if (num >= 140 && num <= 400) {
         num = num / 4;
+      } else {
+        num = Math.min(100, num);
       }
     }
-    if (num <= 100) {
-      return `${Number(num.toFixed(2))}%`;
-    }
-    return `${Math.round(num)}`;
+    return `${Number(num.toFixed(1))}%`;
   }
   return '55.0%';
 };
@@ -560,7 +551,10 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
   const stats = useMemo(() => {
     if (records.length === 0) return null;
     const scores = records
-      .map(r => typeof r.aggregateScore === 'number' ? r.aggregateScore : parseFloat(r.aggregateScore as string) || 0)
+      .map(r => {
+        const val = typeof r.aggregateScore === 'number' ? r.aggregateScore : parseFloat(r.aggregateScore as string) || 0;
+        return Math.min(100, Math.max(0, val));
+      })
       .filter(n => n > 0);
     const jambScores = records
       .map(r => typeof r.jambScore === 'number' ? r.jambScore : parseFloat(r.jambScore as string) || 0)
