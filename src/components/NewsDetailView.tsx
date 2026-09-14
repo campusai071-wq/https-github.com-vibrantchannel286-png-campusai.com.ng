@@ -4,13 +4,13 @@ import {
   ArrowLeft, Clock, Share2, Bookmark, ThumbsUp, ShieldCheck, Sparkles,
   User, Send, MessageSquare, Trash2, Loader2, LogIn, Check, RefreshCw,
   Wand2, Brain, Edit3, Zap, Eye, Copy, Link, CheckCircle2, Image as ImageIcon,
-  Maximize2, ChevronLeft, ChevronRight, X
+  Maximize2, ChevronLeft, ChevronRight, X, ExternalLink
 } from 'lucide-react';
 import { NewsItem, Comment } from '../types';
 import {
   fetchNewsComments, postNewsComment, deleteNewsComment,
   getNewsItemBySlug, updateNewsArticleContent, logUserActivity,
-  deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews,
+  deleteNewsUpdate, enhanceNewsArticleContent, incrementAndGetArticleViews, incrementAndGetArticleShares,
   updateNewsItem, toggleBookmarkArticle, readBookmarkIds, readLikedArticleIds,
   getArticleLikesCount, toggleArticleLike
 } from '../services/dbService';
@@ -216,6 +216,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [localRelatedNews, setLocalRelatedNews] = useState<NewsItem[]>(relatedNews || []);
   const [restoreError, setRestoreError]   = useState<string | null>(null);
   const [readCount, setReadCount]         = useState<number>(news?.views || 1);
+  const [shareCount, setShareCount]       = useState<number>(news?.shares || 0);
   const [copiedLink, setCopiedLink]       = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -571,6 +572,9 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         document.execCommand('copy');
         document.body.removeChild(textarea);
       }
+      if (news?.id) {
+        incrementAndGetArticleShares(news.id, news.shares).then(shares => setShareCount(shares));
+      }
       setCopiedLink(true);
       setShowShareSuccess(true);
       setTimeout(() => {
@@ -580,7 +584,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     } catch (err) {
       console.error('Copy link error:', err);
     }
-  }, []);
+  }, [news?.id, news?.shares]);
 
   const handleShare = useCallback(async () => {
     if (!news) return;
@@ -729,6 +733,9 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
           <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
             <Eye size={13} className="text-emerald-500" /> {readCount.toLocaleString()} READS
+          </span>
+          <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 bg-blue-500/10 px-3.5 py-1 rounded-full border border-blue-500/20">
+            <Share2 size={13} className="text-blue-500" /> {shareCount.toLocaleString()} SHARES
           </span>
           {news.sourceUrl && (
             <a href={news.sourceUrl} target="_blank" rel="noopener noreferrer"
@@ -1196,7 +1203,23 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     }
 
                     // Standard Link
-                    return <a {...props} href={cleanHref} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-words font-medium">{children}</a>;
+                    let finalHref = cleanHref;
+                    if (finalHref && !finalHref.startsWith('http://') && !finalHref.startsWith('https://') && !finalHref.startsWith('mailto:') && !finalHref.startsWith('tel:') && !finalHref.startsWith('#')) {
+                      finalHref = 'https://' + finalHref;
+                    }
+                    return (
+                      <a 
+                        {...props} 
+                        href={finalHref} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 break-words font-semibold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        {children}
+                        <ExternalLink size={12} className="inline shrink-0 opacity-70" />
+                      </a>
+                    );
                   }
                 }}
               >

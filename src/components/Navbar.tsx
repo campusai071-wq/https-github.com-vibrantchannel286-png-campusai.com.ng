@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark, Crown, BarChart3, Activity, UserPlus, Sparkles, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Home, School, Building2, Brain, Newspaper, Info, Settings, Menu, X, ShieldCheck, LogIn, ChevronDown, Share2, Moon, Sun, User, ShieldAlert, Zap, Gift, Search, Loader2, FileCheck, BookOpen, GraduationCap, Calculator, Landmark, Crown, BarChart3, Activity, UserPlus, Sparkles, MapPin, ExternalLink, Globe, ArrowRight, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAsuuStrikeStatus } from '../services/geminiService';
-import { searchWebRaw, SearchResultItem } from '../services/searchService';
+import { searchUnified, searchInternalCampusAI, SearchResultItem } from '../services/searchService';
 import { AdminState } from '../types';
 import { auth } from '../services/firebaseConfig';
 import { updateUserProfile } from '../services/userService';
@@ -24,6 +25,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onSignUpRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [asuuStatus, setAsuuStatus] = useState<string | null>(null);
@@ -31,8 +33,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchFilter, setSearchFilter] = useState<'all' | 'tools' | 'universities' | 'news' | 'web'>('all');
   const [isSyncingNews, setIsSyncingNews] = useState(false);
   const [isMoreToolsOpen, setIsMoreToolsOpen] = useState(false);
+  const debounceTimerRef = useRef<any>(null);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -51,56 +55,202 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('campusai_news_sync', handleNewsSync);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  const triggerUnifiedSearch = async (queryToSearch: string) => {
+    const q = queryToSearch.trim();
+    if (!q) return;
 
     setIsSearching(true);
-    setShowSearchResults(true);
     try {
-      const results = await searchWebRaw(searchQuery);
-      setSearchResults(results || []);
+      const unified = await searchUnified(q);
+      if (unified && unified.length > 0) {
+        setSearchResults(unified);
+      }
     } catch (err) {
-      console.error("Search error:", err);
+      console.error("Unified search error:", err);
     } finally {
       setIsSearching(false);
     }
   };
 
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (!val.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      return;
+    }
+
+    // 1. Instant local results (0ms delay!)
+    const instant = searchInternalCampusAI(val);
+    setSearchResults(instant);
+    setShowSearchResults(true);
+
+    // 2. Debounce cloud/web search
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      triggerUnifiedSearch(val);
+    }, 450);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    setShowSearchResults(true);
+    triggerUnifiedSearch(searchQuery);
+  };
+
+  const handleSelectResult = (result: SearchResultItem) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    setIsMobileMenuOpen(false);
+
+    if (result.isLocal || result.url.startsWith('/') || !result.url.startsWith('http')) {
+      if (result.url.startsWith('/')) {
+        navigate(result.url);
+      } else {
+        onNavigate(result.url);
+      }
+      window.scrollTo(0, 0);
+    } else {
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const getBadgeStyle = (type?: string) => {
+    switch (type) {
+      case 'internal-calculator':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+      case 'internal-tool':
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+      case 'internal-resource':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+      case 'internal-news':
+        return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+      case 'web':
+      default:
+        return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20';
+    }
+  };
+
+  const getResultIcon = (type?: string, badge?: string) => {
+    if (type === 'internal-calculator') return <Calculator size={13} className="text-amber-500" />;
+    if (type === 'internal-news') return <Newspaper size={13} className="text-rose-500" />;
+    if (type === 'web') return <Globe size={13} className="text-slate-400" />;
+    if (badge?.includes('Exam') || badge?.includes('CBT')) return <Activity size={13} className="text-emerald-500" />;
+    if (badge?.includes('Syllabus')) return <BookOpen size={13} className="text-indigo-500" />;
+    if (badge?.includes('Institution') || badge?.includes('University')) return <Landmark size={13} className="text-purple-500" />;
+    if (badge?.includes('Course') || badge?.includes('Degree')) return <GraduationCap size={13} className="text-teal-500" />;
+    return <Zap size={13} className="text-blue-500" />;
+  };
+
+  const internalResults = searchResults.filter(r => r.isInternal && r.type !== 'internal-news');
+  const newsResults = searchResults.filter(r => r.isInternal && r.type === 'internal-news');
+  const webResults = searchResults.filter(r => !r.isInternal);
+
+  const toolsCount = internalResults.filter(r => r.type === 'internal-tool' || r.type === 'internal-calculator').length;
+  const uniCount = internalResults.filter(r => r.badge?.includes('Institution') || r.badge?.includes('University') || r.badge?.includes('Calculator') || r.badge?.includes('School') || r.url.includes('universities') || r.url.includes('calculator')).length;
+  const newsCount = newsResults.length;
+  const webCount = webResults.length;
+
+  const filteredResults = searchResults.filter(r => {
+    if (searchFilter === 'all') return true;
+    if (searchFilter === 'tools') return r.type === 'internal-tool' || r.type === 'internal-calculator';
+    if (searchFilter === 'universities') return r.badge?.includes('Institution') || r.badge?.includes('University') || r.badge?.includes('Calculator') || r.badge?.includes('School') || r.url.includes('universities') || r.url.includes('calculator');
+    if (searchFilter === 'news') return r.type === 'internal-news';
+    if (searchFilter === 'web') return r.type === 'web';
+    return true;
+  });
+
+  const renderResultItem = (result: SearchResultItem, idx: number, isCompact = false) => (
+    <button
+      key={`${result.id || result.url}-${idx}`}
+      type="button"
+      onClick={() => handleSelectResult(result)}
+      className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-900/70 transition-colors flex items-start gap-2.5 group cursor-pointer focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800"
+      aria-label={`${result.title} - ${result.badge || (result.isInternal ? 'CampusAI' : 'Web result')}`}
+    >
+      <div className="mt-0.5 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800/80 shrink-0 group-hover:scale-105 transition-transform">
+        {getResultIcon(result.type, result.badge)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${getBadgeStyle(result.type)}`}>
+            {result.badge || (result.isInternal ? 'CampusAI' : 'Web Intel')}
+          </span>
+          {result.isInternal ? (
+            <span className="text-[8px] font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">
+              Internal
+            </span>
+          ) : (
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+              External Web
+            </span>
+          )}
+        </div>
+        <h4 className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+          {result.title}
+        </h4>
+        {result.subtitle && !isCompact && (
+          <p className="text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 line-clamp-1 mt-0.5">
+            {result.subtitle}
+          </p>
+        )}
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mt-0.5">
+          {result.content}
+        </p>
+      </div>
+      <div className="shrink-0 text-gray-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 mt-1">
+        {result.isInternal || result.url.startsWith('/') ? (
+          <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+        ) : (
+          <ExternalLink size={12} className="text-gray-400" />
+        )}
+      </div>
+    </button>
+  );
+
   const navItems = [
     { name: 'Home', icon: <Home size={16} />, id: 'home' },
     { name: 'Admissions', icon: <GraduationCap size={16} />, id: 'admissions' },
     { name: 'Calculator', icon: <Zap size={16} />, id: 'calculator' },
+    { name: 'Chat Advisor', icon: <Brain size={16} />, id: 'chat' },
     { name: 'CBT Simulator', icon: <Activity size={16} />, id: 'cbt-simulator' },
     { name: 'Portals', icon: <Landmark size={16} />, id: 'universities' },
-    { name: 'Latest News', icon: <Newspaper size={16} />, id: 'jamb' },
+    { name: 'Latest News', icon: <Newspaper size={16} />, id: 'news' },
   ];
 
   const moreNavItems = [
+    { name: 'Chat Advisor', icon: <Brain size={16} />, id: 'chat' },
+    { name: 'Contact Us', icon: <MessageSquare size={16} />, id: 'contact' },
     { name: 'CBT Center Locator', icon: <MapPin size={16} />, id: 'cbt-locator' },
     { name: 'CAPS Portal', icon: <BarChart3 size={16} />, id: 'jamb-caps' },
     { name: 'CGPA Studio', icon: <Calculator size={16} />, id: 'cgpa-calculator' },
     { name: 'Syllabus', icon: <BookOpen size={16} />, id: 'syllabus' },
     { name: 'Result Slip', icon: <ShieldCheck size={16} />, id: 'result-slip' },
     { name: 'Checklist', icon: <FileCheck size={16} />, id: 'checklist' },
+    { name: 'Latest News', icon: <Newspaper size={16} />, id: 'news' },
   ];
 
   const allNavItems = [
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
+    { name: 'Chat Advisor', icon: <Brain size={18} />, id: 'chat' },
     { name: 'Admissions', icon: <GraduationCap size={18} />, id: 'admissions' },
+    { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },
     { name: 'Portals', icon: <Landmark size={18} />, id: 'universities' },
+    { name: 'Contact Us', icon: <MessageSquare size={18} />, id: 'contact' },
     { name: 'CBT Locator', icon: <MapPin size={18} />, id: 'cbt-locator' },
     { name: 'CAPS Portal', icon: <BarChart3 size={18} />, id: 'jamb-caps' },
     { name: 'Syllabus', icon: <BookOpen size={18} />, id: 'syllabus' },
     { name: 'CBT Simulator', icon: <Activity size={18} />, id: 'cbt-simulator' },
-    { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },
     { name: 'CGPA Studio', icon: <Calculator size={18} />, id: 'cgpa-calculator' },
     { name: 'Result Slip', icon: <ShieldCheck size={18} />, id: 'result-slip' },
     { name: 'Checklist', icon: <FileCheck size={18} />, id: 'checklist' },
-    { name: 'Latest News', icon: <Newspaper size={18} />, id: 'jamb' },
   ];
 
   // STRICT SECURITY CHECK
@@ -178,17 +328,19 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
         </div>
 
         {/* Desktop Search Bar */}
-        <div className="hidden xl:flex flex-1 max-w-[170px] 2xl:max-w-xs mx-2 relative shrink">
+        <div className="hidden xl:flex flex-1 max-w-[210px] 2xl:max-w-xs mx-2 relative shrink">
           <form onSubmit={handleSearch} className="w-full relative group">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 group-focus-within:text-cyan-600 dark:group-focus-within:text-cyan-400 transition-colors">
               <Search size={13} />
             </div>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search tools, cutoffs, syllabus..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-[10px] font-bold rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 focus:border-cyan-500 dark:focus:border-cyan-400 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all outline-none"
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => { if (searchQuery.trim().length > 0) setShowSearchResults(true); }}
+              onKeyDown={(e) => { if (e.key === 'Escape') setShowSearchResults(false); }}
+              className="w-full pl-8 pr-7 py-1.5 text-[11px] font-semibold rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 focus:border-cyan-500 dark:focus:border-cyan-400 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all outline-none"
             />
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
               {searchQuery && (
@@ -196,6 +348,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                   type="button" 
                   onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
                   className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
+                  title="Clear"
                 >
                   <X size={11} className="text-gray-400 dark:text-gray-500" />
                 </button>
@@ -204,49 +357,223 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             </div>
           </form>
 
-          {/* Search Results Dropdown */}
+          {/* Unified Search Results Dropdown */}
           <AnimatePresence>
             {showSearchResults && (searchQuery.length > 0) && (
               <>
                 <div className="fixed inset-0 z-[-1]" onClick={() => setShowSearchResults(false)}></div>
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[110]"
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 w-[440px] 2xl:w-[500px] max-w-[calc(100vw-2rem)] mt-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-[120]"
                 >
-                  <div className="p-4 flex justify-between items-center border-b border-gray-50 dark:border-gray-900">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Search Results</span>
-                    <button onClick={() => setShowSearchResults(false)} className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="max-h-[400px] overflow-y-auto no-scrollbar">
-                    {isSearching ? (
-                      <div className="p-12 flex flex-col items-center justify-center gap-4">
-                        <Loader2 size={32} className="animate-spin text-blue-600" />
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Consulting Intel Engine...</p>
+                  {/* Header & Filter Tabs */}
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-900 bg-gray-50/70 dark:bg-gray-900/50">
+                    <div className="flex justify-between items-center mb-2 px-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                          CampusAI Search
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                          {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
+                        </span>
                       </div>
-                    ) : searchResults.length > 0 ? (
-                      <div className="flex flex-col">
-                        {searchResults.map((result) => (
-                          <a
-                            key={result.url}
-                            href={result.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors border-b border-gray-50 dark:border-gray-900 last:border-0 group"
-                          >
-                            <h4 className="text-xs font-black text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-1">{result.title}</h4>
-                            <p className="text-[10px] text-gray-500 dark:text-slate-300 line-clamp-2 leading-relaxed">{result.content}</p>
-                          </a>
-                        ))}
+                      <button 
+                        type="button" 
+                        onClick={() => setShowSearchResults(false)} 
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-md cursor-pointer"
+                        title="Close (Esc)"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Quick Filter Chips */}
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSearchFilter('all')}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                          searchFilter === 'all'
+                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-xs'
+                            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                        }`}
+                      >
+                        All ({searchResults.length})
+                      </button>
+                      {toolsCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('tools')}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                            searchFilter === 'tools'
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40'
+                          }`}
+                        >
+                          Tools ({toolsCount})
+                        </button>
+                      )}
+                      {uniCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('universities')}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                            searchFilter === 'universities'
+                              ? 'bg-purple-600 text-white shadow-xs'
+                              : 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40'
+                          }`}
+                        >
+                          Schools ({uniCount})
+                        </button>
+                      )}
+                      {newsCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('news')}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                            searchFilter === 'news'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                          }`}
+                        >
+                          News ({newsCount})
+                        </button>
+                      )}
+                      {webCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('web')}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                            searchFilter === 'web'
+                              ? 'bg-slate-700 text-white shadow-xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
+                          }`}
+                        >
+                          Web ({webCount})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Results List */}
+                  <div className="max-h-[380px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-900">
+                    {searchResults.length > 0 ? (
+                      searchFilter === 'all' ? (
+                        <>
+                          {/* 1. Internal CampusAI Results (Tools, Calculators, Portals, Syllabuses) */}
+                          {internalResults.length > 0 && (
+                            <div>
+                              <div className="px-3 py-1.5 bg-gray-50/90 dark:bg-gray-900/90 text-[10px] font-black uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                <span className="flex items-center gap-1.5">
+                                  <Zap size={11} className="text-teal-500" /> CampusAI Results
+                                </span>
+                                <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">
+                                  Internal ({internalResults.length})
+                                </span>
+                              </div>
+                              <div className="divide-y divide-gray-100 dark:divide-gray-900">
+                                {internalResults.map((r, idx) => renderResultItem(r, idx))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 2. Verified CampusAI News */}
+                          {newsResults.length > 0 && (
+                            <div>
+                              <div className="px-3 py-1.5 bg-gray-50/90 dark:bg-gray-900/90 text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                <span className="flex items-center gap-1.5">
+                                  <Newspaper size={11} className="text-rose-500" /> CampusAI News
+                                </span>
+                                <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
+                                  Verified ({newsResults.length})
+                                </span>
+                              </div>
+                              <div className="divide-y divide-gray-100 dark:divide-gray-900">
+                                {newsResults.map((r, idx) => renderResultItem(r, idx))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 3. External Web Results */}
+                          {webResults.length > 0 && (
+                            <div>
+                              {internalResults.length === 0 && newsResults.length === 0 && (
+                                <div className="p-3 bg-amber-500/10 border-b border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
+                                  <Info size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                  <span>No matching CampusAI resources found. Try these web results:</span>
+                                </div>
+                              )}
+                              <div className="px-3 py-1.5 bg-gray-50/90 dark:bg-gray-900/90 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                <span className="flex items-center gap-1.5">
+                                  <Globe size={11} className="text-slate-400" /> Web Results
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  <Globe size={9} /> Wider Web ({webResults.length})
+                                </span>
+                              </div>
+                              <div className="divide-y divide-gray-100 dark:divide-gray-900">
+                                {webResults.map((r, idx) => renderResultItem(r, idx))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        filteredResults.length > 0 ? (
+                          filteredResults.map((result, idx) => renderResultItem(result, idx))
+                        ) : (
+                          <div className="p-8 text-center">
+                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No results found in this category</p>
+                            <button
+                              type="button"
+                              onClick={() => setSearchFilter('all')}
+                              className="mt-2 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
+                            >
+                              Show all results ({searchResults.length})
+                            </button>
+                          </div>
+                        )
+                      )
+                    ) : isSearching ? (
+                      <div className="p-8 flex flex-col items-center justify-center gap-3">
+                        <Loader2 size={24} className="animate-spin text-cyan-500" />
+                        <p className="text-[11px] font-bold text-gray-400">Searching CampusAI knowledge base & live updates...</p>
                       </div>
                     ) : (
-                      <div className="p-12 text-center">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No intelligence found for "{searchQuery}"</p>
+                      <div className="p-6 text-center space-y-3">
+                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No results found for "{searchQuery}"</p>
+                        <p className="text-[10px] text-gray-400">Try searching for these verified CampusAI resources:</p>
+                        <div className="flex flex-wrap gap-1.5 justify-center pt-1">
+                          {['UNILAG calculator', 'JAMB CAPS', 'CBT practice', 'UTME syllabus', 'Admission checklist', 'Computer Science'].map((suggestedQuery) => (
+                            <button
+                              key={suggestedQuery}
+                              type="button"
+                              onClick={() => handleSearchChange(suggestedQuery)}
+                              className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer font-medium"
+                            >
+                              {suggestedQuery}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Footer status */}
+                  <div className="p-2 px-3 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-900 flex justify-between items-center text-[10px] text-gray-400">
+                    <div className="flex items-center gap-1.5">
+                      {isSearching ? (
+                        <>
+                          <Loader2 size={10} className="animate-spin text-cyan-500" />
+                          <span>Checking cloud updates...</span>
+                        </>
+                      ) : (
+                        <span>⚡ CampusAI Unified Search</span>
+                      )}
+                    </div>
+                    <span className="hidden sm:inline">Press Enter to force web search</span>
                   </div>
                 </motion.div>
               </>
@@ -535,20 +862,27 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
             <div className="mt-6 px-1">
               <form onSubmit={handleSearch} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                  <Search size={18} />
+                  <Search size={16} />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search resources..."
+                  placeholder="Search tools, cutoffs, syllabus..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-gray-100 dark:bg-gray-900 border-none rounded-[20px] text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-11 pr-10 py-3 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition-all dark:text-white"
                 />
-                {isSearching && (
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                    <Loader2 size={18} className="animate-spin text-blue-500" />
-                  </div>
-                )}
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-1">
+                  {searchQuery && (
+                    <button 
+                      type="button" 
+                      onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
+                    >
+                      <X size={13} className="text-gray-400" />
+                    </button>
+                  )}
+                  {isSearching && <Loader2 size={14} className="animate-spin text-cyan-500" />}
+                </div>
               </form>
               
               <AnimatePresence>
@@ -557,22 +891,156 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 bg-gray-100 dark:bg-gray-900 rounded-[20px] overflow-hidden"
+                    className="mt-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-lg"
                   >
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Mobile Results</span>
-                      <button onClick={() => setShowSearchResults(false)}><X size={14} className="text-gray-400" /></button>
+                    <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/60 dark:bg-gray-800/40">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Search Results</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                          {searchResults.length}
+                        </span>
+                      </div>
+                      <button onClick={() => setShowSearchResults(false)} className="text-gray-400 hover:text-red-500 p-1">
+                        <X size={13} />
+                      </button>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto no-scrollbar">
+
+                    {/* Quick filter pills on mobile */}
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar p-2 border-b border-gray-100 dark:border-gray-800">
+                      <button
+                        type="button"
+                        onClick={() => setSearchFilter('all')}
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all ${
+                          searchFilter === 'all'
+                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                            : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
+                        }`}
+                      >
+                        All ({searchResults.length})
+                      </button>
+                      {toolsCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('tools')}
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all ${
+                            searchFilter === 'tools' ? 'bg-blue-600 text-white' : 'text-blue-600 dark:text-blue-400'
+                          }`}
+                        >
+                          Tools ({toolsCount})
+                        </button>
+                      )}
+                      {uniCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('universities')}
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all ${
+                            searchFilter === 'universities' ? 'bg-purple-600 text-white' : 'text-purple-600 dark:text-purple-400'
+                          }`}
+                        >
+                          Schools ({uniCount})
+                        </button>
+                      )}
+                      {newsCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('news')}
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all ${
+                            searchFilter === 'news' ? 'bg-rose-600 text-white' : 'text-rose-600 dark:text-rose-400'
+                          }`}
+                        >
+                          News ({newsCount})
+                        </button>
+                      )}
+                      {webCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchFilter('web')}
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all ${
+                            searchFilter === 'web' ? 'bg-slate-700 text-white' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Web ({webCount})
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-[300px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-800">
                       {searchResults.length > 0 ? (
-                        searchResults.map((result) => (
-                          <a key={result.url} href={result.url} className="block p-4 border-b border-gray-200 dark:border-gray-800 last:border-0">
-                            <h5 className="text-xs font-black dark:text-white mb-1 line-clamp-1">{result.title}</h5>
-                            <p className="text-[10px] text-gray-500 line-clamp-1">{result.content}</p>
-                          </a>
-                        ))
-                      ) : !isSearching && (
-                        <div className="p-8 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">No results</div>
+                        searchFilter === 'all' ? (
+                          <>
+                            {internalResults.length > 0 && (
+                              <div>
+                                <div className="px-3 py-1 bg-gray-50/90 dark:bg-gray-800/90 text-[9px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                  <span className="flex items-center gap-1"><Zap size={10} className="text-teal-500" /> CampusAI Results</span>
+                                  <span className="text-[8px] font-bold text-teal-600 dark:text-teal-400">Internal ({internalResults.length})</span>
+                                </div>
+                                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {internalResults.map((r, idx) => renderResultItem(r, idx, true))}
+                                </div>
+                              </div>
+                            )}
+
+                            {newsResults.length > 0 && (
+                              <div>
+                                <div className="px-3 py-1 bg-gray-50/90 dark:bg-gray-800/90 text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                  <span className="flex items-center gap-1"><Newspaper size={10} className="text-rose-500" /> CampusAI News</span>
+                                  <span className="text-[8px] font-bold">Verified ({newsResults.length})</span>
+                                </div>
+                                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {newsResults.map((r, idx) => renderResultItem(r, idx, true))}
+                                </div>
+                              </div>
+                            )}
+
+                            {webResults.length > 0 && (
+                              <div>
+                                {internalResults.length === 0 && newsResults.length === 0 && (
+                                  <div className="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-800 dark:text-amber-300 text-[11px] font-semibold flex items-center gap-1.5">
+                                    <Info size={13} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                                    <span>No CampusAI resources found. Showing web results:</span>
+                                  </div>
+                                )}
+                                <div className="px-3 py-1 bg-gray-50/90 dark:bg-gray-800/90 text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between border-y border-gray-100 dark:border-gray-800">
+                                  <span className="flex items-center gap-1"><Globe size={10} className="text-slate-400" /> Web Results</span>
+                                  <span className="text-[8px] font-bold">Wider Web ({webResults.length})</span>
+                                </div>
+                                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {webResults.map((r, idx) => renderResultItem(r, idx, true))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          filteredResults.length > 0 ? (
+                            filteredResults.map((result, idx) => renderResultItem(result, idx, true))
+                          ) : (
+                            <div className="p-6 text-center text-xs text-gray-500">
+                              No results in this category.
+                            </div>
+                          )
+                        )
+                      ) : isSearching ? (
+                        <div className="p-6 flex flex-col items-center justify-center gap-2">
+                          <Loader2 size={18} className="animate-spin text-cyan-500" />
+                          <span className="text-[10px] font-bold text-gray-400">Searching CampusAI...</span>
+                        </div>
+                      ) : (
+                        <div className="p-5 text-center space-y-2">
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No results found for "{searchQuery}"</p>
+                          <p className="text-[10px] text-gray-400">Try searching:</p>
+                          <div className="flex flex-wrap gap-1 justify-center pt-1">
+                            {['UNILAG calculator', 'JAMB CAPS', 'CBT practice', 'UTME syllabus', 'Admission checklist'].map((sq) => (
+                              <button
+                                key={sq}
+                                type="button"
+                                onClick={() => handleSearchChange(sq)}
+                                className="text-[9px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium"
+                              >
+                                {sq}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </motion.div>

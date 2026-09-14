@@ -7,12 +7,12 @@ import MobileBottomNav from './MobileBottomNav';
 import SEO from './SEO';
 
 import NewsGrid from './NewsGrid';
+import NewsDetailView from './NewsDetailView';
 import Dashboard from './Dashboard';
 import PostUtmeReleaseHub from './PostUtmeReleaseHub';
 import UniversityDirectory from './UniversityDirectory';
 import TopRankings from './TopRankings';
 import Sidebar from './Sidebar';
-import NewsDetailView from './NewsDetailView';
 import ToolsGrid from './ToolsGrid';
 import HowItWorks from './HowItWorks';
 import SimpleCalculator from './SimpleCalculator';
@@ -38,12 +38,12 @@ const SupportModal = lazyWithRetry(() => import('./SupportModal'));
 const LegalModal = lazyWithRetry(() => import('./LegalModal'));
 const CookieConsent = lazyWithRetry(() => import('./CookieConsent'));
 const LegalSection = lazyWithRetry(() => import('./LegalSection'));
-const AIChatDrawer = lazyWithRetry(() => import('./AIChatDrawer'));
 const Tour = lazyWithRetry(() => import('./Tour'));
 const InstallPrompt = lazyWithRetry(() => import('./InstallPrompt'));
 const CalculationAnimation = lazyWithRetry(() => import('./CalculationAnimation'));
 const StatusPage = lazyWithRetry(() => import('./StatusPage'));
 const ContactPage = lazyWithRetry(() => import('./ContactPage'));
+const ChatPage = lazyWithRetry(() => import('./ChatPage'));
 const NotFound = lazyWithRetry(() => import('./NotFound'));
 const FeedbackModal = lazyWithRetry(() => import('./FeedbackModal'));
 const AdmissionChecklistPage = lazyWithRetry(() => import('./AdmissionChecklistPage'));
@@ -61,7 +61,7 @@ import { auth } from '../services/firebaseConfig';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { initializeUserProfile, subscribeToUserProfile, isRealUser } from '../services/userService';
 import { AdminState, NewsItem, UserRole } from '../types';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { slugify, triggerBrowserNotification } from '../services/utils';
 
@@ -78,6 +78,8 @@ const toMs = (val: any): number => {
   const t = new Date(val).getTime();
   return isNaN(t) ? 0 : t;
 };
+
+
 
 const NewsDetailWrapper = ({ user, isAuthorizedAdmin, news, setIsAuthModalOpen, closeArticle }: any) => {
   const { slug } = useParams();
@@ -544,6 +546,9 @@ const AppContent: React.FC = () => {
     const handleOpenSupport = () => {
       setIsSupportOpen(true);
     };
+    const handleOpenSettings = () => {
+      setIsSettingsOpen(true);
+    };
     const handleStorageChange = () => {
       try {
         const stored = localStorage.getItem('campusai_social_links');
@@ -557,6 +562,7 @@ const AppContent: React.FC = () => {
     window.addEventListener('campusai_open_legal', handleOpenLegal);
     window.addEventListener('campusai_open_feedback', handleOpenFeedback);
     window.addEventListener('campusai_open_support', handleOpenSupport);
+    window.addEventListener('campusai_open_settings', handleOpenSettings);
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('campusai_open_payment', handleOpenPayment);
@@ -564,6 +570,7 @@ const AppContent: React.FC = () => {
       window.removeEventListener('campusai_open_legal', handleOpenLegal);
       window.removeEventListener('campusai_open_feedback', handleOpenFeedback);
       window.removeEventListener('campusai_open_support', handleOpenSupport);
+      window.removeEventListener('campusai_open_settings', handleOpenSettings);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -675,10 +682,28 @@ const AppContent: React.FC = () => {
       setCurrentPage('jamb-caps');
     } else if (path.startsWith('/cbt-locator') || path.startsWith('/locator')) {
       setCurrentPage('cbt-locator');
+    } else if (path.startsWith('/chat') || path.startsWith('/advisor')) {
+      setCurrentPage('chat');
+    } else if (path.startsWith('/contact') || path.startsWith('/support')) {
+      setCurrentPage('contact');
     } else {
       setCurrentPage('home');
     }
   }, [location.pathname]);
+
+  // Global listener for AI Advisor questions from any component/modal
+  useEffect(() => {
+    const handleOpenAI = (e: any) => {
+      if (e.detail && typeof e.detail === 'string') {
+        sessionStorage.setItem('campusai_pending_prompt', e.detail);
+      }
+      setCurrentPage('chat');
+      navigate('/chat');
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('campusai_open_ai', handleOpenAI);
+    return () => window.removeEventListener('campusai_open_ai', handleOpenAI);
+  }, [navigate]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -800,7 +825,7 @@ const AppContent: React.FC = () => {
       setCurrentPage('jamb-caps');
       navigate('/jamb-caps');
       window.scrollTo(0, 0);
-    } else if (p === 'news' || p === 'jamb') {
+    } else if (p === 'news') {
       setCurrentPage('news');
       navigate('/news');
       window.scrollTo(0, 0);
@@ -816,7 +841,11 @@ const AppContent: React.FC = () => {
       setCurrentPage('status');
       navigate('/status');
       window.scrollTo(0, 0);
-    } else if (p === 'contact') {
+    } else if (p === 'chat' || p === 'advisor' || p === 'chat-advisor' || p === 'ai-advisor') {
+      setCurrentPage('chat');
+      navigate('/chat');
+      window.scrollTo(0, 0);
+    } else if (p === 'contact' || p === 'contact-us' || p === 'support') {
       setCurrentPage('contact');
       navigate('/contact');
       window.scrollTo(0, 0);
@@ -827,6 +856,9 @@ const AppContent: React.FC = () => {
         const el = document.getElementById('about');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+    } else if (p.startsWith('/')) {
+      navigate(p);
+      window.scrollTo(0, 0);
     } else {
       setCurrentPage(p);
       if (p === 'home') {
@@ -844,15 +876,15 @@ const AppContent: React.FC = () => {
 
   const openArticle = (article: NewsItem) => {
     const slug = article.slug || slugify(article.title);
-    setActiveArticle(article);
     navigate(`/news/${slug}`, { state: { article } });
     window.scrollTo(0, 0);
   };
 
   const closeArticle = () => {
-    setActiveArticle(null);
     navigate('/news');
   };
+
+
 
 
 
@@ -884,70 +916,7 @@ const AppContent: React.FC = () => {
 
       {/* Global Important Message Banner across all pages */}
       {(() => {
-        if (!showImportantBanner) return null;
-        const importantItem = news.find(n => n.isImportant) || news[0];
-        if (!importantItem) return null;
-
-        const hasPdfAttachment = Boolean(
-          importantItem.title?.toLowerCase().includes('pdf') ||
-          importantItem.excerpt?.toLowerCase().includes('pdf') ||
-          importantItem.fullContent?.toLowerCase().includes('pdf') ||
-          importantItem.tags?.some(t => t.toLowerCase().includes('pdf')) ||
-          (importantItem as any).pdfUrl ||
-          (importantItem as any).hasPdf
-        );
-
-        return (
-          <div className="pt-20 md:pt-24 px-4 bg-transparent">
-            <div className="container mx-auto max-w-7xl">
-              <div 
-                onClick={() => openArticle(importantItem)}
-                className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white p-3.5 md:p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 cursor-pointer hover:opacity-95 transition-all group border border-white/20"
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-8 h-8 rounded-xl bg-white/25 backdrop-blur-md flex items-center justify-center shrink-0 animate-pulse">
-                    <span className="text-white text-xs font-black">📢</span>
-                  </div>
-                  <div className="overflow-hidden">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-200 block">
-                      {hasPdfAttachment ? "Important Update & Download PDF" : "Important Update"}
-                    </span>
-                    <p className="text-xs md:text-sm font-black truncate group-hover:underline">{importantItem.title}</p>
-                  </div>
-                </div>
-                <div className="shrink-0 flex items-center gap-2">
-                  {isAuthorizedAdmin && (
-                    <div className="hidden sm:flex items-center gap-1 bg-black/30 backdrop-blur-md p-1 rounded-xl border border-white/20" onClick={e => e.stopPropagation()}>
-                      <span className="text-[9px] font-black text-amber-300 uppercase px-1.5">Admin:</span>
-                      <select
-                        value={importantItem.id}
-                        onChange={async (e) => {
-                          const selectedId = e.target.value;
-                          if (selectedId) {
-                            const { setImportantBannerArticle } = await import('../services/dbService');
-                            await setImportantBannerArticle(selectedId, news);
-                          }
-                        }}
-                        className="bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg border border-white/20 outline-none cursor-pointer"
-                        title="Select which article to feature on this top banner"
-                      >
-                        {news.map(n => (
-                          <option key={n.id} value={n.id} className="bg-slate-900 text-white text-xs">
-                            {n.isImportant ? "📌 [BANNER] " : ""}{n.title?.substring(0, 45)}...
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1.5 px-4 py-2 bg-white text-blue-900 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md">
-                    <span>{hasPdfAttachment ? "View & Download" : "View Update"}</span>
-                    <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return null;
       })()}
 
       <Suspense fallback={null}>
@@ -977,16 +946,16 @@ const AppContent: React.FC = () => {
           <Route path="/signup" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
           <Route path="/auth" element={<LoginPage user={user} onSuccess={handleAuthSuccess} />} />
           <Route path="/chat" element={
-            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950 flex justify-center pb-24">
-              <SEO title="AI Chat | CampusAI" description="Chat with your Academic Strategist" canonical="/chat" />
-              <div className="w-full max-w-4xl px-4 md:px-8 flex flex-col h-[calc(100vh-6rem)] relative">
-                <AIChatDrawer isOpen={true} onClose={() => {}} inline={true} user={user} />
-              </div>
-            </div>
+            <ChatPage 
+              user={user} 
+              onLoginRequest={() => navigate('/login')} 
+              onSignUpRequest={() => navigate('/login')} 
+              onScholarPackRequest={() => setIsScholarPackOpen(true)}
+            />
           } />
 
           <Route path="/dashboard" element={
-            <>
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
               <SEO 
                 title="Student Dashboard | 2026 Admission Progress" 
                 description="Monitor your JAMB scores, university merit chances, and academic progress in real-time. Personalized AI insights for the 2026 Nigerian admission cycle."
@@ -996,9 +965,10 @@ const AppContent: React.FC = () => {
                 user={user} 
                 onLoginRequest={() => navigate('/login')} 
                 onScholarPackRequest={() => setIsScholarPackOpen(true)}
-                onReadArticle={openArticle} 
+                onReadArticle={openArticle}
+                onOpenSettings={() => setIsSettingsOpen(true)}
               />
-            </>
+            </div>
           } />
 
           <Route path="/calculator-simple" element={
@@ -1329,7 +1299,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={
             <>
               <SEO />
-               {(currentPage === 'home' || currentPage === 'jamb' || currentPage === 'news') && (
+               {currentPage === 'home' && (
                 <>
                   <HeroSection 
                     user={user} 
@@ -1394,17 +1364,6 @@ const AppContent: React.FC = () => {
                   {/* POLICIES SECTION */}
                   <PolicySection />
 
-                  {/* NEWS SECTION */}
-                  <section id="news" className="container mx-auto px-4 md:px-8 py-16">
-                    <NewsGrid 
-                      user={user} 
-                      onReadArticle={openArticle} 
-                      onLoginRequest={() => navigate('/login')} 
-                      isMiniPreview={true}
-                    />
-
-                  </section>
-
                   {/* TESTIMONIALS SECTION */}
                   <Testimonials />
 
@@ -1433,31 +1392,6 @@ const AppContent: React.FC = () => {
             </>
           } />
           
-      <Route path="/news" element={
-        <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
-          <SEO 
-            title="2025/2026 JAMB & Admission News Hub" 
-            description="Stay updated with official admission guidelines, Post-UTME registration dates, and university screening schedules for the 2026 Nigerian academic cycle."
-            canonical="/news"
-          />
-          <NewsGrid 
-            user={user} 
-            onReadArticle={openArticle} 
-            onLoginRequest={() => navigate('/login')} 
-          />
-        </div>
-      } />
-          
-          <Route path="/news/:slug" element={
-            <NewsDetailWrapper 
-              user={user} 
-              isAuthorizedAdmin={isAuthorizedAdmin} 
-              news={news} 
-              setIsAuthModalOpen={setIsAuthModalOpen} 
-              closeArticle={closeArticle} 
-            />
-          } />
-
           <Route path="/postutme" element={
             <div className="pt-8 min-h-screen bg-gray-950">
               <SEO 
@@ -1488,6 +1422,31 @@ const AppContent: React.FC = () => {
             </>
           } />
 
+          <Route path="/news" element={
+            <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
+              <SEO 
+                title="2025/2026 JAMB & Admission News Hub" 
+                description="Stay updated with official admission guidelines, Post-UTME registration dates, and university screening schedules for the 2026 Nigerian academic cycle."
+                canonical="/news"
+              />
+              <NewsGrid 
+                user={user} 
+                onReadArticle={openArticle} 
+                onLoginRequest={() => navigate('/login')} 
+              />
+            </div>
+          } />
+              
+          <Route path="/news/:slug" element={
+            <NewsDetailWrapper 
+              user={user} 
+              isAuthorizedAdmin={isAuthorizedAdmin} 
+              news={news} 
+              setIsAuthModalOpen={setIsAuthModalOpen} 
+              closeArticle={closeArticle} 
+            />
+          } />
+
           <Route path="/jamb-caps" element={<JambCapsLiveTrackerPage />} />
           <Route path="/caps" element={<JambCapsLiveTrackerPage />} />
           <Route path="/caps-portal" element={<JambCapsLiveTrackerPage />} />
@@ -1502,6 +1461,32 @@ const AppContent: React.FC = () => {
           
           <Route path="/status" element={<><SEO title="System Status" canonical="/status" /><StatusPage /></>} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/contact-us" element={<ContactPage />} />
+          <Route path="/support" element={<ContactPage />} />
+          <Route path="/advisor" element={
+            <ChatPage 
+              user={user} 
+              onLoginRequest={() => navigate('/login')} 
+              onSignUpRequest={() => navigate('/login')} 
+              onScholarPackRequest={() => setIsScholarPackOpen(true)}
+            />
+          } />
+          <Route path="/chat-advisor" element={
+            <ChatPage 
+              user={user} 
+              onLoginRequest={() => navigate('/login')} 
+              onSignUpRequest={() => navigate('/login')} 
+              onScholarPackRequest={() => setIsScholarPackOpen(true)}
+            />
+          } />
+          <Route path="/ai-advisor" element={
+            <ChatPage 
+              user={user} 
+              onLoginRequest={() => navigate('/login')} 
+              onSignUpRequest={() => navigate('/login')} 
+              onScholarPackRequest={() => setIsScholarPackOpen(true)}
+            />
+          } />
           <Route path="*" element={<NotFound onGoHome={() => handleNavigate('home')} />} />
         </Routes>
         </Suspense>
@@ -1556,7 +1541,26 @@ const AppContent: React.FC = () => {
         <ScholarPackModal isOpen={isScholarPackOpen} onClose={() => setIsScholarPackOpen(false)} user={user} paymentConfig={paymentConfig} />
         <LegalModal isOpen={legalModal.isOpen} type={legalModal.type} onClose={() => setLegalModal({ ...legalModal, isOpen: false })} />
         <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} user={user} />
-        <AIChatDrawer user={user} />
+        {/* Floating Ask AI Button (Navigates directly to /chat page) */}
+        {currentPage !== 'chat' && (
+          <div className="fixed bottom-24 left-4 md:left-8 md:bottom-8 z-[150] group">
+            <button
+              id="campusai-floating-chat-bubble"
+              onClick={() => {
+                setCurrentPage('chat');
+                navigate('/chat');
+                window.scrollTo(0, 0);
+              }}
+              className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer border border-blue-500/20"
+              title="Consult AI Admissions Advisor"
+            >
+              <Brain size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+              <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 font-black uppercase text-[10px] tracking-widest transition-all duration-300 whitespace-nowrap">
+                Ask AI
+              </span>
+            </button>
+          </div>
+        )}
         <CookieConsent />
         <InstallPrompt />
         <Tour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
@@ -1567,11 +1571,9 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <HelmetProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </HelmetProvider>
+    <Router>
+      <AppContent />
+    </Router>
   );
 };
 

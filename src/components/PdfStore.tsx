@@ -188,6 +188,8 @@ export const DEFAULT_OFFICIAL_PDFS: PdfStoreItem[] = [
 interface PdfStoreProps {
   user?: any;
   onLoginRequest?: () => void;
+  embedded?: boolean;
+  initialTab?: 'store' | 'discussions';
 }
 
 const INITIAL_DISCUSSIONS: DiscussionPost[] = [];
@@ -196,8 +198,8 @@ const LOCAL_STORAGE_PDF_KEY = 'campusai_pdf_store_user_items_v2';
 const LOCAL_STORAGE_DISCUSSIONS_KEY = 'campusai_pdf_store_discussions_v2';
 const LOCAL_STORAGE_NOTIFS_KEY = 'campusai_user_notifications_v2';
 
-export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginRequest }) => {
-  const [activeTab, setActiveTab] = useState<'store' | 'discussions'>('store');
+export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginRequest, embedded = false, initialTab = 'store' }) => {
+  const [activeTab, setActiveTab] = useState<'store' | 'discussions'>(initialTab);
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
 
   // PDF Store States
@@ -1506,16 +1508,18 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-      <SEO 
-        title="PDF Store & Student Discussion Hub | CampusAI Nigeria"
-        description="Upload, preview, store, and download PDF study guides, and join student group discussions, ask questions, and share admission advice."
-        canonical="/pdf-store"
-      />
+    <div className={embedded ? "w-full p-2 sm:p-4 text-gray-900 dark:text-gray-100" : "min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 py-8 px-4 sm:px-6 lg:px-8"}>
+      {!embedded && (
+        <SEO 
+          title="PDF Store & Student Discussion Hub | CampusAI Nigeria"
+          description="Upload, preview, store, and download PDF study guides, and join student group discussions, ask questions, and share admission advice."
+          canonical="/pdf-store"
+        />
+      )}
 
-      <div className="max-w-7xl mx-auto space-y-8">
-        
+      <div className={embedded ? "w-full space-y-6" : "max-w-7xl mx-auto space-y-8"}>
         {/* Header Hero */}
+        {!embedded && (
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           <div className="relative z-10 max-w-3xl space-y-4">
@@ -1574,6 +1578,7 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
             </div>
           </div>
         </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 pb-2 overflow-x-auto">
@@ -2115,6 +2120,7 @@ Provide a direct, intelligent, encouraging, and accurate answer as @CampusAI Adv
                           </motion.div>
                         )}
                       </AnimatePresence>
+
                     </motion.div>
                   );
                 })

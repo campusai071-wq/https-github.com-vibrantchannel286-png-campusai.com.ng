@@ -84,8 +84,15 @@ export const checkAndIncrementChats = async (uid: string) => {
   return { allowed: true, current: updated.daily_chats, limit: maxChats };
 };
 
-export const isRealUser = (uid?: string) => {
-  if (!uid) return false;
+export const isRealUser = (userOrUid?: string | any): boolean => {
+  if (!userOrUid) return false;
+  const uid = typeof userOrUid === 'string' 
+    ? userOrUid 
+    : typeof userOrUid === 'object' && userOrUid !== null 
+      ? userOrUid.uid 
+      : String(userOrUid);
+      
+  if (!uid || typeof uid !== 'string') return false;
   return !uid.startsWith('local-') && !uid.startsWith('email-user-');
 };
 
@@ -331,6 +338,7 @@ export const updateUserProfile = async (data: Partial<UserProfile>, uid?: string
   }
 
   window.dispatchEvent(new CustomEvent('campusai_quota_updated', { detail: finalProfile }));
+  window.dispatchEvent(new CustomEvent('campusai_profile_updated', { detail: finalProfile }));
   return finalProfile;
 };
 
@@ -694,5 +702,43 @@ export const syncUserBookmarks = async (userId: string, localBookmarkIds: string
   } catch (e) {
     return localBookmarkIds;
   }
+};
+
+/**
+ * DETERMINISTIC PROFILE COMPLETION CALCULATOR
+ */
+export interface ProfileCompletionResult {
+  percentage: number;
+  completedItems: string[];
+  missingItems: string[];
+}
+
+export const calculateProfileCompletion = (profile?: UserProfile | null): ProfileCompletionResult => {
+  if (!profile) {
+    return {
+      percentage: 0,
+      completedItems: [],
+      missingItems: ['Target Institution', 'Target Course', 'Target UTME Score', 'UTME Subject Combination', "O'Level Sitting Grades"]
+    };
+  }
+
+  const checks: { label: string; isComplete: boolean }[] = [
+    { label: 'Scholar Name', isComplete: Boolean(profile.displayName && profile.displayName !== 'Scholar' && profile.displayName.trim().length > 0) },
+    { label: 'Target Institution', isComplete: Boolean((profile.university || profile.academicProfile?.targetInstitution)?.trim()) },
+    { label: 'Target Course', isComplete: Boolean((profile.targetCourse || profile.academicProfile?.targetCourse)?.trim()) },
+    { label: 'Target UTME Score', isComplete: Boolean(profile.targetUTMEScore || profile.academicProfile?.targetUTMEScore || profile.jambScore) },
+    { label: 'UTME Subjects', isComplete: Boolean((profile.utmeSubjects?.length || profile.academicProfile?.utmeSubjects?.length || 0) >= 4) },
+    { label: "O'Level Grades", isComplete: Boolean((profile.olevelGrades?.length || profile.academicProfile?.olevelGrades?.length || 0) >= 5) },
+  ];
+
+  const completed = checks.filter(c => c.isComplete).map(c => c.label);
+  const missing = checks.filter(c => !c.isComplete).map(c => c.label);
+  const percentage = Math.round((completed.length / checks.length) * 100);
+
+  return {
+    percentage,
+    completedItems: completed,
+    missingItems: missing
+  };
 };
 

@@ -4,24 +4,21 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 export const getApiUrl = (path: string): string => {
   if (typeof window === 'undefined') return path;
   
-  // If we are running in the AI Studio container development/preview environment (*.run.app) or localhost dev port,
-  // we must always use local relative paths to target the correct local API proxy.
-  const isDevEnv = location.hostname.includes('.run.app') || (location.hostname === 'localhost' && location.port === '3000');
-  if (isDevEnv) {
-    return path;
-  }
-  
   // Detect if we are running in a native app context (Capacitor/Cordova) or file:// protocol
   const isNativeApp = !!(window as any).Capacitor || !!(window as any).cordova || location.protocol === 'file:';
   
-  // Detect if we are on Capacitor's localhost (usually port 80 or empty)
-  const isCapacitorLocalhost = location.hostname === 'localhost' && (location.port === '' || location.port === '80');
+  // Detect if we are on Capacitor's internal mobile webview (usually port 80 or empty)
+  const isCapacitorLocalhost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && 
+    (location.port === '' || location.port === '80') && 
+    isNativeApp;
   
   if (isNativeApp || isCapacitorLocalhost) {
     const baseUrl = 'https://campusai.com.ng';
     return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
   }
   
+  // In all browser contexts (localhost dev server, container preview, *.run.app, custom domain),
+  // always use relative paths so it seamlessly proxies through the active host without CORS issues.
   return path;
 };
 

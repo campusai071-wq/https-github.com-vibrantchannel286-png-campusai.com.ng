@@ -26,6 +26,7 @@ export interface NewsItem {
   isImportant?: boolean;
   views?: number;
   likes?: number;
+  shares?: number;
   likedBy?: string[];
   createdAt?: any;
   updatedAt?: any;
@@ -184,6 +185,32 @@ export interface UserActivity {
   metadata?: any; // Added for structured data
 }
 
+export interface AcademicProfile {
+  targetInstitution?: string;
+  targetInstitutionSlug?: string;
+  targetCourse?: string;
+  targetCourseCode?: string;
+  targetUTMEScore?: number;
+  targetAggregate?: number;
+  jambScore?: number;
+  utmeSubjects?: string[];
+  stateOfOrigin?: string;
+  olevelGrades?: Array<{ subject: string; grade: string }>;
+}
+
+export interface AdmissionStatusSummary {
+  capsStatus?: string;
+  lastCapsStatus?: string;
+  lastSuccessfulCapsSync?: string;
+  capsDataFreshness?: 'FRESH' | 'CACHED' | 'UNAVAILABLE';
+  eligibilityState?: 'eligible' | 'not_eligible' | 'incomplete' | 'unverified';
+  eligibilitySummary?: string;
+  lastEligibilityVerdict?: string;
+  targetSchool?: string;
+  targetCourse?: string;
+  lastVerifiedAt?: number;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -201,8 +228,20 @@ export interface UserProfile {
   is_premium?: boolean;
   meritUsageCount?: number;
   scholarCredits?: number;
+  
+  // PRIORITY 6A: UNIFIED ACADEMIC STUDENT PROFILE (Optional fields)
   university?: string;
   targetCourse?: string;
+  targetScore?: number;        // Added specifically for 6A
+  targetUTMEScore?: number;    // Legacy, kept for compatibility
+  jambScore?: number;
+  stateOfOrigin?: string;
+  utmeSubjects?: string[];
+  oLevelGrades?: Record<string, string>; // Added specifically for 6A
+  olevelGrades?: Array<{ subject: string; grade: string }>; // Legacy array format
+
+  academicProfile?: AcademicProfile;
+  admissionStatus?: AdmissionStatusSummary;
   premium_activated_at?: string;
   referral_code?: string;
   referral_count?: number;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campusai-v3.1-stable';
+const CACHE_NAME = 'campusai-v3.3-fresh';
 const OFFLINE_URL = '/index.html';
 
 const ASSETS_TO_CACHE = [
@@ -24,11 +24,12 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('CampusAI: Clearing legacy service worker cache:', cache);
             return caches.delete(cache);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -39,6 +40,11 @@ self.addEventListener('fetch', (event) => {
   try {
     const url = new URL(event.request.url);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+    
+    // CRITICAL: NEVER cache API routes or dynamic backend telemetry in service worker
+    if (url.pathname.startsWith('/api/')) {
+      return;
+    }
   } catch (e) {
     return;
   }
@@ -46,10 +52,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const resClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, resClone);
-        });
+        // Only cache successful basic responses (not opaque, not errors)
+        if (response && response.status === 200 && response.type === 'basic') {
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, resClone);
+          });
+        }
         return response;
       })
       .catch(() => {

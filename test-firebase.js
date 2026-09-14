@@ -1,0 +1,3 @@
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, getDocs, limit, query } from "firebase/firestore";
+// Need config...

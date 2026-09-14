@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp, ArrowLeft, ExternalLink, Sparkles, Landmark, Calendar, Search } from 'lucide-react';
+import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp, ArrowLeft, ExternalLink, Sparkles, Landmark, Calendar, Search, BookOpen, Calculator, Eye, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import SEO from './SEO';
@@ -8,91 +8,98 @@ import { JambCapsStatsState } from './JambCapsLiveTracker';
 
 const DEFAULT_JAMB_CAPS_STATS: JambCapsStatsState = {
   overview: {
-    institutions: 1801,
+    institutions: 1809,
     candidates: 2275690,
-    qualifiedDE: 76628,
-    qualified100: 2127837,
-    qualifiedUTME_DE: 2204465,
-    qualified140: 2047913,
+    qualifiedDE: 77978,
+    qualified100: 2126501,
+    qualifiedUTME_DE: 2204479,
+    qualified140: 2046608,
   },
   olevel: {
-    resultsUploaded: 1139708,
-    credits100DE: 1096182,
-    credits140DE: 1078464,
-    credits100EngDE: 1075896,
-    credits100EngMathDE: 1065892,
-    credits140EngDE: 1059081,
-    credits140EngMathDE: 1049418,
+    resultsUploaded: 1206195,
+    credits100DE: 1183588,
+    credits140DE: 1164529,
+    credits100EngDE: 1159916,
+    credits100EngMathDE: 1148577,
+    credits140EngDE: 1141887,
+    credits140EngMathDE: 1130930,
   },
   todayAll: {
-    instHeads: 768,
-    deskOfficers: 853,
-    approvedAcceptance: 1603,
-    acceptedCandidates: 510,
+    instHeads: 784,
+    deskOfficers: 1864,
+    approvedAcceptance: 194,
+    acceptedCandidates: 390,
   },
   todayPrivate: {
-    instHeads: 14,
-    deskOfficers: 141,
-    approvedAcceptance: 1406,
-    acceptedCandidates: 118,
+    instHeads: 207,
+    deskOfficers: 1827,
+    approvedAcceptance: 44,
+    acceptedCandidates: 109,
   },
   summary: {
-    instHeadsA: 29904,
-    deskOfficersB: 19781,
-    approvedAcceptC: 42702,
-    acceptedD: 69380,
-    totalAdmissions: 161767,
+    instHeadsA: 38890,
+    deskOfficersB: 39087,
+    approvedAcceptC: 53873,
+    acceptedD: 137763,
+    totalAdmissions: 269613,
     admissionYear: "2026/2027",
-    sessionDate: "Monday, August 31, 2026"
+    sessionDate: "Monday, September 14, 2026"
   },
   candidates: 2275690,
-  qualified100: 2127837,
-  acceptedD: 69380,
-  totalAdmissions: 161767
+  qualified100: 2126501,
+  acceptedD: 137763,
+  totalAdmissions: 269613
 };
 
 function mergeCapsStats(current: JambCapsStatsState, incoming: Partial<JambCapsStatsState>): JambCapsStatsState {
   if (!incoming) return current;
+
+  const a = incoming.summary?.instHeadsA ?? current.summary?.instHeadsA ?? 38890;
+  const b = incoming.summary?.deskOfficersB ?? current.summary?.deskOfficersB ?? 39087;
+  const c = incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 53873;
+  const d = incoming.summary?.acceptedD ?? current.summary?.acceptedD ?? 137763;
+  const total = a + b + c + d;
+
   const merged: JambCapsStatsState = {
     ...current,
     ...incoming,
     overview: {
-      institutions: Math.max(current.overview?.institutions || 1801, incoming.overview?.institutions || 0),
-      candidates: Math.max(current.overview?.candidates || 2275690, incoming.overview?.candidates || 0),
-      qualifiedDE: Math.max(current.overview?.qualifiedDE || 76628, incoming.overview?.qualifiedDE || 0),
-      qualified100: Math.max(current.overview?.qualified100 || 2127837, incoming.overview?.qualified100 || 0),
-      qualifiedUTME_DE: Math.max(current.overview?.qualifiedUTME_DE || 2204465, incoming.overview?.qualifiedUTME_DE || 0),
-      qualified140: Math.max(current.overview?.qualified140 || 2047913, incoming.overview?.qualified140 || 0),
+      institutions: incoming.overview?.institutions ?? current.overview?.institutions ?? 1809,
+      candidates: incoming.overview?.candidates ?? current.overview?.candidates ?? 2275690,
+      qualifiedDE: incoming.overview?.qualifiedDE ?? current.overview?.qualifiedDE ?? 77978,
+      qualified100: incoming.overview?.qualified100 ?? current.overview?.qualified100 ?? 2126501,
+      qualifiedUTME_DE: incoming.overview?.qualifiedUTME_DE ?? current.overview?.qualifiedUTME_DE ?? 2204479,
+      qualified140: incoming.overview?.qualified140 ?? current.overview?.qualified140 ?? 2046608,
     },
     olevel: {
-      resultsUploaded: Math.max(current.olevel?.resultsUploaded || 1139708, incoming.olevel?.resultsUploaded || 0),
-      credits100DE: Math.max(current.olevel?.credits100DE || 1096182, incoming.olevel?.credits100DE || 0),
-      credits140DE: Math.max(current.olevel?.credits140DE || 1078464, incoming.olevel?.credits140DE || 0),
-      credits100EngDE: Math.max(current.olevel?.credits100EngDE || 1075896, incoming.olevel?.credits100EngDE || 0),
-      credits100EngMathDE: Math.max(current.olevel?.credits100EngMathDE || 1065892, incoming.olevel?.credits100EngMathDE || 0),
-      credits140EngDE: Math.max(current.olevel?.credits140EngDE || 1059081, incoming.olevel?.credits140EngDE || 0),
-      credits140EngMathDE: Math.max(current.olevel?.credits140EngMathDE || 1049418, incoming.olevel?.credits140EngMathDE || 0),
+      resultsUploaded: incoming.olevel?.resultsUploaded ?? current.olevel?.resultsUploaded ?? 1206195,
+      credits100DE: incoming.olevel?.credits100DE ?? current.olevel?.credits100DE ?? 1183588,
+      credits140DE: incoming.olevel?.credits140DE ?? current.olevel?.credits140DE ?? 1164529,
+      credits100EngDE: incoming.olevel?.credits100EngDE ?? current.olevel?.credits100EngDE ?? 1159916,
+      credits100EngMathDE: incoming.olevel?.credits100EngMathDE ?? current.olevel?.credits100EngMathDE ?? 1148577,
+      credits140EngDE: incoming.olevel?.credits140EngDE ?? current.olevel?.credits140EngDE ?? 1141887,
+      credits140EngMathDE: incoming.olevel?.credits140EngMathDE ?? current.olevel?.credits140EngMathDE ?? 1130930,
     },
     todayPrivate: {
-      instHeads: incoming.todayPrivate?.instHeads ?? current.todayPrivate?.instHeads ?? 14,
-      deskOfficers: incoming.todayPrivate?.deskOfficers ?? current.todayPrivate?.deskOfficers ?? 141,
-      approvedAcceptance: incoming.todayPrivate?.approvedAcceptance ?? current.todayPrivate?.approvedAcceptance ?? 1406,
-      acceptedCandidates: Math.max(current.todayPrivate?.acceptedCandidates || 118, incoming.todayPrivate?.acceptedCandidates || 0),
+      instHeads: incoming.todayPrivate?.instHeads ?? current.todayPrivate?.instHeads ?? 207,
+      deskOfficers: incoming.todayPrivate?.deskOfficers ?? current.todayPrivate?.deskOfficers ?? 1827,
+      approvedAcceptance: incoming.todayPrivate?.approvedAcceptance ?? current.todayPrivate?.approvedAcceptance ?? 44,
+      acceptedCandidates: incoming.todayPrivate?.acceptedCandidates ?? current.todayPrivate?.acceptedCandidates ?? 109,
     },
     todayAll: {
-      instHeads: incoming.todayAll?.instHeads ?? current.todayAll?.instHeads ?? 768,
-      deskOfficers: incoming.todayAll?.deskOfficers ?? current.todayAll?.deskOfficers ?? 853,
-      approvedAcceptance: incoming.todayAll?.approvedAcceptance ?? current.todayAll?.approvedAcceptance ?? 1603,
-      acceptedCandidates: Math.max(current.todayAll?.acceptedCandidates || 510, incoming.todayAll?.acceptedCandidates || 0),
+      instHeads: incoming.todayAll?.instHeads ?? current.todayAll?.instHeads ?? 784,
+      deskOfficers: incoming.todayAll?.deskOfficers ?? current.todayAll?.deskOfficers ?? 1864,
+      approvedAcceptance: incoming.todayAll?.approvedAcceptance ?? current.todayAll?.approvedAcceptance ?? 194,
+      acceptedCandidates: incoming.todayAll?.acceptedCandidates ?? current.todayAll?.acceptedCandidates ?? 390,
     },
     summary: {
-      instHeadsA: Math.max(current.summary?.instHeadsA || 29904, incoming.summary?.instHeadsA || 0),
-      deskOfficersB: incoming.summary?.deskOfficersB ?? current.summary?.deskOfficersB ?? 19781,
-      approvedAcceptC: incoming.summary?.approvedAcceptC ?? current.summary?.approvedAcceptC ?? 42702,
-      acceptedD: Math.max(current.summary?.acceptedD || 69380, incoming.summary?.acceptedD || 0),
-      totalAdmissions: Math.max(current.summary?.totalAdmissions || 161767, incoming.summary?.totalAdmissions || 0),
+      instHeadsA: a,
+      deskOfficersB: b,
+      approvedAcceptC: c,
+      acceptedD: d,
+      totalAdmissions: total,
       admissionYear: incoming.summary?.admissionYear || current.summary?.admissionYear || "2026/2027",
-      sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Monday, August 31, 2026",
+      sessionDate: incoming.summary?.sessionDate || current.summary?.sessionDate || "Monday, September 14, 2026",
     }
   };
   merged.candidates = merged.overview.candidates;
@@ -109,9 +116,15 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
   const [selectedInstitutionType, setSelectedInstitutionType] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [lastSuccessfulTime, setLastSuccessfulTime] = useState<string>('');
+  const [isFreshData, setIsFreshData] = useState<boolean>(false);
+  const [isCachedData, setIsCachedData] = useState<boolean>(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState<number>(0);
+
   const [stats, setStats] = useState<JambCapsStatsState>(() => {
     try {
-      const saved = localStorage.getItem('campusai_jamb_caps_stats_v5');
+      const saved = localStorage.getItem('campusai_jamb_caps_stats_v7');
       if (saved) {
         return mergeCapsStats(DEFAULT_JAMB_CAPS_STATS, JSON.parse(saved));
       }
@@ -120,46 +133,99 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
   });
 
   useEffect(() => {
+    localStorage.removeItem('campusai_jamb_caps_stats_v3');
+    localStorage.removeItem('campusai_jamb_caps_stats_v4');
+    localStorage.removeItem('campusai_jamb_caps_stats_v5');
+    localStorage.removeItem('campusai_jamb_caps_stats_v6');
     let isMounted = true;
-    axios.get('/api/jamb/caps-stats')
-      .then(res => {
-        if (isMounted && res.data?.stats) {
-          setStats(prev => {
-            const next = mergeCapsStats(prev, res.data.stats);
-            try {
-              localStorage.setItem('campusai_jamb_caps_stats_v5', JSON.stringify(next));
-            } catch (e) {}
-            return next;
-          });
-        }
+
+    const fetchTelemetry = (showStatus = false) => {
+      if (showStatus) setIsRefreshing(true);
+      axios.get(`/api/jamb/caps-stats?_t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' }
       })
-      .catch(() => {});
-    return () => { isMounted = false; };
+        .then(res => {
+          if (isMounted && res.data) {
+            if (res.data.stats) {
+              setStats(res.data.stats);
+              try {
+                localStorage.setItem('campusai_jamb_caps_stats_v7', JSON.stringify(res.data.stats));
+              } catch (e) {}
+            }
+            if (res.data.lastSuccessfulScrapeTime) {
+              setLastSuccessfulTime(new Date(res.data.lastSuccessfulScrapeTime).toLocaleTimeString());
+            }
+            if (res.data.lastSyncError) setSyncError(res.data.lastSyncError);
+            if (res.data.cooldownRemainingMs !== undefined) setCooldownLeft(res.data.cooldownRemainingMs);
+            if (res.data.isFresh !== undefined) setIsFreshData(res.data.isFresh);
+            if (res.data.isCached !== undefined) setIsCachedData(res.data.isCached);
+          }
+        })
+        .catch((err) => {
+          console.warn("[CAPS Tracker Page] Fetch telemetry notice:", err.message);
+        })
+        .finally(() => {
+          if (isMounted && showStatus) setIsRefreshing(false);
+        });
+    };
+
+    // Initial fetch on mount
+    fetchTelemetry(false);
+
+    // Re-fetch when user returns/focuses on the window or tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTelemetry(false);
+      }
+    };
+    window.addEventListener('focus', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Periodic background poll every 60 seconds
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchTelemetry(false);
+      }
+    }, 60000);
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener('focus', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (force = true) => {
     setIsRefreshing(true);
-    setSyncStatus('Crawling caps.jamb.gov.ng via Firecrawl AI...');
+    setSyncStatus(force ? 'Fetching live telemetry from caps.jamb.gov.ng...' : 'Syncing live telemetry from caps.jamb.gov.ng...');
+    setSyncError(null);
     try {
-      const res = await axios.post('/api/jamb/caps-sync');
-      if (res.data && res.data.success) {
+      const res = await axios.post(`/api/jamb/caps-sync?_t=${Date.now()}`, { force: true }, {
+        headers: { 'Cache-Control': 'no-cache, no-store' }
+      });
+      if (res.data) {
         if (res.data.stats) {
-          setStats(prev => {
-            const next = mergeCapsStats(prev, res.data.stats);
-            try {
-              localStorage.setItem('campusai_jamb_caps_stats_v5', JSON.stringify(next));
-            } catch (e) {}
-            return next;
-          });
+          setStats(res.data.stats);
+          try {
+            localStorage.setItem('campusai_jamb_caps_stats_v7', JSON.stringify(res.data.stats));
+          } catch (e) {}
         }
-        setSyncStatus(`Synced via ${res.data.provider?.includes('firecrawl') ? 'Firecrawl AI Scraper' : 'JAMB Telemetry Mirror'} at ${res.data.formattedTime}`);
+        if (res.data.lastSuccessfulScrapeTime) {
+          setLastSuccessfulTime(new Date(res.data.lastSuccessfulScrapeTime).toLocaleTimeString());
+        }
+        setIsFreshData(!!res.data.isFresh);
+        setIsCachedData(!!res.data.isCached);
+        if (res.data.cooldownRemainingMs !== undefined) setCooldownLeft(res.data.cooldownRemainingMs);
+        if (res.data.error) setSyncError(res.data.error);
+        setSyncStatus(res.data.message || (res.data.isFresh ? 'Fresh official JAMB sync successful!' : 'Showing official cached telemetry.'));
       }
-    } catch (err) {
-      console.error("Firecrawl sync error:", err);
-      setSyncStatus('Synced via Telemetry Mirror');
+    } catch (err: any) {
+      console.error("Sync error:", err);
+      setSyncError(err.message || 'Network error reaching sync endpoint');
+      setSyncStatus('Sync failed. Serving verified official cached telemetry.');
     } finally {
       setIsRefreshing(false);
-      setTimeout(() => setSyncStatus(null), 5000);
     }
   };
 
@@ -205,9 +271,20 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
             >
               <ArrowLeft size={14} /> Back to Dashboard
             </button>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider mb-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Official JAMB CAPS Live Feed • {summary.admissionYear || '2025/2026'} Session
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+                isFreshData 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                  : syncError 
+                  ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' 
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isFreshData ? 'bg-emerald-500 animate-pulse' : syncError ? 'bg-red-500' : 'bg-amber-500'}`} />
+                {isFreshData ? 'Live Official JAMB Feed' : syncError ? 'Sync Failed (Using Cached Mirror)' : 'Cached Official Telemetry'}
+              </span>
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                Last Successful Sync: <strong className="text-gray-800 dark:text-gray-200 font-mono">{lastSuccessfulTime || 'Today'}</strong>
+              </span>
             </div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tight flex items-center gap-3">
               Central Admissions Processing System (CAPS) Portal
@@ -215,20 +292,109 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
               Live telemetry mirroring the official JAMB database portal (`caps.jamb.gov.ng/dashboard.aspx`). Monitor real-time admissions, candidate pools, O'Level stats, and daily approvals.
             </p>
+            {/* Quick Action Buttons for News & Tools */}
+            <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-1">
+              <button
+                onClick={() => {
+                  navigate('/');
+                  window.scrollTo(0, 0);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs transition-all cursor-pointer"
+              >
+                <BookOpen size={13} />
+                <span>Explore Admission News & Updates</span>
+                <ChevronRight size={12} />
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/calculators');
+                  window.scrollTo(0, 0);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs transition-all cursor-pointer"
+              >
+                <Calculator size={13} />
+                <span>Aggregate & Cutoff Calculators</span>
+                <ChevronRight size={12} />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xs text-gray-400 font-medium hidden sm:inline">
-              Session Date: <strong className="text-gray-700 dark:text-gray-200">{summary.sessionDate || 'August 31, 2026'}</strong>
-            </span>
             <button
-              onClick={handleRefresh}
+              onClick={() => handleRefresh(false)}
               disabled={isRefreshing}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-xs transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-blue-500' : ''} />
-              <span>Sync Live Telemetry</span>
+              <span>{isRefreshing ? 'Syncing Live...' : 'Sync Live Telemetry'}</span>
             </button>
+            {cooldownLeft > 0 && (
+              <button
+                onClick={() => handleRefresh(true)}
+                disabled={isRefreshing}
+                className="px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                title="Force Fresh Sync ignoring cooldown"
+              >
+                Force Sync
+              </button>
+            )}
+          </div>
+        </div>
+
+        {syncStatus && (
+          <div className={`px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 border shadow-sm ${
+            syncError ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-cyan-400'
+          }`}>
+            <Activity size={15} className={isRefreshing ? 'animate-spin' : ''} />
+            <span>{syncStatus}</span>
+          </div>
+        )}
+
+        {/* User-Facing Data Freshness Advisory & Status Decoder */}
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-3">
+          <ShieldCheck size={18} className="shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <div>
+            <strong className="font-bold">Data Freshness Advisory:</strong> This information was last successfully retrieved from the official JAMB source. If a live refresh is rate-limited or temporarily unavailable, CampusAI.ng automatically displays the last successfully retrieved data.
+          </div>
+        </div>
+
+        {/* Interactive JAMB CAPS Status Decoder */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-3 shadow-sm">
+          <h4 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+            <Sparkles size={14} className="text-blue-500" />
+            Interactive JAMB CAPS Status Decoder & Guidance
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-[11px]">
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
+              <strong className="text-blue-600 dark:text-blue-400 block font-black">Admission in Progress</strong>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Meaning:</strong> Screening is underway.</p>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Action:</strong> Continue checking CAPS.</p>
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 italic">Caution: Does not guarantee final admission yet.</p>
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
+              <strong className="text-amber-600 dark:text-amber-400 block font-black">Approved / Recommended</strong>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Meaning:</strong> Department accepted you.</p>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Action:</strong> Await central JAMB seal.</p>
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 italic">Caution: Awaiting central validation.</p>
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
+              <strong className="text-emerald-600 dark:text-emerald-400 block font-black">Admitted</strong>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Meaning:</strong> Official offer granted.</p>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Action:</strong> Accept/Reject on portal.</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 italic">Action Required: Accept offer promptly.</p>
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
+              <strong className="text-purple-600 dark:text-purple-400 block font-black">Transfer Approval</strong>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Meaning:</strong> Supplementary course offered.</p>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Action:</strong> Accept/Decline transfer.</p>
+              <p className="text-[10px] text-purple-600 dark:text-purple-400 italic">Caution: Changes your course of study.</p>
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-1">
+              <strong className="text-rose-600 dark:text-rose-400 block font-black">Not Admitted</strong>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Meaning:</strong> Cutoff not met or pending.</p>
+              <p className="text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Action:</strong> Check supplementary options.</p>
+              <p className="text-[10px] text-rose-600 dark:text-rose-400 italic">Caution: Keep checking for updates.</p>
+            </div>
           </div>
         </div>
 
@@ -265,6 +431,49 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
             <span>{syncStatus}</span>
           </div>
         )}
+
+        {/* PROMINENT ACTION BANNER FOR NEWS & TOOLS */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 p-6 text-white shadow-xl">
+          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider text-cyan-200">
+                <Sparkles size={13} />
+                <span>Quick Student Center</span>
+              </div>
+              <h3 className="text-xl md:text-2xl font-black tracking-tight text-white">
+                Looking for Admission News or Cutoff Calculators?
+              </h3>
+              <p className="text-xs md:text-sm text-blue-100 max-w-xl">
+                Easily calculate your Post-UTME aggregate score, verify O'Level requirements, and read breaking JAMB & university admission bulletins in one click.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  navigate('/');
+                  window.scrollTo(0, 0);
+                }}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 cursor-pointer"
+              >
+                <BookOpen size={16} className="text-blue-600" />
+                <span>Read Admission News</span>
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/calculators');
+                  window.scrollTo(0, 0);
+                }}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/30 active:scale-95 cursor-pointer"
+              >
+                <Calculator size={16} />
+                <span>Cutoff & Aggregate Calculators</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
 
         {/* Tab 1: Overview */}
         {activeTab === 'overview' && (

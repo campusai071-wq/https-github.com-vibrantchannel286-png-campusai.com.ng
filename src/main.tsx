@@ -9,6 +9,13 @@ import { inject } from '@vercel/analytics';
 // Initialize Vercel Analytics
 inject();
 
+// Polyfill Object.hasOwn for older browser compatibility
+if (!Object.hasOwn) {
+  Object.hasOwn = function(object: any, property: PropertyKey): boolean {
+    return Object.prototype.hasOwnProperty.call(object, property);
+  };
+}
+
 // Global Error Handler
 window.onerror = function(message, source, lineno, colno, error) {
   console.error("Global Error:", message, source, lineno, colno, error);

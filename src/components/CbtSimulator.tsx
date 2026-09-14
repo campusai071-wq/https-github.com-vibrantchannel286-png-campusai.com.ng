@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, limit as fsLimit } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { FormulaSheet } from './FormulaSheet';
+import { PdfStore } from './PdfStore';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -71,6 +72,8 @@ import {
 import institutionsTree from '../data/institutionsTree.json';
 import masterCourses from '../data/masterCourses.json';
 import { trackCbtInteraction } from '../services/analytics';
+import { logUserActivity, saveCalculationAttempt } from '../services/dbService';
+import { getLocalProfile } from '../services/userService';
 import AdUnit from './AdUnit';
 
 /**
@@ -123,6 +126,15 @@ interface ExamSessionState {
   updatedAt: string;
 }
 
+export interface TopicPerformanceRecord {
+  subjectKey: string;
+  topic: string;
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  accuracy: number;
+}
+
 export interface CbtExamRecord {
   id: string;
   userId: string;
@@ -140,6 +152,7 @@ export interface CbtExamRecord {
     score: number;
     total: number;
   }>;
+  topicPerformance?: TopicPerformanceRecord[];
   timeElapsedSeconds: number;
   formattedDate: string;
   createdAt: string;
@@ -388,19 +401,62 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   }>>([]);
   const [showExamInstructions, setShowExamInstructions] = useState(true);
 
-  // Load from local storage on mount
+  // Load from local storage and user profile on mount
   useEffect(() => {
+    const profile = getLocalProfile();
     const savedConfig = localStorage.getItem('campusai_target_config');
+    let loadedUni = '';
+    let loadedCourse = '';
+    let loadedScore: number | '' = '';
+
     if (savedConfig) {
       try {
         const parsed = JSON.parse(savedConfig);
-        if (parsed.university) setTargetUniversity(parsed.university);
-        if (parsed.course) setTargetCourse(parsed.course);
-        if (parsed.score) setTargetScore(parsed.score);
+        if (parsed.university) loadedUni = parsed.university;
+        if (parsed.course) loadedCourse = parsed.course;
+        if (parsed.score) loadedScore = parsed.score;
         if (parsed.history && Array.isArray(parsed.history)) setProgressHistory(parsed.history);
       } catch (e) {
         console.error('Failed to parse saved config', e);
       }
+    }
+
+    // Fallback to UserProfile if not set
+    if (!loadedUni) loadedUni = profile.university || profile.academicProfile?.targetInstitution || '';
+    if (!loadedCourse) loadedCourse = profile.targetCourse || profile.academicProfile?.targetCourse || '';
+    if (!loadedScore) {
+      const score = profile.targetScore || profile.targetUTMEScore || profile.academicProfile?.targetUTMEScore;
+      if (score) loadedScore = score;
+    }
+
+    if (loadedUni) setTargetUniversity(loadedUni);
+    if (loadedCourse) setTargetCourse(loadedCourse);
+    if (loadedScore) setTargetScore(loadedScore);
+    
+    // PRIORITY 6A: Sync Subjects
+    if (profile.utmeSubjects && profile.utmeSubjects.length > 0) {
+      const mappedSubjects = profile.utmeSubjects.map(s => {
+        const lower = s.toLowerCase();
+        if (lower.includes('english')) return 'english-language';
+        if (lower.includes('math')) return 'mathematics';
+        if (lower.includes('physics')) return 'physics';
+        if (lower.includes('chem')) return 'chemistry';
+        if (lower.includes('bio')) return 'biology';
+        if (lower.includes('agric')) return 'agricultural-science';
+        if (lower.includes('econ')) return 'economics';
+        if (lower.includes('gov')) return 'government';
+        if (lower.includes('lit')) return 'literature-in-english';
+        if (lower.includes('crs') || lower.includes('christian')) return 'christian-religious-studies';
+        if (lower.includes('irs') || lower.includes('islamic')) return 'islamic-religious-studies';
+        if (lower.includes('comm')) return 'commerce';
+        if (lower.includes('account')) return 'accounting';
+        if (lower.includes('hist')) return 'history';
+        if (lower.includes('civic')) return 'civic-education';
+        if (lower.includes('geog')) return 'geography';
+        if (lower.includes('comp')) return 'computer-studies';
+        return lower.replace(/\s+/g, '-');
+      });
+      setSelectedSubjects(mappedSubjects.filter(Boolean));
     }
   }, []);
 
@@ -531,6 +587,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [endTime, setEndTime] = useState<number | null>(null);
   const [timeElapsedSeconds, setTimeElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const isSubmittingExamRef = useRef(false);
 
   // ----- Review & AI Explanations -----
   const [explanations, setExplanations] = useState<Record<string | number, ExplanationData>>({});
@@ -547,7 +604,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [studyQuestions, setStudyQuestions] = useState<Question[]>([]);
   const [studyAnswers, setStudyAnswers] = useState<Record<string | number, string>>({});
   const [loadingStudy, setLoadingStudy] = useState(false);
-  const [studyTab, setStudyTab] = useState<'practice' | 'formulas' | 'novels'>('practice');
+  const [studyTab, setStudyTab] = useState<'practice' | 'formulas' | 'novels' | 'discussions'>('practice');
 
   // ----- AI Tutor Chat Assistant State -----
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
@@ -568,6 +625,72 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'jamb' | 'waec' | 'post_utme'>('all');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+
+  // Longitudinal Weak-Topic & Mastery Analytics Aggregation
+  const longitudinalTopicAnalytics = useMemo(() => {
+    const aggregateMap: Record<string, { subjectKey: string; topic: string; totalAttempted: number; totalCorrect: number; totalIncorrect: number; history: number[] }> = {};
+
+    cbtHistoryList.forEach((record) => {
+      if (record.topicPerformance && Array.isArray(record.topicPerformance)) {
+        record.topicPerformance.forEach((tp) => {
+          const key = `${tp.subjectKey}::${tp.topic}`;
+          if (!aggregateMap[key]) {
+            aggregateMap[key] = { subjectKey: tp.subjectKey, topic: tp.topic, totalAttempted: 0, totalCorrect: 0, totalIncorrect: 0, history: [] };
+          }
+          aggregateMap[key].totalAttempted += tp.attempted;
+          aggregateMap[key].totalCorrect += tp.correct;
+          aggregateMap[key].totalIncorrect += tp.incorrect;
+          aggregateMap[key].history.push(tp.accuracy);
+        });
+      }
+    });
+
+    const results = Object.values(aggregateMap).map((agg) => {
+      const lifetimeAccuracy = agg.totalAttempted > 0 ? Math.round((agg.totalCorrect / agg.totalAttempted) * 100) : 0;
+      const attemptCount = agg.history.length;
+      
+      let trend: 'improving' | 'declining' | 'stable' | 'insufficient data' = 'insufficient data';
+      if (attemptCount >= 2) {
+        const oldest = agg.history[agg.history.length - 1];
+        const newest = agg.history[0];
+        const diff = newest - oldest;
+        if (diff >= 5) trend = 'improving';
+        else if (diff <= -5) trend = 'declining';
+        else trend = 'stable';
+      }
+
+      const isReliable = agg.totalAttempted >= 3;
+      const confidenceLabel = isReliable ? (lifetimeAccuracy >= 70 ? 'Strong' : lifetimeAccuracy < 60 ? 'Needs Practice' : 'Moderate') : 'Developing (Needs more practice)';
+
+      return {
+        subjectKey: agg.subjectKey,
+        topic: agg.topic,
+        totalAttempted: agg.totalAttempted,
+        totalCorrect: agg.totalCorrect,
+        totalIncorrect: agg.totalIncorrect,
+        lifetimeAccuracy,
+        attemptCount,
+        trend,
+        isReliable,
+        confidenceLabel
+      };
+    });
+
+    const reliableTopics = results.filter(r => r.isReliable);
+    const developingTopics = results.filter(r => !r.isReliable);
+
+    reliableTopics.sort((a, b) => a.lifetimeAccuracy - b.lifetimeAccuracy);
+
+    const strongAreas = reliableTopics.filter(r => r.lifetimeAccuracy >= 70);
+    const weakAreas = reliableTopics.filter(r => r.lifetimeAccuracy < 60);
+
+    return {
+      all: results,
+      strongAreas,
+      weakAreas,
+      developingTopics
+    };
+  }, [cbtHistoryList]);
 
   // Load persistent CBT history from Firestore for user
   useEffect(() => {
@@ -903,6 +1026,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
   // Start CBT test
   const fetchAllSubjects = async () => {
+    isSubmittingExamRef.current = false;
     setLoading(true);
     setError('');
     setShowResults(false);
@@ -1079,6 +1203,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
   // Trigger submission and fetch AI score analysis
   const triggerSubmitTest = async () => {
+    if (isSubmittingExamRef.current) return;
+    isSubmittingExamRef.current = true;
     setIsTimerRunning(false);
     setShowSubmitModal(false);
     setShowResults(true);
@@ -1177,6 +1303,35 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       };
     });
 
+    // Calculate topic performance across all questions answered in this session
+    const topicMap: Record<string, { subjectKey: string; topic: string; attempted: number; correct: number; incorrect: number }> = {};
+    selectedSubjects.forEach((subKey) => {
+      const qs = questionsBySubject[subKey] || [];
+      const ans = answersBySubject[subKey] || {};
+      qs.forEach((q) => {
+        const userAns = ans[q.id];
+        if (userAns !== undefined && userAns !== null && userAns !== '') {
+          const topicName = q.metadata?.topic || q.section || 'General';
+          const key = `${subKey}::${topicName}`;
+          if (!topicMap[key]) {
+            topicMap[key] = { subjectKey: subKey, topic: topicName, attempted: 0, correct: 0, incorrect: 0 };
+          }
+          topicMap[key].attempted += 1;
+          const isCorrect = userAns.toLowerCase() === q.answer.toLowerCase();
+          if (isCorrect) {
+            topicMap[key].correct += 1;
+          } else {
+            topicMap[key].incorrect += 1;
+          }
+        }
+      });
+    });
+
+    const topicPerformance: TopicPerformanceRecord[] = Object.values(topicMap).map(t => ({
+      ...t,
+      accuracy: t.attempted > 0 ? Math.round((t.correct / t.attempted) * 100) : 0
+    }));
+
     // Save completed exam attempt to Firestore cbt_history collection permanently
     const historyId = `cbt_att_${Date.now()}`;
     const newRecord: CbtExamRecord = {
@@ -1196,6 +1351,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         score: sb.score,
         total: sb.total,
       })),
+      topicPerformance,
       timeElapsedSeconds,
       formattedDate,
       createdAt: new Date().toISOString(),
@@ -1209,7 +1365,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         console.error('[CBT] Error saving exam attempt to Firestore:', err);
       });
 
+    logUserActivity({
+      userId: user?.uid || 'guest-cbt',
+      type: 'calculation',
+      title: 'CBT Simulator Test Completed',
+      description: `Completed ${examType.toUpperCase()} Exam by ${user?.displayName || user?.email || 'Scholar'} (${user?.email || 'guest'}): Score ${totalRawScore}/${totalQuestions} (${newRecord.percentage}%)`
+    });
+
     setCbtHistoryList((prev) => {
+      if (prev.some(r => r.id === newRecord.id)) return prev;
       const updated = [newRecord, ...prev];
       try {
         localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(updated.slice(0, 50)));
@@ -2284,6 +2448,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </button>
                       <button
                         onClick={() => {
+                          isSubmittingExamRef.current = false;
                           setStarted(false);
                           setShowResults(false);
                         }}
@@ -2377,6 +2542,112 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* Persistent Weak-Topic & Mastery Analytics (Across All Attempts) */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-black uppercase tracking-wider border border-emerald-200">
+                          Longitudinal Analytics
+                        </span>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                          <Brain size={20} className="text-emerald-600" /> Persistent Weak-Topic & Mastery Profile
+                        </h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                        Aggregated across all your completed CBT practice attempts with sample-size protection & trend tracking.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Strong Areas */}
+                    <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-100 space-y-3">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-900 flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-600" /> Strong Areas (Mastered Topics)
+                      </h4>
+                      {longitudinalTopicAnalytics.strongAreas.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic py-2">
+                          Complete more practice tests with high accuracy (≥70%) across multiple sessions to build your strong topics profile.
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {longitudinalTopicAnalytics.strongAreas.slice(0, 4).map((item, idx) => (
+                            <div key={idx} className="bg-white p-3 rounded-xl border border-emerald-200/60 shadow-sm flex items-center justify-between gap-3">
+                              <div>
+                                <span className="font-extrabold text-slate-900 text-xs block">{item.topic}</span>
+                                <span className="text-[10px] text-slate-500 uppercase">{item.subjectKey} • {item.totalAttempted} questions</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-emerald-700 font-black text-sm">{item.lifetimeAccuracy}%</span>
+                                <span className={`block text-[9px] font-bold ${item.trend === 'improving' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                  {item.trend === 'improving' ? '↑ Improving' : item.trend === 'declining' ? '↓ Declining' : '→ Stable'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Needs Practice / Weak Topics */}
+                    <div className="bg-rose-50/50 rounded-2xl p-5 border border-rose-100 space-y-3">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-rose-900 flex items-center gap-2">
+                        <AlertCircle size={16} className="text-rose-600" /> Needs Practice (Weak Topics)
+                      </h4>
+                      {longitudinalTopicAnalytics.weakAreas.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic py-2">
+                          No recurring weak topics detected with sufficient sample size yet. Keep testing!
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {longitudinalTopicAnalytics.weakAreas.slice(0, 4).map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setStudySubject(item.subjectKey);
+                                setStudyTopic(item.topic);
+                                setShowResults(false);
+                                setStarted(false);
+                                setActiveTab('study');
+                                navigate('/study-hub');
+                              }}
+                              className="bg-white hover:bg-rose-50/50 cursor-pointer transition-colors p-3 rounded-xl border border-rose-200/60 shadow-sm flex items-center justify-between gap-3 group"
+                              title={`Drill into ${item.topic} in Study Hub`}
+                            >
+                              <div>
+                                <span className="font-extrabold text-slate-900 text-xs block group-hover:text-rose-900">{item.topic}</span>
+                                <span className="text-[10px] text-slate-500 uppercase">{item.subjectKey} • {item.totalAttempted} questions</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-rose-600 font-black text-sm">{item.lifetimeAccuracy}%</span>
+                                <span className="block text-[9px] font-bold text-rose-700">Practice Topic →</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-xs text-slate-600">
+                      <strong>Study Recommendation:</strong> Focus your revision sessions on your lowest-accuracy topics with reliable sample sizes before taking your next timed mock exam.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowResults(false);
+                        setStarted(false);
+                        setActiveTab('study');
+                        navigate('/study-hub');
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer"
+                    >
+                      <BookOpen size={14} className="text-emerald-400" /> Review Topics in Study Hub
+                    </button>
+                  </div>
                 </div>
 
                 {/* Detailed Answer Review */}
@@ -3048,24 +3319,31 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Master syllabus topics, formulas, and compulsory novel summaries</p>
               </div>
 
-              <div className="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold">
+              <div className="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setStudyTab('practice')}
-                  className={`px-4 py-2 rounded-xl transition-all ${studyTab === 'practice' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${studyTab === 'practice' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
                 >
                   Topic Drill
                 </button>
                 <button
                   onClick={() => setStudyTab('formulas')}
-                  className={`px-4 py-2 rounded-xl transition-all ${studyTab === 'formulas' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${studyTab === 'formulas' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
                 >
                   Formulas & Cheat Sheets
                 </button>
                 <button
                   onClick={() => setStudyTab('novels')}
-                  className={`px-4 py-2 rounded-xl transition-all ${studyTab === 'novels' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap ${studyTab === 'novels' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
                 >
                   JAMB Novels
+                </button>
+                <button
+                  onClick={() => setStudyTab('discussions')}
+                  className={`px-4 py-2 rounded-xl transition-all whitespace-nowrap flex items-center gap-2 ${studyTab === 'discussions' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600'}`}
+                >
+                  <MessageSquare size={14} />
+                  Discussion Hub
                 </button>
               </div>
             </div>
@@ -3265,6 +3543,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {studyTab === 'discussions' && (
+              <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden min-h-[600px]">
+                <PdfStore 
+                  user={user} 
+                  onLoginRequest={() => {}} 
+                  embedded={true} 
+                  initialTab="discussions" 
+                />
               </div>
             )}
           </div>

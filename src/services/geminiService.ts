@@ -7,12 +7,16 @@ export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 function extractCutoffFallback(course: string, searchData: string | null): number {
   if (searchData) {
     // 1. Look for course-specific cutoff pattern e.g., "Computer Science: 68.5%" or "Medicine - 78%"
-    const escapedCourse = course.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const courseRegex = new RegExp(`${escapedCourse}[^\\d]{0,40}?(\\d{2}(\\.\\d{1,2})?)%?`, 'i');
-    const courseMatch = searchData.match(courseRegex);
-    if (courseMatch && courseMatch[1]) {
-      const val = parseFloat(courseMatch[1]);
-      if (val >= 40 && val <= 95) return val;
+    try {
+      const escapedCourse = course.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const courseRegex = new RegExp(`${escapedCourse}[^\\d]{0,40}?(\\d{2}(\\.\\d{1,2})?)%?`, 'i');
+      const courseMatch = searchData.match(courseRegex);
+      if (courseMatch && courseMatch[1]) {
+        const val = parseFloat(courseMatch[1]);
+        if (val >= 40 && val <= 95) return val;
+      }
+    } catch (e) {
+      // Ignore regex parsing error
     }
 
     // 2. Look for explicit percentage cutoff in search snippet (e.g. 68.5%, 72.0%)

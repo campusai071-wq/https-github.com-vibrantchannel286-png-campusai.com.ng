@@ -1331,6 +1331,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [manualHasOLevel, setManualHasOLevel] = useState(true);
   const [manualFormula, setManualFormula] = useState('50:30:20');
 
+  // Target Score / Reverse Planner states
+  const [calcMode, setCalcMode] = useState<'forward' | 'reverse'>('forward');
+  const [targetAggregateInput, setTargetAggregateInput] = useState('70.0');
+  const [reverseSolveFor, setReverseSolveFor] = useState<'jamb' | 'postUtme'>('jamb');
+
   const currentSchoolSlug = useMemo(() => {
     const path = location.pathname;
     const match = path.match(/\/([a-zA-Z0-9_-]+)-aggregate-calculator/);
@@ -1773,24 +1778,98 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       console.error('Error reading local calculation attempts:', e);
     }
 
-    // 2. Hydrate previous active result if present in local storage (unless specific school slug/prop is active)
+    // 2. Hydrate previous active result or load preferred target institution from state/profile
     try {
-      const lastResultStr = localStorage.getItem('campusai_last_calculation_result');
-      if (lastResultStr) {
-        const lastRes = JSON.parse(lastResultStr);
-        if (lastRes && lastRes.aiResult) {
-          setAiResult(lastRes.aiResult);
-          if (!initialSchoolName && !currentSchoolSlug) {
-            if (lastRes.uniName) {
-              const u = universityData.find((x: any) => x.name === lastRes.uniName);
-              if (u) { setTargetUni(u); setUniSearch(u.name); }
-            }
-            if (lastRes.courseName) { setTargetCourse(lastRes.courseName); setCourseSearch(lastRes.courseName); }
-          }
-          if (lastRes.jambScore) setJambScore(lastRes.jambScore);
-          if (lastRes.postUtmeScore) setPostUtmeScore(lastRes.postUtmeScore);
-          if (lastRes.stateOfOrigin) setStateOfOrigin(lastRes.stateOfOrigin);
+      const locState = (location.state as any) || {};
+      const localProfile = getLocalProfile();
+      const preferredUni = locState.prefillUni || initialSchoolName || currentSchoolSlug || localProfile.university || localProfile.academicProfile?.targetInstitution;
+      const preferredCourse = locState.prefillCourse || localProfile.targetCourse || localProfile.academicProfile?.targetCourse;
+      const preferredJamb = locState.prefillJamb || localProfile.jambScore || localProfile.academicProfile?.jambScore;
+      
+      // HYDRATE OLEVEL & UTME SUBJECTS
+      if (localProfile.utmeSubjects && localProfile.utmeSubjects.length > 0) {
+        const subjs = localProfile.utmeSubjects.filter(s => s.toLowerCase() !== 'english language');
+        if (subjs[0]) setJambSubject1(subjs[0]);
+        if (subjs[1]) setJambSubject2(subjs[1]);
+        if (subjs[2]) setJambSubject3(subjs[2]);
+      }
+      
+      if (localProfile.oLevelGrades || localProfile.olevelGrades) {
+        let mapped: any[] = [];
+        if (localProfile.oLevelGrades && !Array.isArray(localProfile.oLevelGrades)) {
+          mapped = Object.entries(localProfile.oLevelGrades).map(([name, grade]) => ({ name, grade: grade as OLevelGrade }));
+        } else if (Array.isArray(localProfile.olevelGrades)) {
+          mapped = localProfile.olevelGrades.map(g => ({ name: g.subject, grade: g.grade as OLevelGrade }));
         }
+        if (mapped.length > 0) {
+           const initialFive = mapped.slice(0, 5);
+           if (initialFive.length < 5) {
+             const placeholders = [
+                { name: "Mathematics", grade: "C6" as OLevelGrade },
+                { name: "English Language", grade: "B3" as OLevelGrade },
+                { name: "Physics", grade: "B3" as OLevelGrade },
+                { name: "Chemistry", grade: "C4" as OLevelGrade },
+                { name: "Biology", grade: "B2" as OLevelGrade }
+             ];
+             initialFive.push(...placeholders.filter(p => !initialFive.find(i => i.name.toLowerCase() === p.name.toLowerCase())).slice(0, 5 - initialFive.length));
+           }
+           setSubjects(initialFive);
+        }
+      }
+
+      if (localProfile.stateOfOrigin) {
+        setStateOfOrigin(localProfile.stateOfOrigin);
+      }
+
+      const lastResultStr = localStorage.getItem('campusai_last_calculation_result');
+      let lastRes: any = null;
+      if (lastResultStr) {
+        try { lastRes = JSON.parse(lastResultStr); } catch {}
+      }
+
+      if (preferredUni && !initialSchoolName && !currentSchoolSlug) {
+        const u = universityData.find((x: any) => 
+          x.name.toLowerCase() === preferredUni.toLowerCase() || 
+          x.slug === preferredUni.toLowerCase() ||
+          x.name.toLowerCase().includes(preferredUni.toLowerCase()) ||
+          preferredUni.toLowerCase().includes(x.name.toLowerCase())
+        );
+        if (u) {
+          setTargetUni(u);
+          setUniSearch(u.name);
+          const dbMatch = UNIVERSITIES_DB[u.name] || Object.values(UNIVERSITIES_DB).find(x => x.name.toLowerCase() === u.name.toLowerCase());
+          if (dbMatch?.courses) setAvailableCourses(dbMatch.courses);
+        } else {
+          setUniSearch(preferredUni);
+        }
+
+        if (preferredCourse) {
+          setTargetCourse(preferredCourse);
+          setCourseSearch(preferredCourse);
+        }
+        if (preferredJamb) {
+          setJambScore(String(preferredJamb));
+        }
+
+        // Only hydrate lastRes AI result if it matches preferredUni
+        if (lastRes && lastRes.aiResult && lastRes.uniName && (
+          lastRes.uniName.toLowerCase().includes(preferredUni.toLowerCase()) ||
+          preferredUni.toLowerCase().includes(lastRes.uniName.toLowerCase())
+        )) {
+          setAiResult(lastRes.aiResult);
+        }
+      } else if (lastRes && lastRes.aiResult) {
+        setAiResult(lastRes.aiResult);
+        if (!initialSchoolName && !currentSchoolSlug) {
+          if (lastRes.uniName) {
+            const u = universityData.find((x: any) => x.name === lastRes.uniName);
+            if (u) { setTargetUni(u); setUniSearch(u.name); }
+          }
+          if (lastRes.courseName) { setTargetCourse(lastRes.courseName); setCourseSearch(lastRes.courseName); }
+        }
+        if (lastRes.jambScore) setJambScore(lastRes.jambScore);
+        if (lastRes.postUtmeScore) setPostUtmeScore(lastRes.postUtmeScore);
+        if (lastRes.stateOfOrigin) setStateOfOrigin(lastRes.stateOfOrigin);
       }
     } catch (e) {}
 
@@ -2086,6 +2165,117 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       return { minCutoff: min, score, message: `Your JAMB score (${score}) is below the standard minimum cut-off mark of ${min} required for admission into ${targetUni.name}.` };
     return null;
   }, [jambScore, targetUni, isAR]);
+
+  const reverseCalculationResult = useMemo(() => {
+    const targetA = parseFloat(targetAggregateInput);
+    if (isNaN(targetA)) return { valid: false, error: "Please enter a valid target aggregate score." };
+
+    const oLPoints = activeOlevelPoints || 0;
+    const currentPost = parseFloat(postUtmeScore) || 50;
+    const currentJamb = parseFloat(jambScore) || 200;
+
+    const system = computedScoringSystem;
+    const normUni = (targetUni?.name || '').toLowerCase();
+    const formula = system?.formula || '';
+
+    if (normUni.includes('ui') || normUni.includes('uniben') || normUni.includes('uniport') || formula === '50:50') {
+      if (reverseSolveFor === 'jamb') {
+        const requiredJamb = (targetA - (currentPost / 2)) * 8;
+        return {
+          valid: true,
+          solvedVar: 'JAMB UTME Score',
+          requiredValue: Math.round(requiredJamb),
+          maxLimit: 400,
+          formulaText: `JAMB = (Target - (Post-UTME / 2)) * 8`,
+          isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
+          details: `To achieve an aggregate of ${targetA.toFixed(1)} with a Post-UTME score of ${currentPost}/100 at ${targetUni?.name || 'this university'}, you need a minimum JAMB score of ${Math.round(requiredJamb)} / 400.`
+        };
+      } else {
+        const requiredPost = (targetA - (currentJamb / 8)) * 2;
+        return {
+          valid: true,
+          solvedVar: 'Post-UTME Score',
+          requiredValue: Number(requiredPost.toFixed(1)),
+          maxLimit: 100,
+          formulaText: `Post-UTME = (Target - (JAMB / 8)) * 2`,
+          isAchievable: requiredPost >= 0 && requiredPost <= 100,
+          details: `To achieve an aggregate of ${targetA.toFixed(1)} with a JAMB score of ${currentJamb}/400 at ${targetUni?.name || 'this university'}, you need a minimum Post-UTME score of ${requiredPost.toFixed(1)} / 100.`
+        };
+      }
+    } else if (normUni.includes('unilag') || normUni.includes('unilorin') || normUni.includes('futminna') || formula === '50:30:20') {
+      if (reverseSolveFor === 'jamb') {
+        const rem = targetA - (currentPost / 100 * 30) - oLPoints;
+        const requiredJamb = rem * (400 / 50);
+        return {
+          valid: true,
+          solvedVar: 'JAMB UTME Score',
+          requiredValue: Math.round(requiredJamb),
+          maxLimit: 400,
+          formulaText: `JAMB = (Target - (Post-UTME * 0.3) - O'Level) * (400 / 50)`,
+          isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
+          details: `To achieve an aggregate of ${targetA.toFixed(1)} at ${targetUni?.name || 'this university'}, given Post-UTME (${currentPost}) and O'Level points (${oLPoints.toFixed(1)}), you need a JAMB score of ${Math.round(requiredJamb)} / 400.`
+        };
+      } else {
+        const jambPart = (currentJamb / 400) * 50;
+        const rem = targetA - jambPart - oLPoints;
+        const requiredPost = rem * (100 / 30);
+        return {
+          valid: true,
+          solvedVar: 'Post-UTME Score',
+          requiredValue: Number(requiredPost.toFixed(1)),
+          maxLimit: 100,
+          formulaText: `Post-UTME = (Target - (JAMB * 0.125) - O'Level) * (100 / 30)`,
+          isAchievable: requiredPost >= 0 && requiredPost <= 100,
+          details: `To achieve an aggregate of ${targetA.toFixed(1)} at ${targetUni?.name || 'this university'}, given JAMB (${currentJamb}) and O'Level points (${oLPoints.toFixed(1)}), you need a Post-UTME score of ${requiredPost.toFixed(1)} / 100.`
+        };
+      }
+    } else if (normUni.includes('oau') || formula === '50:40:10') {
+      if (reverseSolveFor === 'jamb') {
+        const rem = targetA - (currentPost / 100 * 40) - oLPoints;
+        const requiredJamb = rem * 8;
+        return {
+          valid: true,
+          solvedVar: 'JAMB UTME Score',
+          requiredValue: Math.round(requiredJamb),
+          maxLimit: 400,
+          formulaText: `JAMB = (Target - (Post-UTME * 0.4) - O'Level) * 8`,
+          isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
+          details: `To achieve ${targetA.toFixed(1)} at OAU, given Post-UTME (${currentPost}) and O'Level (${oLPoints.toFixed(1)}), you need JAMB ${Math.round(requiredJamb)} / 400.`
+        };
+      } else {
+        const jambPart = currentJamb / 8;
+        const rem = targetA - jambPart - oLPoints;
+        const requiredPost = rem * (100 / 40);
+        return {
+          valid: true,
+          solvedVar: 'Post-UTME Score',
+          requiredValue: Number(requiredPost.toFixed(1)),
+          maxLimit: 100,
+          formulaText: `Post-UTME = (Target - (JAMB / 8) - O'Level) * (100 / 40)`,
+          isAchievable: requiredPost >= 0 && requiredPost <= 100,
+          details: `To achieve ${targetA.toFixed(1)} at OAU, given JAMB (${currentJamb}) and O'Level (${oLPoints.toFixed(1)}), you need Post-UTME ${requiredPost.toFixed(1)} / 100.`
+        };
+      }
+    } else if (normUni.includes('futa') || formula === 'futa_75_25') {
+      const oLevelContrib = (oLPoints / 5) * 0.25;
+      const rem = targetA - oLevelContrib;
+      const requiredJamb = rem * (400 / 75);
+      return {
+        valid: true,
+        solvedVar: 'JAMB UTME Score',
+        requiredValue: Math.round(requiredJamb),
+        maxLimit: 400,
+        formulaText: `JAMB = (Target - O'Level Contribution) * (400 / 75)`,
+        isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
+        details: `To achieve ${targetA.toFixed(1)} at FUTA given O'Level points, you need a JAMB score of ${Math.round(requiredJamb)} / 400.`
+      };
+    } else {
+      return {
+        valid: false,
+        error: "Reverse planning for this specific institutional formula structure is currently unsupported. Please use the Forward Aggregate Calculator below."
+      };
+    }
+  }, [targetAggregateInput, reverseSolveFor, activeOlevelPoints, postUtmeScore, jambScore, computedScoringSystem, targetUni]);
 
   const isCourseSuspectedNotOffered = useMemo(() => {
     if (isAccreditationWarningDisabled) return false;
@@ -3793,7 +3983,129 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               </div>
             )}
 
-            {/* Admission Type Selector: UTME vs Direct Entry */}
+            {/* Mode Toggle: Forward vs Target Score Planner */}
+            <div className="flex items-center justify-between bg-black/60 p-1.5 rounded-xl border border-white/10 mb-4">
+              <button
+                type="button"
+                onClick={() => setCalcMode('forward')}
+                className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${calcMode === 'forward' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+              >
+                <span>📊 Calculate My Aggregate (Forward)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcMode('reverse')}
+                className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${calcMode === 'reverse' ? 'bg-cyan-500 text-black font-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+              >
+                <span>🎯 Plan My Target Score (Reverse)</span>
+              </button>
+            </div>
+
+            {calcMode === 'reverse' ? (
+              <div className="space-y-4 p-5 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-blue-950/30 border border-cyan-500/30 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-cyan-400" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white">Target Score & Reverse Aggregate Planner</h4>
+                  </div>
+                  <span className="text-[7.5px] font-black uppercase bg-cyan-500/20 text-cyan-300 px-2.5 py-1 rounded-full">
+                    Reverse Solver
+                  </span>
+                </div>
+                <p className="text-[9.5px] text-gray-300 leading-relaxed font-medium">
+                  Enter your desired admission target aggregate score (e.g., 70.0 out of 100) for <strong className="text-cyan-300">{targetUni?.name || 'Selected University'}</strong>, and our reverse planner will compute exactly what score combination you need.
+                </p>
+
+                {/* Target Score Input */}
+                <div className="space-y-1.5">
+                  <label htmlFor="target-aggregate-input" className="text-[8px] font-black uppercase text-gray-400 tracking-widest block">
+                    Desired Target Aggregate Score (0 - 100)
+                  </label>
+                  <input
+                    id="target-aggregate-input"
+                    name="target-aggregate-input"
+                    type="number"
+                    step="0.1"
+                    min="40"
+                    max="100"
+                    value={targetAggregateInput}
+                    onChange={e => setTargetAggregateInput(e.target.value)}
+                    className="w-full p-3 bg-black/50 border border-cyan-500/30 rounded-xl font-black text-xl text-center text-cyan-300 outline-none focus:border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+                  />
+                </div>
+
+                {/* Solve For Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest block">
+                    What Do You Want to Solve For?
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReverseSolveFor('jamb')}
+                      className={`py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border ${
+                        reverseSolveFor === 'jamb'
+                          ? 'bg-cyan-500 text-black border-cyan-400 shadow-md'
+                          : 'bg-black/40 text-gray-300 border-white/5 hover:bg-white/5'
+                      }`}
+                    >
+                      Solve Required JAMB Score
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReverseSolveFor('postUtme')}
+                      className={`py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border ${
+                        reverseSolveFor === 'postUtme'
+                          ? 'bg-cyan-500 text-black border-cyan-400 shadow-md'
+                          : 'bg-black/40 text-gray-300 border-white/5 hover:bg-white/5'
+                      }`}
+                    >
+                      Solve Required Post-UTME
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reverse Calculation Results Box */}
+                {reverseCalculationResult.valid ? (
+                  <div className={`p-4 rounded-xl border space-y-3 ${reverseCalculationResult.isAchievable ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-amber-500/10 border-amber-500/30 text-amber-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                        <Check size={14} className={reverseCalculationResult.isAchievable ? 'text-emerald-400' : 'text-amber-400'} />
+                        Planner Solution Result
+                      </span>
+                      <span className={`text-[7.5px] font-black uppercase px-2 py-0.5 rounded-full ${reverseCalculationResult.isAchievable ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                        {reverseCalculationResult.isAchievable ? 'Achievable Target' : 'Stretch Target / Check Bounds'}
+                      </span>
+                    </div>
+                    <div className="text-center py-2 bg-black/40 rounded-xl border border-white/5">
+                      <p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Required {reverseCalculationResult.solvedVar}</p>
+                      <p className="text-3xl font-black text-white mt-1">
+                        {reverseCalculationResult.requiredValue}
+                        <span className="text-xs font-normal text-gray-400"> / {reverseCalculationResult.maxLimit}</span>
+                      </p>
+                    </div>
+                    <p className="text-[9px] text-gray-300 leading-relaxed font-medium">
+                      {reverseCalculationResult.details}
+                    </p>
+                    <div className="p-2 bg-black/30 rounded-lg border border-white/5 font-mono text-[8.5px] text-cyan-300">
+                      <strong>Mathematical Formula:</strong> {reverseCalculationResult.formulaText}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-[9px] space-y-1">
+                    <p className="font-bold uppercase tracking-wider">⚠️ Unsupported Formula or Invalid Input</p>
+                    <p>{reverseCalculationResult.error}</p>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <p className="text-[8px] text-gray-400 italic text-center leading-snug">
+                  * Planning calculation only. Based on official institutional weighting formulas. Does not guarantee admission or official university cutoffs.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Admission Type Selector: UTME vs Direct Entry */}
             <div className="flex items-center justify-between bg-black/40 p-1.5 rounded-xl border border-white/10 mb-3">
               <button
                 type="button"
@@ -4185,6 +4497,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                 ? <><Loader2 className="animate-spin" size={14} /> Analysing...</>
                 : <><Sparkles size={14} /> Calculate Merit</>}
             </button>
+              </>
+            )}
           </div>
           ) : (
             <div className="p-5 bg-white/5 rounded-[24px] border border-white/10 space-y-6 relative z-30">
@@ -4994,6 +5308,24 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           ol: ({ children }) => <ol className="space-y-1.5 my-2 text-xs text-gray-300 pl-1 list-decimal list-inside">{children}</ol>,
                           li: ({ children }) => <li className="flex items-start gap-2 text-xs text-gray-300"><span className="text-cyan-400 font-bold shrink-0">•</span><span className="flex-1">{children}</span></li>,
                           strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                          a: ({ href, children }) => {
+                            let finalHref = href || '#';
+                            if (finalHref && !finalHref.startsWith('http://') && !finalHref.startsWith('https://') && !finalHref.startsWith('#')) {
+                              finalHref = 'https://' + finalHref;
+                            }
+                            return (
+                              <a 
+                                href={finalHref} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-cyan-400 hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                {children}
+                                <ExternalLink size={10} className="inline shrink-0 opacity-70" />
+                              </a>
+                            );
+                          },
                           pre: ({ children }) => <div className="text-xs text-gray-200 leading-relaxed font-normal my-2">{children}</div>,
                           code: ({ children }) => <span className="text-xs text-gray-200 font-normal">{children}</span>
                         }}

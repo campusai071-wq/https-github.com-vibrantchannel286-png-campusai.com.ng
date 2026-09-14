@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, Activity,
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown, MessageSquare
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -60,6 +60,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Home size={18} />,
       badge: null,
       badgeBg: ''
+    },
+    {
+      id: 'chat',
+      name: 'AI Chat Advisor',
+      icon: <Brain size={18} />,
+      badge: '2026 AI',
+      badgeBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20'
     },
     {
       id: 'admissions',
@@ -165,6 +172,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <Award size={18} />,
       badge: null,
       badgeBg: ''
+    },
+    {
+      id: 'contact',
+      name: 'Contact & Support Desk',
+      icon: <MessageSquare size={18} />,
+      badge: 'Help',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
     }
   ];
 

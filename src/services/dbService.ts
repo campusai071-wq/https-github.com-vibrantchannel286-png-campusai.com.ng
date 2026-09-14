@@ -451,7 +451,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
     return category ? processed.filter(n => n.category === category) : processed;
   }
 
-  // Direct client-side Firestore fetch using standard Firebase SDK
+  // Direct client-side Firestore fetch using standard Firebase SDK with a strict 3s timeout
   if (db) {
     try {
       const fetchLimit = effectiveLimit;
@@ -468,14 +468,11 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       
       const q = query(newsRef, ...constraints);
 
-      let querySnapshot;
-      try {
-        // ALWAYS try getDocsFromServer FIRST to avoid stale local IndexedDB snapshots in browser
-        querySnapshot = await getDocs(q);
-      } catch (fetchError: any) {
-        console.warn("getCloudNews: Server fetch failed, trying local cache snapshot fallback...", fetchError?.message || fetchError);
-        querySnapshot = await getDocs(q);
-      }
+      // Race getDocs against a 3000ms timeout to prevent hanging on slow network or offline states
+      const querySnapshot = await Promise.race([
+        getDocs(q),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore client fetch timeout")), 3000))
+      ]) as any;
 
       const cloudNews: NewsItem[] = [];
       querySnapshot.forEach((docSnap: any) => {
@@ -514,7 +511,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
         return filtered;
       }
     } catch (e: any) {
-      console.error("getCloudNews: Direct Firestore fetch failed, falling back to proxy/mock:", e);
+      console.warn("getCloudNews: Direct Firestore fetch skipped/timed out, falling back to proxy/mock:", e?.message || e);
     }
   }
 
@@ -531,9 +528,8 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
     if (lastCreatedAt) {
       payload.startAfterValue = lastCreatedAt;
     }
-    console.log("DEBUG: Proxy fetch URL:", apiUrl);
-    const res = await axios.post(apiUrl, payload);
-    if (res.data.success && res.data.data && res.data.data.length > 0) {
+    const res = await axios.post(apiUrl, payload, { timeout: 10000 });
+    if (res.data?.success && res.data?.data && res.data.data.length > 0) {
       const cloudNews = res.data.data.map((item: any) => ({
         ...item,
         isLive: item.isLive ?? true,
@@ -559,11 +555,10 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       return category ? processed.filter(n => n.category === category) : processed;
     }
   } catch (e: any) {
-    console.error("Proxy fetch failed for URL:", apiUrl, e.message, e.response?.status, e.response?.data);
+    console.warn("getCloudNews: Proxy fetch fallback notice:", e?.message || e);
   }
 
   // Final fallback to MOCK_NEWS if DB/Proxy are completely offline
-  console.warn("getCloudNews: All cloud sources failed. Returning MOCK_NEWS.");
   const localPublished = getPublishedNews();
   const bookmarkedArticles = Object.values(readBookmarkedArticles());
   const fallbackNews = [...localPublished, ...bookmarkedArticles, ...MOCK_NEWS];
@@ -595,8 +590,8 @@ export const getCloudNewsCount = async (): Promise<number> => {
   }
 
   try {
-    const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' });
-    if (res.data.success) {
+    const res = await axios.post(getApiUrl('/api/fstore-count'), { collectionName: 'news' }, { timeout: 8000 });
+    if (res.data?.success) {
       cachedNewsCount = res.data.count;
       lastCountFetchTime = now;
       return res.data.count;
@@ -1482,7 +1477,7 @@ let lastTrafficStatsFetchTime = 0;
 const TRAFFIC_STATS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache (was 60s)
 
 export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisitors: number; totalCalculations: number }> => {
-  if (!db) return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+  if (!db) return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0 };
   
   const now = Date.now();
   if (cachedTrafficStats && (now - lastTrafficStatsFetchTime < TRAFFIC_STATS_CACHE_TTL_MS)) {
@@ -1497,20 +1492,20 @@ export const getTrafficStats = async (): Promise<{ pageViews: number; uniqueVisi
       const stats = { 
         pageViews: d.pageViews || 0, 
         uniqueVisitors: d.uniqueVisitors || 0,
-        totalCalculations: typeof d.totalCalculations === 'number' ? d.totalCalculations : 310
+        totalCalculations: typeof d.totalCalculations === 'number' ? d.totalCalculations : 0
       };
       cachedTrafficStats = stats;
       lastTrafficStatsFetchTime = now;
       return stats;
     }
-    return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+    return { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0 };
   } catch (e: any) {
     if (e.message?.includes('offline')) {
       console.warn("Traffic stats: client is offline, skipping read.");
     } else {
       console.error("Error reading traffic stats:", e);
     }
-    return cachedTrafficStats || { pageViews: 0, uniqueVisitors: 0, totalCalculations: 310 };
+    return cachedTrafficStats || { pageViews: 0, uniqueVisitors: 0, totalCalculations: 0 };
   }
 };
 
@@ -2061,6 +2056,36 @@ export const getArticleViews = async (newsId: string, initialViews?: number): Pr
   }
 
   return Math.max(1, baseViews + localViews);
+};
+
+export const incrementAndGetArticleShares = async (newsId: string, initialShares?: number): Promise<number> => {
+  if (!newsId) return 0;
+  const localKey = `campusai_article_shares_${newsId}`;
+  let localShares = 0;
+  try {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(localKey) : null;
+    if (stored) localShares = parseInt(stored, 10) || 0;
+  } catch (e) {}
+
+  localShares += 1;
+  try {
+    localStorage.setItem(localKey, localShares.toString());
+  } catch (e) {}
+
+  const baseShares = (typeof initialShares === 'number' && initialShares > 0) ? initialShares : 0;
+
+  if (db) {
+    const ref = doc(db, "article_shares", newsId);
+    try {
+      await setDoc(ref, { shares: increment(1), lastShared: Timestamp.now() }, { merge: true });
+      const snap = await getDoc(ref);
+      if (snap.exists() && typeof snap.data().shares === 'number') {
+        return baseShares + snap.data().shares;
+      }
+    } catch (e) {}
+  }
+
+  return Math.max(0, baseShares + localShares);
 };
 
 // ─── Prediction & Accuracy Tracking Engine ────────────────────────────────────

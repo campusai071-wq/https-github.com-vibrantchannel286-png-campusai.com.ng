@@ -1,5 +1,29 @@
 import { z } from 'zod';
 
+export const AcademicProfileSchema = z.object({
+  targetInstitution: z.string().optional(),
+  targetInstitutionSlug: z.string().optional(),
+  targetCourse: z.string().optional(),
+  targetCourseCode: z.string().optional(),
+  targetUTMEScore: z.number().optional(),
+  targetAggregate: z.number().optional(),
+  jambScore: z.number().optional(),
+  utmeSubjects: z.array(z.string()).optional(),
+  stateOfOrigin: z.string().optional(),
+  olevelGrades: z.array(z.object({
+    subject: z.string(),
+    grade: z.string()
+  })).optional()
+}).optional();
+
+export const AdmissionStatusSummarySchema = z.object({
+  capsStatus: z.string().optional(),
+  lastSuccessfulCapsSync: z.string().optional(),
+  capsDataFreshness: z.enum(['FRESH', 'CACHED', 'UNAVAILABLE']).optional(),
+  eligibilityState: z.enum(['eligible', 'not_eligible', 'incomplete', 'unverified']).optional(),
+  eligibilitySummary: z.string().optional()
+}).optional();
+
 export const UserProfileSchema = z.object({
   uid: z.string(),
   displayName: z.preprocess((val) => {
@@ -41,6 +65,16 @@ export const UserProfileSchema = z.object({
   scholarCredits: z.number().optional(),
   university: z.string().optional(),
   targetCourse: z.string().optional(),
+  targetUTMEScore: z.number().optional(),
+  jambScore: z.number().optional(),
+  stateOfOrigin: z.string().optional(),
+  utmeSubjects: z.array(z.string()).optional(),
+  olevelGrades: z.array(z.object({
+    subject: z.string(),
+    grade: z.string()
+  })).optional(),
+  academicProfile: AcademicProfileSchema,
+  admissionStatus: AdmissionStatusSummarySchema,
   premium_activated_at: z.string().optional(),
   referral_code: z.string().optional(),
   referral_count: z.number().optional(),

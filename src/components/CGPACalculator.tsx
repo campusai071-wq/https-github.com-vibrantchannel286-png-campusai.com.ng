@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { analyzeCGPA } from '../services/premiumToolsService';
 import { trackCalculatorUsed } from '../services/analytics';
+import { logUserActivity, saveCalculationAttempt } from '../services/dbService';
 
 interface Course {
   id: string;
@@ -294,6 +295,13 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
         calculator_type: 'cgpa_analysis',
         aggregate_score: cumulativeCGPA,
         university: user?.institution || 'unspecified'
+      });
+
+      logUserActivity({
+        userId: user?.uid || 'guest-cgpa',
+        type: 'calculation',
+        title: 'CGPA Calculation & Analysis',
+        description: `Calculated CGPA: ${cumulativeCGPA} (${currentHonours.title}) on Scale ${scale} by ${user?.displayName || user?.email || 'Scholar'} (${user?.email || 'guest'}) for ${user?.institution || 'Tertiary Institution'}`
       });
     } catch (e: any) {
       setAiAnalysis("Keep up consistent effort in core departmental courses and aim for straight A's in high-unit practicals.");

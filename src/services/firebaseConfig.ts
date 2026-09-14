@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, doc, getDocFromServer, initializeFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, setLogLevel } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import firebaseConfig from '../../firebase-applet-config.json';
 declare var process: any;
@@ -27,9 +27,28 @@ export const hasLocalFirebase = !!localFirebaseConfig;
 const configNode = MASTER_CONFIG.FIREBASE as any;
 export const firestoreDatabaseId = configNode.firestoreDatabaseId;
 const { firestoreDatabaseId: _, ...standardConfig } = configNode;
-const app = initializeApp(standardConfig);
+
+const app = getApps().length > 0 ? getApp() : initializeApp(standardConfig);
 export const auth = getAuth(app);
-// Standard Firestore initialization for ultra-fast connection without long polling lag
-export const db = getFirestore(app, configNode.firestoreDatabaseId);
+
+// Suppress benign connection logs in console
+try {
+  setLogLevel('error');
+} catch (e) {}
+
+// Resilient Firestore initialization with forced long-polling for iframe & proxy network environments
+const dbId = (configNode.firestoreDatabaseId && configNode.firestoreDatabaseId !== "(default)") ? configNode.firestoreDatabaseId : undefined;
+
+let firestoreInstance: any;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true
+  }, dbId);
+} catch (e) {
+  firestoreInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
+}
+
+export const db = firestoreInstance;
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);

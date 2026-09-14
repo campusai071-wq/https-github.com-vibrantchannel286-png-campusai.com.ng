@@ -45,8 +45,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
 
-  if (errMsg.toLowerCase().includes('offline') || errMsg.toLowerCase().includes('unavailable') || errMsg.toLowerCase().includes('failed-precondition')) {
-    console.warn(`Firestore network offline (${operationType} ${path}):`, errMsg);
+  if (
+    errMsg.toLowerCase().includes('offline') ||
+    errMsg.toLowerCase().includes('unavailable') ||
+    errMsg.toLowerCase().includes('failed-precondition') ||
+    errMsg.toLowerCase().includes('could not reach') ||
+    errMsg.toLowerCase().includes('backend didn\'t respond') ||
+    errMsg.toLowerCase().includes('deadline-exceeded')
+  ) {
+    console.warn(`Firestore network offline/transient notice (${operationType} ${path}):`, errMsg);
     return;
   }
 

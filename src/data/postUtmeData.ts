@@ -1144,11 +1144,15 @@ export const findMatchingSchoolRelease = (message: string): { schoolName: string
   };
 
   for (const [alias, fullName] of Object.entries(aliases)) {
-    const regex = new RegExp(`\\b${alias}\\b`, 'i');
-    if (regex.test(msgLower)) {
-      if (BASELINE_RELEASES[fullName]) {
-        return { schoolName: fullName, data: BASELINE_RELEASES[fullName] };
+    try {
+      const regex = new RegExp(`\\b${alias}\\b`, 'i');
+      if (regex.test(msgLower)) {
+        if (BASELINE_RELEASES[fullName]) {
+          return { schoolName: fullName, data: BASELINE_RELEASES[fullName] };
+        }
       }
+    } catch (e) {
+      // Ignore invalid regex
     }
   }
 

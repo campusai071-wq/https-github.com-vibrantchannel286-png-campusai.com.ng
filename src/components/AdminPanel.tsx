@@ -5,7 +5,7 @@ import {
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout
+  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -87,7 +87,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
+    'analytics' | 'tool_users' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
   >('analytics');
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
@@ -1301,6 +1301,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   let totalArticlesRead = 0;
   let totalReadingMinutes = 0;
   let totalInstalls = 0;
+  let cgpaCalculations = 0;
+  let cbtCalculations = 0;
   const schoolCounts: Record<string, number> = {};
   const courseCounts: Record<string, number> = {};
   let helpfulCount = 0, unhelpfulCount = 0, admittedCount = 0, notAdmittedCount = 0;
@@ -1309,8 +1311,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   allActivities.forEach(act => {
     const desc = act.description || '';
+    const title = act.title || '';
     const ts = toMs(act.timestamp);
     if (ts > oneDayAgo) uniqueActiveToday.add(act.userId || act.id);
+
+    const actType = String(act.type || '');
+    if (title.includes('CGPA') || desc.includes('CGPA') || desc.includes('Scale') || title.includes('CGPA Calculation') || actType === 'cgpa_calculation') {
+      cgpaCalculations++;
+    }
+    if (title.includes('CBT') || desc.includes('CBT') || desc.includes('Exam') || desc.includes('Completed') || actType === 'cbt_exam' || actType === 'cbt_attempt') {
+      cbtCalculations++;
+    }
 
     if (act.type === 'news_read') {
       totalArticlesRead++;
@@ -1360,8 +1371,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const finalNotAdmitted = notAdmittedCount;
   const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
   const activeTodayCount = uniqueActiveToday.size;
-  const grandCalculations = Math.max(trafficStats.totalCalculations || 0, totalCalculations || 0);
-  const effectiveGuestCalculations = guestCalculations + Math.max(0, grandCalculations - totalCalculations);
+  const grandCalculations = trafficStats.totalCalculations || 0;
+  const effectiveGuestCalculations = guestCalculations;
   const todayLagosStr     = getNigerianDateStr();
   const todayLagosMidnight = getNigerianMidnight();
 
@@ -1421,12 +1432,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
+              {(['analytics', 'tool_users', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
+                  {tab === 'tool_users' ? 'Tool Users & Scholars' : tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -1437,6 +1448,56 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 won't shrink below its content's natural height in some browsers, so the
                 scrollbar never actually appears even though flex-1 + overflow-y-auto look right. */}
             <div className="p-6 md:p-8 overflow-y-auto flex-1 min-h-0">
+
+              {/* ── TOOL USERS TAB ── */}
+              {activeTab === 'tool_users' && (
+                <div className="space-y-6 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <Calculator size={14} className="text-red-500" /> CGPA Calculator & CBT Simulator Scholars
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Real-time tracking of every student and candidate who used the CGPA calculator or took simulated CBT exams on CampusAI.
+                      </p>
+                    </div>
+                    <button
+                      onClick={loadAnalyticsData}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-600/20"
+                    >
+                      <RefreshCw size={14} /> Refresh Scholars List
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
+                      <div className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">CGPA Calculator Uses</div>
+                      <div className="text-3xl font-black text-gray-900 dark:text-white">
+                        {cgpaCalculations}
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
+                      <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">CBT Simulator Uses</div>
+                      <div className="text-3xl font-black text-gray-900 dark:text-white">
+                        {cbtCalculations}
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
+                      <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Active Scholars (24h)</div>
+                      <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                        {new Set(allActivities.filter(a => (a.type === 'calculation' || a.title?.includes('CGPA') || a.title?.includes('CBT')) && toMs(a.timestamp) > Date.now() - 86400000).map(a => a.userId)).size}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 text-center space-y-3 shadow-sm">
+                    <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Tool Usage Summary</h4>
+                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                      Above are the exact live usage counts of how many times students and candidates have run the CGPA Calculator and completed the CBT Simulator on CampusAI.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* ── ANALYTICS TAB ── */}
               {activeTab === 'analytics' && (
@@ -1506,7 +1567,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
                       { 
-                        label: 'Total Calculations', 
+                        label: 'Total Aggregate Calculations', 
                         value: grandCalculations, 
                         sub: `Registered: ${registeredCalculations} | Guests: ${effectiveGuestCalculations}`, 
                         icon: <Zap size={14} className="text-red-500 dark:text-red-400" />, 
@@ -1518,8 +1579,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         }),
                         actionLabel: 'Inspect All Audits'
                       },
-                      { label: 'Daily Actives (DAU)', value: activeTodayCount, sub: 'Active scholars in last 24h', icon: <Users size={14} className="text-blue-500 dark:text-blue-400" />, color: 'blue' },
-                      { label: 'Global Database Directory', value: totalUserCount, sub: 'Registered scholar profiles', icon: <Database size={14} className="text-amber-500 dark:text-amber-400" />, color: 'amber' },
+                      { 
+                        label: 'CGPA Calculator Uses', 
+                        value: cgpaCalculations, 
+                        sub: 'Times students calculated semester/cumulative CGPA', 
+                        icon: <Calculator size={14} className="text-purple-500 dark:text-purple-400" />, 
+                        color: 'purple' 
+                      },
+                      { 
+                        label: 'CBT Simulator Uses', 
+                        value: cbtCalculations, 
+                        sub: 'Simulated JAMB/UTME CBT exam sessions completed', 
+                        icon: <BookOpen size={14} className="text-blue-500 dark:text-blue-400" />, 
+                        color: 'blue' 
+                      },
                     ].map(({ label, value, sub, icon, color, action, actionLabel }: any) => (
                       <div key={label} className={`p-6 bg-gradient-to-br from-${color}-500/10 to-${color}-500/5 border border-${color}-500/20 dark:border-${color}-500/10 rounded-3xl relative overflow-hidden flex flex-col justify-between`}>
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-500/5 rounded-full blur-2xl -mr-4 -mt-4`} />
@@ -1544,6 +1617,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 dark:border-blue-500/10 rounded-3xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[9px] font-mono font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Daily Actives (DAU)</span>
+                        <Users size={14} className="text-blue-500 dark:text-blue-400" />
+                      </div>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white">{activeTodayCount}</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Active scholars in last 24h</p>
+                    </div>
+                    <div className="p-6 bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-3xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[9px] font-mono font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Global Directory</span>
+                        <Database size={14} className="text-amber-500 dark:text-amber-400" />
+                      </div>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white">{totalUserCount}</p>
+                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Registered scholar profiles</p>
+                    </div>
                     <div className="p-6 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 dark:border-cyan-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
                       <div className="flex items-center justify-between mb-4">
