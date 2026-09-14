@@ -5599,6 +5599,72 @@ app.use("/api", (req, res) => {
   });
 });
 
+// Robots.txt route for search engines & web crawlers
+app.get(['/robots.txt', '/api/robots.txt'], (req, res) => {
+  const robotsFilePath = path.join(process.cwd(), 'public', 'robots.txt');
+  const distRobotsPath = path.join(process.cwd(), 'dist', 'robots.txt');
+  
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+  res.setHeader('X-Robots-Tag', 'all');
+
+  if (fs.existsSync(robotsFilePath)) {
+    return res.sendFile(robotsFilePath);
+  }
+  if (fs.existsSync(distRobotsPath)) {
+    return res.sendFile(distRobotsPath);
+  }
+
+  const fallbackRobots = `User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /public/
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+Allow: /*.svg$
+
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /private/
+Disallow: /*?*filter=
+Disallow: /*?*session=
+
+Sitemap: https://campusai.com.ng/sitemap.xml
+Sitemap: https://campusai.com.ng/news-sitemap.xml
+`;
+  return res.status(200).send(fallbackRobots);
+});
+
+// Ads.txt route
+app.get(['/ads.txt', '/api/ads.txt'], (req, res) => {
+  const adsFilePath = path.join(process.cwd(), 'public', 'ads.txt');
+  const distAdsPath = path.join(process.cwd(), 'dist', 'ads.txt');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+  if (fs.existsSync(adsFilePath)) return res.sendFile(adsFilePath);
+  if (fs.existsSync(distAdsPath)) return res.sendFile(distAdsPath);
+  return res.status(200).send('# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0\n');
+});
+
+// IndexNow & Webmaster .txt verification files route (e.g. /14fbbbae19ab4b788d8153edd1d2550e.txt or /c557dadad68347b8e26939a56c132027.txt)
+app.get('/:filename.txt', (req: any, res: any, next: any) => {
+  const filename = req.params?.filename;
+  if (filename && /^[a-f0-9]{32}$/i.test(filename)) {
+    const filePath = path.join(process.cwd(), 'public', `${filename}.txt`);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+    return res.status(200).send(filename);
+  }
+  next();
+});
+
 // LLMs.txt routes for AI agents & generative engines (https://llmstxt.org)
 app.get('/llms.txt', (req, res) => {
   const filePath = path.join(process.cwd(), 'public', 'llms.txt');
@@ -5624,33 +5690,7 @@ async function injectSEO(html: string, reqPath: string): Promise<string> {
   return await seoInject(html, reqPath, adminDb, dbInstance);
 }
 
-// Serve static assets from dist if available
-const distPath = path.join(process.cwd(), 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath, { index: false }));
-}
-
-// HTML SPA route with SEO injection for production & Vercel
-if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-  app.get(/^(?!\/api).*/, async (req: any, res: any) => {
-    try {
-      let indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) indexPath = path.join(process.cwd(), 'index.html');
-      let html = fs.readFileSync(indexPath, 'utf-8');
-      html = await injectSEO(html, req.path);
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
-      res.send(html);
-    } catch (err) {
-      console.error("[Server HTML Error]", err);
-      let indexPath = path.join(process.cwd(), 'index.html');
-      if (fs.existsSync(indexPath)) res.sendFile(indexPath);
-      else res.status(500).send("Server Error");
-    }
-  });
-}
-
-// Vite middleware for development
+// Vite middleware and static serving for development and production
 async function startServer() {
   const isVercel = !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_URL;
   console.log(`[Server] Environment Check: isVercel=${isVercel}, NODE_ENV=${process.env.NODE_ENV}`);
@@ -5692,10 +5732,32 @@ async function startServer() {
     } catch (viteErr) {
       console.error("[Server] Vite initialization failed. Falling back to static mode.", viteErr);
       const distPath2 = path.join(process.cwd(), 'dist');
-      app.use(express.static(distPath2));
+      if (fs.existsSync(distPath2)) {
+        app.use(express.static(distPath2));
+      }
     }
-  } else if (!isVercel) {
-    console.log("[Server] Starting in Production mode (Self-Hosted)...");
+  } else {
+    console.log("[Server] Starting in Production mode (Serving static build)...");
+    const distPath = path.join(process.cwd(), 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath, { index: false }));
+    }
+    app.get('*all', async (req: any, res: any) => {
+      try {
+        let indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) indexPath = path.join(process.cwd(), 'index.html');
+        let html = fs.readFileSync(indexPath, 'utf-8');
+        html = await injectSEO(html, req.path);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+        res.send(html);
+      } catch (err) {
+        console.error("[Server HTML Error]", err);
+        let indexPath = path.join(process.cwd(), 'index.html');
+        if (fs.existsSync(indexPath)) res.sendFile(indexPath);
+        else res.status(500).send("Server Error");
+      }
+    });
   }
 
   if (!isVercel) {

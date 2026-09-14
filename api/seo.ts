@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { MOCK_NEWS } from '../src/constants.js';
 
 function formatDate(val: any): string {
   if (!val) return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -180,6 +181,10 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
           } catch (e) {
             console.warn("[SEO] DbInstance lookup failed:", e);
           }
+        }
+
+        if (!docData && Array.isArray(MOCK_NEWS)) {
+          docData = MOCK_NEWS.find((m: any) => (m.slug === slug || m.id === slug));
         }
 
         if (docData) {

@@ -6,6 +6,7 @@ Allow: /*.js$
 Allow: /*.css$
 Allow: /*.png$
 Allow: /*.jpg$
+Allow: /*.jpeg$
 Allow: /*.webp$
 Allow: /*.svg$
 
@@ -16,3 +17,5 @@ Disallow: /*?*filter=
 Disallow: /*?*session=
 
 Sitemap: https://campusai.com.ng/sitemap.xml
+Sitemap: https://campusai.com.ng/news-sitemap.xml
+

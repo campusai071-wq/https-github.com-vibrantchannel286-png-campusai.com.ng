@@ -58,6 +58,49 @@
       ]
     },
     {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "all"
+        }
+      ]
+    },
+    {
+      "source": "/ads.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/llms.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
@@ -81,6 +124,22 @@
   ],
   "rewrites": [
     {
+      "source": "/robots.txt",
+      "destination": "api/index.ts"
+    },
+    {
+      "source": "/ads.txt",
+      "destination": "api/index.ts"
+    },
+    {
+      "source": "/llms.txt",
+      "destination": "api/index.ts"
+    },
+    {
+      "source": "/llms-full.txt",
+      "destination": "api/index.ts"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "api/index.ts"
     },
@@ -93,7 +152,7 @@
       "destination": "api/index.ts"
     },
     {
-      "source": "/((?!assets|static|favicon|robots|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|llms\\.txt).*)",
+      "source": "/((?!assets|static|favicon|robots\\.txt|ads\\.txt|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|14fbbbae19ab4b788d8153edd1d2550e\\.txt|llms\\.txt|llms-full\\.txt).*)",
       "destination": "api/index.ts"
     }
   ]
