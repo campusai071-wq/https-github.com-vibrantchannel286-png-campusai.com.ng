@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import {
   Home,
+  Users,
   BookOpen,
   Monitor,
   MessageSquare,
@@ -278,7 +279,7 @@ interface CbtSimulatorProps {
   setPaymentConfig?: (config: { type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string }) => void;
   onLoginRequest?: () => void;
   onSignUpRequest?: () => void;
-  initialTab?: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor';
+  initialTab?: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor' | 'discussions';
   initialStudyTab?: 'practice' | 'formulas' | 'novels' | 'discussions';
 }
 
@@ -381,7 +382,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     );
   }
   // Navigation tabs: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'
-  const [activeTab, setActiveTab] = useState<'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor' | 'discussions'>(initialTab);
 
   useEffect(() => {
     if (initialTab) {
@@ -1717,6 +1718,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <Brain size={20} />
           <span className="text-[10px]">AI Coach</span>
         </button>
+        <button
+          onClick={() => {
+            setActiveTab('discussions');
+            navigate('/discussions');
+          }}
+          className={`w-16 flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${
+            activeTab === 'discussions' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Users size={20} />
+          <span className="text-[10px] text-center leading-tight">Discuss</span>
+        </button>
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -1773,6 +1786,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               className={`px-2.5 py-1 rounded-lg ${activeTab === 'ai-advisor' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
             >
               AI Coach
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('discussions');
+                navigate('/discussions');
+              }}
+              className={`px-2.5 py-1 rounded-lg ${activeTab === 'discussions' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}`}
+            >
+              Discuss
             </button>
           </div>
         </div>
@@ -3689,8 +3711,22 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             </div>
           </div>
         )}
+        {/* -------------------------------------------------------------------
+            TAB: DISCUSSION HUB
+           ------------------------------------------------------------------- */}
+        {activeTab === 'discussions' && (
+          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden min-h-[600px]">
+              <PdfStore 
+                user={user} 
+                onLoginRequest={onLoginRequest || (() => {})} 
+                embedded={true} 
+                initialTab="discussions" 
+              />
+            </div>
+          </div>
+        )}
       </div>
-
       {/* Submit Confirmation Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

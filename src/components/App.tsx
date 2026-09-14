@@ -1254,13 +1254,23 @@ const AppContent: React.FC = () => {
 
           <Route path="/discussions" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
-              <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} initialTab="discussions" />
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                onLoginRequest={() => setIsAuthModalOpen(true)} 
+                initialTab="discussions" 
+              />
             </div>
           } />
 
           <Route path="/discussion-hub" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
-              <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} initialTab="discussions" />
+              <CbtSimulator 
+                user={user} 
+                setIsScholarPackOpen={setIsScholarPackOpen} 
+                onLoginRequest={() => setIsAuthModalOpen(true)} 
+                initialTab="discussions" 
+              />
             </div>
           } />
 

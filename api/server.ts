@@ -5772,7 +5772,7 @@ async function startServer() {
 
 const isVercel = !!process.env.VERCEL || !!process.env.NOW_REGION || !!process.env.VERCEL_URL;
 
-if (!isVercel || process.env.NODE_ENV === 'development') {
+if (true) {
   startServer().catch(err => {
     console.error("[Server Startup Error]:", err);
   });
