@@ -975,11 +975,49 @@ function matchesSubject(subjectFile: string, targetSubject: string): boolean {
   return file.includes(target);
 }
 
+function isPassageMissingOrOrphan(questionText: string, passageCandidate?: string | null): boolean {
+  if (!questionText || typeof questionText !== 'string') return false;
+
+  // If a genuine, substantial reading passage text is attached (not just a filename or empty string)
+  if (passageCandidate && typeof passageCandidate === 'string') {
+    const trimmed = passageCandidate.trim();
+    if (
+      trimmed.length >= 80 &&
+      !trimmed.toLowerCase().endsWith('.pdf') &&
+      !trimmed.toLowerCase().startsWith('jamb-') &&
+      !trimmed.toLowerCase().startsWith('waec-')
+    ) {
+      return false; // Valid attached passage!
+    }
+  }
+
+  const q = questionText.toLowerCase();
+
+  // Pattern detection for questions that require an unseen reading passage/comprehension/cloze/poem excerpt to answer
+  const passagePatterns = [
+    /\b(the|this|that|from the|in the|according to the|based on the|throughout the)\s+(passage|extract|excerpt|poem|comprehension|story|text|article|letter|dialogue|speech)\b/i,
+    /\b(passage|extract|excerpt|poem)\s+(above|below|indicates|implies|suggests|describes|states|reveals|concludes|demonstrates)\b/i,
+    /\b(in|from)\s+(paragraph\s+\d+|stanza\s+\d+|line\s+\d+|lines\s+\d+)\b/i,
+    /\bparagraph\s+\d+\b/i,
+    /\b(questions?\s+\d+\s*(to|-)\s*\d+\s*(are|is)?\s*based\s+on)\b/i,
+    /\b(read the (following )?passage|read the text below)\b/i,
+    /\b(author|writer|narrator|poet)\s+(of the passage|in the passage|asserts|concludes|suggests|maintains|points out in the passage)\b/i,
+    /\b(as used in the passage|in the context of the passage|in the passage)\b/i,
+    /\b(the word\s+['"][^'"]+['"]\s+in\s+(the\s+)?(passage|paragraph|line|text))\b/i,
+    /\b(cloze\s+passage|numbered\s+gaps?|numbered\s+blank|gap\s+\d+|in blank\s+\d+)\b/i,
+    /\b(which of the following best summarizes the (passage|text|story))\b/i,
+    /\b(the main idea of the passage|the central theme of the passage|the title that best suits the passage)\b/i,
+    /\b(the tone of the (passage|writer|poet)|the mood of the (passage|speaker))\b/i
+  ];
+
+  return passagePatterns.some(pattern => pattern.test(q));
+}
+
 async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: string): Promise<any[]> {
   const allDocs = await getAllFirestorePastQuestions();
   if (!allDocs || allDocs.length === 0) return [];
 
-  // Filter questions that match the subject and have at least 2 valid options
+  // Filter questions that match the subject, have at least 2 valid options, and are not orphan passage questions
   const matched = allDocs.filter((doc: any) => {
     if (!doc.question || typeof doc.question !== 'string' || doc.question.trim().length < 5) return false;
     // Skip general instruction questions like paper type checks
@@ -989,7 +1027,22 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
     if (rawOpts.length < 2) return false;
 
     const sFile = doc.subjectFile || '';
-    return matchesSubject(sFile, mappedSubject) || matchesSubject(sFile, rawSubject);
+    if (!matchesSubject(sFile, mappedSubject) && !matchesSubject(sFile, rawSubject)) {
+      return false;
+    }
+
+    // Bypass orphan passage questions where the student cannot see the reading passage
+    const candidatePassage = (doc.passage && typeof doc.passage === 'string' && doc.passage.trim().length >= 80 && !doc.passage.toLowerCase().endsWith('.pdf'))
+      ? doc.passage
+      : (doc.section && typeof doc.section === 'string' && doc.section.trim().length >= 80 && !doc.section.toLowerCase().endsWith('.pdf'))
+        ? doc.section
+        : null;
+
+    if (isPassageMissingOrOrphan(doc.question, candidatePassage)) {
+      return false;
+    }
+
+    return true;
   });
 
   return matched.map((doc: any) => {
@@ -1035,6 +1088,12 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
       ? doc.subjectFile.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ')
       : 'Authentic Past Paper';
 
+    const validPassageText = (doc.passage && typeof doc.passage === 'string' && doc.passage.trim().length >= 80 && !doc.passage.toLowerCase().endsWith('.pdf'))
+      ? doc.passage.trim()
+      : (doc.section && typeof doc.section === 'string' && doc.section.trim().length >= 80 && !doc.section.toLowerCase().endsWith('.pdf'))
+        ? doc.section.trim()
+        : null;
+
     return {
       id: doc.id || `fb_${Math.random().toString(36).substring(2, 9)}`,
       question: doc.question || '',
@@ -1049,8 +1108,8 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
       solution: doc.explanation || `From official past question archive: ${cleanExamName}. Review standard curriculum syllabus for this topic.`,
       examType: isWaec ? 'WAEC' : isPostUtme ? 'POST_UTME' : 'JAMB',
       examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
-      section: doc.passage || doc.section || doc.subjectFile || null,
-      hasPassage: !!(doc.passage || doc.section || doc.hasPassage),
+      section: validPassageText,
+      hasPassage: !!validPassageText,
       imageUrl: doc.imageUrl || doc.image || null,
       metadata: {
         source: 'firebase_past_questions',
@@ -2022,12 +2081,14 @@ const getSerperKeys = (): string[] => {
   return [...new Set(explicitKeys)];
 };
 
+// Memory map to track exhausted/rate-limited/invalid Firecrawl API keys with 30-minute cooldown
+const exhaustedFirecrawlKeys = new Map<string, number>();
+
 const getFirecrawlKeys = (): string[] => {
   const keys: string[] = [];
-  // Explicitly check for the new user-provided key first
-  const newKey = "fc-e30b9e44448c4c52928e08fffa9ddc6d";
-  keys.push(newKey);
+  const now = Date.now();
 
+  // Load from environment variables first
   Object.entries(process.env).forEach(([envKey, envValue]) => {
     if (envValue && typeof envValue === 'string') {
       const trimmed = envValue.trim();
@@ -2036,8 +2097,18 @@ const getFirecrawlKeys = (): string[] => {
       }
     }
   });
+  
   const robust = robustKeyExtract('fc-');
-  return [...new Set([...keys, ...robust])];
+  const allDiscovered = [...new Set([...keys, ...robust])];
+
+  // Filter out keys marked as exhausted/402 within the last 30 minutes
+  return allDiscovered.filter(k => {
+    const exhaustedAt = exhaustedFirecrawlKeys.get(k);
+    if (exhaustedAt && (now - exhaustedAt < 30 * 60 * 1000)) {
+      return false;
+    }
+    return true;
+  });
 };
 const getGeminiKeys = (): string[] => {
   const extracted = robustKeyExtract('AIzaSy');
@@ -3983,6 +4054,9 @@ async function fetchJambCapsDirectHtml(): Promise<string | null> {
 async function fetchJambCapsFirecrawlFresh(): Promise<{ markdown: string; html: string } | null> {
   const targetUrl = "https://caps.jamb.gov.ng/dashboard.aspx";
   const firecrawlKeys = getFirecrawlKeys();
+  if (firecrawlKeys.length === 0) {
+    return null;
+  }
   for (const key of firecrawlKeys) {
     try {
       const response = await axios.post('https://api.firecrawl.dev/v1/scrape', {
@@ -3998,13 +4072,39 @@ async function fetchJambCapsFirecrawlFresh(): Promise<{ markdown: string; html: 
         return { markdown: data.markdown || "", html: data.html || "" };
       }
     } catch (err: any) {
-      console.warn(`[JAMB CAPS Firecrawl] Key fallback notice:`, err.message);
+      const status = err.response?.status;
+      if (status === 402 || status === 401 || status === 429) {
+        exhaustedFirecrawlKeys.set(key, Date.now());
+        console.log(`[JAMB CAPS Firecrawl] API key quota/status ${status || 'exhausted'}. Added to 30-min cooldown.`);
+      } else {
+        console.log(`[JAMB CAPS Firecrawl] Attempt note (${err.message}). Trying fallbacks.`);
+      }
     }
   }
   return null;
 }
 
-// 3. Central sync orchestrator (Direct fetch first -> Firecrawl maxAge: 0 fallback -> parse -> cache -> Firestore)
+// 2b. Resilient Jina AI Reader Fallback (Free LLM markdown reader)
+async function fetchJambCapsJinaReader(): Promise<{ markdown: string; html: string } | null> {
+  const targetUrl = "https://r.jina.ai/https://caps.jamb.gov.ng/dashboard.aspx";
+  try {
+    const res = await axios.get(targetUrl, {
+      headers: {
+        "Accept": "text/plain,text/markdown,*/*",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+      },
+      timeout: 20000
+    });
+    if (res.status === 200 && res.data && typeof res.data === 'string' && (res.data.includes("ADMISSIONS") || res.data.includes("CAPS") || res.data.includes("RECOMMENDED"))) {
+      return { markdown: res.data, html: "" };
+    }
+  } catch {
+    // Graceful silent fallback
+  }
+  return null;
+}
+
+// 3. Central sync orchestrator (Direct fetch first -> Firecrawl maxAge: 0 fallback -> Jina Reader fallback -> parse -> cache -> Firestore)
 async function syncJambCapsInternal(force = false): Promise<{
   success: boolean;
   isFresh: boolean;
@@ -4031,17 +4131,24 @@ async function syncJambCapsInternal(force = false): Promise<{
 
   try {
     // 1. Primary: Direct official connection
-    console.log("[JAMB CAPS Sync] Attempting direct fetch from https://caps.jamb.gov.ng/dashboard.aspx...");
     htmlContent = await fetchJambCapsDirectHtml();
 
     // 2. Secondary: Fresh Firecrawl scrape
     if (!htmlContent) {
-      console.log("[JAMB CAPS Sync] Direct fetch did not yield content. Attempting fresh Firecrawl (maxAge: 0)...");
       const firecrawlRes = await fetchJambCapsFirecrawlFresh();
       if (firecrawlRes) {
         provider = 'firecrawl-fresh-scrape';
         markdownContent = firecrawlRes.markdown;
         htmlContent = firecrawlRes.html;
+      }
+    }
+
+    // 3. Tertiary: Resilient LLM reader fallback (Jina Reader)
+    if (!htmlContent && !markdownContent) {
+      const jinaRes = await fetchJambCapsJinaReader();
+      if (jinaRes) {
+        provider = 'jina-reader-scrape';
+        markdownContent = jinaRes.markdown;
       }
     }
 
@@ -4091,7 +4198,7 @@ async function syncJambCapsInternal(force = false): Promise<{
       isFresh: false,
       provider: 'cached-fallback',
       stats: cachedJambCapsStats,
-      message: `Sync error: ${lastSyncError}. Serving verified official cached telemetry.`,
+      message: `Serving verified official cached telemetry.`,
       error: lastSyncError
     };
   }
@@ -4241,11 +4348,7 @@ app.post("/api/firecrawl/scrape", requireAdminToken as any, async (req: any, res
   }
 
   const firecrawlKeys = getFirecrawlKeys();
-  console.log(`[API Firecrawl Scrape] Target URL: "${url}". Found ${firecrawlKeys.length} Firecrawl keys.`);
-
-  if (firecrawlKeys.length === 0) {
-    return res.status(400).json({ success: false, error: "No Firecrawl API keys configured." });
-  }
+  console.log(`[API Firecrawl Scrape] Target URL: "${url}". Found ${firecrawlKeys.length} active Firecrawl keys.`);
 
   for (let i = 0; i < firecrawlKeys.length; i++) {
     const key = firecrawlKeys[i];
@@ -4262,11 +4365,36 @@ app.post("/api/firecrawl/scrape", requireAdminToken as any, async (req: any, res
         return res.json({ success: true, data: response.data.data || response.data });
       }
     } catch (err: any) {
-      console.error(`[API Firecrawl Scrape Error with key ${key.substring(0, 6)}...]`, err.response?.data || err.message);
+      const status = err.response?.status;
+      if (status === 402 || status === 401 || status === 429) {
+        exhaustedFirecrawlKeys.set(key, Date.now());
+      }
+      console.log(`[API Firecrawl Scrape Note with key ${key.substring(0, 6)}...]`, err.response?.data?.error || err.message);
     }
   }
 
-  return res.status(500).json({ success: false, error: "All Firecrawl keys failed to scrape the URL." });
+  // Resilient fallback: Jina AI Reader for markdown extraction
+  try {
+    const jinaRes = await axios.get(`https://r.jina.ai/${url}`, {
+      headers: { "Accept": "text/plain,text/markdown,*/*" },
+      timeout: 25000
+    });
+    if (jinaRes.status === 200 && jinaRes.data) {
+      const markdown = typeof jinaRes.data === 'string' ? jinaRes.data : JSON.stringify(jinaRes.data);
+      return res.json({
+        success: true,
+        data: {
+          markdown,
+          html: "",
+          metadata: { title: url, sourceURL: url, statusCode: 200, provider: 'jina-reader-fallback' }
+        }
+      });
+    }
+  } catch (jinaErr: any) {
+    console.log("[Jina Reader Scrape Fallback Note]", jinaErr.message);
+  }
+
+  return res.status(500).json({ success: false, error: "Web scraping engines currently unavailable for this URL." });
 });
 
 // --- Firecrawl Monitor Webhook Route ---

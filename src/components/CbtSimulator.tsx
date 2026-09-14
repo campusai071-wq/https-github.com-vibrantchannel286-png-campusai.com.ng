@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, limit as fsLimit } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
@@ -279,10 +279,12 @@ interface CbtSimulatorProps {
   onLoginRequest?: () => void;
   onSignUpRequest?: () => void;
   initialTab?: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor';
+  initialStudyTab?: 'practice' | 'formulas' | 'novels' | 'discussions';
 }
 
-export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, onLoginRequest, onSignUpRequest, initialTab = 'cbt' }: CbtSimulatorProps) {
+export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, onLoginRequest, onSignUpRequest, initialTab = 'cbt', initialStudyTab }: CbtSimulatorProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // If user is not logged in, show Auth Guard requiring Sign Up / Login
   if (!user) {
@@ -604,7 +606,27 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [studyQuestions, setStudyQuestions] = useState<Question[]>([]);
   const [studyAnswers, setStudyAnswers] = useState<Record<string | number, string>>({});
   const [loadingStudy, setLoadingStudy] = useState(false);
-  const [studyTab, setStudyTab] = useState<'practice' | 'formulas' | 'novels' | 'discussions'>('practice');
+  const [studyTab, setStudyTab] = useState<'practice' | 'formulas' | 'novels' | 'discussions'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'discussions' || tabParam === 'discussion') return 'discussions';
+    if (tabParam === 'formulas') return 'formulas';
+    if (tabParam === 'novels') return 'novels';
+    if (initialStudyTab) return initialStudyTab;
+    return 'practice';
+  });
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'discussions' || tabParam === 'discussion') {
+      setStudyTab('discussions');
+    } else if (tabParam === 'formulas') {
+      setStudyTab('formulas');
+    } else if (tabParam === 'novels') {
+      setStudyTab('novels');
+    } else if (tabParam === 'practice') {
+      setStudyTab('practice');
+    }
+  }, [searchParams]);
 
   // ----- AI Tutor Chat Assistant State -----
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
@@ -937,6 +959,42 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     });
   };
 
+  // Helper to detect if a question relies on an unseen reading passage that is missing
+  const isPassageMissingOrOrphan = (questionText: string, passageCandidate?: string | null): boolean => {
+    if (!questionText || typeof questionText !== 'string') return false;
+
+    if (passageCandidate && typeof passageCandidate === 'string') {
+      const trimmed = passageCandidate.trim();
+      if (
+        trimmed.length >= 80 &&
+        !trimmed.toLowerCase().endsWith('.pdf') &&
+        !trimmed.toLowerCase().startsWith('jamb-') &&
+        !trimmed.toLowerCase().startsWith('waec-')
+      ) {
+        return false;
+      }
+    }
+
+    const q = questionText.toLowerCase();
+    const passagePatterns = [
+      /\b(the|this|that|from the|in the|according to the|based on the|throughout the)\s+(passage|extract|excerpt|poem|comprehension|story|text|article|letter|dialogue|speech)\b/i,
+      /\b(passage|extract|excerpt|poem)\s+(above|below|indicates|implies|suggests|describes|states|reveals|concludes|demonstrates)\b/i,
+      /\b(in|from)\s+(paragraph\s+\d+|stanza\s+\d+|line\s+\d+|lines\s+\d+)\b/i,
+      /\bparagraph\s+\d+\b/i,
+      /\b(questions?\s+\d+\s*(to|-)\s*\d+\s*(are|is)?\s*based\s+on)\b/i,
+      /\b(read the (following )?passage|read the text below)\b/i,
+      /\b(author|writer|narrator|poet)\s+(of the passage|in the passage|asserts|concludes|suggests|maintains|points out in the passage)\b/i,
+      /\b(as used in the passage|in the context of the passage|in the passage)\b/i,
+      /\b(the word\s+['"][^'"]+['"]\s+in\s+(the\s+)?(passage|paragraph|line|text))\b/i,
+      /\b(cloze\s+passage|numbered\s+gaps?|numbered\s+blank|gap\s+\d+|in blank\s+\d+)\b/i,
+      /\b(which of the following best summarizes the (passage|text|story))\b/i,
+      /\b(the main idea of the passage|the central theme of the passage|the title that best suits the passage)\b/i,
+      /\b(the tone of the (passage|writer|poet)|the mood of the (passage|speaker))\b/i
+    ];
+
+    return passagePatterns.some(pattern => pattern.test(q));
+  };
+
   // Helper to fetch directly from Firebase Firestore past_questions collection as client fallback
   const fetchQuestionsFromClientFirestore = async (subjectKey: string, limitCount: number = 40): Promise<Question[]> => {
     try {
@@ -971,6 +1029,16 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         if (isMatch && d.question && Array.isArray(d.options) && d.options.filter(Boolean).length >= 2) {
           if (d.question.toLowerCase().includes('question paper type is given to you')) return;
 
+          const candidatePassage = (d.passage && typeof d.passage === 'string' && d.passage.trim().length >= 80 && !d.passage.toLowerCase().endsWith('.pdf'))
+            ? d.passage.trim()
+            : (d.section && typeof d.section === 'string' && d.section.trim().length >= 80 && !d.section.toLowerCase().endsWith('.pdf'))
+              ? d.section.trim()
+              : null;
+
+          if (isPassageMissingOrOrphan(d.question, candidatePassage)) {
+            return;
+          }
+
           const rawOpts = d.options;
           const cleanOpt = (val: any) => (val ? String(val).replace(/^[a-eA-E0-9][.)\s-]+/, '').trim() : '');
           const optA = cleanOpt(rawOpts[0]);
@@ -1002,6 +1070,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             solution: d.explanation || `From official past question archive: ${d.subjectFile ? d.subjectFile.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ') : 'JAMB/WAEC Archive'}`,
             examType: sFile.includes('waec') ? 'WAEC' : 'JAMB',
             examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
+            section: candidatePassage,
+            hasPassage: !!candidatePassage,
             source: 'firebase',
             metadata: {
               source: 'firebase_past_questions',
@@ -1311,7 +1381,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       qs.forEach((q) => {
         const userAns = ans[q.id];
         if (userAns !== undefined && userAns !== null && userAns !== '') {
-          const topicName = q.metadata?.topic || q.section || 'General';
+          const topicName = q.metadata?.topic || (q.section && q.section.length < 50 && !q.section.includes('<') ? q.section : 'General');
           const key = `${subKey}::${topicName}`;
           if (!topicMap[key]) {
             topicMap[key] = { subjectKey: subKey, topic: topicName, attempted: 0, correct: 0, incorrect: 0 };
@@ -2874,13 +2944,6 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     </div>
                   )}
 
-                  {currentQuestion?.section && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs sm:text-sm text-slate-800 leading-relaxed max-h-56 overflow-y-auto">
-                      <strong className="block text-amber-900 font-bold mb-1">Passage / Reference Material:</strong>
-                      <div dangerouslySetInnerHTML={{ __html: currentQuestion.section }} />
-                    </div>
-                  )}
-
                   <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm relative">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -2907,10 +2970,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </button>
                     </div>
 
-                    {currentQuestion.section && currentQuestion.section.trim() !== '' ? (
+                    {currentQuestion.section && currentQuestion.section.trim().length >= 30 && !currentQuestion.section.toLowerCase().endsWith('.pdf') ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 overflow-y-auto max-h-[400px]">
-                          <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Reading Passage</h4>
+                          <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Reading Passage / Excerpt</h4>
                           <div
                             className="text-sm font-medium text-slate-800 leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: currentQuestion.section }}
@@ -3550,7 +3613,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden min-h-[600px]">
                 <PdfStore 
                   user={user} 
-                  onLoginRequest={() => {}} 
+                  onLoginRequest={onLoginRequest || (() => {})} 
                   embedded={true} 
                   initialTab="discussions" 
                 />

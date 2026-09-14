@@ -813,6 +813,10 @@ const AppContent: React.FC = () => {
       setCurrentPage('pdf-store');
       navigate('/pdf-store');
       window.scrollTo(0, 0);
+    } else if (p === 'discussions' || p === 'discussion-hub' || p === 'discussion') {
+      setCurrentPage('discussions');
+      navigate('/discussions');
+      window.scrollTo(0, 0);
     } else if (p === 'checklist' || p === 'admission-checklist') {
       setCurrentPage('checklist');
       navigate('/admission-checklist');
@@ -1245,6 +1249,18 @@ const AppContent: React.FC = () => {
           <Route path="/pdf-store" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
               <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} />
+            </div>
+          } />
+
+          <Route path="/discussions" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} initialTab="discussions" />
+            </div>
+          } />
+
+          <Route path="/discussion-hub" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <PdfStore user={user} onLoginRequest={() => setIsAuthModalOpen(true)} initialTab="discussions" />
             </div>
           } />
 

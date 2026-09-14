@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Upload, Download, Eye, Trash2, Search, Filter, 
@@ -199,7 +200,22 @@ const LOCAL_STORAGE_DISCUSSIONS_KEY = 'campusai_pdf_store_discussions_v2';
 const LOCAL_STORAGE_NOTIFS_KEY = 'campusai_user_notifications_v2';
 
 export const PdfStore: React.FC<PdfStoreProps> = ({ user: propUser, onLoginRequest, embedded = false, initialTab = 'store' }) => {
-  const [activeTab, setActiveTab] = useState<'store' | 'discussions'>(initialTab);
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'store' | 'discussions'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'discussions' || tabParam === 'discussion') return 'discussions';
+    if (tabParam === 'store') return 'store';
+    return initialTab;
+  });
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'discussions' || tabParam === 'discussion') {
+      setActiveTab('discussions');
+    } else if (tabParam === 'store') {
+      setActiveTab('store');
+    }
+  }, [searchParams]);
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
 
   // PDF Store States

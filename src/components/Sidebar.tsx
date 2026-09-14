@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Home, Calendar, Landmark, Zap, Calculator, BookOpen, FileCheck, Activity,
   Newspaper, Award, Brain, Sun, Moon, LogIn, User, Gift, ChevronRight, 
-  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown, MessageSquare
+  CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown, MessageSquare, Users
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
 
@@ -150,6 +150,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       name: 'PDF Store & Vault',
       icon: <FolderDown size={18} />,
       badge: 'PDF Store',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+    },
+    {
+      id: 'discussions',
+      name: 'Discussion Hub',
+      icon: <Users size={18} />,
+      badge: 'Community',
       badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
     },
     {
