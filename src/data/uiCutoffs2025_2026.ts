@@ -164,6 +164,8 @@ export function getUICutoffByCourse(courseName: string): UICutoffProgramme | und
   const aliasMap: Record<string, string> = {
     'medicine': 'Medicine and Surgery',
     'medicine & surgery': 'Medicine and Surgery',
+    'med & surg': 'Medicine and Surgery',
+    'med surg': 'Medicine and Surgery',
     'mbbs': 'Medicine and Surgery',
     'nursing': 'Nursing Science',
     'computer science': 'Computer Science',

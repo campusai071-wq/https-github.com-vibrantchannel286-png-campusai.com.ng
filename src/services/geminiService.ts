@@ -57,7 +57,15 @@ function extractCutoffFallback(course: string, searchData: string | null): numbe
     }
   }
   
-  return 55.0;
+  // Dynamic fallback based on course competitiveness
+  const c = course.toLowerCase();
+  if (c.includes('medicine') || c.includes('surgery') || c.includes('mbbs') || c.includes('law') || c.includes('nursing') || c.includes('pharmacy') || c.includes('dentistry')) {
+    return 72.0;
+  }
+  if (c.includes('engineering') || c.includes('computer') || c.includes('medical lab') || c.includes('radiography') || c.includes('architecture') || c.includes('accounting') || c.includes('economics')) {
+    return 62.0;
+  }
+  return 50.0;
 }
 
 import axios from "axios";
@@ -2148,7 +2156,7 @@ export const getCourseCutoffInfo = async (
       };
     }
 
-    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${resolvedIsELDS}_${resolvedIsCatchment}_${quotaDiscount}_v11`;
+    const cacheKey = `${university}_${course}_${score}_${oLevels}_${cleanJambSubjects.join('_')}_${role || 'Std'}_${isAwaitingResult}_${isPostUtmePending}_${stateOfOrigin || 'None'}_${resolvedIsELDS}_${resolvedIsCatchment}_${quotaDiscount}_v12`;
     const cachedResult = await getCachedCourseCutoffInfo(university, cacheKey);
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
@@ -2245,7 +2253,7 @@ export const getCourseCutoffInfo = async (
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
         cachedResult.cutoff = manualOverride.departmentalCutoff;
-        const parsedCutoffVal = parseFloat(manualOverride.departmentalCutoff.replace(/[^0-9.]/g, '')) || 55.0;
+        const parsedCutoffVal = parseFloat(manualOverride.departmentalCutoff.replace(/[^0-9.]/g, '')) || extractCutoffFallback(course, null);
         const reEval = enforceAdmissionTiers(
           score, parsedCutoffVal, university, course, stateOfOrigin, resolvedIsELDS, resolvedIsCatchment,
           isAwaitingResult, isPostUtmePending, jambScore, postUtmeScore, formulaExplanation, oLevels,
@@ -2622,6 +2630,11 @@ Return JSON:
         parsed.cutoffSource = manualOverride.explanation || "Verified Administrative System Ground Truth";
         parsed.cutoffConfidence = "high";
         parsed.reliability = "high";
+        parsed.verdict = deterministicEvaluation.verdict;
+        parsed.probability = deterministicEvaluation.probability;
+        parsed.recommendation = deterministicEvaluation.recommendation;
+        parsed.detailedStrategy = deterministicEvaluation.detailedStrategy;
+        parsed.scoreDiff = Number((score - cutoffVal).toFixed(2));
       } else {
         // Adopt the model's online/historical extracted cutoff or the search-parsed cutoff
         let cleanDeptCutoff = cutoffVal;
