@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { analyzeCGPA } from '../services/premiumToolsService';
 import { trackCalculatorUsed } from '../services/analytics';
-import { logUserActivity, saveCalculationAttempt } from '../services/dbService';
+import { logUserActivity, saveCalculationAttempt, saveUserCGPA, getUserCGPA } from '../services/dbService';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Course {
   id: string;
@@ -33,6 +34,47 @@ interface CGPACalculatorProps {
 
 export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium, onUpgrade, onLoginRequest, onSignUpRequest }) => {
   const navigate = useNavigate();
+
+
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const loadCGPA = async () => {
+      if (!user) {
+        setIsDataLoaded(true);
+        return;
+      }
+      try {
+        const data = await getUserCGPA(user.uid);
+        if (data) {
+          if (data.semesters && data.semesters.length > 0) {
+            setSemesters(data.semesters);
+            setActiveSemesterId(data.semesters[0].id);
+          }
+          if (data.scale) {
+            setScale(data.scale);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading CGPA", err);
+      } finally {
+        setIsDataLoaded(true);
+      }
+    };
+    loadCGPA();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !isDataLoaded) return;
+    const saveTimer = setTimeout(async () => {
+      setIsSaving(true);
+      await saveUserCGPA(user.uid, semesters, scale);
+      setIsSaving(false);
+    }, 1500); // Debounce saving
+    return () => clearTimeout(saveTimer);
+  }, [semesters, scale, user, isDataLoaded]);
+
 
   // If user is not logged in, show Auth Guard requiring Sign Up / Login
   if (!user) {
@@ -429,6 +471,79 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
             </div>
 
           </div>
+
+
+          {/* CGPA TREND GRAPH */}
+          {semesters.length > 1 && (
+            <div className="bg-white dark:bg-gray-900 rounded-[32px] p-8 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-6">
+                <div className="space-y-1">
+                  <span className="text-xs font-black uppercase tracking-widest text-gray-400">Academic Progression</span>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Semester by Semester GPA Trend</h3>
+                </div>
+                <TrendingUp size={20} className="text-purple-600" />
+              </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={semesters.map((sem, index) => {
+                    const stats = calculateSemesterStats(sem.courses);
+                    // Also calculate cumulative up to this point
+                    const pastSemesters = semesters.slice(0, index + 1);
+                    const cumPoints = pastSemesters.reduce((acc, s) => acc + calculateSemesterStats(s.courses).totalPoints, 0);
+                    const cumUnits = pastSemesters.reduce((acc, s) => acc + calculateSemesterStats(s.courses).totalUnits, 0);
+                    const currentCGPA = cumUnits > 0 ? (cumPoints / cumUnits).toFixed(2) : '0.00';
+                    return {
+                      name: sem.name.replace('Semester', 'Sem'),
+                      GPA: parseFloat(stats.gpa),
+                      CGPA: parseFloat(currentCGPA)
+                    };
+                  })}>
+                    <defs>
+                      <linearGradient id="colorGPA" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#9333ea" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorCGPA" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
+                      dy={10}
+                    />
+                    <YAxis 
+                      domain={[0, scale]} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
+                      dx={-10}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc', fontSize: '12px', fontWeight: 'bold' }}
+                      itemStyle={{ fontWeight: 'bold' }}
+                    />
+                    <Area type="monotone" dataKey="GPA" stroke="#9333ea" strokeWidth={3} fillOpacity={1} fill="url(#colorGPA)" />
+                    <Area type="monotone" dataKey="CGPA" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorCGPA)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-purple-600"></div>
+                  <span className="text-xs font-bold text-gray-500">Semester GPA</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-sky-500"></div>
+                  <span className="text-xs font-bold text-gray-500">Cumulative CGPA</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* SEMESTER TAB SELECTOR & MANAGER */}
           <div className="bg-white dark:bg-gray-900 rounded-[32px] p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-6">

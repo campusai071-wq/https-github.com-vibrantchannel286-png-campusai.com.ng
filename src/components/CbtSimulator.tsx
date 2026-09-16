@@ -978,6 +978,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
     const q = questionText.toLowerCase();
     const passagePatterns = [
+      /\b(the writer apparently believes|when may a journalist|according to the writer|the author argues|the writer states|the narrator is of the opinion|the speaker implies)\b/i,
       /\b(the|this|that|from the|in the|according to the|based on the|throughout the)\s+(passage|extract|excerpt|poem|comprehension|story|text|article|letter|dialogue|speech)\b/i,
       /\b(passage|extract|excerpt|poem)\s+(above|below|indicates|implies|suggests|describes|states|reveals|concludes|demonstrates)\b/i,
       /\b(in|from)\s+(paragraph\s+\d+|stanza\s+\d+|line\s+\d+|lines\s+\d+)\b/i,
@@ -1036,9 +1037,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               ? d.section.trim()
               : null;
 
+          // Strictly drop passage/cloze orphans to ensure only direct questions exist.
           if (isPassageMissingOrOrphan(d.question, candidatePassage)) {
+            // Check if it's explicitly a structural English/Lit question referencing reading material
             return;
           }
+          
+          // Secondary check for "journalist" or similar dangling contextual references often found in passage orphans
+          if (!candidatePassage && (d.question.toLowerCase().includes('writer apparently believes') || d.question.toLowerCase().includes('journalist have to act against') || d.question.toLowerCase().includes('as used in the passage'))) {
+             return;
+          }
+
 
           const rawOpts = d.options;
           const cleanOpt = (val: any) => (val ? String(val).replace(/^[a-eA-E0-9][.)\s-]+/, '').trim() : '');
@@ -1082,7 +1091,101 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         }
       });
 
-      // Shuffle questions
+      // --- START: ENGLISH EXAM BALANCING ALGORITHM ---
+      if (target.includes('english') || target.includes('use of english')) {
+        // We categorize the English questions to ensure a balanced mix of all sections (Oral, Comprehension, Lexis, etc.)
+        const buckets = {
+          oral: [] as Question[],
+          comprehension: [] as Question[],
+          synonyms: [] as Question[],
+          antonyms: [] as Question[],
+          interpretation: [] as Question[],
+          lexis: [] as Question[] // Gap fills / general grammar
+        };
+
+        results.forEach(q => {
+          const qText = q.question.toLowerCase();
+          const passage = (q.section || '').toLowerCase();
+          
+          if (q.hasPassage || passage.length > 80) {
+            q.metadata = { ...q.metadata, topic: 'Comprehension Passage' };
+            buckets.comprehension.push(q);
+          } else if (qText.includes('vowel') || qText.includes('consonant') || qText.includes('rhyme') || qText.includes('stress') || qText.includes('syllable') || qText.includes('sound')) {
+            q.metadata = { ...q.metadata, topic: 'Oral English' };
+            buckets.oral.push(q);
+          } else if (qText.includes('nearest in meaning') || qText.includes('synonym') || qText.includes('closest in meaning')) {
+            q.metadata = { ...q.metadata, topic: 'Lexis: Synonyms' };
+            buckets.synonyms.push(q);
+          } else if (qText.includes('opposite in meaning') || qText.includes('antonym')) {
+            q.metadata = { ...q.metadata, topic: 'Lexis: Antonyms' };
+            buckets.antonyms.push(q);
+          } else if (qText.includes('most appropriate interpretation') || qText.includes('meaning conveyed') || qText.includes('best explains') || qText.includes('implies that')) {
+            q.metadata = { ...q.metadata, topic: 'Lexis: Interpretation' };
+            buckets.interpretation.push(q);
+          } else {
+            q.metadata = { ...q.metadata, topic: 'Lexis and Structure' };
+            buckets.lexis.push(q); // Fill in the gaps / general grammar
+          }
+        });
+
+        // Shuffle each bucket
+        Object.values(buckets).forEach(bucket => {
+          for (let i = bucket.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [bucket[i], bucket[j]] = [bucket[j], bucket[i]];
+          }
+        });
+
+        const balancedResults: Question[] = [];
+        
+        // Distribution ratios (approximate percentages of the limitCount)
+        // Comprehension: 20%, Oral: 15%, Synonyms: 15%, Antonyms: 15%, Interpretation: 15%, Lexis: 20%
+        let counts = {
+          comprehension: Math.max(1, Math.floor(limitCount * 0.20)),
+          oral: Math.max(1, Math.floor(limitCount * 0.15)),
+          synonyms: Math.max(1, Math.floor(limitCount * 0.15)),
+          antonyms: Math.max(1, Math.floor(limitCount * 0.15)),
+          interpretation: Math.max(1, Math.floor(limitCount * 0.15)),
+        };
+        counts['lexis'] = Math.max(1, limitCount - (counts.comprehension + counts.oral + counts.synonyms + counts.antonyms + counts.interpretation));
+
+        // Pull from buckets
+        const pull = (bucketName: keyof typeof buckets, needed: number) => {
+          for (let i = 0; i < needed; i++) {
+            if (buckets[bucketName].length > 0) {
+              balancedResults.push(buckets[bucketName].pop()!);
+            }
+          }
+        };
+
+        pull('comprehension', counts.comprehension);
+        pull('oral', counts.oral);
+        pull('synonyms', counts.synonyms);
+        pull('antonyms', counts.antonyms);
+        pull('interpretation', counts.interpretation);
+        pull('lexis', counts.lexis);
+
+        // Fill any remaining slots (if some buckets didn't have enough) with whatever is left, preferring lexis
+        let remaining = limitCount - balancedResults.length;
+        const allRemaining = [...buckets.lexis, ...buckets.synonyms, ...buckets.antonyms, ...buckets.oral, ...buckets.interpretation, ...buckets.comprehension];
+        
+        for (let i = 0; i < remaining; i++) {
+          if (allRemaining.length > 0) {
+            balancedResults.push(allRemaining.pop()!);
+          }
+        }
+
+        // Final shuffle of the selected balanced questions so sections aren't grouped sequentially in a predictable way
+        for (let i = balancedResults.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [balancedResults[i], balancedResults[j]] = [balancedResults[j], balancedResults[i]];
+        }
+
+        return balancedResults;
+      }
+      // --- END: ENGLISH EXAM BALANCING ALGORITHM ---
+
+      // Default Shuffle for other subjects
       for (let i = results.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [results[i], results[j]] = [results[j], results[i]];
@@ -2978,6 +3081,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                             Session Saved
                           </span>
                         )}
+                        {currentSubjectQuestions[currentIndex]?.metadata?.topic && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black uppercase text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200 tracking-wider">
+                            {currentSubjectQuestions[currentIndex].metadata.topic}
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => toggleBookmark(currentQuestion.id)}
@@ -2997,7 +3105,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 overflow-y-auto max-h-[400px]">
                           <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Reading Passage / Excerpt</h4>
                           <div
-                            className="text-sm font-medium text-slate-800 leading-relaxed"
+                            className="text-sm font-medium text-slate-800 leading-relaxed prose prose-sm prose-slate max-w-none"
                             dangerouslySetInnerHTML={{ __html: currentQuestion.section }}
                           />
                         </div>

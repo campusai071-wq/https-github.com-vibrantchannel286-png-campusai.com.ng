@@ -87,6 +87,7 @@ import { searchWeb, searchWebRaw } from "./searchService";
 import { getUniversityFromDB } from "../data/universityData";
 import { searchJAMBKnowledgeBase } from "../data/jambKnowledgeBase";
 import { searchSyllabuses } from "../data/syllabuses";
+import { getOAURequirementByCourse, OAU_REQUIREMENTS } from "../data/oauRequirements";
 import { getUICutoffByCourse } from "../data/uiCutoffs2025_2026";
 import { getFUTACutoffByCourse } from "../data/futaCutoffs2026_2027";
 import { getLAUTECHCutoffByCourse, getLAUTECHAggregateBenchmark } from "../data/lautechCutoffs2025_2026";
@@ -2467,6 +2468,20 @@ export const getCourseCutoffInfo = async (
     };
 
     let overridePrompt = "";
+    const isOAU = university.toLowerCase().includes("oau") || university.toLowerCase().includes("obafemi awolowo");
+    if (isOAU) {
+      const oauReq = getOAURequirementByCourse(course);
+      if (oauReq) {
+        overridePrompt += `\n\n⚠️ CRITICAL SYSTEM OVERRIDE (OAU OFFICIAL ADMISSION REQUIREMENTS):
+- Faculty: ${oauReq.faculty}
+- Course: ${oauReq.course}
+- Mandatory UTME Subjects: ${oauReq.utmeRequirements}
+- Mandatory O'Level Subjects: ${oauReq.olevelRequirements}
+- Direct Entry (DE): ${oauReq.directEntryRequirements}
+You MUST strictly evaluate the candidate's O-Level and JAMB subjects against these exact OAU requirements. If the candidate's subjects do not match these, they are 100% disqualified.\n\n`;
+      }
+    }
+
     if (manualOverride) {
       overridePrompt = `⚠️ CRITICAL SYSTEM OVERRIDE (MANDATORY ADMISSION GROUND TRUTH):
 - The official, verified departmental cut-off score for "${course}" at "${university}" is EXCLUSIVELY: "${manualOverride.departmentalCutoff}".
@@ -3224,11 +3239,20 @@ const prepareChatContext = async (sanitizedMessage: string, todayStr: string) =>
 
   let learnedKnowledge = "";
   if (Array.isArray(allKnowledge) && allKnowledge.length > 0) {
-    const msgLower = String(sanitizedMessage).toLowerCase();
 
     // Broadened: catches any question about current admission activity/status,
     // not just literal words like "cutoff" or "deadline"
+    const msgLower = String(sanitizedMessage).toLowerCase();
     const isTimeSensitiveQuery = /cutoff|deadline|stage|status|release|screening|form|portal|date|started|start|open|closed|closing|active|progress|admission|register|registration|caps|post.?utme|jamb|202[4-9]/i.test(msgLower);
+
+    
+    // Inject OAU Requirements if mentioned
+    if (msgLower.includes("oau") || msgLower.includes("obafemi awolowo")) {
+      
+      // Format minimally to save tokens
+      const oauContext = OAU_REQUIREMENTS.map(r => `- ${r.course}: UTME(${r.utmeRequirements}), OLevel(${r.olevelRequirements}), DE(${r.directEntryRequirements})`).join('\n');
+      learnedKnowledge += "\n\nOFFICIAL OAU ADMISSION REQUIREMENTS (ALWAYS USE THIS FOR OAU SUBJECT REQUIREMENTS):\n" + oauContext + "\n\n";
+    }
 
     if (!isTimeSensitiveQuery) {
       const knowledge = allKnowledge.filter((k: any) => {

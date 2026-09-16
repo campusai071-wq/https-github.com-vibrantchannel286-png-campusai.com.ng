@@ -2718,3 +2718,40 @@ export const createDiscussion = async (thread: Omit<DiscussionThread, 'id' | 'cr
 };
 
 
+
+export interface UserCGPA {
+  semesters: any[];
+  scale: 4 | 5;
+  updatedAt: any;
+}
+
+export const saveUserCGPA = async (userId: string, semesters: any[], scale: 4 | 5) => {
+  if (!db) return false;
+  try {
+    const docRef = doc(db, 'users', userId, 'userData', 'cgpa');
+    await setDoc(docRef, {
+      semesters,
+      scale,
+      updatedAt: Timestamp.now()
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('Failed to save user CGPA:', err);
+    return false;
+  }
+};
+
+export const getUserCGPA = async (userId: string): Promise<UserCGPA | null> => {
+  if (!db) return null;
+  try {
+    const docRef = doc(db, 'users', userId, 'userData', 'cgpa');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as UserCGPA;
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to get user CGPA:', err);
+    return null;
+  }
+};
