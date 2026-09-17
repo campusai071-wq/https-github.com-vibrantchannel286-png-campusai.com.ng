@@ -39,6 +39,24 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [scale, setScale] = useState<5 | 4>(5);
+  const [semesters, setSemesters] = useState<Semester[]>([
+    {
+      id: 'sem-1',
+      name: 'Year 1 - First Semester',
+      courses: [
+        { id: 'c-1', code: 'GST111', units: 2, grade: 'A' },
+        { id: 'c-2', code: 'MTH101', units: 3, grade: 'B' },
+        { id: 'c-3', code: 'CHM101', units: 3, grade: 'A' },
+        { id: 'c-4', code: 'PHY101', units: 3, grade: 'C' }
+      ]
+    }
+  ]);
+  const [activeSemesterId, setActiveSemesterId] = useState<string>('sem-1');
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [newSemName, setNewSemName] = useState('');
+
   useEffect(() => {
     const loadCGPA = async () => {
       if (!user) {
@@ -170,24 +188,6 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
       </div>
     );
   }
-  const [scale, setScale] = useState<5 | 4>(5);
-  const [semesters, setSemesters] = useState<Semester[]>([
-    {
-      id: 'sem-1',
-      name: 'Year 1 - First Semester',
-      courses: [
-        { id: 'c-1', code: 'GST111', units: 2, grade: 'A' },
-        { id: 'c-2', code: 'MTH101', units: 3, grade: 'B' },
-        { id: 'c-3', code: 'CHM101', units: 3, grade: 'A' },
-        { id: 'c-4', code: 'PHY101', units: 3, grade: 'C' }
-      ]
-    }
-  ]);
-
-  const [activeSemesterId, setActiveSemesterId] = useState<string>('sem-1');
-  const [aiAnalysis, setAiAnalysis] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [newSemName, setNewSemName] = useState('');
 
   // Grade point mapping
   const getGradePoint = (grade: string, currentScale: 5 | 4) => {
