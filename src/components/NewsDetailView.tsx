@@ -22,6 +22,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NewsCard } from './NewsGrid';
 import { OfficialPdfDownloadCard } from './OfficialPdfDownloadCard';
+import { formatNewsPostTime } from '../utils/dateUtils';
 import AdUnit from './AdUnit';
 
 interface NewsDetailViewProps {
@@ -36,33 +37,7 @@ interface NewsDetailViewProps {
 
 const getFallbackDateStr = (item: NewsItem | null): string => {
   if (!item) return "";
-  const dateStr = item.date ? item.date.trim() : "";
-  const isBracketed = dateStr.includes("[") || dateStr.includes("]");
-  if (dateStr && !isBracketed) return dateStr;
-  
-  const val = item.archivedAt || item.createdAt || item.updatedAt;
-  let ms = 0;
-  if (val) {
-    if (typeof val.toMillis === 'function') ms = val.toMillis();
-    else if (typeof val.toDate === 'function') ms = val.toDate().getTime();
-    else if (typeof val === 'object') {
-      if ('seconds' in val) ms = val.seconds * 1000;
-      else if ('_seconds' in val) ms = val._seconds * 1000;
-    }
-    else if (typeof val === 'number') ms = val;
-    else {
-      const t = new Date(val).getTime();
-      ms = isNaN(t) ? 0 : t;
-    }
-  }
-  
-  if (ms > 0) {
-    return new Date(ms).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-      timeZone: 'Africa/Lagos'
-    });
-  }
-  return "RECENTLY";
+  return formatNewsPostTime(item).combinedDetail;
 };
 
 const XVideoEmbed: React.FC<{ tweetId: string; cleanHref: string }> = ({ tweetId, cleanHref }) => {
@@ -803,8 +778,8 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         {/* Author / actions row */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-8 mb-12 border-b border-gray-100 dark:border-gray-800">
           <div className="flex flex-wrap items-center gap-2 text-[12px] font-semibold text-gray-600 dark:text-slate-300">
-             <Clock size={14} className="shrink-0" />
-             <span>Published {getFallbackDateStr(news)}</span>
+             <Clock size={14} className="shrink-0 text-blue-500" />
+             <span>Published <strong className="text-gray-900 dark:text-white font-bold">{formatNewsPostTime(news).dateTimeStr}</strong> <span className="inline-flex items-center px-2 py-0.5 ml-1 rounded-full text-[11px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-cyan-400 border border-blue-500/20">{formatNewsPostTime(news).timeAgo}</span></span>
              <span className="mx-1">•</span>
              <User size={14} className="shrink-0" />
              <span>By <span className="text-[#0eb38c] font-bold">Emmanuel Iweh</span></span>

@@ -39,6 +39,7 @@ import { ADMIN_TOKEN } from '../lib/adminAuth';
 import PredictionDetailsModal from './PredictionDetailsModal';
 import CalculationStats from './CalculationStats';
 import { FileUploadHubModal } from './FileUploadHubModal';
+import { formatNewsPostTime } from '../utils/dateUtils';
 
 // ─── Nigerian timezone helpers ────────────────────────────────────────────────
 
@@ -2673,7 +2674,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {!item.isLive && <span className="px-2 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded-full">Review Required</span>}
                               </div>
                               <div className="flex items-center gap-2">
-                                <p className="text-[10px] text-gray-600 dark:text-slate-300 font-bold uppercase tracking-widest">{item.category} • {item.date}</p>
+                                <p className="text-[10px] text-gray-600 dark:text-slate-300 font-bold uppercase tracking-widest">{item.category} • {formatNewsPostTime(item).combinedCard}</p>
                                 <button onClick={() => { setEditingDateId(item.id); setEditedDateValue(item.date); }} className="p-1 opacity-0 group-hover:opacity-100 text-blue-500 hover:scale-110 transition-all"><Edit size={10} /></button>
                               </div>
                             </div>

@@ -494,7 +494,7 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
                     const currentCGPA = cumUnits > 0 ? (cumPoints / cumUnits).toFixed(2) : '0.00';
                     return {
                       name: sem.name.replace('Semester', 'Sem'),
-                      GPA: parseFloat(stats.gpa),
+                      GPA: typeof stats.gpa === 'number' ? stats.gpa : parseFloat(String(stats.gpa)),
                       CGPA: parseFloat(currentCGPA)
                     };
                   })}>

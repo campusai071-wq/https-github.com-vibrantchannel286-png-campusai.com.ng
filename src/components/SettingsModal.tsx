@@ -4,6 +4,7 @@ import { X, Save, Database, Layout, CheckCircle2, Moon, Sun, Lock, LogOut, Plus,
 import { motion, AnimatePresence } from 'framer-motion';
 import { SocialLink, AdminState, BillboardAd, NewsItem, UniversityCategory } from '../types';
 import { getPublishedNews, publishNewsUpdate, deleteNewsUpdate } from '../services/dbService';
+import { formatNewsPostTime } from '../utils/dateUtils';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -485,7 +486,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
                             <div className="overflow-hidden">
                                <p className="font-bold text-xs dark:text-white truncate">{news.title}</p>
-                               <p className="text-[10px] font-bold text-gray-400 uppercase">{news.category} • {news.date}</p>
+                               <p className="text-[10px] font-bold text-gray-400 uppercase">{news.category} • {formatNewsPostTime(news).combinedCard}</p>
                             </div>
                           </div>
                           <button onClick={() => handleDeletePost(news.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">

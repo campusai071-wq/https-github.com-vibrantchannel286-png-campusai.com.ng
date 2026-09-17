@@ -4,7 +4,8 @@ import { triggerBrowserNotification, slugify } from '../services/utils';
 import { 
   Calendar, RefreshCw, Newspaper, Brain, ShieldCheck, Box, Bookmark,
   BookmarkCheck, Plus, Database, Search, ArrowRight, Zap, Activity,
-  Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon, ThumbsUp
+  Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon, ThumbsUp,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UniversityCategory, NewsItem } from '../types';
@@ -19,6 +20,7 @@ import {
   getArticleLikesCount, toggleArticleLike
 } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
+import { formatNewsPostTime } from '../utils/dateUtils';
 import AdUnit from './AdUnit';
 import QuotaModal from './QuotaModal';
 import NewsEditModal from './NewsEditModal';
@@ -59,17 +61,7 @@ const toMs = (val: any): number => {
 
 const formatFallbackDate = (item: NewsItem): string => {
   if (!item) return "RECENT UPDATE";
-  if (item.date && typeof item.date === 'string' && item.date.trim() && !item.date.includes("[") && !item.date.includes("]")) {
-    return item.date.trim();
-  }
-  const ms = getSyncTime(item);
-  if (ms > 0) {
-    return new Date(ms).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-      timeZone: 'Africa/Lagos'
-    });
-  }
-  return "RECENT UPDATE";
+  return formatNewsPostTime(item).combinedCard;
 };
 
 const getHotIndexScore = (item: NewsItem): number => {
@@ -229,9 +221,10 @@ export const NewsCard: React.FC<{
           </h3>
 
           <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2 mt-auto">
-            <div className="flex items-center gap-1.5 truncate">
-              <span>{formatFallbackDate(news)}</span>
-              {news.category && <span className="text-blue-600 font-black">• {news.category}</span>}
+            <div className="flex items-center gap-1.5 truncate" title={formatNewsPostTime(news).dateTimeStr}>
+              <Clock size={10} className="shrink-0 text-blue-500/90" />
+              <span className="text-gray-700 dark:text-slate-300 font-extrabold normal-case tracking-tight">{formatFallbackDate(news)}</span>
+              {news.category && <span className="text-blue-600 font-black shrink-0">• {news.category}</span>}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">

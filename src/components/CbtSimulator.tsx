@@ -1146,8 +1146,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           synonyms: Math.max(1, Math.floor(limitCount * 0.15)),
           antonyms: Math.max(1, Math.floor(limitCount * 0.15)),
           interpretation: Math.max(1, Math.floor(limitCount * 0.15)),
+          lexis: 0,
         };
-        counts['lexis'] = Math.max(1, limitCount - (counts.comprehension + counts.oral + counts.synonyms + counts.antonyms + counts.interpretation));
+        counts.lexis = Math.max(1, limitCount - (counts.comprehension + counts.oral + counts.synonyms + counts.antonyms + counts.interpretation));
 
         // Pull from buckets
         const pull = (bucketName: keyof typeof buckets, needed: number) => {
