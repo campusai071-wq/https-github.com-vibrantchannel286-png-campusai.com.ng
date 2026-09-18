@@ -592,6 +592,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [timeElapsedSeconds, setTimeElapsedSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const isSubmittingExamRef = useRef(false);
+  // Anti-repetition question cache tracking across test retakes and practices
+  const sessionSeenQuestionIdsRef = useRef<Set<string>>(new Set());
 
   // ----- Review & AI Explanations -----
   const [explanations, setExplanations] = useState<Record<string | number, ExplanationData>>({});
@@ -1231,6 +1233,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
     try {
       const results: Record<string, Question[]> = {};
+      const requestTimestamp = Date.now();
+      const currentExcludedIds = Array.from(sessionSeenQuestionIdsRef.current);
+      const activeSessionKey = `cbt_exam_${user?.uid || 'scholar'}_${requestTimestamp}`;
+
       for (const subjectKey of selectedSubjects) {
         // According to JAMB standard: English has 60, others have 40 when testMode is 'full'
         const limit = testMode === 'full' 
@@ -1248,14 +1254,22 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               examType,
               limit,
               fresh: true,
-              seed: Math.random().toString(36).substring(2, 9),
-              t: Date.now()
+              timestamp: requestTimestamp,
+              t: requestTimestamp,
+              excludeIds: currentExcludedIds,
+              sessionId: activeSessionKey,
+              userId: user?.uid || 'guest',
+              seed: Math.random().toString(36).substring(2, 9)
             }),
           });
           const data = await response.json();
 
           if (response.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
             questionsArray = data.data;
+            // Record seen IDs in the session ref to prevent repeating questions
+            questionsArray.forEach((q: Question) => {
+              if (q && q.id) sessionSeenQuestionIdsRef.current.add(String(q.id));
+            });
           } else {
             console.warn(`[CBT] ALOC API response empty or notice for ${subjectKey}:`, data.message);
           }
@@ -1647,6 +1661,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const fetchTopicStudyQuestions = async () => {
     setLoadingStudy(true);
     try {
+      const reqTimestamp = Date.now();
+      const excludeIds = Array.from(sessionSeenQuestionIdsRef.current);
       const res = await fetch('/api/aloc/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1654,13 +1670,20 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           subject: studySubject,
           limit: 15,
           fresh: true,
-          seed: Math.random().toString(36).substring(2, 9),
-          t: Date.now()
+          timestamp: reqTimestamp,
+          t: reqTimestamp,
+          excludeIds,
+          userId: user?.uid || 'guest',
+          sessionId: `study_${user?.uid || 'guest'}_${reqTimestamp}`,
+          seed: Math.random().toString(36).substring(2, 9)
         })
       });
       const data = await res.json();
       if (data.success && data.data) {
-        const tagged = (data.data as Question[]).map(q => ({ ...q, __subject: studySubject }));
+        const tagged = (data.data as Question[]).map(q => {
+          if (q && q.id) sessionSeenQuestionIdsRef.current.add(String(q.id));
+          return { ...q, __subject: studySubject };
+        });
         setStudyQuestions(tagged);
         setStudyAnswers({});
       }

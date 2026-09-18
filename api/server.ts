@@ -1170,11 +1170,31 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
 }
 
 // =============================================================================
-// ALOC-ONLY CBT ASSESSMENT ENGINE (Guaranteed Freshness & Vault Cache)
+// ALOC-ONLY CBT ASSESSMENT ENGINE (Multi-Endpoint, Timestamp Cache Invalidation & Anti-Repetition)
 // =============================================================================
 const alocQuestionsVault: Map<string, Map<string, any>> = new Map();
 const recentlyServedBySubject: Map<string, string[]> = new Map();
 const vaultLoadedSubjects: Set<string> = new Set();
+
+// Timestamp-based Cache Invalidation & Session Tracking
+interface SubjectCacheMeta {
+  lastFetchedAt: number;
+  lastInvalidatedAt: number;
+  version: number;
+}
+const subjectCacheMeta: Map<string, SubjectCacheMeta> = new Map();
+const userSessionHistory: Map<string, { seenIds: Set<string>; lastAccessed: number }> = new Map();
+const ALOC_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache TTL
+
+// Clean up stale session histories every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of userSessionHistory.entries()) {
+    if (now - val.lastAccessed > 2 * 60 * 60 * 1000) {
+      userSessionHistory.delete(key);
+    }
+  }
+}, 30 * 60 * 1000);
 
 function normalizeAlocQuestion(q: any, fallbackSubject: string): any {
   const rawOptions = q.options || q.option || {};
@@ -1204,7 +1224,8 @@ function normalizeAlocQuestion(q: any, fallbackSubject: string): any {
     },
     category: q.category || 'official_aloc_question',
     questionNumber: q.questionNumber || null,
-    source: 'aloc'
+    source: 'aloc',
+    fetchedAt: Date.now()
   };
 }
 
@@ -1259,7 +1280,59 @@ async function persistAlocQuestionsToFirestore(subject: string, questions: any[]
   }
 }
 
-// 1. Fetch Questions Endpoint (STRICTLY ALOC-ONLY for CBT with Guaranteed Freshness)
+// Multi-Endpoint ALOC Live Upstream Fetcher
+async function fetchFromAlocUpstream(subject: string, examType?: string, year?: string | number, limit = 15): Promise<any[]> {
+  const apiKey = getAlocApiKey();
+  const configuredBaseUrl = getAlocBaseUrl();
+  const baseUrls = Array.from(new Set([
+    configuredBaseUrl,
+    "https://questions.aloc.com.ng/api/v2",
+    "https://questions.aloc.com.ng/api",
+    "https://dev.aloc.com.ng/api/v1"
+  ].filter(Boolean)));
+
+  const yearsPool = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012];
+  const selectedYear = year || yearsPool[Math.floor(Math.random() * yearsPool.length)];
+
+  for (const baseUrl of baseUrls) {
+    const endpoints = [
+      `${baseUrl}/m?subject=${encodeURIComponent(subject)}&year=${selectedYear}&random=true&limit=${limit}`,
+      `${baseUrl}/questions?subject=${encodeURIComponent(subject)}&year=${selectedYear}&random=true&limit=${limit}`,
+      `${baseUrl}/m?subject=${encodeURIComponent(subject)}&random=true&limit=${limit}`,
+      `${baseUrl}/questions?subject=${encodeURIComponent(subject)}&random=true&limit=${limit}`,
+      `${baseUrl}/q?subject=${encodeURIComponent(subject)}`
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await axios.get(endpoint, {
+          headers: {
+            "AccessToken": apiKey,
+            "x-api-key": apiKey,
+            "Authorization": `Bearer ${apiKey}`,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Client-Type": "web-applet",
+            "X-Is-Agent": "true"
+          },
+          timeout: 6000
+        });
+
+        const rawData = res.data?.data || res.data;
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          return rawData;
+        } else if (rawData && typeof rawData === 'object' && (rawData.question || rawData.id)) {
+          return [rawData];
+        }
+      } catch {
+        // Silently try next endpoint
+      }
+    }
+  }
+  return [];
+}
+
+// 1. Fetch Questions Endpoint (STRICTLY ALOC-ONLY for CBT with Timestamp Cache Invalidation & Anti-Repetition)
 app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (req: any, res: any) => {
   try {
     const rawSubject = (req.body?.subject || req.query?.subject || 'english').toLowerCase().trim();
@@ -1267,6 +1340,14 @@ app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (re
     const examType = (req.body?.examType || req.query?.examType || 'jamb').toLowerCase();
     const totalRequested = Math.min(Math.max(Number(req.body?.limit || req.query?.limit || 10), 1), 60);
     const year = req.body?.year || req.query?.year;
+    
+    // Timestamp parameters for cache invalidation
+    const clientTimestamp = Number(req.body?.timestamp || req.body?.t || req.query?.t || Date.now());
+    const isClientFresh = Boolean(req.body?.fresh || req.query?.fresh || req.body?.forceRefresh);
+    const clientExcludeIds: string[] = Array.isArray(req.body?.excludeIds) 
+      ? req.body.excludeIds.map(String) 
+      : [];
+    const sessionId = String(req.body?.sessionId || req.body?.userId || req.body?.seed || 'default_scholar_session');
 
     // 1. Ensure memory pool is initialized and loaded from Firestore cache
     if (!alocQuestionsVault.has(mappedSubject)) {
@@ -1275,130 +1356,124 @@ app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (re
     await loadAlocVaultFromFirestore(mappedSubject);
 
     const pool = alocQuestionsVault.get(mappedSubject)!;
-    const apiKey = getAlocApiKey();
-    const baseUrl = getAlocBaseUrl();
 
-    // 2. Fetch fresh batch from ALOC Station API with random=true
-    // We attempt up to 2 batches of 15 questions to inject new fresh questions directly
-    const maxBatchesToTry = pool.size < totalRequested ? Math.min(4, Math.ceil(totalRequested / 15)) : 1;
+    // 2. Timestamp-based Cache Invalidation Logic
+    let meta = subjectCacheMeta.get(mappedSubject);
+    if (!meta) {
+      meta = { lastFetchedAt: 0, lastInvalidatedAt: 0, version: 1 };
+      subjectCacheMeta.set(mappedSubject, meta);
+    }
+
+    const now = Date.now();
+    const isCacheExpired = (now - meta.lastFetchedAt) > ALOC_CACHE_TTL_MS;
+    const isClientForcingInvalidation = isClientFresh && (now - meta.lastInvalidatedAt > 5000);
+    const isPoolUnderpopulated = pool.size < (totalRequested + 15);
+
     let newAlocQuestionsFetched: any[] = [];
 
-    for (let batch = 0; batch < maxBatchesToTry; batch++) {
-      try {
-        const batchLimit = Math.min(15, totalRequested);
-        const params: any = {
-          subject: mappedSubject,
-          limit: batchLimit,
-          random: "true" // CRITICAL: Always randomize so ALOC serves fresh questions across years!
-        };
-        if (examType && examType !== 'all') {
-          params.examType = examType;
-        }
-        if (year) {
-          params.year = year;
-        }
+    // Trigger fresh upstream fetch if invalidated by timestamp, cache expiration, or underpopulated pool
+    if (isCacheExpired || isClientForcingInvalidation || isPoolUnderpopulated) {
+      meta.lastInvalidatedAt = now;
+      meta.lastFetchedAt = now;
+      meta.version += 1;
 
-        let response;
+      const maxBatchesToTry = pool.size < totalRequested ? Math.min(4, Math.ceil(totalRequested / 15)) : 1;
+      for (let batch = 0; batch < maxBatchesToTry; batch++) {
         try {
-          response = await axios.get(`${baseUrl}/questions`, {
-            params,
-            headers: {
-              "X-API-Key": apiKey,
-              "Accept": "application/json",
-              "X-Client-Type": "web-applet",
-              "X-Is-Agent": "true"
-            },
-            timeout: 8000
-          });
-        } catch (callErr: any) {
-          // If 404 with examType (e.g. WAEC requested for JAMB-only subject in ALOC), retry without examType
-          if (callErr.response?.status === 404 && params.examType) {
-            delete params.examType;
-            response = await axios.get(`${baseUrl}/questions`, {
-              params,
-              headers: {
-                "X-API-Key": apiKey,
-                "Accept": "application/json",
-                "X-Client-Type": "web-applet",
-                "X-Is-Agent": "true"
-              },
-              timeout: 8000
-            });
-          } else {
-            throw callErr;
-          }
-        }
-
-        const items = response.data?.data || [];
-        if (Array.isArray(items) && items.length > 0) {
-          for (const rawQ of items) {
-            const normalized = normalizeAlocQuestion(rawQ, mappedSubject);
-            if (normalized.question && normalized.question.trim().length > 0) {
-              pool.set(normalized.id, normalized);
-              newAlocQuestionsFetched.push(normalized);
+          const batchLimit = Math.min(15, totalRequested);
+          const rawItems = await fetchFromAlocUpstream(mappedSubject, examType, year, batchLimit);
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            for (const rawQ of rawItems) {
+              const normalized = normalizeAlocQuestion(rawQ, mappedSubject);
+              if (normalized.question && normalized.question.trim().length > 0) {
+                pool.set(normalized.id, normalized);
+                newAlocQuestionsFetched.push(normalized);
+              }
             }
+          } else {
+            break;
           }
-        } else {
+          if (batch < maxBatchesToTry - 1) {
+            await new Promise(r => setTimeout(r, 200));
+          }
+        } catch {
           break;
         }
+      }
 
-        // Slight delay between multiple batches if fetching more than one to avoid rate limiting
-        if (batch < maxBatchesToTry - 1) {
-          await new Promise(r => setTimeout(r, 300));
-        }
-      } catch (alocErr: any) {
-        const status = alocErr.response?.status;
-        console.warn(`[ALOC API Notice] Subject ${mappedSubject} HTTP ${status || 'ERR'}:`, alocErr.response?.data?.message || alocErr.message);
-        // If 429 rate limit or network error, stop live calls and rely on accumulated pool
-        break;
+      // Persist new questions to Firestore vault asynchronously
+      if (newAlocQuestionsFetched.length > 0) {
+        persistAlocQuestionsToFirestore(mappedSubject, newAlocQuestionsFetched).catch(() => {});
       }
     }
 
-    // Persist any newly discovered ALOC questions to Firestore in background
-    if (newAlocQuestionsFetched.length > 0) {
-      persistAlocQuestionsToFirestore(mappedSubject, newAlocQuestionsFetched).catch(() => {});
+    // 3. Anti-Repetition Selection Algorithm
+    // Retrieve session history
+    let sessionRecord = userSessionHistory.get(sessionId);
+    if (!sessionRecord) {
+      sessionRecord = { seenIds: new Set<string>(), lastAccessed: now };
+      userSessionHistory.set(sessionId, sessionRecord);
     }
+    sessionRecord.lastAccessed = now;
 
-    // 3. Selection with Anti-Repetition Freshness Algorithm
+    // Combine all exclude sets (client explicit excludes, session seen IDs, and recent subject history)
+    const combinedExcludeSet = new Set<string>([
+      ...clientExcludeIds,
+      ...Array.from(sessionRecord.seenIds),
+      ...(recentlyServedBySubject.get(mappedSubject) || []).slice(-100)
+    ]);
+
     const allAvailable = Array.from(pool.values()).filter(q => q && q.question && q.option && (q.option.a || q.option.b));
-    
+
     if (allAvailable.length === 0) {
       console.warn(`[ALOC Engine] No ALOC questions available for ${mappedSubject}, generating syllabus-aligned backup questions`);
       const fallbackData = await generateMockQuestions(mappedSubject, examType.toUpperCase());
-      return res.json(fallbackData);
+      return res.json({
+        ...fallbackData,
+        freshness: "generated_syllabus",
+        timestamp: now,
+        cacheVersion: meta.version
+      });
     }
 
-    const recentlyServed = recentlyServedBySubject.get(mappedSubject) || [];
-    const recentlyServedSet = new Set(recentlyServed);
-
-    // Split pool into fresh (unserved recently) vs previously served
-    const unserved = allAvailable.filter(q => !recentlyServedSet.has(q.id));
-    const previouslyServed = allAvailable.filter(q => recentlyServedSet.has(q.id));
+    // Partition pool into unseen (fresh) vs already seen
+    const unseenQuestions = allAvailable.filter(q => !combinedExcludeSet.has(String(q.id)));
+    const seenQuestions = allAvailable.filter(q => combinedExcludeSet.has(String(q.id)));
 
     let picked: any[] = [];
 
-    // Shuffle unserved and pick as many as possible
-    const shuffledUnserved = shuffleArray(unserved);
-    picked.push(...shuffledUnserved.slice(0, totalRequested));
+    // Prioritize 100% unseen questions
+    const shuffledUnseen = shuffleArray(unseenQuestions);
+    picked.push(...shuffledUnseen.slice(0, totalRequested));
 
-    // If more are needed to reach totalRequested, fill with shuffled previously served questions
-    if (picked.length < totalRequested && previouslyServed.length > 0) {
+    // If more questions needed to meet limit, draw from least recently served / seen pool
+    if (picked.length < totalRequested && seenQuestions.length > 0) {
       const remainingNeeded = totalRequested - picked.length;
-      const shuffledPrev = shuffleArray(previouslyServed);
-      picked.push(...shuffledPrev.slice(0, remainingNeeded));
+      const shuffledSeen = shuffleArray(seenQuestions);
+      picked.push(...shuffledSeen.slice(0, remainingNeeded));
     }
 
-    // Final Fisher-Yates shuffle of the picked questions for varied exam ordering
+    // Final Fisher-Yates shuffle for randomized presentation
     const finalQuestions = shuffleArray(picked);
 
-    // Update recently served tracking (capped at 300 so questions can eventually cycle back)
-    const newServedIds = [...recentlyServed, ...finalQuestions.map((q: any) => q.id)];
+    // Update Session History & Global Tracking with the served IDs
+    for (const q of finalQuestions) {
+      sessionRecord.seenIds.add(String(q.id));
+    }
+    // Cap session history to prevent unbounded memory growth
+    if (sessionRecord.seenIds.size > 600) {
+      const idsArray = Array.from(sessionRecord.seenIds);
+      sessionRecord.seenIds = new Set(idsArray.slice(idsArray.length - 400));
+    }
+
+    const recentlyServed = recentlyServedBySubject.get(mappedSubject) || [];
+    const newServedIds = [...recentlyServed, ...finalQuestions.map((q: any) => String(q.id))];
     if (newServedIds.length > 300) {
       newServedIds.splice(0, newServedIds.length - 300);
     }
     recentlyServedBySubject.set(mappedSubject, newServedIds);
 
-    console.log(`[ALOC Engine] Served ${finalQuestions.length}/${totalRequested} fresh ALOC questions for ${mappedSubject} (Pool: ${allAvailable.length}, Fresh Injections: ${newAlocQuestionsFetched.length})`);
+    console.log(`[ALOC Engine] Served ${finalQuestions.length}/${totalRequested} questions for ${mappedSubject} (Fresh Pool: ${unseenQuestions.length}/${allAvailable.length}, New Live: ${newAlocQuestionsFetched.length}, Version: ${meta.version})`);
 
     return res.json({
       success: true,
@@ -1407,6 +1482,15 @@ app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (re
       subject: mappedSubject,
       total: finalQuestions.length,
       source: 'aloc',
+      freshness: {
+        timestamp: now,
+        clientTimestamp,
+        lastInvalidatedAt: meta.lastInvalidatedAt,
+        cacheVersion: meta.version,
+        isFreshlyInvalidated: isCacheExpired || isClientForcingInvalidation,
+        unseenQuestionsCount: unseenQuestions.length,
+        poolSize: allAvailable.length
+      },
       composition: {
         aloc: finalQuestions.length,
         firebase: 0,
@@ -1417,7 +1501,11 @@ app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (re
   } catch (err: any) {
     console.error("[CBT ALOC Proxy Error]:", err.message);
     const fallbackData = await generateMockQuestions('english', 'JAMB');
-    return res.json(fallbackData);
+    return res.json({
+      ...fallbackData,
+      timestamp: Date.now(),
+      freshness: "fallback"
+    });
   }
 });
 
@@ -4139,28 +4227,35 @@ function parseJambCapsData(payload: string | { markdown?: string; html?: string 
   };
 }
 
-// 1. Direct fetcher to https://caps.jamb.gov.ng/dashboard.aspx (Authoritative source)
+// 1. Direct fetcher to official JAMB CAPS portal (Authoritative source)
 async function fetchJambCapsDirectHtml(): Promise<string | null> {
-  const targetUrl = "https://caps.jamb.gov.ng/dashboard.aspx";
-  try {
-    const res = await axios.get(targetUrl, {
-      httpsAgent: new https.Agent({ rejectUnauthorized: false, keepAlive: true }),
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Cache-Control": "no-cache, no-store",
-        "Pragma": "no-cache",
-        "Referer": "https://caps.jamb.gov.ng/"
-      },
-      timeout: 25000,
-      maxRedirects: 5
-    });
-    if (res.status === 200 && res.data && typeof res.data === 'string' && res.data.includes("ADMISSIONS' SUMMARY")) {
-      return res.data;
+  const targetUrls = [
+    "https://caps.jamb.gov.ng/dashboard.aspx",
+    "https://caps.jamb.gov.ng/app_candidates/dashboard.aspx",
+    "https://caps.jamb.gov.ng/"
+  ];
+
+  for (const targetUrl of targetUrls) {
+    try {
+      const res = await axios.get(targetUrl, {
+        httpsAgent: new https.Agent({ rejectUnauthorized: false, keepAlive: true }),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Cache-Control": "no-cache, no-store",
+          "Pragma": "no-cache",
+          "Referer": "https://caps.jamb.gov.ng/"
+        },
+        timeout: 15000,
+        maxRedirects: 5,
+        validateStatus: (status) => status >= 200 && status < 400
+      });
+      if (res.status === 200 && res.data && typeof res.data === 'string' && res.data.includes("ADMISSIONS' SUMMARY")) {
+        return res.data;
+      }
+    } catch {
+      // Graceful silent fallback to secondary scrape/cache
     }
-  } catch (err: any) {
-    // Non-critical network/upstream variation; fall back gracefully to Firecrawl or cached stats
-    console.log("[JAMB CAPS Direct Fetch] Primary attempt note:", err.message);
   }
   return null;
 }
@@ -4180,7 +4275,7 @@ async function fetchJambCapsFirecrawlFresh(): Promise<{ markdown: string; html: 
         maxAge: 0 // CRITICAL: bypasses Firecrawl cache so fresh numbers are retrieved!
       }, {
         headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-        timeout: 25000
+        timeout: 20000
       });
       const data = response.data?.data || response.data;
       if (data && (data.markdown || data.html)) {
@@ -4190,9 +4285,6 @@ async function fetchJambCapsFirecrawlFresh(): Promise<{ markdown: string; html: 
       const status = err.response?.status;
       if (status === 402 || status === 401 || status === 429) {
         exhaustedFirecrawlKeys.set(key, Date.now());
-        console.log(`[JAMB CAPS Firecrawl] API key quota/status ${status || 'exhausted'}. Added to 30-min cooldown.`);
-      } else {
-        console.log(`[JAMB CAPS Firecrawl] Attempt note (${err.message}). Trying fallbacks.`);
       }
     }
   }
@@ -4208,7 +4300,8 @@ async function fetchJambCapsJinaReader(): Promise<{ markdown: string; html: stri
         "Accept": "text/plain,text/markdown,*/*",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
       },
-      timeout: 20000
+      timeout: 15000,
+      validateStatus: (status) => status >= 200 && status < 400
     });
     if (res.status === 200 && res.data && typeof res.data === 'string' && (res.data.includes("ADMISSIONS") || res.data.includes("CAPS") || res.data.includes("RECOMMENDED"))) {
       return { markdown: res.data, html: "" };

@@ -511,7 +511,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
         return filtered;
       }
     } catch (e: any) {
-      console.warn("getCloudNews: Direct Firestore fetch skipped/timed out, falling back to proxy/mock:", e?.message || e);
+      console.debug?.("[Cloud News] Direct fetch note, using proxy/cached fallback:", e?.message || e);
     }
   }
 
@@ -555,7 +555,7 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       return category ? processed.filter(n => n.category === category) : processed;
     }
   } catch (e: any) {
-    console.warn("getCloudNews: Proxy fetch fallback notice:", e?.message || e);
+    console.debug?.("[Cloud News] Proxy fetch note:", e?.message || e);
   }
 
   // Final fallback to MOCK_NEWS if DB/Proxy are completely offline
