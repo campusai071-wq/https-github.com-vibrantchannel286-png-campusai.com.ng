@@ -11,7 +11,7 @@ import { stringify } from '../services/utils';
 import { UserProfile, UserRole } from '../types';
 import { auth, googleProvider } from '../services/firebaseConfig';
 // @ts-ignore
-import { signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateProfile } from "firebase/auth";
 import { initializeUserProfile, trackReferral } from '../services/userService';
 import { trackSignUp } from '../services/analytics';
 import { Capacitor } from '@capacitor/core';
@@ -110,7 +110,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
 
         if (auth) {
           const userCred = await createUserWithEmailAndPassword(auth, email, password);
-          await initializeUserProfile(userCred.user, role);
+          if (displayName && userCred.user) {
+            try {
+              await updateProfile(userCred.user, { displayName });
+            } catch (pErr) {
+              console.warn("Failed to update auth profile displayName:", pErr);
+            }
+          }
+          await initializeUserProfile(userCred.user, role, { displayName, email });
 
           // GA4 Event: sign_up
           trackSignUp({ method: 'email_password', role: role, user_id: userCred.user?.uid });
@@ -138,7 +145,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
 
       if (auth) {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
-        await initializeUserProfile(userCred.user);
+        await initializeUserProfile(userCred.user, undefined, { email });
         handleAuthDone(email);
       } else {
         const mockDB = JSON.parse(localStorage.getItem('campusai_mock_db') || '{}');
@@ -194,7 +201,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ user, onSuccess }) => {
           localStorage.removeItem('campusai_referral_code');
         }
 
-        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined);
+        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined, {
+          displayName: userCred.user.displayName || undefined,
+          email: userCred.user.email || undefined,
+          photoURL: userCred.user.photoURL || undefined
+        });
 
         handleAuthDone(userCred.user?.email || 'google-user');
       } else {

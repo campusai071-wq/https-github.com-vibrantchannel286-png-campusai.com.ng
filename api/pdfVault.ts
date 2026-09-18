@@ -16,37 +16,7 @@ try {
 const memoryCache = new Map<string, { meta: any; buffer: Buffer }>();
 
 // Known official source documents with authentic downloads
-export const OFFICIAL_PRESET_METADATA: Record<string, any> = {
-  "waec-gce-timetable-2026": {
-    id: "waec-gce-timetable-2026",
-    title: "Download 2026 WAEC GCE Second Series Timetable (PDF)",
-    category: "General Notes",
-    fileSize: "166 KB",
-    uploadDate: "2026-08-30",
-    description: "Official WAEC WASSCE for Private Candidates (Second Series) examination timetable containing complete dates, paper codes, morning and afternoon sessions, and guidelines for candidates.",
-    author: "West African Examinations Council (WAEC)",
-    authorId: "official-admin",
-    institution: "WAEC Nigeria",
-    downloadUrl: "https://myschool.ng/storage/blog_files/vmFx7tFaHz77FNjsyB1OG7D6tdoqa8pttOz2lmVD.pdf",
-    pageCount: 3,
-    isUserUploaded: false,
-    isSyntheticFallback: false
-  },
-  "jamb-math-pq-2026": {
-    id: "jamb-math-pq-2026",
-    title: "JAMB Mathematics Past Questions & Answers (1983-2004) - 64 Pages",
-    category: "Past Questions",
-    fileSize: "2.4 MB",
-    uploadDate: "2026-08-20",
-    description: "Complete 64-page JAMB Mathematics Past Questions compilation (1983-2004) with comprehensive practice questions, diagrams, and step-by-step solutions for UTME candidates.",
-    author: "JAMB Examination Archives & CampusAI Academic Team",
-    authorId: "official-admin",
-    institution: "Joint Admissions and Matriculation Board",
-    pageCount: 64,
-    isUserUploaded: false,
-    isSyntheticFallback: false
-  }
-};
+export const OFFICIAL_PRESET_METADATA: Record<string, any> = {};
 
 // Load metadata from disk on boot
 function loadMetadata(): Record<string, any> {

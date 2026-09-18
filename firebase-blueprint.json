@@ -433,6 +433,10 @@
     "cbt_history/{historyId}": {
       "schema": "object",
       "description": "Persistent history of completed CBT exam attempts, subject breakdown, and scores."
+    },
+    "aloc_questions_vault/{questionId}": {
+      "schema": "object",
+      "description": "Persistent cache and vault of authentic ALOC past examination questions."
     }
   }
 }

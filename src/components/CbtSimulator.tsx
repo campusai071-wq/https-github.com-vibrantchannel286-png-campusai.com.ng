@@ -73,7 +73,7 @@ import {
 import institutionsTree from '../data/institutionsTree.json';
 import masterCourses from '../data/masterCourses.json';
 import { trackCbtInteraction } from '../services/analytics';
-import { logUserActivity, saveCalculationAttempt } from '../services/dbService';
+import { logUserActivity, saveCalculationAttempt, saveGlobalCbtRecord } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
 import AdUnit from './AdUnit';
 
@@ -140,6 +140,7 @@ export interface CbtExamRecord {
   id: string;
   userId: string;
   userEmail?: string;
+  userName?: string;
   examType: string;
   testMode: string;
   score: number;
@@ -928,7 +929,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       action: 'resume',
       exam_type: s.examType || 'jamb',
       test_mode: s.testMode || 'practice',
-      subject_count: s.selectedSubjects?.length || 0
+      subject_count: s.selectedSubjects?.length || 0,
+      user_id: user?.uid,
+      user_email: user?.email,
+      user_name: user?.displayName
     });
   };
 
@@ -945,6 +949,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         console.error('[CBT] Error discarding exam session:', err);
       }
     }
+
+    trackCbtInteraction({
+      action: 'abandon',
+      exam_type: pendingResumeSession?.examType || examType,
+      test_mode: pendingResumeSession?.testMode || testMode,
+      subject_count: pendingResumeSession?.selectedSubjects?.length || selectedSubjects.length,
+      time_elapsed: timeElapsedSeconds,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
+
     localStorage.removeItem('campus_cbt_active_session_id');
     setActiveSessionId(null);
     setPendingResumeSession(null);
@@ -1232,6 +1247,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               subject: subjectKey,
               examType,
               limit,
+              fresh: true,
+              seed: Math.random().toString(36).substring(2, 9),
+              t: Date.now()
             }),
           });
           const data = await response.json();
@@ -1239,21 +1257,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           if (response.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
             questionsArray = data.data;
           } else {
-            console.warn(`[CBT] API response empty or notice for ${subjectKey}:`, data.message);
+            console.warn(`[CBT] ALOC API response empty or notice for ${subjectKey}:`, data.message);
           }
         } catch (apiErr) {
-          console.warn(`[CBT] API fetch failed for ${subjectKey}, falling back to Firestore:`, apiErr);
+          console.warn(`[CBT] ALOC API fetch error for ${subjectKey}:`, apiErr);
         }
 
-        // Direct client Firestore fallback if API is unavailable or returned empty
-        if (!questionsArray || questionsArray.length === 0) {
-          questionsArray = await fetchQuestionsFromClientFirestore(subjectKey, limit);
-        }
-
+        // STRICTLY ALOC-ONLY FOR CBT (No Firestore mixing or fallback)
         if (questionsArray && Array.isArray(questionsArray) && questionsArray.length > 0) {
           results[subjectKey] = questionsArray;
         } else {
-          throw new Error(`No questions available for ${subjectKey}. Please select another subject.`);
+          throw new Error(`Unable to load authentic ALOC questions for ${subjectKey}. Please try again.`);
         }
       }
 
@@ -1287,11 +1301,18 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setIsTimerRunning(true);
       setStarted(true);
 
+      const calculatedTotalQuestions = Object.values(results).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+
       trackCbtInteraction({
         action: 'start',
         exam_type: examType,
         test_mode: testMode,
-        subject_count: selectedSubjects.length
+        subject_count: selectedSubjects.length,
+        selected_subjects: selectedSubjects,
+        total_questions: calculatedTotalQuestions,
+        user_id: user?.uid,
+        user_email: user?.email,
+        user_name: user?.displayName
       });
 
       // Save shuffled question IDs and temporary session state to Firestore
@@ -1370,10 +1391,32 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
       return updated;
     });
+
+    trackCbtInteraction({
+      action: 'question_answered',
+      exam_type: examType,
+      test_mode: testMode,
+      current_subject: subjectKey,
+      question_index: typeof questionId === 'number' ? questionId : undefined,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
   };
 
   const toggleBookmark = (questionId: string | number) => {
-    setBookmarkedQuestions((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
+    setBookmarkedQuestions((prev) => {
+      const updated = { ...prev, [questionId]: !prev[questionId] };
+      return updated;
+    });
+
+    trackCbtInteraction({
+      action: 'question_flagged',
+      exam_type: examType,
+      test_mode: testMode,
+      current_subject: activeSubjectKey,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
   };
 
   // Trigger submission and fetch AI score analysis
@@ -1436,13 +1479,23 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       return newHistory;
     });
 
+    const scorePercentage = examType === 'post_utme' 
+      ? (totalQuestions > 0 ? Math.round((totalRawScore / totalQuestions) * 100) : 0) 
+      : Math.round(finalScore / 4);
+
     trackCbtInteraction({
-      action: 'complete',
+      action: timeLeft <= 0 ? 'auto_submit' : 'complete',
       exam_type: examType,
       test_mode: testMode,
       subject_count: selectedSubjects.length,
-      score_percentage: examType === 'post_utme' ? (totalQuestions > 0 ? (totalRawScore / totalQuestions) * 100 : 0) : (finalScore / 4), // Normalize to 100
-      time_elapsed: timeElapsedSeconds
+      selected_subjects: selectedSubjects,
+      score_percentage: scorePercentage,
+      score_raw: totalRawScore,
+      total_questions: totalQuestions,
+      time_elapsed: timeElapsedSeconds,
+      user_id: user?.uid,
+      user_email: user?.email,
+      user_name: user?.displayName
     });
 
     // Prepare subject breakdown for AI analysis
@@ -1507,12 +1560,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       accuracy: t.attempted > 0 ? Math.round((t.correct / t.attempted) * 100) : 0
     }));
 
-    // Save completed exam attempt to Firestore cbt_history collection permanently
+    // Save completed exam attempt to Firestore cbt_history & user activities permanently
     const historyId = `cbt_att_${Date.now()}`;
     const newRecord: CbtExamRecord = {
       id: historyId,
       userId: user?.uid || 'guest',
       userEmail: user?.email || '',
+      userName: user?.displayName || user?.email || 'Scholar',
       examType,
       testMode,
       score: finalScore,
@@ -1532,30 +1586,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       createdAt: new Date().toISOString(),
     };
 
-    setDoc(doc(db, 'cbt_history', historyId), newRecord)
-      .then(() => {
-        console.log('[CBT] Exam attempt successfully saved to Firestore:', historyId);
-      })
-      .catch((err) => {
-        console.error('[CBT] Error saving exam attempt to Firestore:', err);
-      });
-
-    logUserActivity({
-      userId: user?.uid || 'guest-cbt',
-      type: 'calculation',
-      title: 'CBT Simulator Test Completed',
-      description: `Completed ${examType.toUpperCase()} Exam by ${user?.displayName || user?.email || 'Scholar'} (${user?.email || 'guest'}): Score ${totalRawScore}/${totalQuestions} (${newRecord.percentage}%)`
-    });
+    await saveGlobalCbtRecord(newRecord);
 
     setCbtHistoryList((prev) => {
       if (prev.some(r => r.id === newRecord.id)) return prev;
-      const updated = [newRecord, ...prev];
-      try {
-        localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(updated.slice(0, 50)));
-      } catch (e) {
-        console.warn('Failed to cache CBT history locally', e);
-      }
-      return updated;
+      return [newRecord, ...prev];
     });
 
     setLoadingAiAnalysis(true);
@@ -1618,6 +1653,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         body: JSON.stringify({
           subject: studySubject,
           limit: 15,
+          fresh: true,
+          seed: Math.random().toString(36).substring(2, 9),
+          t: Date.now()
         })
       });
       const data = await res.json();
@@ -2160,16 +2198,44 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     onClick={() => {
                       if (newMonthInput && typeof newScoreInput === 'number') {
                         const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const manualId = `manual-${Date.now()}`;
                         setProgressHistory(prev => [
                           ...prev,
                           {
-                            id: `manual-${Date.now()}`,
+                            id: manualId,
                             month: newMonthInput,
                             score: newScoreInput,
                             date: now,
                             examType: 'Mock Log'
                           }
                         ]);
+
+                        saveGlobalCbtRecord({
+                          id: manualId,
+                          userId: user?.uid || 'guest-cbt',
+                          userEmail: user?.email || '',
+                          userName: user?.displayName || user?.email || 'Scholar',
+                          examType: 'Tutorial Mock Log',
+                          testMode: newMonthInput,
+                          score: newScoreInput,
+                          totalRawScore: newScoreInput,
+                          totalQuestions: 400,
+                          percentage: Math.round((newScoreInput / 400) * 100),
+                          formattedDate: now,
+                          createdAt: new Date().toISOString()
+                        });
+
+                        trackCbtInteraction({
+                          action: 'manual_score_logged',
+                          exam_type: 'mock_log',
+                          test_mode: newMonthInput,
+                          score_raw: newScoreInput,
+                          score_percentage: Math.round((newScoreInput / 400) * 100),
+                          user_id: user?.uid,
+                          user_email: user?.email,
+                          user_name: user?.displayName
+                        });
+
                         setNewMonthInput('');
                         setNewScoreInput('');
                       }
@@ -3028,7 +3094,17 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       return (
                         <button
                           key={key}
-                          onClick={() => setActiveSubjectKey(key)}
+                          onClick={() => {
+                            setActiveSubjectKey(key);
+                            trackCbtInteraction({
+                              action: 'subject_switch',
+                              exam_type: examType,
+                              test_mode: testMode,
+                              current_subject: key,
+                              user_id: user?.uid,
+                              user_email: user?.email
+                            });
+                          }}
                           className={`px-4 py-3 text-xs sm:text-sm font-extrabold border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
                             isActive
                               ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'

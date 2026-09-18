@@ -38,6 +38,12 @@ export const UserProfileSchema = z.object({
   role: z.preprocess((val) => {
     if (typeof val !== 'string') return 'Pre-Admission';
     const clean = val.trim().toLowerCase();
+    if (clean.includes('super admin')) {
+      return 'Super Admin';
+    }
+    if (clean.includes('admin')) {
+      return 'Admin';
+    }
     if (clean.includes('pre-admission') || clean.includes('preadmission') || clean.includes('student')) {
       return 'Pre-Admission';
     }
@@ -47,11 +53,11 @@ export const UserProfileSchema = z.object({
     if (clean.includes('graduate') || clean.includes('alumni')) {
       return 'Graduate/Alumni';
     }
-    if (clean.includes('school') || clean.includes('institution') || clean.includes('admin') || clean.includes('educator')) {
+    if (clean.includes('school') || clean.includes('institution') || clean.includes('educator')) {
       return 'School/Institution';
     }
     return 'Pre-Admission';
-  }, z.enum(['Pre-Admission', 'In-Campus', 'Graduate/Alumni', 'School/Institution'])),
+  }, z.enum(['Pre-Admission', 'In-Campus', 'Graduate/Alumni', 'School/Institution', 'Super Admin', 'Admin'])),
   age: z.string().optional(),
   gender: z.string().optional(),
   last_active: z.string().optional(),

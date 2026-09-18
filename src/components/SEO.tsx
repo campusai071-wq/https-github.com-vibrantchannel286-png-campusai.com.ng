@@ -34,20 +34,27 @@ const SEO: React.FC<SEOProps> = ({
   section = "JAMB News"
 }) => {
   const siteName = "CampusAI Nigeria";
-  const defaultDescription = "Nigeria's premier higher education platform: JAMB CBT exam simulator, university aggregate calculators, cutoff marks, institutional portals, syllabus explorer, and CGPA studio.";
+  const defaultDescription = "Nigeria's premier academic and admission platform: JAMB CBT exam simulator, university aggregate calculators, cutoff marks, and higher education portals.";
   
   const siteDomain = "https://campusai.com.ng";
   const rawPath = typeof window !== 'undefined' ? window.location.pathname : "";
   const cleanPath = rawPath === '/' ? '' : rawPath.split('?')[0].replace(/\/+$/, "");
   
-  // SEO standards: Title < 70, Desc between 70 and 160
-  const rawDesc = description || defaultDescription;
-  const paddedDesc = rawDesc.length < 70 
-    ? `${rawDesc} - Practice JAMB CBT exams, calculate aggregate scores, view cutoff marks, and explore academic portals on CampusAI.ng.` 
-    : rawDesc;
-  const cleanDescription = paddedDesc.length > 160
-    ? paddedDesc.substring(0, 157) + '...'
-    : paddedDesc;
+  // SEO standards: Title < 70, Desc ideally between 130 and 160 characters
+  let baseDesc = (description || defaultDescription).trim();
+  if (baseDesc.length < 130) {
+    if (baseDesc.endsWith('.')) {
+      baseDesc = `${baseDesc} Practice CBT past questions, calculate aggregate scores, and check 2026 cutoffs on CampusAI.`;
+    } else {
+      baseDesc = `${baseDesc}. Practice CBT past questions, calculate aggregate scores, and check 2026 cutoffs on CampusAI.`;
+    }
+  }
+  let cleanDescription = baseDesc;
+  if (cleanDescription.length > 160) {
+    const truncated = cleanDescription.substring(0, 157);
+    const lastSpace = truncated.lastIndexOf(' ');
+    cleanDescription = (lastSpace > 50 ? truncated.substring(0, lastSpace) : truncated) + '...';
+  }
 
   let formattedTitle = "CampusAI.ng | Nigeria's Academic & Admission Intelligence Platform";
   if (title) {

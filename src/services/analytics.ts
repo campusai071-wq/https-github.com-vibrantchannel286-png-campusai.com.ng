@@ -306,25 +306,101 @@ export const trackPurchase = (data: {
 };
 
 // ─── 8. cbt_exam_interaction ────────────────────────────────────────────────
-export const trackCbtInteraction = (data: {
-  action: 'start' | 'complete' | 'abandon' | 'resume' | 'submit_early';
+export interface CbtTrackingData {
+  action: 'start' | 'complete' | 'abandon' | 'resume' | 'submit_early' | 'auto_submit' | 'pause' | 'question_answered' | 'question_flagged' | 'subject_switch' | 'review_answers' | 'ai_explanation_requested' | 'manual_score_logged' | 'retake' | 'reset';
   exam_type: string;
-  test_mode: string;
+  test_mode?: string;
   subject_count?: number;
+  selected_subjects?: string[];
+  current_subject?: string;
+  question_index?: number;
+  total_questions?: number;
+  score_raw?: number;
   score_percentage?: number;
   time_elapsed?: number;
-}) => {
+  user_id?: string;
+  user_email?: string;
+  user_name?: string;
+}
+
+export const trackCbtInteraction = (data: CbtTrackingData) => {
   trackCustomEvent('cbt_interaction', {
     action: data.action,
     exam_type: data.exam_type,
-    test_mode: data.test_mode,
+    test_mode: data.test_mode || 'standard',
     subject_count: data.subject_count,
     score_percentage: data.score_percentage,
+    score_raw: data.score_raw,
+    total_questions: data.total_questions,
     time_elapsed: data.time_elapsed,
+    current_subject: data.current_subject,
+    question_index: data.question_index,
+    user_id: data.user_id,
+    user_email: data.user_email
   });
 
   if (data.exam_type) claritySet('cbt_exam_type', data.exam_type);
+  if (data.test_mode) claritySet('cbt_test_mode', data.test_mode);
   if (data.score_percentage !== undefined) claritySet('cbt_last_score', String(data.score_percentage));
+  if (data.action === 'start') clarityUpgrade('cbt_exam_started');
+  if (data.action === 'complete' || data.action === 'submit_early' || data.action === 'auto_submit') {
+    clarityUpgrade('cbt_exam_completed');
+  }
+};
+
+// ─── 9. cgpa_interaction ───────────────────────────────────────────────────
+export interface CgpaTrackingData {
+  action: 'scale_switch' | 'calculate' | 'semester_add' | 'semester_delete' | 'course_add' | 'course_update' | 'course_delete' | 'ai_advisor_run' | 'goal_simulate' | 'transcript_export' | 'reset' | 'sync_cloud';
+  scale?: 4 | 5;
+  cgpa?: number | string;
+  honours_class?: string;
+  semesters_count?: number;
+  courses_count?: number;
+  total_units?: number;
+  total_points?: number;
+  semester_name?: string;
+  course_code?: string;
+  course_grade?: string;
+  institution?: string;
+  user_id?: string;
+  user_email?: string;
+  user_name?: string;
+}
+
+export const trackCGPAInteraction = (data: CgpaTrackingData) => {
+  trackCustomEvent('cgpa_interaction', {
+    action: data.action,
+    scale: data.scale,
+    cgpa: data.cgpa ? Number(data.cgpa) : undefined,
+    honours_class: data.honours_class,
+    semesters_count: data.semesters_count,
+    courses_count: data.courses_count,
+    total_units: data.total_units,
+    total_points: data.total_points,
+    semester_name: data.semester_name,
+    course_code: data.course_code,
+    institution: data.institution,
+    user_id: data.user_id,
+    user_email: data.user_email
+  });
+
+  if (data.scale) claritySet('cgpa_scale', `${data.scale}.0`);
+  if (data.cgpa !== undefined) claritySet('cgpa_score', String(data.cgpa));
+  if (data.honours_class) claritySet('cgpa_honours', data.honours_class);
+  if (data.action === 'ai_advisor_run') clarityUpgrade('cgpa_ai_advisor_used');
+  if (data.action === 'calculate' && Number(data.cgpa) > 0) clarityUpgrade('cgpa_calculated');
+};
+
+// ─── 10. general_tool_interaction ──────────────────────────────────────────
+export const trackToolInteraction = (tool: 'cbt' | 'cgpa' | 'calculator' | 'syllabus' | 'cutoff', action: string, details?: any) => {
+  trackCustomEvent('tool_interaction', {
+    tool,
+    action,
+    ...details
+  });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('campusai_activity_logged', { detail: { tool, action, details } }));
+  }
 };
 
 

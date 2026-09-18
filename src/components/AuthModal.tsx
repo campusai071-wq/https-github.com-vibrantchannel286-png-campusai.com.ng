@@ -5,7 +5,7 @@ import { stringify } from '../services/utils';
 import { UserProfile, UserRole } from '../types';
 import { auth, googleProvider } from '../services/firebaseConfig';
 // @ts-ignore
-import { signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, sendPasswordResetEmail, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, updateProfile } from "firebase/auth";
 import { initializeUserProfile } from '../services/userService';
 import { trackReferral } from '../services/userService';
 import { trackSignUp } from '../services/analytics';
@@ -96,7 +96,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
         
         if (auth) {
           const userCred = await createUserWithEmailAndPassword(auth, email, password);
-          await initializeUserProfile(userCred.user, role);
+          if (displayName && userCred.user) {
+            try {
+              await updateProfile(userCred.user, { displayName });
+            } catch (pErr) {
+              console.warn("Failed to update auth profile displayName:", pErr);
+            }
+          }
+          await initializeUserProfile(userCred.user, role, { displayName, email });
           
           // GA4 Event: sign_up
           trackSignUp({ method: 'email_password', role: role, user_id: userCred.user?.uid });
@@ -126,7 +133,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
 
       if (auth) {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
-        await initializeUserProfile(userCred.user);
+        await initializeUserProfile(userCred.user, undefined, { email });
         onSuccess(email);
         onClose();
       } else {
@@ -177,9 +184,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
           localStorage.removeItem('campusai_referral_code');
         }
         
-        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined);
+        await initializeUserProfile(userCred.user, mode === 'signup' ? role : undefined, {
+          displayName: userCred.user.displayName || undefined,
+          email: userCred.user.email || undefined,
+          photoURL: userCred.user.photoURL || undefined
+        });
         
-        onSuccess('google-auth-user');
+        onSuccess(userCred.user?.email || 'google-auth-user');
         onClose();
       } else {
         setError("Cloud link temporarily restricted: Firebase Auth not initialized.");

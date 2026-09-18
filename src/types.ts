@@ -1,5 +1,5 @@
 
-export type UserRole = 'Pre-Admission' | 'In-Campus' | 'Graduate/Alumni' | 'School/Institution';
+export type UserRole = 'Pre-Admission' | 'In-Campus' | 'Graduate/Alumni' | 'School/Institution' | 'Super Admin' | 'Admin';
 
 export type UniversityCategory = 'All' | 'Federal' | 'State' | 'Private' | 'JAMB' | 'Polytechnic' | 'COE' | 'National' | 'Jobs' | 'Scholarships' | 'NYSC' | 'WAEC' | 'NECO';
 
@@ -178,7 +178,7 @@ export interface Scholarship {
 export interface UserActivity {
   id: string;
   userId: string;
-  type: 'calculation' | 'news_read' | 'profile_update' | 'install_click';
+  type: 'calculation' | 'news_read' | 'profile_update' | 'install_click' | 'cbt_exam' | 'cbt_attempt' | 'cgpa_calculation';
   title: string;
   description: string;
   timestamp: any; // Firebase Timestamp or string
@@ -246,6 +246,9 @@ export interface UserProfile {
   referral_code?: string;
   referral_count?: number;
   registration_reward_granted?: boolean;
+  createdAt?: string;
+  updated_at?: string;
+  journey_progress?: number[];
 }
 
 export interface PostUtmeInfo {

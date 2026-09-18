@@ -468,10 +468,10 @@ export const getCloudNews = async (includeFuture: boolean = false, includeJunk: 
       
       const q = query(newsRef, ...constraints);
 
-      // Race getDocs against a 3000ms timeout to prevent hanging on slow network or offline states
+      // Race getDocs against a 6000ms timeout to prevent hanging on slow network or offline states
       const querySnapshot = await Promise.race([
         getDocs(q),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore client fetch timeout")), 3000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore client fetch timeout")), 6000))
       ]) as any;
 
       const cloudNews: NewsItem[] = [];
@@ -2724,6 +2724,235 @@ export interface UserCGPA {
   scale: 4 | 5;
   updatedAt: any;
 }
+
+export interface CbtHistoryRecord {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  examType: string;
+  testMode?: string;
+  score: number;
+  totalRawScore: number;
+  totalQuestions: number;
+  percentage: number;
+  selectedSubjects?: string[];
+  subjectBreakdown?: { subjectKey: string; subjectLabel: string; score: number; total: number }[];
+  topicPerformance?: any[];
+  timeElapsedSeconds?: number;
+  createdAt: string;
+  formattedDate?: string;
+}
+
+export interface CgpaHistoryRecord {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  institution?: string;
+  course?: string;
+  cgpa: number;
+  scale: 4 | 5;
+  honoursTitle?: string;
+  semestersCount: number;
+  totalCourses: number;
+  totalUnits: number;
+  createdAt: string;
+  formattedDate?: string;
+}
+
+export const saveGlobalCgpaRecord = async (data: Omit<CgpaHistoryRecord, 'id' | 'createdAt' | 'formattedDate'>) => {
+  const now = new Date();
+  const recordId = `cgpa_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const payload: CgpaHistoryRecord = {
+    id: recordId,
+    ...data,
+    createdAt: now.toISOString(),
+    formattedDate: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  };
+
+  // Local mirror
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('campusai_cgpa_history_all');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(payload);
+      localStorage.setItem('campusai_cgpa_history_all', JSON.stringify(list.slice(0, 100)));
+    } catch {}
+  }
+
+  // Firestore global history
+  if (db) {
+    try {
+      await setDoc(doc(db, 'cgpa_history', recordId), {
+        ...payload,
+        timestamp: Timestamp.now()
+      });
+    } catch (err) {
+      console.warn('Failed to save to cgpa_history collection:', err);
+    }
+  }
+
+  // Also log to user activities
+  await logUserActivity({
+    userId: data.userId || 'guest-cgpa',
+    type: 'cgpa_calculation',
+    title: 'CGPA Calculation & Academic Audit',
+    description: `Calculated CGPA: ${data.cgpa} (${data.honoursTitle || 'Honours'}) on Scale ${data.scale}.0 by ${data.userName || data.userEmail || 'Scholar'} (${data.userEmail || 'No email'}) • ${data.institution || 'University'} (${data.totalCourses || 0} Courses, ${data.totalUnits || 0} Units)`,
+    metadata: {
+      tool: 'cgpa',
+      cgpa: data.cgpa,
+      scale: data.scale,
+      honoursTitle: data.honoursTitle,
+      semestersCount: data.semestersCount,
+      totalCourses: data.totalCourses,
+      totalUnits: data.totalUnits,
+      institution: data.institution,
+      course: data.course,
+      userEmail: data.userEmail,
+      userName: data.userName
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('campusai_activity_logged', { detail: { tool: 'cgpa', data: payload } }));
+  }
+
+  return payload;
+};
+
+export const saveGlobalCbtRecord = async (data: Omit<CbtHistoryRecord, 'id' | 'createdAt' | 'formattedDate'> & { id?: string; createdAt?: string; formattedDate?: string }) => {
+  const now = new Date();
+  const recordId = data.id || `cbt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const payload: CbtHistoryRecord = {
+    ...data,
+    id: recordId,
+    createdAt: data.createdAt || now.toISOString(),
+    formattedDate: data.formattedDate || now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  };
+
+  // Local mirror
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('cbt_history_list');
+      const list = stored ? JSON.parse(stored) : [];
+      if (!list.some((r: any) => r.id === recordId)) {
+        list.unshift(payload);
+        localStorage.setItem('cbt_history_list', JSON.stringify(list.slice(0, 100)));
+      }
+      const cached = localStorage.getItem('campusai_cbt_history_cache');
+      const cacheList = cached ? JSON.parse(cached) : [];
+      if (!cacheList.some((r: any) => r.id === recordId)) {
+        cacheList.unshift(payload);
+        localStorage.setItem('campusai_cbt_history_cache', JSON.stringify(cacheList.slice(0, 50)));
+      }
+    } catch (e) {
+      console.warn('Failed to mirror CBT attempt locally', e);
+    }
+  }
+
+  // Firestore global history
+  if (db) {
+    try {
+      await setDoc(doc(db, 'cbt_history', recordId), {
+        ...payload,
+        timestamp: Timestamp.now()
+      });
+    } catch (err) {
+      console.warn('Failed to save to cbt_history collection:', err);
+    }
+  }
+
+  // Also log to user activities
+  await logUserActivity({
+    userId: data.userId || 'guest-cbt',
+    type: 'cbt_attempt',
+    title: `CBT Simulator: ${data.examType?.toUpperCase() || 'Exam'}`,
+    description: `Completed ${data.examType?.toUpperCase() || 'CBT'} (${data.testMode || 'Real Exam'}) by ${data.userName || data.userEmail || 'Scholar'} (${data.userEmail || 'Guest'}): Score ${data.totalRawScore ?? data.score ?? 0}/${data.totalQuestions || 0} (${data.percentage || 0}%) • Time: ${Math.floor((data.timeElapsedSeconds || 0) / 60)}m ${((data.timeElapsedSeconds || 0) % 60)}s`,
+    metadata: {
+      tool: 'cbt',
+      examType: data.examType,
+      testMode: data.testMode,
+      score: data.totalRawScore ?? data.score ?? 0,
+      totalQuestions: data.totalQuestions,
+      percentage: data.percentage,
+      timeElapsedSeconds: data.timeElapsedSeconds,
+      selectedSubjects: data.selectedSubjects,
+      subjectBreakdown: data.subjectBreakdown,
+      userEmail: data.userEmail,
+      userName: data.userName
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('campusai_activity_logged', { detail: { tool: 'cbt', data: payload } }));
+    window.dispatchEvent(new CustomEvent('campusai_cbt_logged', { detail: payload }));
+  }
+
+  return payload;
+};
+
+export const getAllCbtAttempts = async (limitCount: number = 300): Promise<CbtHistoryRecord[]> => {
+  if (!db) {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cbt_history_list');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+  try {
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, "cbt_history"), orderBy("createdAt", "desc"), limit(limitCount)));
+    } catch {
+      snap = await getDocs(query(collection(db, "cbt_history"), limit(limitCount)));
+    }
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CbtHistoryRecord[];
+    return list.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.warn("Error fetching cbt_history:", err);
+    return [];
+  }
+};
+
+export const getAllCgpaRecords = async (limitCount: number = 300): Promise<CgpaHistoryRecord[]> => {
+  if (!db) {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('campusai_cgpa_history_all');
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+  try {
+    let snap;
+    try {
+      snap = await getDocs(query(collection(db, "cgpa_history"), orderBy("createdAt", "desc"), limit(limitCount)));
+    } catch {
+      snap = await getDocs(query(collection(db, "cgpa_history"), limit(limitCount)));
+    }
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CgpaHistoryRecord[];
+    return list.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.warn("Error fetching cgpa_history:", err);
+    return [];
+  }
+};
 
 export const saveUserCGPA = async (userId: string, semesters: any[], scale: 4 | 5) => {
   if (!db) return false;

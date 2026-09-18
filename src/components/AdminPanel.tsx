@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   X, RefreshCw, Loader2, ShieldAlert, Newspaper, Users, User, Star,
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen
+  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen, GraduationCap, Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -20,7 +20,8 @@ import {
   getTrafficStats, resetTrafficStats, purgeUserActivities,
   getAllCutoffOverrides, saveCutoffOverride, deleteCutoffOverride, CutoffOverride,
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
-  saveKnowledgeFragment, getPredictionAccuracyStats, getAdminNotifications, AdminNotification
+  saveKnowledgeFragment, getPredictionAccuracyStats, getAdminNotifications, AdminNotification,
+  getAllCbtAttempts, getAllCgpaRecords, CbtHistoryRecord, CgpaHistoryRecord
 } from '../services/dbService';
 import {
   getStoredLinkPreviews, fetchLinkPreviewsFromCloud, saveLinkPreviewImage,
@@ -757,6 +758,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     setKeySummaries(getAPIKeysSummary());
   }, []);
 
+  // ── Tool Users (CGPA & CBT) State ──────────────────────────────
+  const [cbtAttempts, setCbtAttempts] = useState<CbtHistoryRecord[]>([]);
+  const [cgpaRecords, setCgpaRecords] = useState<CgpaHistoryRecord[]>([]);
+  const [isToolUsersLoading, setIsToolUsersLoading] = useState(false);
+  const [toolFilter, setToolFilter] = useState<'all' | 'cbt' | 'cgpa'>('all');
+  const [toolSearch, setToolSearch] = useState('');
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+  const loadToolUsersData = useCallback(async () => {
+    setIsToolUsersLoading(true);
+    try {
+      const [cbts, cgpas] = await Promise.all([
+        getAllCbtAttempts(300),
+        getAllCgpaRecords(300)
+      ]);
+      setCbtAttempts(cbts);
+      setCgpaRecords(cgpas);
+    } catch (e) {
+      console.error("Tool users load error:", e);
+    } finally {
+      setIsToolUsersLoading(false);
+    }
+  }, []);
+
   const loadAnalyticsData = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
@@ -768,12 +793,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setAllActivities(logs);
       if (stats) setTrafficStats(stats);
       if (adminLogsResult) setAdminLogs(adminLogsResult);
+      // Also fetch tool users data in parallel
+      loadToolUsersData();
     } catch (e) {
       console.error("Analytics load error:", e);
     } finally {
       setAnalyticsLoading(false);
     }
-  }, []);
+  }, [loadToolUsersData]);
 
   const handleResetTraffic = useCallback(async () => {
     setIsResettingTraffic(true);
@@ -846,9 +873,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const loadUsers = useCallback(async () => {
     setIsUserLoading(true);
     try {
-      const [users, count] = await Promise.all([fetchRecentUsers(), getTotalUserCount()]);
+      const [users, count] = await Promise.all([fetchRecentUsers(), getTotalUserCount(true)]);
       setRecentUsers(users);
-      setTotalUserCount(Math.max(count, users.length));
+      setTotalUserCount(count > 0 ? Math.max(count, users.length) : users.length);
     } finally {
       setIsUserLoading(false);
     }
@@ -863,6 +890,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     loadAnalyticsData();
     reloadKeySummaries();
 
+    const handleUserRegistered = () => {
+      loadUsers();
+    };
+    window.addEventListener('campusai_user_registered', handleUserRegistered);
+
     let activityDebounceTimer: any = null;
     const handleActivity = () => {
       if (activityDebounceTimer) return;
@@ -876,8 +908,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     return () => {
       if (activityDebounceTimer) clearTimeout(activityDebounceTimer);
       window.removeEventListener('campusai_activity_logged', handleActivity);
+      window.removeEventListener('campusai_user_registered', handleUserRegistered);
     };
-  }, [isOpen, admin.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, admin.isLoggedIn, loadUsers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load specific tab data when switching tabs
   const loadCutoffOverrides = useCallback(async () => {
@@ -1035,6 +1068,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   useEffect(() => {
     if (!isOpen || !admin.isLoggedIn) return;
     if (activeTab === 'analytics') loadAnalyticsData();
+    if (activeTab === 'tool_users') loadToolUsersData();
     if (activeTab === 'cutoffs') loadCutoffOverrides();
     if (activeTab === 'intelligence') loadIntelligenceData();
     reloadKeySummaries();
@@ -1377,6 +1411,116 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const todayLagosStr     = getNigerianDateStr();
   const todayLagosMidnight = getNigerianMidnight();
 
+  // Merge and deduplicate all Tool Activity records (CBT exams + CGPA calculations)
+  const mergedToolItems = useMemo(() => {
+    const list: any[] = [];
+    const seen = new Set<string>();
+
+    // 1. Add CBT attempts from cbt_history
+    for (const c of cbtAttempts) {
+      if (!seen.has(c.id)) {
+        seen.add(c.id);
+        const totalQ = c.totalQuestions || 0;
+        const rawScore = c.totalRawScore ?? c.score ?? 0;
+        const pct = c.percentage ?? (totalQ > 0 ? Math.round((rawScore / totalQ) * 100) : 0);
+        list.push({
+          id: c.id,
+          tool: 'cbt',
+          userId: c.userId,
+          userName: c.userName || (c.userEmail ? c.userEmail.split('@')[0] : 'Scholar'),
+          userEmail: c.userEmail || '',
+          examType: c.examType || 'JAMB CBT',
+          testMode: c.testMode,
+          score: rawScore,
+          totalQuestions: totalQ,
+          percentage: pct,
+          timeElapsedSeconds: c.timeElapsedSeconds || 0,
+          subjects: c.selectedSubjects || c.subjectBreakdown?.map(s => s.subjectLabel || s.subjectKey) || [],
+          subjectBreakdown: c.subjectBreakdown || [],
+          timestamp: c.createdAt || '',
+          formattedDate: c.formattedDate || (c.createdAt ? new Date(c.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent')
+        });
+      }
+    }
+
+    // 2. Add CGPA records from cgpa_history
+    for (const g of cgpaRecords) {
+      if (!seen.has(g.id)) {
+        seen.add(g.id);
+        list.push({
+          id: g.id,
+          tool: 'cgpa',
+          userId: g.userId,
+          userName: g.userName || (g.userEmail ? g.userEmail.split('@')[0] : 'Scholar'),
+          userEmail: g.userEmail || '',
+          institution: g.institution || 'Tertiary Institution',
+          course: g.course || 'Degree Program',
+          cgpa: g.cgpa,
+          scale: g.scale || 5,
+          honoursTitle: g.honoursTitle || 'Honours',
+          semestersCount: g.semestersCount || 0,
+          totalCourses: g.totalCourses || 0,
+          totalUnits: g.totalUnits || 0,
+          timestamp: g.createdAt || '',
+          formattedDate: g.formattedDate || (g.createdAt ? new Date(g.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent')
+        });
+      }
+    }
+
+    // 3. Fallback from allActivities (for activities logged into user_activities)
+    for (const act of allActivities) {
+      const isCbt = act.type === 'cbt_exam' || act.type === 'cbt_attempt' || act.title?.includes('CBT');
+      const isCgpa = act.type === 'cgpa_calculation' || act.title?.includes('CGPA') || act.description?.includes('CGPA:');
+      if (isCbt && !seen.has(act.id)) {
+        seen.add(act.id);
+        const timeVal = act.timestamp ? (typeof act.timestamp === 'string' ? act.timestamp : new Date(toMs(act.timestamp)).toISOString()) : '';
+        list.push({
+          id: act.id,
+          tool: 'cbt',
+          userId: act.userId,
+          userName: act.metadata?.userName || (act.metadata?.userEmail ? act.metadata.userEmail.split('@')[0] : 'Scholar'),
+          userEmail: act.metadata?.userEmail || (act.userId !== 'guest' && act.userId?.includes('@') ? act.userId : ''),
+          examType: 'CBT Simulator',
+          description: act.description,
+          timestamp: timeVal,
+          formattedDate: timeVal ? new Date(timeVal).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'
+        });
+      } else if (isCgpa && !seen.has(act.id)) {
+        seen.add(act.id);
+        const timeVal = act.timestamp ? (typeof act.timestamp === 'string' ? act.timestamp : new Date(toMs(act.timestamp)).toISOString()) : '';
+        list.push({
+          id: act.id,
+          tool: 'cgpa',
+          userId: act.userId,
+          userName: act.metadata?.userName || (act.metadata?.userEmail ? act.metadata.userEmail.split('@')[0] : 'Scholar'),
+          userEmail: act.metadata?.userEmail || (act.userId !== 'guest' && act.userId?.includes('@') ? act.userId : ''),
+          description: act.description,
+          timestamp: timeVal,
+          formattedDate: timeVal ? new Date(timeVal).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'
+        });
+      }
+    }
+
+    return list.sort((a, b) => {
+      const timeA = new Date(a.timestamp || 0).getTime();
+      const timeB = new Date(b.timestamp || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [cbtAttempts, cgpaRecords, allActivities]);
+
+  const filteredToolItems = useMemo(() => {
+    return mergedToolItems.filter(item => {
+      if (toolFilter === 'cbt' && item.tool !== 'cbt') return false;
+      if (toolFilter === 'cgpa' && item.tool !== 'cgpa') return false;
+      if (toolSearch.trim()) {
+        const query = toolSearch.toLowerCase().trim();
+        const searchStr = `${item.userName || ''} ${item.userEmail || ''} ${item.examType || ''} ${item.institution || ''} ${item.course || ''} ${item.description || ''} ${item.honoursTitle || ''}`.toLowerCase();
+        if (!searchStr.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [mergedToolItems, toolFilter, toolSearch]);
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
@@ -1459,43 +1603,298 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <Calculator size={14} className="text-red-500" /> CGPA Calculator & CBT Simulator Scholars
                       </h3>
                       <p className="text-xs text-gray-500 mt-1">
-                        Real-time tracking of every student and candidate who used the CGPA calculator or took simulated CBT exams on CampusAI.
+                        Real-time live tracking of every scholar and candidate calculating their CGPA or taking CBT exams on CampusAI.
                       </p>
                     </div>
                     <button
-                      onClick={loadAnalyticsData}
-                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-600/20"
+                      onClick={() => { loadAnalyticsData(); loadToolUsersData(); }}
+                      disabled={isToolUsersLoading}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-600/20 transition-all disabled:opacity-50"
                     >
-                      <RefreshCw size={14} /> Refresh Scholars List
+                      <RefreshCw size={14} className={isToolUsersLoading ? "animate-spin" : ""} />
+                      {isToolUsersLoading ? "Refreshing..." : "Refresh Live Feed"}
                     </button>
                   </div>
 
+                  {/* Summary Metric Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
-                      <div className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">CGPA Calculator Uses</div>
-                      <div className="text-3xl font-black text-gray-900 dark:text-white">
-                        {cgpaCalculations}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                          <GraduationCap size={14} /> CGPA Calculator Uses
+                        </div>
+                        <div className="text-3xl font-black text-gray-900 dark:text-white">
+                          {cgpaCalculations}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">{cgpaRecords.length} recorded session logs</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center font-bold">
+                        GPA
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
-                      <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">CBT Simulator Uses</div>
-                      <div className="text-3xl font-black text-gray-900 dark:text-white">
-                        {cbtCalculations}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                          <BookOpen size={14} /> CBT Simulator Uses
+                        </div>
+                        <div className="text-3xl font-black text-gray-900 dark:text-white">
+                          {cbtCalculations}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">{cbtAttempts.length} recorded exam attempts</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center font-bold">
+                        CBT
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
-                      <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Active Scholars (24h)</div>
-                      <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                        {new Set(allActivities.filter(a => (a.type === 'calculation' || a.title?.includes('CGPA') || a.title?.includes('CBT')) && toMs(a.timestamp) > Date.now() - 86400000).map(a => a.userId)).size}
+                    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                          <Users size={14} /> Active Scholars (24h)
+                        </div>
+                        <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                          {new Set(mergedToolItems.filter(a => new Date(a.timestamp || 0).getTime() > Date.now() - 86400000).map(a => a.userId)).size}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">Unique scholars active today</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+                        <Activity size={20} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 text-center space-y-3 shadow-sm">
-                    <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Tool Usage Summary</h4>
-                    <p className="text-xs text-gray-500 max-w-md mx-auto">
-                      Above are the exact live usage counts of how many times students and candidates have run the CGPA Calculator and completed the CBT Simulator on CampusAI.
-                    </p>
+                  {/* Filter and Search Bar */}
+                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                      {/* Filter Pills */}
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                        <button
+                          onClick={() => setToolFilter('all')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
+                            toolFilter === 'all'
+                              ? 'bg-red-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          All Sessions ({mergedToolItems.length})
+                        </button>
+                        <button
+                          onClick={() => setToolFilter('cbt')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                            toolFilter === 'cbt'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <BookOpen size={12} /> CBT Exams ({mergedToolItems.filter(i => i.tool === 'cbt').length})
+                        </button>
+                        <button
+                          onClick={() => setToolFilter('cgpa')}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                            toolFilter === 'cgpa'
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <GraduationCap size={12} /> CGPA Calculations ({mergedToolItems.filter(i => i.tool === 'cgpa').length})
+                        </button>
+                      </div>
+
+                      {/* Search Bar */}
+                      <div className="relative flex-1 max-w-sm">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={toolSearch}
+                          onChange={(e) => setToolSearch(e.target.value)}
+                          placeholder="Search scholar name, email, exam..."
+                          className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 dark:text-white"
+                        />
+                        {toolSearch && (
+                          <button
+                            onClick={() => setToolSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scholar Activity Table / Cards */}
+                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                        Live Scholar Activity Feed ({filteredToolItems.length} records)
+                      </span>
+                      {copiedEmail && (
+                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                          Copied {copiedEmail} to clipboard!
+                        </span>
+                      )}
+                    </div>
+
+                    {filteredToolItems.length === 0 ? (
+                      <div className="p-12 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-400 flex items-center justify-center mx-auto">
+                          <Search size={20} />
+                        </div>
+                        <h5 className="text-sm font-bold text-gray-800 dark:text-gray-200">No Scholar Sessions Found</h5>
+                        <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                          {toolSearch ? "No activity matches your search query." : "Waiting for candidates and students to calculate CGPA or submit CBT test attempts."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {filteredToolItems.map((item) => {
+                          const isCbt = item.tool === 'cbt';
+                          return (
+                            <div
+                              key={item.id}
+                              className="p-4 sm:p-5 hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            >
+                              {/* Left: Tool Icon + Scholar Info */}
+                              <div className="flex items-start gap-3.5 min-w-0">
+                                <div
+                                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${
+                                    isCbt
+                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-900'
+                                      : 'bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400 border border-purple-200 dark:border-purple-900'
+                                  }`}
+                                >
+                                  {isCbt ? <BookOpen size={18} /> : <GraduationCap size={18} />}
+                                </div>
+
+                                <div className="space-y-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                      {item.userName || 'Scholar'}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                        isCbt
+                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                          : 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                                      }`}
+                                    >
+                                      {isCbt ? 'CBT Simulator' : 'CGPA Calculator'}
+                                    </span>
+                                    {item.userId === 'guest' || !item.userEmail ? (
+                                      <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                        Guest
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                                        Member
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Email with copy button */}
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <span className="truncate">{item.userEmail || 'No email provided'}</span>
+                                    {item.userEmail && (
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(item.userEmail);
+                                          setCopiedEmail(item.userEmail);
+                                          setTimeout(() => setCopiedEmail(null), 2000);
+                                        }}
+                                        title="Copy email address"
+                                        className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                      >
+                                        <Copy size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Institution or Course if available */}
+                                  {(item.institution || item.course) && (
+                                    <div className="text-[11px] text-gray-400 truncate">
+                                      {item.institution} {item.course ? `• ${item.course}` : ''}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Center / Right: Performance & Scores */}
+                              <div className="sm:text-right space-y-1 shrink-0">
+                                {isCbt ? (
+                                  <div>
+                                    <div className="flex sm:justify-end items-baseline gap-2">
+                                      <span className="text-base font-black text-gray-900 dark:text-white">
+                                        {item.score !== undefined ? `${item.score}/${item.totalQuestions}` : 'Completed'}
+                                      </span>
+                                      {item.percentage !== undefined && (
+                                        <span
+                                          className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                                            item.percentage >= 60
+                                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                              : item.percentage >= 50
+                                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                              : item.percentage >= 40
+                                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                              : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
+                                          }`}
+                                        >
+                                          {item.percentage}%
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 flex sm:justify-end items-center gap-1.5 flex-wrap">
+                                      <span className="font-semibold text-gray-700 dark:text-gray-300 uppercase">{item.examType}</span>
+                                      {item.timeElapsedSeconds > 0 && (
+                                        <span>• {Math.floor(item.timeElapsedSeconds / 60)}m {item.timeElapsedSeconds % 60}s</span>
+                                      )}
+                                    </div>
+                                    {/* Subjects breakdown tags */}
+                                    {item.subjectBreakdown && item.subjectBreakdown.length > 0 && (
+                                      <div className="flex sm:justify-end gap-1 mt-1 flex-wrap">
+                                        {item.subjectBreakdown.map((sb: any, idx: number) => (
+                                          <span
+                                            key={idx}
+                                            className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded"
+                                          >
+                                            {sb.subjectLabel || sb.subjectKey}: {sb.score}/{sb.total}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="flex sm:justify-end items-baseline gap-2">
+                                      <span className="text-base font-black text-purple-600 dark:text-purple-400">
+                                        {item.cgpa ? `CGPA ${Number(item.cgpa).toFixed(2)}` : 'Calculated'}
+                                      </span>
+                                      {item.scale && (
+                                        <span className="text-xs text-gray-500 font-bold">/ {item.scale}.0</span>
+                                      )}
+                                    </div>
+                                    {item.honoursTitle && (
+                                      <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 sm:text-right">
+                                        {item.honoursTitle}
+                                      </div>
+                                    )}
+                                    {(item.semestersCount > 0 || item.totalCourses > 0) && (
+                                      <div className="text-[11px] text-gray-400 sm:text-right">
+                                        {item.semestersCount} Semesters • {item.totalCourses} Courses ({item.totalUnits} Units)
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Date Timestamp */}
+                                <div className="text-[11px] text-gray-400 flex sm:justify-end items-center gap-1">
+                                  <Clock size={11} />
+                                  <span>{item.formattedDate}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

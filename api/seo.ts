@@ -340,6 +340,130 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
         console.error("[SEO] Error fetching news item:", err);
       }
     }
+  } else if (cleanPath === '/cbt-simulator' || cleanPath === '/cbt' || cleanPath === '/study-hub' || cleanPath === '/target' || cleanPath === '/ai-coach') {
+    title = "2026 JAMB CBT Exam Simulator & Study Hub | CampusAI";
+    description = "Practice real JAMB CBT past questions, test time management, review AI answer explanations, and track your target admission score on CampusAI Nigeria.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("JAMB CBT Simulator")}&category=${encodeURIComponent("CBT Practice")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JAMB CBT Exam Simulator 2026",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/cgpa-calculator' || cleanPath === '/cgpa') {
+    title = "University & Polytechnic CGPA Calculator | CampusAI";
+    description = "Multi-semester Nigerian higher education CGPA calculator. Forecast graduation class of degree, calculate semester GP, and track academic honors goals.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("CGPA Calculator")}&category=${encodeURIComponent("Academic Tools")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CGPA Analytics Studio & GPA Planner",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/jamb-caps' || cleanPath === '/caps' || cleanPath === '/caps-portal') {
+    title = "JAMB CAPS 2026 Admission Status Tracker | CampusAI";
+    description = "Check your 2026 JAMB CAPS admission status, transfer approvals, O'Level upload verification, and marketplace offers across Nigerian tertiary institutions.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("JAMB CAPS Tracker")}&category=${encodeURIComponent("Admission Portal")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JAMB CAPS 2026 Admission Status Tracker",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/admission-checklist' || cleanPath === '/checklist') {
+    title = "2026 University Admission Document Checklist | CampusAI";
+    description = "The complete list of required registration documents for Nigerian university clearance. Track O'Level results, birth certificates, and JAMB admission letters.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Admission Checklist")}&category=${encodeURIComponent("Admissions")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "2026 Admission Document Checklist",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/cbt-locator' || cleanPath === '/locator') {
+    title = "JAMB CBT Centres & University Campus Locator | CampusAI";
+    description = "Find accredited JAMB CBT examination centres, university campuses, and student accommodation across Nigeria with Google Maps grounded navigation search.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("CBT Centre Locator")}&category=${encodeURIComponent("Navigation")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JAMB CBT Center & Campus Locator",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/admissions') {
+    title = "2026 Admissions Knowledge Base & Requirements | CampusAI";
+    description = "Explore official JAMB 2026 course requirements, UTME subject combinations, O'Level credits, and institution-specific special admission considerations.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Admissions Explorer")}&category=${encodeURIComponent("Course Requirements")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "2026 Admissions Knowledge Base",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/pdf-store' || cleanPath === '/pdf') {
+    title = "Academic Past Questions & Post-UTME PDF Store | CampusAI";
+    description = "Download verified JAMB CBT past questions, Post-UTME screening past papers, syllabuses, and academic preparation PDF resources on CampusAI Nigeria.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("PDF Store")}&category=${encodeURIComponent("Study Resources")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Academic PDF Store & Study Vault",
+      "url": canonical,
+      "description": description,
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All"
+    };
+  } else if (cleanPath === '/discussions' || cleanPath === '/discussion-hub') {
+    title = "Nigerian Student Admission Discussion Hub | CampusAI";
+    description = "Join thousands of Nigerian candidates in our admissions forum. Discuss Post-UTME screening, share CBT strategies, and get verified school answers.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Discussion Hub")}&category=${encodeURIComponent("Community")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "Nigerian Student Admission Discussions",
+      "url": canonical,
+      "description": description
+    };
+  } else if (cleanPath === '/universities' || cleanPath === '/directory') {
+    title = "2026 Institutional Gateways & Portal Directory | CampusAI";
+    description = "Direct access to verified admission portals, screening dates, cutoffs, and departmental academic profiles for over 150 Nigerian higher institutions.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("University Directory")}&category=${encodeURIComponent("Portals")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "Nigerian Higher Institution Directory",
+      "url": canonical,
+      "description": description
+    };
+  } else if (cleanPath === '/contact' || cleanPath === '/contact-us' || cleanPath === '/support') {
+    title = "Contact Support & Academic Inquiries | CampusAI Nigeria";
+    description = "Contact the CampusAI Nigeria academic support team. Inquire about JAMB preparation, university admissions, calculator formulas, and partnership.";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Contact Support")}&category=${encodeURIComponent("Support")}`;
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      "name": "CampusAI Support & Contact",
+      "url": canonical,
+      "description": description
+    };
   } else if (cleanPath === '/syllabus' || cleanPath.startsWith('/syllabus/')) {
     title = "Official 2026 JAMB Syllabus & Subject Outlines | CampusAI";
     description = "Access the complete, updated 2026 JAMB syllabus for all subjects. Get detailed topics, recommended texts, and admission insights from CampusAI.";
@@ -365,8 +489,8 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
       "description": description
     };
   } else if (cleanPath === '/status') {
-    title = "System Status & Service Uptime | CampusAI Nigeria";
-    description = "Real-time status and uptime for CampusAI Nigeria admission strategist nodes, database sync, and calculator services.";
+    title = "System Status & Service Uptime Monitor | CampusAI Nigeria";
+    description = "Check real-time system status and uptime for CampusAI Nigeria admission prediction engines, database sync, CBT simulator, and calculator nodes.";
     imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("System Status")}&category=${encodeURIComponent("CampusAI Platform")}`;
     jsonLd = {
       "@context": "https://schema.org",
@@ -387,14 +511,35 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
       "description": description
     };
   } else if (cleanPath === '/terms' || cleanPath === '/terms-of-service') {
-    title = "Terms of Service | CampusAI Nigeria";
-    description = "Read CampusAI Nigeria terms of service, platform usage rules, AI consultation disclaimer, and account guidelines.";
+    title = "Terms of Service & Usage Agreement | CampusAI Nigeria";
+    description = "Read CampusAI Nigeria official terms of service, platform usage rules, AI consultation guidelines, and user agreement for our academic tools and services.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "CampusAI Terms of Service",
+      "url": canonical,
+      "description": description
+    };
   } else if (cleanPath === '/privacy' || cleanPath === '/privacy-policy' || cleanPath === '/calculator-privacy' || cleanPath === '/calculation-privacy') {
-    title = "Privacy Policy | CampusAI Nigeria";
-    description = "CampusAI data protection standards, user privacy guidelines, cookie policies, and secure profile data handling practices.";
+    title = "Privacy Policy & Student Data Protection | CampusAI Nigeria";
+    description = "CampusAI Nigeria user data privacy policy, secure profile standards, cookie handling practices, and protection guidelines for Nigerian students.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "CampusAI Privacy Policy",
+      "url": canonical,
+      "description": description
+    };
   } else if (cleanPath === '/cookies' || cleanPath === '/cookie-policy') {
-    title = "Cookie Policy | CampusAI Nigeria";
-    description = "CampusAI cookie policy and tracking preference details.";
+    title = "Cookie Policy & Tracking Preferences | CampusAI Nigeria";
+    description = "CampusAI Nigeria cookie policy, web analytics details, local storage usage, and privacy preference settings for academic exploration tools.";
+    jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "CampusAI Cookie Policy",
+      "url": canonical,
+      "description": description
+    };
   } else if (cleanPath === '/news') {
     title = "2026/2027 JAMB & Admission News Hub | CampusAI";
     description = "Stay informed with real-time JAMB updates, university Post-UTME registration dates, cutoff marks, and admission news across Nigerian institutions.";

@@ -11,6 +11,17 @@ export const QUOTA_KEY = 'campusai_user_profile';
 export const FREE_GUEST_LIMIT = 1;
 export const FREE_USER_LIMIT = 1;
 
+export const ADMIN_EMAILS = ['eiweh123@gmail.com'];
+
+export const isUserAdmin = (profileOrEmail?: any): boolean => {
+  if (!profileOrEmail) return false;
+  const email = typeof profileOrEmail === 'string' ? profileOrEmail : profileOrEmail.email;
+  const role = typeof profileOrEmail === 'object' ? profileOrEmail.role : undefined;
+  if (email && ADMIN_EMAILS.includes(email.toLowerCase().trim())) return true;
+  if (role === 'Super Admin' || role === 'Admin') return true;
+  return false;
+};
+
 export const isPremiumChatLimitActive = (activatedAtStr?: string): boolean => {
   if (!activatedAtStr) return false;
   try {
@@ -24,6 +35,10 @@ export const isPremiumChatLimitActive = (activatedAtStr?: string): boolean => {
 };
 
 export const getChatLimits = (profile: UserProfile): { maxChats: number, remainingChats: number } => {
+  if (isUserAdmin(profile)) {
+    return { maxChats: 100, remainingChats: 100 };
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const dailyChatsUsed = profile.daily_chat_last_reset === today ? (profile.daily_chats || 0) : 0;
   
@@ -125,7 +140,11 @@ export const getLocalProfile = (): UserProfile => {
 /**
  * CLOUD SYNCHRONIZATION ENGINE
  */
-export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): Promise<UserProfile> => {
+export const syncAndValidateProfile = async (
+  uid: string, 
+  firebaseUser?: any, 
+  meta?: { displayName?: string; email?: string; photoURL?: string; role?: UserRole }
+): Promise<UserProfile> => {
   const local = getLocalProfile();
   const isSameUser = local.uid === uid;
 
@@ -134,6 +153,10 @@ export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): P
   try {
     const userRef = doc(db, "users", uid);
     const snap = await getDoc(userRef).catch(e => handleFirestoreError(e, OperationType.GET, `users/${uid}`));
+    const fallbackUser = firebaseUser || auth.currentUser;
+    const resolvedEmail = meta?.email || fallbackUser?.email || (isSameUser ? local.email : '') || '';
+    const resolvedDisplayName = meta?.displayName || fallbackUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar';
+    const resolvedPhotoURL = meta?.photoURL || fallbackUser?.photoURL || (isSameUser ? local.photoURL : '') || '';
     
     if (snap && snap.exists()) {
       const cloud = snap.data();
@@ -142,9 +165,17 @@ export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): P
         ...baseLocal, 
         ...cloud,
         uid: uid,
+        email: cloud.email || resolvedEmail,
+        displayName: cloud.displayName && cloud.displayName !== 'Scholar' ? cloud.displayName : resolvedDisplayName,
+        photoURL: cloud.photoURL || resolvedPhotoURL,
+        last_active: new Date().toISOString()
       };
 
-      // Ensure we don't accidentally wipe progress or premium state if local is ahead for same user
+      if (meta?.role && !merged.role) {
+        merged.role = meta.role;
+      }
+
+      // Ensure we don't wipe progress or premium state
       if (isSameUser) {
         const finalCalculations = Math.max(local.lifetime_calculations || 0, cloud.lifetime_calculations || 0);
         merged.lifetime_calculations = finalCalculations;
@@ -153,37 +184,58 @@ export const syncAndValidateProfile = async (uid: string, firebaseUser?: any): P
         merged.premium_activated_at = local.premium_activated_at || cloud.premium_activated_at;
       }
 
+      // Check admin status and guarantee full premium entitlement
+      if (isUserAdmin(merged)) {
+        merged.is_premium = true;
+        merged.scholarCredits = Math.max(merged.scholarCredits || 0, 100);
+        merged.role = 'Super Admin';
+      }
+
       const validation = validateUserProfile(merged);
       if (!validation.success) {
-          console.error("Cloud data invalid, not syncing:", validation.error);
-          return (cloud as UserProfile) || local;
+        console.error("Cloud data invalid, not syncing:", validation.error);
+        return (cloud as UserProfile) || local;
       }
       const finalProfile = validation.data as UserProfile;
       localStorage.setItem(QUOTA_KEY, stringify(finalProfile));
+
+      // Asynchronously record last_active and ensure missing display names are patched
+      updateDoc(userRef, { 
+        last_active: new Date().toISOString(),
+        displayName: finalProfile.displayName,
+        email: finalProfile.email || resolvedEmail
+      }).catch(() => {});
+
       return finalProfile;
     } else {
-      // Create new user in cloud
+      // Create new user record in cloud
       const baseLocal: Partial<UserProfile> = isSameUser ? local : {};
-      const fallbackUser = firebaseUser || auth.currentUser;
+      const isAdminUser = isUserAdmin(resolvedEmail) || isUserAdmin(baseLocal);
       const newProfile: UserProfile = {
         ...baseLocal,
         uid: uid,
-        email: fallbackUser?.email || '',
-        displayName: fallbackUser?.displayName || (isSameUser ? local.displayName : '') || 'Scholar',
-        photoURL: fallbackUser?.photoURL || '',
-        role: (baseLocal.role as UserRole) || 'Pre-Admission',
-        is_premium: Boolean(baseLocal.is_premium),
+        email: resolvedEmail,
+        displayName: resolvedDisplayName,
+        photoURL: resolvedPhotoURL,
+        role: isAdminUser ? 'Super Admin' : (meta?.role || (baseLocal.role as UserRole) || 'Pre-Admission'),
+        is_premium: isAdminUser ? true : Boolean(baseLocal.is_premium),
         daily_requests: 0,
-        scholarCredits: baseLocal.scholarCredits || 0,
+        scholarCredits: isAdminUser ? 100 : (baseLocal.scholarCredits || 0),
         meritUsageCount: 0,
         lifetime_calculations: baseLocal.lifetime_calculations || 0,
+        createdAt: new Date().toISOString(),
         last_active: new Date().toISOString()
       };
-      if (baseLocal.premium_activated_at) {
-        newProfile.premium_activated_at = baseLocal.premium_activated_at;
+      if (baseLocal.premium_activated_at || isAdminUser) {
+        newProfile.premium_activated_at = baseLocal.premium_activated_at || new Date().toISOString();
       }
       await setDoc(userRef, newProfile).catch(e => handleFirestoreError(e, OperationType.CREATE, `users/${uid}`));
       localStorage.setItem(QUOTA_KEY, stringify(newProfile));
+
+      // Invalidate total user count cache and dispatch registration event
+      cachedTotalUserCount = null;
+      window.dispatchEvent(new CustomEvent('campusai_user_registered', { detail: { uid, email: resolvedEmail } }));
+
       return newProfile;
     }
   } catch (e) {
@@ -199,13 +251,16 @@ export const deductScholarCredit = async (uid: string) => {
     const snap = await getDoc(userRef);
     if (!snap.exists()) return;
     const data = snap.data();
+    // Do not deduct credits if admin
+    if (isUserAdmin(data)) return;
+
     const current = data.scholarCredits || 0;
     if (current > 0) {
       const nextCredits = current - 1;
       const updates: any = { scholarCredits: nextCredits };
-      if (nextCredits === 0) {
-        updates.is_premium = false;
-      }
+      // Note: We deliberately DO NOT set updates.is_premium = false here.
+      // A user who purchased the Scholar Pack retains access to merit probabilities,
+      // course recommendations, and premium daily chats even if their initial calculation tokens are used.
       await updateDoc(userRef, updates);
       
       const profile = getLocalProfile();
@@ -247,13 +302,17 @@ export const trackReferral = async (referrerUid: string, invitedUid: string) => 
   }
 };
 
-export const initializeUserProfile = async (user?: any, role?: UserRole): Promise<UserProfile> => {
+export const initializeUserProfile = async (
+  user?: any, 
+  role?: UserRole, 
+  meta?: { displayName?: string; email?: string; photoURL?: string }
+): Promise<UserProfile> => {
   if (user && isRealUser(user.uid)) {
     if (role) {
       const local = getLocalProfile();
       localStorage.setItem(QUOTA_KEY, stringify({ ...local, role }));
     }
-    return await syncAndValidateProfile(user.uid, user);
+    return await syncAndValidateProfile(user.uid, user, { ...meta, role });
   }
   return getLocalProfile();
 };
@@ -426,7 +485,7 @@ export const checkAndIncrementCalculations = async (uid: string) => {
 
 export const checkCalculationsLimit = async (uid: string): Promise<{ allowed: boolean; current: number; limit: number }> => {
   const profile = getLocalProfile();
-  if (profile.is_premium || (profile.scholarCredits || 0) > 0) {
+  if (isUserAdmin(profile) || profile.is_premium || (profile.scholarCredits || 0) > 0) {
     return { allowed: true, current: profile.lifetime_calculations || 0, limit: Infinity };
   }
   
@@ -447,7 +506,7 @@ export const incrementCalculations = async (uid: string): Promise<{ current: num
   const profile = getLocalProfile();
   const nextCalculations = (profile.lifetime_calculations || 0) + 1;
   
-  if (profile.is_premium) {
+  if (isUserAdmin(profile) || profile.is_premium) {
     const updated: UserProfile = {
       ...profile,
       lifetime_calculations: nextCalculations
@@ -500,10 +559,16 @@ export const incrementCalculations = async (uid: string): Promise<{ current: num
 export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
   if (!db) return [];
   try {
-    const q = query(collection(db, "users"), orderBy("last_active", "desc"), limit(200));
-    const snap = await getDocs(q);
+    const snap = await getDocs(collection(db, "users"));
     const users = snap.docs.map((d: any) => ({ uid: d.id, ...d.data() }));
     
+    // Sort in memory so documents missing last_active are never excluded by Firestore
+    users.sort((a: any, b: any) => {
+      const timeA = new Date(a.last_active || a.updated_at || a.premium_activated_at || a.createdAt || 0).getTime();
+      const timeB = new Date(b.last_active || b.updated_at || b.premium_activated_at || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
     // Backfill real calculation count from predictions table for accuracy (disabled to avoid quota issues)
     const enhancedUsers = users.map((u) => {
         return { ...u, lifetime_calculations: u.lifetime_calculations || u.meritUsageCount || 0 };
@@ -514,24 +579,66 @@ export const fetchRecentUsers = async (): Promise<UserProfile[]> => {
 
 let cachedTotalUserCount: number | null = null;
 let lastTotalUserCountTime = 0;
-const USER_COUNT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+const USER_COUNT_CACHE_TTL = 60 * 1000; // 1 minute fresh cache
 
-export const getTotalUserCount = async (): Promise<number> => {
-  if (!db) return 0;
+export const getTotalUserCount = async (forceRefresh: boolean = false): Promise<number> => {
   const now = Date.now();
-  if (cachedTotalUserCount !== null && (now - lastTotalUserCountTime < USER_COUNT_CACHE_TTL)) {
+  if (!forceRefresh && cachedTotalUserCount !== null && (now - lastTotalUserCountTime < USER_COUNT_CACHE_TTL)) {
     return cachedTotalUserCount;
   }
+
+  // 1. Primary Strategy: Server-side Firestore Aggregation Query
   try {
-    const snap = await getCountFromServer(collection(db, "users"));
-    const count = snap.data().count;
-    cachedTotalUserCount = count;
-    lastTotalUserCountTime = now;
-    return count;
-  } catch (e: any) {
-    console.warn("getTotalUserCount: getCountFromServer failed:", e);
-    return cachedTotalUserCount || 0;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch('/api/users/count', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.count === 'number') {
+        cachedTotalUserCount = data.count;
+        lastTotalUserCountTime = now;
+        return data.count;
+      }
+    }
+  } catch (apiErr: any) {
+    // Non-blocking fallback to client SDK or proxy
   }
+
+  // 2. Secondary Strategy: Client SDK Firestore Aggregation
+  if (db) {
+    try {
+      const snap = await getCountFromServer(collection(db, "users"));
+      const count = snap.data().count;
+      cachedTotalUserCount = count;
+      lastTotalUserCountTime = now;
+      return count;
+    } catch (sdkErr: any) {
+      // Third Strategy: Proxy count
+      try {
+        const proxyRes = await fetch('/api/proxy-firestore-count', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collectionName: 'users' })
+        });
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          if (typeof proxyData.count === 'number') {
+            cachedTotalUserCount = proxyData.count;
+            lastTotalUserCountTime = now;
+            return proxyData.count;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  return cachedTotalUserCount || 0;
 };
 
 export const getGlobalCalculationsSum = async (): Promise<number> => {

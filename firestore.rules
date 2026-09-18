@@ -44,14 +44,34 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.uid == request.auth.uid &&
-             data.email == request.auth.token.email &&
              (data.role is string && data.role.size() <= 50) &&
-             (data.is_premium == false || data.is_premium == true) &&
-             (data.daily_requests is int && data.daily_requests >= 0) &&
+             (!('is_premium' in data) || data.is_premium is bool) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+             (!('daily_requests' in data) || data.daily_requests is int) &&
              (!('scholarCredits' in data) || data.scholarCredits is int) &&
              (!('meritUsageCount' in data) || data.meritUsageCount is int) &&
              (!('lifetime_calculations' in data) || data.lifetime_calculations is int) &&
-             (!('daily_last_reset' in data) || data.daily_last_reset is string);
+             (!('daily_last_reset' in data) || (data.daily_last_reset is string && data.daily_last_reset.size() <= 50)) &&
+             (!('daily_chats' in data) || data.daily_chats is int) &&
+             (!('daily_chat_last_reset' in data) || (data.daily_chat_last_reset is string && data.daily_chat_last_reset.size() <= 50)) &&
+             (!('last_active' in data) || (data.last_active is string && data.last_active.size() <= 50)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+             (!('updated_at' in data) || (data.updated_at is string && data.updated_at.size() <= 50)) &&
+             (!('premium_activated_at' in data) || (data.premium_activated_at is string && data.premium_activated_at.size() <= 50)) &&
+             (!('targetCourse' in data) || (data.targetCourse is string && data.targetCourse.size() <= 200)) &&
+             (!('university' in data) || (data.university is string && data.university.size() <= 200)) &&
+             (!('targetUTMEScore' in data) || data.targetUTMEScore is number) &&
+             (!('jambScore' in data) || data.jambScore is number) &&
+             (!('utmeSubjects' in data) || (data.utmeSubjects is list && data.utmeSubjects.size() <= 10)) &&
+             (!('olevelGrades' in data) || (data.olevelGrades is list && data.olevelGrades.size() <= 15)) &&
+             (!('journey_progress' in data) || (data.journey_progress is list && data.journey_progress.size() <= 20)) &&
+             (!('academicProfile' in data) || data.academicProfile is map) &&
+             (!('admissionStatus' in data) || data.admissionStatus is map) &&
+             (!('referral_code' in data) || (data.referral_code is string && data.referral_code.size() <= 50)) &&
+             (!('referral_count' in data) || data.referral_count is int) &&
+             (!('registration_reward_granted' in data) || data.registration_reward_granted is bool);
     }
 
     function isValidNews(data) {
@@ -136,16 +156,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidUser(incoming()) && 
-                     incoming().keys().hasAll(['uid', 'email', 'role']);
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().keys().hasAll(['uid']);
       
-      allow update: if isOwner(userId) && (
-        // Action: User self-update including premium activation
-        (isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'daily_requests', 'daily_last_reset', 'last_active', 'journey_progress', 'is_premium', 'scholarCredits', 'meritUsageCount', 'lifetime_calculations', 'daily_chats', 'daily_chat_last_reset'])) ||
-        // Action: Admin override
-        isAdmin()
-      );
+      allow update: if (isOwner(userId) && isValidUser(incoming())) || isAdmin();
+      allow delete: if isAdmin();
 
       match /profile/data {
         allow read, write: if isOwner(userId) || isAdmin();
@@ -248,8 +263,12 @@ service cloud.firestore {
     }
 
     match /user_activities/{activityId} {
-      allow create: if (isSignedIn() && incoming().userId == request.auth.uid) || (!isSignedIn() && incoming().userId == 'guest');
-      allow read: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if true;
+      allow read: if true;
+    }
+
+    match /cgpa_history/{historyId} {
+      allow read, write: if true;
     }
 
     match /broadcasts/{broadcastId} {
@@ -387,6 +406,11 @@ service cloud.firestore {
     }
 
     match /cbt_history/{historyId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /aloc_questions_vault/{questionId} {
       allow read: if true;
       allow write: if true;
     }

@@ -486,23 +486,32 @@ const AppContent: React.FC = () => {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
       if (firebaseUser) {
-        const { getLocalProfile } = await import('../services/userService');
+        const { getLocalProfile, isUserAdmin } = await import('../services/userService');
         const { identifyUser } = await import('../services/analytics');
         const localProfile = getLocalProfile();
+        const isAdmin = isUserAdmin(firebaseUser?.email) || isUserAdmin(localProfile);
         if (localProfile && localProfile.uid === firebaseUser.uid) {
-           setUser({ ...firebaseUser, ...localProfile });
+           setUser({ ...firebaseUser, ...localProfile, ...(isAdmin ? { is_premium: true, role: 'Super Admin', scholarCredits: Math.max(localProfile.scholarCredits || 0, 100) } : {}) });
         } else {
-           setUser({ ...firebaseUser, role: 'Pre-Admission', is_premium: false });
+           setUser({ ...firebaseUser, role: isAdmin ? 'Super Admin' : 'Pre-Admission', is_premium: isAdmin, scholarCredits: isAdmin ? 100 : 0 });
         }
         setIsAuthLoading(false);
         
         try {
           const profile = await initializeUserProfile(firebaseUser);
-          const fullUser = { ...firebaseUser, ...profile };
+          const fullUser = { 
+            ...firebaseUser, 
+            ...profile,
+            ...(isAdmin ? { is_premium: true, role: 'Super Admin', scholarCredits: Math.max(profile.scholarCredits || 0, 100) } : {})
+          };
           setUser(fullUser);
           identifyUser(fullUser);
           subscribeToUserProfile(firebaseUser.uid, (updatedProfile) => {
-             const updatedUser = { ...firebaseUser, ...updatedProfile };
+             const updatedUser = { 
+               ...firebaseUser, 
+               ...updatedProfile,
+               ...(isAdmin ? { is_premium: true, role: 'Super Admin', scholarCredits: Math.max(updatedProfile.scholarCredits || 0, 100) } : {})
+             };
              setUser(updatedUser);
              identifyUser(updatedUser);
           });
@@ -521,10 +530,20 @@ const AppContent: React.FC = () => {
       }
     });
 
+    const handleProfileUpdate = (e: any) => {
+      if (e.detail) {
+        setUser((prev: any) => ({ ...(prev || {}), ...e.detail }));
+      }
+    };
+    window.addEventListener('campusai_quota_updated', handleProfileUpdate);
+    window.addEventListener('campusai_profile_updated', handleProfileUpdate);
+
     return () => {
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
       window.removeEventListener('campusai_news_updated', reloadNews);
+      window.removeEventListener('campusai_quota_updated', handleProfileUpdate);
+      window.removeEventListener('campusai_profile_updated', handleProfileUpdate);
       unsubscribe();
     };
   }, []);

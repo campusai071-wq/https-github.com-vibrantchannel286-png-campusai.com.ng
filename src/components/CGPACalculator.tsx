@@ -7,8 +7,8 @@ import {
   GraduationCap, FileText, Plus, Trash2, RefreshCw, Download, ChevronDown, ChevronUp, ArrowRight
 } from 'lucide-react';
 import { analyzeCGPA } from '../services/premiumToolsService';
-import { trackCalculatorUsed } from '../services/analytics';
-import { logUserActivity, saveCalculationAttempt, saveUserCGPA, getUserCGPA } from '../services/dbService';
+import { trackCalculatorUsed, trackCGPAInteraction } from '../services/analytics';
+import { logUserActivity, saveCalculationAttempt, saveUserCGPA, getUserCGPA, saveGlobalCgpaRecord } from '../services/dbService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Course {
@@ -83,16 +83,288 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
     loadCGPA();
   }, [user]);
 
+  // Grade point mapping
+  const getGradePoint = (grade: string, currentScale: 5 | 4) => {
+    const g = grade.toUpperCase();
+    if (currentScale === 5) {
+      if (g === 'A') return 5;
+      if (g === 'B') return 4;
+      if (g === 'C') return 3;
+      if (g === 'D') return 2;
+      if (g === 'E') return 1;
+      return 0;
+    } else {
+      if (g === 'A') return 4;
+      if (g === 'B') return 3;
+      if (g === 'C') return 2;
+      if (g === 'D') return 1;
+      return 0;
+    }
+  };
+
+  // Calculations
+  const calculateSemesterStats = (courses: Course[]) => {
+    let totalUnits = 0;
+    let totalPoints = 0;
+    courses.forEach(c => {
+      const units = Number(c.units) || 0;
+      const gp = getGradePoint(c.grade, scale);
+      totalUnits += units;
+      totalPoints += units * gp;
+    });
+    const gpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : '0.00';
+    return { totalUnits, totalPoints, gpa: Number(gpa) };
+  };
+
+  // Cumulative calculation
+  const totalCumulativeUnits = semesters.reduce((acc, sem) => acc + calculateSemesterStats(sem.courses).totalUnits, 0);
+  const totalCumulativePoints = semesters.reduce((acc, sem) => acc + calculateSemesterStats(sem.courses).totalPoints, 0);
+  const cumulativeCGPA = totalCumulativeUnits > 0 ? (totalCumulativePoints / totalCumulativeUnits).toFixed(2) : '0.00';
+
+  // Degree classification
+  const getDegreeClass = (cgpaNum: number, currentScale: 5 | 4) => {
+    if (currentScale === 5) {
+      if (cgpaNum >= 4.50) return { title: 'First Class Honours', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' };
+      if (cgpaNum >= 3.50) return { title: 'Second Class Upper (2.1)', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200' };
+      if (cgpaNum >= 2.40) return { title: 'Second Class Lower (2.2)', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200' };
+      if (cgpaNum >= 1.50) return { title: 'Third Class Honours', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200' };
+      if (cgpaNum >= 1.00) return { title: 'Pass Degree', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200' };
+      return { title: 'Academic Probation / Fail', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200' };
+    } else {
+      if (cgpaNum >= 3.50) return { title: 'First Class Honours', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' };
+      if (cgpaNum >= 3.00) return { title: 'Second Class Upper (2.1)', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200' };
+      if (cgpaNum >= 2.00) return { title: 'Second Class Lower (2.2)', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200' };
+      if (cgpaNum >= 1.50) return { title: 'Third Class Honours', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200' };
+      if (cgpaNum >= 1.00) return { title: 'Pass Degree', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200' };
+      return { title: 'Academic Probation / Fail', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200' };
+    }
+  };
+
+  const currentHonours = getDegreeClass(Number(cumulativeCGPA), scale);
+
   useEffect(() => {
     if (!user || !isDataLoaded) return;
     const saveTimer = setTimeout(async () => {
       setIsSaving(true);
       await saveUserCGPA(user.uid, semesters, scale);
-      setIsSaving(false);
-    }, 1500); // Debounce saving
-    return () => clearTimeout(saveTimer);
-  }, [semesters, scale, user, isDataLoaded]);
+      
+      const totalCourses = semesters.reduce((acc, s) => acc + (s.courses?.length || 0), 0);
+      const totalUnits = semesters.reduce((acc, s) => acc + (s.courses || []).reduce((cAcc: number, c: Course) => cAcc + (c.units || 0), 0), 0);
+      if (totalCourses > 0 && cumulativeCGPA) {
+        await saveGlobalCgpaRecord({
+          userId: user.uid,
+          userEmail: user.email || '',
+          userName: user.displayName || 'Scholar',
+          institution: user.institution || 'Nigerian University',
+          course: user.course || 'Degree Program',
+          cgpa: Number(cumulativeCGPA),
+          scale,
+          honoursTitle: currentHonours.title,
+          semestersCount: semesters.length,
+          totalCourses,
+          totalUnits
+        });
 
+        trackCGPAInteraction({
+          action: 'calculate',
+          scale,
+          cgpa: cumulativeCGPA,
+          honours_class: currentHonours.title,
+          semesters_count: semesters.length,
+          courses_count: totalCourses,
+          total_units: totalUnits,
+          institution: user.institution || 'Nigerian University',
+          user_id: user.uid,
+          user_email: user.email || '',
+          user_name: user.displayName || 'Scholar'
+        });
+      }
+      setIsSaving(false);
+    }, 2000); // Debounce saving
+    return () => clearTimeout(saveTimer);
+  }, [semesters, scale, user, isDataLoaded, cumulativeCGPA, currentHonours.title]);
+
+  // Handle scale change
+  const handleScaleChange = (newScale: 5 | 4) => {
+    setScale(newScale);
+    trackCGPAInteraction({
+      action: 'scale_switch',
+      scale: newScale,
+      cgpa: cumulativeCGPA,
+      honours_class: currentHonours.title,
+      semesters_count: semesters.length,
+      user_id: user?.uid,
+      user_email: user?.email,
+      user_name: user?.displayName
+    });
+  };
+
+  // Add semester
+  const addSemester = () => {
+    if (!newSemName.trim()) return;
+    const newSem: Semester = {
+      id: `sem-${Date.now()}`,
+      name: newSemName.trim(),
+      courses: []
+    };
+    setSemesters([...semesters, newSem]);
+    setActiveSemesterId(newSem.id);
+    setNewSemName('');
+
+    trackCGPAInteraction({
+      action: 'semester_add',
+      semester_name: newSemName.trim(),
+      semesters_count: semesters.length + 1,
+      scale,
+      cgpa: cumulativeCGPA,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
+  };
+
+  // Delete semester
+  const deleteSemester = (semId: string) => {
+    if (semesters.length <= 1) return;
+    const deletedSem = semesters.find(s => s.id === semId);
+    const updated = semesters.filter(s => s.id !== semId);
+    setSemesters(updated);
+    setActiveSemesterId(updated[0].id);
+
+    trackCGPAInteraction({
+      action: 'semester_delete',
+      semester_name: deletedSem?.name,
+      semesters_count: updated.length,
+      scale,
+      cgpa: cumulativeCGPA,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
+  };
+
+  // Add course to active semester
+  const addCourse = (semId: string) => {
+    const updated = semesters.map(sem => {
+      if (sem.id === semId) {
+        return {
+          ...sem,
+          courses: [
+            ...sem.courses,
+            { id: `c-${Date.now()}`, code: `CSC${100 + sem.courses.length + 1}`, units: 3, grade: 'A' as const }
+          ]
+        };
+      }
+      return sem;
+    });
+    setSemesters(updated);
+
+    trackCGPAInteraction({
+      action: 'course_add',
+      semester_name: semesters.find(s => s.id === semId)?.name,
+      scale,
+      cgpa: cumulativeCGPA,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
+  };
+
+  // Update course
+  const updateCourse = (semId: string, courseId: string, field: keyof Course, value: any) => {
+    const updated = semesters.map(sem => {
+      if (sem.id === semId) {
+        const courses = sem.courses.map(c => {
+          if (c.id === courseId) {
+            return { ...c, [field]: value };
+          }
+          return c;
+        });
+        return { ...sem, courses };
+      }
+      return sem;
+    });
+    setSemesters(updated);
+
+    if (field === 'grade' || field === 'units') {
+      trackCGPAInteraction({
+        action: 'course_update',
+        course_grade: field === 'grade' ? value : undefined,
+        scale,
+        cgpa: cumulativeCGPA,
+        user_id: user?.uid,
+        user_email: user?.email
+      });
+    }
+  };
+
+  // Delete course
+  const deleteCourse = (semId: string, courseId: string) => {
+    const deletedCourse = semesters.find(s => s.id === semId)?.courses.find(c => c.id === courseId);
+    const updated = semesters.map(sem => {
+      if (sem.id === semId) {
+        return { ...sem, courses: sem.courses.filter(c => c.id !== courseId) };
+      }
+      return sem;
+    });
+    setSemesters(updated);
+
+    trackCGPAInteraction({
+      action: 'course_delete',
+      course_code: deletedCourse?.code,
+      scale,
+      cgpa: cumulativeCGPA,
+      user_id: user?.uid,
+      user_email: user?.email
+    });
+  };
+
+  // Trigger AI Trajectory Analysis
+  const handleRunAiAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const summaryText = semesters.map(s => {
+        const stats = calculateSemesterStats(s.courses);
+        const courseList = s.courses.map(c => `${c.code}(Units:${c.units}, Grade:${c.grade})`).join(', ');
+        return `${s.name}: GPA ${stats.gpa}, Units: ${stats.totalUnits}. Courses: [${courseList}]`;
+      }).join('\n');
+
+      const advice = await analyzeCGPA(
+        Number(cumulativeCGPA),
+        summaryText,
+        user?.role || 'University Student',
+        user?.institution || 'Nigerian University',
+        user?.course || 'Tertiary Programme'
+      );
+      setAiAnalysis(advice);
+      
+      trackCalculatorUsed({
+        calculator_type: 'cgpa_analysis',
+        aggregate_score: cumulativeCGPA,
+        university: user?.institution || 'unspecified'
+      });
+
+      trackCGPAInteraction({
+        action: 'ai_advisor_run',
+        cgpa: cumulativeCGPA,
+        scale,
+        honours_class: currentHonours.title,
+        semesters_count: semesters.length,
+        institution: user?.institution || 'Nigerian University',
+        user_id: user?.uid,
+        user_email: user?.email,
+        user_name: user?.displayName
+      });
+
+      logUserActivity({
+        userId: user?.uid || 'guest-cgpa',
+        type: 'calculation',
+        title: 'CGPA Calculation & Analysis',
+        description: `Calculated CGPA: ${cumulativeCGPA} (${currentHonours.title}) on Scale ${scale} by ${user?.displayName || user?.email || 'Scholar'} (${user?.email || 'guest'}) for ${user?.institution || 'Tertiary Institution'}`
+      });
+    } catch (e: any) {
+      setAiAnalysis("Keep up consistent effort in core departmental courses and aim for straight A's in high-unit practicals.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // If user is not logged in, show Auth Guard requiring Sign Up / Login
   if (!user) {
@@ -189,169 +461,6 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
     );
   }
 
-  // Grade point mapping
-  const getGradePoint = (grade: string, currentScale: 5 | 4) => {
-    const g = grade.toUpperCase();
-    if (currentScale === 5) {
-      if (g === 'A') return 5;
-      if (g === 'B') return 4;
-      if (g === 'C') return 3;
-      if (g === 'D') return 2;
-      if (g === 'E') return 1;
-      return 0;
-    } else {
-      if (g === 'A') return 4;
-      if (g === 'B') return 3;
-      if (g === 'C') return 2;
-      if (g === 'D') return 1;
-      return 0;
-    }
-  };
-
-  // Add semester
-  const addSemester = () => {
-    if (!newSemName.trim()) return;
-    const newSem: Semester = {
-      id: `sem-${Date.now()}`,
-      name: newSemName.trim(),
-      courses: []
-    };
-    setSemesters([...semesters, newSem]);
-    setActiveSemesterId(newSem.id);
-    setNewSemName('');
-  };
-
-  // Delete semester
-  const deleteSemester = (semId: string) => {
-    if (semesters.length <= 1) return;
-    const updated = semesters.filter(s => s.id !== semId);
-    setSemesters(updated);
-    setActiveSemesterId(updated[0].id);
-  };
-
-  // Add course to active semester
-  const addCourse = (semId: string) => {
-    const updated = semesters.map(sem => {
-      if (sem.id === semId) {
-        return {
-          ...sem,
-          courses: [
-            ...sem.courses,
-            { id: `c-${Date.now()}`, code: `CSC${100 + sem.courses.length + 1}`, units: 3, grade: 'A' as const }
-          ]
-        };
-      }
-      return sem;
-    });
-    setSemesters(updated);
-  };
-
-  // Update course
-  const updateCourse = (semId: string, courseId: string, field: keyof Course, value: any) => {
-    const updated = semesters.map(sem => {
-      if (sem.id === semId) {
-        const courses = sem.courses.map(c => {
-          if (c.id === courseId) {
-            return { ...c, [field]: value };
-          }
-          return c;
-        });
-        return { ...sem, courses };
-      }
-      return sem;
-    });
-    setSemesters(updated);
-  };
-
-  // Delete course
-  const deleteCourse = (semId: string, courseId: string) => {
-    const updated = semesters.map(sem => {
-      if (sem.id === semId) {
-        return { ...sem, courses: sem.courses.filter(c => c.id !== courseId) };
-      }
-      return sem;
-    });
-    setSemesters(updated);
-  };
-
-  // Calculations
-  const calculateSemesterStats = (courses: Course[]) => {
-    let totalUnits = 0;
-    let totalPoints = 0;
-    courses.forEach(c => {
-      const units = Number(c.units) || 0;
-      const gp = getGradePoint(c.grade, scale);
-      totalUnits += units;
-      totalPoints += units * gp;
-    });
-    const gpa = totalUnits > 0 ? (totalPoints / totalUnits).toFixed(2) : '0.00';
-    return { totalUnits, totalPoints, gpa: Number(gpa) };
-  };
-
-  // Cumulative calculation
-  const totalCumulativeUnits = semesters.reduce((acc, sem) => acc + calculateSemesterStats(sem.courses).totalUnits, 0);
-  const totalCumulativePoints = semesters.reduce((acc, sem) => acc + calculateSemesterStats(sem.courses).totalPoints, 0);
-  const cumulativeCGPA = totalCumulativeUnits > 0 ? (totalCumulativePoints / totalCumulativeUnits).toFixed(2) : '0.00';
-
-  // Degree classification
-  const getDegreeClass = (cgpaNum: number, currentScale: 5 | 4) => {
-    if (currentScale === 5) {
-      if (cgpaNum >= 4.50) return { title: 'First Class Honours', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' };
-      if (cgpaNum >= 3.50) return { title: 'Second Class Upper (2.1)', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200' };
-      if (cgpaNum >= 2.40) return { title: 'Second Class Lower (2.2)', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200' };
-      if (cgpaNum >= 1.50) return { title: 'Third Class Honours', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200' };
-      if (cgpaNum >= 1.00) return { title: 'Pass Degree', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200' };
-      return { title: 'Academic Probation / Fail', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200' };
-    } else {
-      if (cgpaNum >= 3.50) return { title: 'First Class Honours', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' };
-      if (cgpaNum >= 3.00) return { title: 'Second Class Upper (2.1)', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200' };
-      if (cgpaNum >= 2.00) return { title: 'Second Class Lower (2.2)', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200' };
-      if (cgpaNum >= 1.50) return { title: 'Third Class Honours', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200' };
-      if (cgpaNum >= 1.00) return { title: 'Pass Degree', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border-orange-200' };
-      return { title: 'Academic Probation / Fail', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200' };
-    }
-  };
-
-  const currentHonours = getDegreeClass(Number(cumulativeCGPA), scale);
-
-  // Trigger AI Trajectory Analysis
-  const handleRunAiAnalysis = async () => {
-    setIsAnalyzing(true);
-    try {
-      const summaryText = semesters.map(s => {
-        const stats = calculateSemesterStats(s.courses);
-        const courseList = s.courses.map(c => `${c.code}(Units:${c.units}, Grade:${c.grade})`).join(', ');
-        return `${s.name}: GPA ${stats.gpa}, Units: ${stats.totalUnits}. Courses: [${courseList}]`;
-      }).join('\n');
-
-      const advice = await analyzeCGPA(
-        Number(cumulativeCGPA),
-        summaryText,
-        user?.role || 'University Student',
-        user?.institution || 'Nigerian University',
-        user?.course || 'Tertiary Programme'
-      );
-      setAiAnalysis(advice);
-      
-      trackCalculatorUsed({
-        calculator_type: 'cgpa_analysis',
-        aggregate_score: cumulativeCGPA,
-        university: user?.institution || 'unspecified'
-      });
-
-      logUserActivity({
-        userId: user?.uid || 'guest-cgpa',
-        type: 'calculation',
-        title: 'CGPA Calculation & Analysis',
-        description: `Calculated CGPA: ${cumulativeCGPA} (${currentHonours.title}) on Scale ${scale} by ${user?.displayName || user?.email || 'Scholar'} (${user?.email || 'guest'}) for ${user?.institution || 'Tertiary Institution'}`
-      });
-    } catch (e: any) {
-      setAiAnalysis("Keep up consistent effort in core departmental courses and aim for straight A's in high-unit practicals.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const activeSemester = semesters.find(s => s.id === activeSemesterId) || semesters[0];
   const activeStats = calculateSemesterStats(activeSemester?.courses || []);
 
@@ -382,13 +491,13 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
             {/* Scale toggle */}
             <div className="flex bg-white dark:bg-gray-900 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm shrink-0">
               <button 
-                onClick={() => setScale(5)}
+                onClick={() => handleScaleChange(5)}
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scale === 5 ? 'bg-purple-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
               >
                 NUC 5.0 Scale
               </button>
               <button 
-                onClick={() => setScale(4)}
+                onClick={() => handleScaleChange(4)}
                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${scale === 4 ? 'bg-purple-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
               >
                 NUC 4.0 Scale
