@@ -95,6 +95,7 @@ import { getFUHSICutoffByCourse } from "../data/fuhsiCutoffs2026_2027";
 import { getFUTMINNACutoffByCourse } from "../data/futminnaCutoffs2026_2027";
 import { getYabatechCutoffByCourse } from "../data/yabatechCutoffs2026_2027";
 import { getFuoyeCutoffByCourse } from "../data/fuoyeCutoffs2026_2027";
+import { getFulokojaCutoffByCourse } from "../data/fulokojaCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -2250,6 +2251,18 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
+      if (!manualOverride && (nUni.includes("fulokoja") || nUni.includes("lokoja") || nUni.includes("federal university lokoja") || nUni.includes("federal university, lokoja"))) {
+        const fulokojaCutoff = getFulokojaCutoffByCourse(course);
+        if (fulokojaCutoff) {
+          manualOverride = {
+            institution: "Federal University Lokoja (FULOKOJA)",
+            course: fulokojaCutoff.programme,
+            departmentalCutoff: `${fulokojaCutoff.cutoff.toFixed(2)}%`,
+            institutionalCutoff: "160",
+            explanation: `Official FULOKOJA 2026/2027 Approved Programme Cutoff: ${fulokojaCutoff.cutoff.toFixed(2)}% (Faculty: ${fulokojaCutoff.faculty}). Approved at the 45th Central Admissions Committee Meeting on Sept. 17, 2026.`
+          };
+        }
+      }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
@@ -2410,6 +2423,18 @@ export const getCourseCutoffInfo = async (
           departmentalCutoff: `${fuoyeCutoff.meritScore}%`,
           institutionalCutoff: "150",
           explanation: `Official FUOYE 2026/2027 Admission Merit Point for ${fuoyeCutoff.programme}: ${fuoyeCutoff.meritScore}% (Faculty: ${fuoyeCutoff.faculty}). Scoring System: JAMB (60%) + O'Level (30%) + Sitting Bonus (10%).`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fulokoja") || nUni.includes("lokoja") || nUni.includes("federal university lokoja") || nUni.includes("federal university, lokoja"))) {
+      const fulokojaCutoff = getFulokojaCutoffByCourse(course);
+      if (fulokojaCutoff) {
+        manualOverride = {
+          institution: "Federal University Lokoja (FULOKOJA)",
+          course: fulokojaCutoff.programme,
+          departmentalCutoff: `${fulokojaCutoff.cutoff.toFixed(2)}%`,
+          institutionalCutoff: "160",
+          explanation: `Official FULOKOJA 2026/2027 Approved Programme Cutoff: ${fulokojaCutoff.cutoff.toFixed(2)}% (Faculty: ${fulokojaCutoff.faculty}). Approved at the 45th Central Admissions Committee Meeting on Sept. 17, 2026.`
         };
       }
     }
@@ -2816,6 +2841,18 @@ Return JSON:
           departmentalCutoff: `${fuoyeCutoff.meritScore}%`,
           institutionalCutoff: "150",
           explanation: `Official FUOYE 2026/2027 Admission Merit Point for ${fuoyeCutoff.programme}: ${fuoyeCutoff.meritScore}% (Faculty: ${fuoyeCutoff.faculty}). Scoring System: JAMB (60%) + O'Level (30%) + Sitting Bonus (10%).`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("fulokoja") || nUni.includes("lokoja") || nUni.includes("federal university lokoja") || nUni.includes("federal university, lokoja"))) {
+      const fulokojaCutoff = getFulokojaCutoffByCourse(course);
+      if (fulokojaCutoff) {
+        manualOverride = {
+          institution: "Federal University Lokoja (FULOKOJA)",
+          course: fulokojaCutoff.programme,
+          departmentalCutoff: `${fulokojaCutoff.cutoff.toFixed(2)}%`,
+          institutionalCutoff: "160",
+          explanation: `Official FULOKOJA 2026/2027 Approved Programme Cutoff: ${fulokojaCutoff.cutoff.toFixed(2)}% (Faculty: ${fulokojaCutoff.faculty}). Approved at the 45th Central Admissions Committee Meeting on Sept. 17, 2026.`
         };
       }
     }

@@ -17,6 +17,7 @@ import { UI_CUTOFFS_2025_2026 } from '../data/uiCutoffs2025_2026';
 import { LAUTECH_CUTOFFS_2025_2026 } from '../data/lautechCutoffs2025_2026';
 import { FUHSI_CUTOFFS_2026_2027 } from '../data/fuhsiCutoffs2026_2027';
 import { FUOYE_CUTOFFS_2026_2027 } from '../data/fuoyeCutoffs2026_2027';
+import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaCutoffByCourse } from '../data/fulokojaCutoffs2026_2027';
 import { YABATECH_CUTOFFS_2026_2027 } from '../data/yabatechCutoffs2026_2027';
 import unilagCutoffs from '../data/unilagCutoffs.json';
 
@@ -259,6 +260,7 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
     if ((t.includes('lautech') || t.includes('ogbomoso')) && (q.includes('lautech') || q.includes('ladoke'))) return true;
     if ((t.includes('fuoye') || t.includes('oye-ekiti')) && (q.includes('fuoye') || q.includes('oye ekiti'))) return true;
     if ((t.includes('fuhsi') || t.includes('ila orangun')) && (q.includes('fuhsi') || q.includes('health sciences'))) return true;
+    if ((t.includes('fulokoja') || t.includes('lokoja')) && (q.includes('fulokoja') || q.includes('lokoja'))) return true;
     return false;
   };
 
@@ -325,7 +327,15 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
       }
     }
 
-    // 6. YABATECH
+    // 6. FULOKOJA
+    if (cleanUni.includes('fulokoja') || cleanUni.includes('lokoja') || cleanUni.includes('federal university lokoja')) {
+      const match = getFulokojaCutoffByCourse(targetCourse);
+      if (match) {
+        return { cutoffText: `${match.cutoff.toFixed(1)}% (Official 2026/2027)`, numericCutoff: match.cutoff, category: 'Merit' };
+      }
+    }
+
+    // 7. YABATECH
     if (cleanUni.includes('yabatech')) {
       const match = YABATECH_CUTOFFS_2026_2027.find(item => 
         item.programme.toLowerCase().includes(cleanCourse) || cleanCourse.includes(item.programme.toLowerCase())
@@ -335,7 +345,7 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
       }
     }
 
-    // 7. UNILAG
+    // 8. UNILAG
     if (cleanUni.includes('unilag') || cleanUni.includes('university of lagos')) {
       const dept = (unilagCutoffs as any).departments?.find((d: any) => 
         d.name.toLowerCase().includes(cleanCourse) || cleanCourse.includes(d.name.toLowerCase())

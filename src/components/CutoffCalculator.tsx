@@ -34,6 +34,7 @@ import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechC
 import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
 import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
 import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
+import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -925,6 +926,34 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
         "Ensure all O'Level results are promptly uploaded and verified on the JAMB CAPS portal."
       ]
     }
+  },
+  fulokoja: {
+    fullName: "Federal University Lokoja (FULOKOJA)",
+    formulaDesc: "FULOKOJA evaluates candidate screening scores and UTME performance based on official Central Admissions Committee 2026/2027 departmental percentages.",
+    formulaSteps: [
+      "Aggregate Calculation: (UTME Score / 8) + (Post-UTME Screening Score / 2).",
+      "Benchmark Comparison: Compare your calculated aggregate against the 2026/2027 Approved Departmental Cut-Off percentages.",
+      "O'Level Compliance: Minimum of 5 credit passes including English Language and Mathematics in relevant subjects."
+    ],
+    cutoffs: [
+      { course: "Medicine and Surgery (MBBS)", score: "78.25%" },
+      { course: "Nursing Science", score: "74.88%" },
+      { course: "Medical Laboratory Science", score: "70.13%" },
+      { course: "Computer Science", score: "62.38%" },
+      { course: "Law (LL.B)", score: "68.50%" },
+      { course: "Mechanical Engineering", score: "60.00%" }
+    ],
+    postUtmeGuide: {
+      format: "Online Screening / Aggregate Evaluation",
+      subjects: "JAMB UTME score + Post-UTME online screening assessment.",
+      duration: "Online Portal",
+      fee: "₦2,000",
+      tips: [
+        "FULOKOJA Central Admissions Committee approved official cutoffs on September 17, 2026.",
+        "High-demand courses like Medicine (78.25%), Nursing (74.88%), and Law (68.50%) require strict merit adherence.",
+        "Ensure your O'level results are properly uploaded to JAMB CAPS."
+      ]
+    }
   }
 };
 
@@ -1559,6 +1588,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isFuoyeCutoffsModalOpen, setIsFuoyeCutoffsModalOpen] = useState(false);
   const [fuoyeCutoffSearch, setFuoyeCutoffSearch] = useState('');
   const [fuoyeFacultyFilter, setFuoyeFacultyFilter] = useState('ALL');
+
+  // ── FULOKOJA 2026/2027 Cutoffs Explorer State ──
+  const [isFulokojaCutoffsModalOpen, setIsFulokojaCutoffsModalOpen] = useState(false);
+  const [fulokojaCutoffSearch, setFulokojaCutoffSearch] = useState('');
+  const [fulokojaFacultyFilter, setFulokojaFacultyFilter] = useState('ALL');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -3243,6 +3277,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View Official FUOYE 2026/2027 Admission Merit Points
+                        </button>
+                      )}
+                      {(currentSchoolSlug === 'fulokoja' || currentSchoolSlug === 'futlok') && (
+                        <button
+                          type="button"
+                          onClick={() => setIsFulokojaCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official FULOKOJA 2026/2027 Approved Cut-Off Marks (75+ Courses)
                         </button>
                       )}
                     </div>
@@ -8417,6 +8460,161 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFuoyeCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* FULOKOJA Cutoffs Explorer Modal */}
+        {isFulokojaCutoffsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFulokojaCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-5xl bg-gray-900 border border-cyan-500/20 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-950/60 to-gray-900 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-black">
+                    FUL
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">{FULOKOJA_INSTITUTION_NAME}</h3>
+                    <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">{FULOKOJA_SESSION} Official Approved Departmental Cut-off Marks ({FULOKOJA_APPROVAL_DATE})</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFulokojaCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Controls Bar */}
+              <div className="p-4 border-b border-white/5 bg-gray-950/60 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    value={fulokojaCutoffSearch}
+                    onChange={(e) => setFulokojaCutoffSearch(e.target.value)}
+                    placeholder="Search course or faculty..."
+                    className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider shrink-0">Faculty:</span>
+                  <select
+                    value={fulokojaFacultyFilter}
+                    onChange={(e) => setFulokojaFacultyFilter(e.target.value)}
+                    className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/50"
+                  >
+                    <option value="ALL">All Faculties ({FULOKOJA_CUTOFFS_2026_2027.length} Programmes)</option>
+                    {getFulokojaFaculties().map((fac, fIdx) => (
+                      <option key={fIdx} value={fac}>{fac}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Modal Body / Table */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {(() => {
+                  const filtered = FULOKOJA_CUTOFFS_2026_2027.filter(item => {
+                    const matchesSearch = item.programme.toLowerCase().includes(fulokojaCutoffSearch.toLowerCase()) ||
+                                          item.faculty.toLowerCase().includes(fulokojaCutoffSearch.toLowerCase());
+                    const matchesFaculty = fulokojaFacultyFilter === 'ALL' || item.faculty === fulokojaFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <p className="text-xs font-black uppercase">No programmes found matching your search.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-white/5">
+                            <th className="p-3">Programme / Course</th>
+                            <th className="p-3">Faculty</th>
+                            <th className="p-3 text-center">Approved Cut-off</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-white/[0.02] transition-all">
+                              <td className="p-3 font-bold text-white">{item.programme}</td>
+                              <td className="p-3 text-gray-400 text-[11px]">{item.faculty}</td>
+                              <td className="p-3 text-center">
+                                <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg font-black text-xs">
+                                  {item.cutoff.toFixed(2)}%
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const uObj = universityData.find((u: any) => u.slug === 'fulokoja') || { name: FULOKOJA_INSTITUTION_NAME, slug: 'fulokoja' };
+                                    setTargetUni(uObj);
+                                    setUniSearch(uObj.name);
+                                    setTargetCourse(item.programme);
+                                    setIsFulokojaCutoffsModalOpen(false);
+                                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                                  }}
+                                  className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-400 hover:text-black border border-cyan-500/20 rounded-lg font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ml-auto"
+                                >
+                                  Calculate <ArrowRight size={10} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-cyan-400" />
+                  <span>Federal University Lokoja {FULOKOJA_SESSION} Official Approved Cut-Offs (Central Admissions Committee)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://fulokoja.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    FULOKOJA Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsFulokojaCutoffsModalOpen(false)}
                     className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
                   >
                     Close

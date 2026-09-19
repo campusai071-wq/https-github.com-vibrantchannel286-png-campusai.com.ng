@@ -56,5 +56,12 @@
     "formula_description": "Aggregate Score = (UTME Score / 8) + (Post-UTME Score / 2) (50:50)",
     "utme_weighting": 50,
     "post_utme_weighting": 50
+  },
+  {
+    "institution_name": "Federal University Lokoja (FULOKOJA)",
+    "slug": "fulokoja",
+    "formula_description": "Aggregate Score = (UTME Score / 8) + (Post-UTME Screening Score / 2) (50:50) evaluated against official approved programme cut-off percentages.",
+    "utme_weighting": 50,
+    "post_utme_weighting": 50
   }
 ]
