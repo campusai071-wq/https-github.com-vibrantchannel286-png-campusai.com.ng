@@ -2288,7 +2288,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             TAB: JAMB TARGET SYSTEM
            ------------------------------------------------------------------- */}
         {activeTab === 'target-system' && (
-          <div className="p-4 sm:p-8 max-w-5xl mx-auto w-full space-y-6">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3 border border-emerald-500/30">
                 <Target size={14} /> 2027 JAMB Target & Score Analytics System
@@ -2664,7 +2664,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           <div className="flex-1 flex flex-col">
             {!started ? (
               /* Setup Screen */
-              <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-6">
+              <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
                 {/* Resume Exam Session Alert Banner */}
                 {pendingResumeSession && (
                   <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border-2 border-emerald-500/60 rounded-3xl p-6 sm:p-7 shadow-2xl text-white relative overflow-hidden">
@@ -2995,7 +2995,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               </div>
             ) : showResults ? (
               /* Results View with AI Diagnosis */
-              <div className="p-4 sm:p-8 max-w-5xl mx-auto w-full space-y-6">
+              <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div>
@@ -3526,7 +3526,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 )}
 
                 {/* Main question canvas */}
-                <div className="flex-1 p-4 sm:p-8 max-w-4xl w-full mx-auto space-y-6">
+                <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
                   {/* Embedded JAMB Scientific Calculator Modal */}
                   {showCalc && (
                     <div className="p-4 bg-slate-900 text-white rounded-3xl border border-slate-700 shadow-2xl max-w-xs ml-auto mb-4 animate-fadeIn">
@@ -3890,7 +3890,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
                 {/* Question Grid Navigator */}
                 <div className="bg-white border-t border-slate-200 p-4 sm:px-8">
-                  <div className="max-w-4xl mx-auto">
+                  <div className="max-w-7xl mx-auto">
                     <div className="text-xs font-extrabold text-slate-500 mb-2.5 flex items-center justify-between">
                       <span>Question Palette ({Object.keys(currentAnswers).length} Attempted)</span>
                       <span className="text-[10px] text-slate-400">Green = Answered • Dark = Active</span>
@@ -3930,7 +3930,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             TAB: CBT EXAM HISTORY & PAST ATTEMPTS (PERSISTED IN FIRESTORE)
            ------------------------------------------------------------------- */}
         {activeTab === 'history' && (
-          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             {/* Header Banner */}
             <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -4211,7 +4211,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             TAB 2: STUDY SECTION (Topic Drills, Formulas, Novel Summaries)
            ------------------------------------------------------------------- */}
         {activeTab === 'study' && (
-          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <div>
                 <h1 className="text-2xl font-black text-slate-900">Topic Study & Revision Hub</h1>
@@ -4462,7 +4462,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             TAB 3: AI ACADEMIC COACH & STRATEGY ADVISOR
            ------------------------------------------------------------------- */}
         {activeTab === 'ai-advisor' && (
-          <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-6">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black">
@@ -4529,7 +4529,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             TAB: DISCUSSION HUB
            ------------------------------------------------------------------- */}
         {activeTab === 'discussions' && (
-          <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full space-y-6">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             <div className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden min-h-[600px]">
               <PdfStore 
                 user={user} 
