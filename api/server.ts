@@ -1198,16 +1198,47 @@ setInterval(() => {
 
 function normalizeAlocQuestion(q: any, fallbackSubject: string): any {
   const rawOptions = q.options || q.option || {};
+  const cleanOptions: Record<string, string> = {};
+  
+  // Explicit standard alphabetical order & prefix stripping (e.g. stripping redundant "A. " or "(A) ")
+  const stdKeys = ['a', 'b', 'c', 'd', 'e'];
+  for (const k of stdKeys) {
+    let val = rawOptions[k.toUpperCase()] ?? rawOptions[k.toLowerCase()] ?? '';
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      let strVal = String(val).trim();
+      // Strip redundant "A. ", "A) ", "(A) " prefixes if duplicated in option string
+      strVal = strVal.replace(/^[a-eA-E][.)\s]\s*/, '').replace(/^\([a-eA-E]\)\s*/, '');
+      cleanOptions[k] = strVal;
+    }
+  }
+  // Ensure minimum a, b, c, d exist if provided in any structure
+  if (!cleanOptions.a && (rawOptions.A || rawOptions.a)) cleanOptions.a = String(rawOptions.A || rawOptions.a).trim();
+  if (!cleanOptions.b && (rawOptions.B || rawOptions.b)) cleanOptions.b = String(rawOptions.B || rawOptions.b).trim();
+  if (!cleanOptions.c && (rawOptions.C || rawOptions.c)) cleanOptions.c = String(rawOptions.C || rawOptions.c).trim();
+  if (!cleanOptions.d && (rawOptions.D || rawOptions.d)) cleanOptions.d = String(rawOptions.D || rawOptions.d).trim();
+
+  let rawQuestionText = String(q.text || q.question || '').trim();
+  const rawSubject = (q.subject || fallbackSubject || '').toLowerCase();
+
+  // Clean common HTML/OCR encoding artifacts
+  rawQuestionText = rawQuestionText
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ');
+
+  // Systemic prompt enrichment for truncated Oral English / phonetics items (e.g. single target words like "English", "judge")
+  const wordCount = rawQuestionText.split(/\s+/).filter(Boolean).length;
+  const isEnglishOrOral = rawSubject.includes('english') || rawSubject.includes('oral');
+  const hasNoPunctuationOrQuestion = !rawQuestionText.includes('?') && !rawQuestionText.includes('.') && !rawQuestionText.toLowerCase().includes('choose') && !rawQuestionText.toLowerCase().includes('which');
+  
+  if (isEnglishOrOral && wordCount <= 3 && hasNoPunctuationOrQuestion && rawQuestionText.length > 0) {
+    rawQuestionText = `Choose the option that has the same vowel or consonant sound as the word: <strong>${rawQuestionText}</strong>`;
+  }
+
   return {
     id: String(q.id || Math.random().toString(36).substring(2)),
-    question: q.text || q.question || '',
-    option: {
-      a: rawOptions.A || rawOptions.a || '',
-      b: rawOptions.B || rawOptions.b || '',
-      c: rawOptions.C || rawOptions.c || '',
-      d: rawOptions.D || rawOptions.d || '',
-      ...(rawOptions.E || rawOptions.e ? { e: rawOptions.E || rawOptions.e } : {})
-    },
+    question: rawQuestionText,
+    option: cleanOptions,
     answer: String(q.correctAnswer || q.answer || '').trim().toLowerCase(),
     solution: q.solution || q.explanation || (q.section ? `Passage/Section: ${q.section}` : `Official ${q.examType ? q.examType.toUpperCase() : 'JAMB'} Past Question (${q.year || 'Standard curriculum'}).`),
     examType: String(q.examType || 'JAMB').toUpperCase(),
@@ -1509,100 +1540,190 @@ app.all(["/api/aloc/questions", "/api/aloc/q", "/api/past-questions"], async (re
   }
 });
 
-// 2. Question Explanation / Solutions Endpoint
+// 2. Question Explanation / Solutions Endpoint (Powered by Gemini with Rigorous Syllabus & Phonetic Verification)
 app.post("/api/aloc/explain", async (req: any, res: any) => {
   try {
-    const { questionId, depth, questionText, correctAnswer, subject } = req.body;
+    const { questionId, depth, questionText, correctAnswer, options, userAnswer, subject, examType, examYear } = req.body;
     
-    // Check cache first
-    if (adminDb && questionId && !String(questionId).startsWith('fallback-')) {
-      const cacheSnap = await adminDb.collection('ai_cache').doc(questionId).get();
-      if (cacheSnap.exists) {
-        return res.json({ success: true, data: cacheSnap.data().response, source: "cache" });
-      }
-    }
+    // Format options cleanly for the AI evaluator
+    const formattedOptions = options && typeof options === 'object'
+      ? Object.entries(options).map(([k, v]) => `${k.toUpperCase()}. ${v}`).join('\n')
+      : '';
 
-    const apiKey = getAlocApiKey();
-    const baseUrl = getAlocBaseUrl();
-
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     let aiData: any = null;
-    let source = "unknown";
+    let source = "gemini_verified";
 
-    // Only query external ALOC explain if it's an ALOC ID (not a Firebase or fallback question)
-    const isFirebaseOrMock = String(questionId || '').startsWith('fb_') || 
-                             String(questionId || '').startsWith('q_') || 
-                             String(questionId || '').startsWith('fallback-');
+    if (geminiKey) {
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const prompt = `You are a Senior Academic Subject Specialist and Chief Examiner for Nigerian national examinations (JAMB UTME, WAEC WASSCE, NECO).
+Provide an authoritative, pedantically accurate step-by-step solution and explanation for the following multiple-choice question:
 
-    if (questionId && !isFirebaseOrMock) {
+Subject: ${subject || 'General'}
+Exam: ${examType || 'JAMB'} ${examYear || ''}
+Question / Prompt: ${questionText || 'Question'}
+Options:
+${formattedOptions || 'A. ...\nB. ...\nC. ...\nD. ...'}
+
+Reported Upstream Answer Key: ${correctAnswer || 'Not specified'}
+Student's Chosen Answer: ${userAnswer || 'None'}
+
+CRITICAL INSTRUCTIONS:
+1. Independently determine the 100% correct answer based on strict academic rules, standard IPA phonetic transcriptions (for Oral English / vowels / consonants / silent letters / stress patterns), mathematical derivations, or grammatical concord.
+2. If the reported upstream answer key is incorrect or miskeyed, state clearly what the true correct option is and explain the exact phonetic / grammatical / scientific breakdown.
+3. For Oral English / Consonant or Vowel sound questions:
+   - Transcribe the target word and all option words in International Phonetic Alphabet (IPA).
+   - Identify the exact target phoneme (e.g., /ŋ/, /ŋɡ/, /n/, /k/, /tʃ/, etc.).
+   - Explain why the correct option matches and why each distractor fails.
+4. Format response strictly as a JSON object with this schema:
+{
+  "verifiedAnswer": "a", 
+  "simplifiedExplanation": "Clear, direct 1-2 sentence core takeaway with phonetic transcriptions or key rule.",
+  "explanation": "Comprehensive pedagogical explanation breaking down why the correct option is right and why other options are wrong.",
+  "steps": [
+    "Step 1: Identify target word and phonetic focus / rule",
+    "Step 2: Phonetic transcription & analysis of target and options",
+    "Step 3: Verification of the matching option"
+  ],
+  "commonMistakes": [
+    { "mistake": "Common trap or misconception", "whyWrong": "Explanation of why this distractor is incorrect" }
+  ]
+}`;
+
       try {
-        const response = await axios.post(
-          `${baseUrl}/questions/${encodeURIComponent(questionId)}/explain`,
-          { depth: depth || "step_by_step" },
-          {
-            headers: {
-              "X-API-Key": apiKey,
-              "Accept": "application/json",
-              "Content-Type": "application/json"
-            },
-            timeout: 10000
+        const aiRes = await generateGeminiContentWithModelFallback(ai, {
+          contents: prompt,
+          config: {
+            temperature: 0.2,
+            responseMimeType: "application/json"
           }
-        );
-        if (response.data && response.data.data) {
-          aiData = response.data.data;
-          source = "aloc_station";
-        }
-      } catch (e: any) {
-        console.warn("[ALOC Explain Error]:", e.response?.data || e.message);
+        });
+        aiData = safeJsonParse(aiRes.text, null);
+      } catch (gemErr: any) {
+        console.warn("[Gemini Explain Error]:", gemErr.message);
       }
     }
 
     if (!aiData) {
-      // Gemini explanation fallback
-      const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (geminiKey) {
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const prompt = `Provide a comprehensive step-by-step explanation and solution for this exam question:
-Question: ${questionText || 'Exam Question'}
-Subject: ${subject || 'General'}
-Correct Answer: ${correctAnswer || 'Specified Answer'}
-
-Format response as JSON with this structure:
-{
-  "explanation": "Detailed explanation...",
-  "simplifiedExplanation": "One sentence summary...",
-  "steps": ["Step 1", "Step 2", "Step 3"],
-  "commonMistakes": [{"mistake": "...", "whyWrong": "..."}]
-}`;
-
-        const aiRes = await generateGeminiContentWithModelFallback(ai, {
-          contents: prompt,
-          config: {
-            temperature: 0.4,
-            responseMimeType: "application/json"
-          }
-        });
-        aiData = safeJsonParse(aiRes.text, {});
-        source = "ai_fallback";
-      } else {
-        aiData = {
-          explanation: `The correct option is ${correctAnswer?.toUpperCase()}. Review standard textbook formulas for ${subject}.`,
-          steps: [`Confirm option ${correctAnswer?.toUpperCase()} based on syllabus guidelines.`]
-        };
-        source = "static_fallback";
-      }
-    }
-
-    // Save to cache
-    if (adminDb && questionId && !String(questionId).startsWith('fallback-') && aiData) {
-      await adminDb.collection('ai_cache').doc(questionId).set({
-        response: aiData,
-        createdAt: AdminTimestamp.now()
-      });
+      aiData = {
+        verifiedAnswer: (correctAnswer || 'a').toLowerCase(),
+        simplifiedExplanation: `The correct option is ${(correctAnswer || 'A').toUpperCase()}. Review standard syllabus rules for ${subject || 'this subject'}.`,
+        explanation: `Standard examination guidelines designate ${(correctAnswer || 'A').toUpperCase()} as the expected response for this curriculum topic.`,
+        steps: [`Examine the question requirements and match against syllabus principles.`]
+      };
+      source = "fallback";
     }
 
     return res.json({ success: true, data: aiData, source });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2.2 Dedicated CBT AI Tutor & Advisor Endpoint
+app.post("/api/cbt/chat-advisor", async (req: any, res: any) => {
+  try {
+    const { message, subjects, currentContext } = req.body;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    if (!geminiKey) {
+      return res.json({
+        success: true,
+        reply: "Focus on daily past question drills, review all incorrect questions thoroughly, and practice 120-minute timed mock exams!"
+      });
+    }
+
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+    const prompt = `You are the CampusAI Academic Tutor and CBT Advisor for Nigerian university entrance aspirants (JAMB UTME, WAEC, Post-UTME).
+The student is studying these subjects: ${Array.isArray(subjects) ? subjects.join(', ') : 'JAMB Subjects'}.
+${currentContext ? `Current Screen Context: ${JSON.stringify(currentContext)}` : ''}
+
+Student Query: "${message}"
+
+Guidelines:
+- Provide friendly, highly accurate, authoritative academic explanations.
+- When answering questions about English phonetics / oral English: provide exact IPA transcriptions and explain vowel / consonant / stress / silent letter rules accurately.
+- Keep the response clear, engaging, structured, and easy to read.`;
+
+    const aiRes = await generateGeminiContentWithModelFallback(ai, {
+      contents: prompt,
+      config: {
+        temperature: 0.4
+      }
+    });
+
+    return res.json({
+      success: true,
+      reply: aiRes.text || "Keep practicing your CBT mocks and review every question's step-by-step solution!"
+    });
+  } catch (err: any) {
+    console.error("[CBT Chat Advisor Error]:", err.message);
+    return res.json({
+      success: true,
+      reply: "Master key formulas and high-yield topics, practice eliminating distractors in multiple-choice questions, and maintain high speed and accuracy."
+    });
+  }
+});
+
+// 2.3 CBT Question Issue Reporting & Feedback Collection Endpoint
+app.post("/api/cbt/report-question", async (req: any, res: any) => {
+  try {
+    const {
+      questionId,
+      subject,
+      examType,
+      examYear,
+      questionText,
+      currentKey,
+      userSelected,
+      suggestedKey,
+      issueType,
+      issueLabel,
+      comment,
+      userEmail,
+      userId
+    } = req.body;
+
+    if (!questionId) {
+      return res.status(400).json({ success: false, message: "questionId is required" });
+    }
+
+    const reportRecord = {
+      id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      questionId: String(questionId),
+      subject: String(subject || 'general'),
+      examType: String(examType || 'JAMB').toUpperCase(),
+      examYear: String(examYear || ''),
+      questionText: String(questionText || '').substring(0, 1000),
+      currentKey: String(currentKey || ''),
+      userSelected: String(userSelected || ''),
+      suggestedKey: String(suggestedKey || ''),
+      issueType: String(issueType || 'other'),
+      issueLabel: String(issueLabel || 'Question Issue'),
+      comment: String(comment || '').substring(0, 2000),
+      userEmail: String(userEmail || 'anonymous@campusai.ng'),
+      userId: String(userId || 'anonymous'),
+      status: 'pending_review',
+      createdAt: new Date().toISOString(),
+      timestamp: Date.now()
+    };
+
+    // Save to Firestore if available
+    if (adminDb) {
+      try {
+        await adminDb.collection("question_reports").doc(reportRecord.id).set(reportRecord);
+      } catch (dbErr: any) {
+        console.warn("[ReportQuestion] Firestore save warning:", dbErr.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "Thank you for reporting this question. Our academic audit team has received your report for verification.",
+      reportId: reportRecord.id
+    });
+  } catch (err: any) {
+    console.error("[ReportQuestion Error]:", err.message);
+    return res.status(500).json({ success: false, message: "Failed to submit report. Please try again." });
   }
 });
 

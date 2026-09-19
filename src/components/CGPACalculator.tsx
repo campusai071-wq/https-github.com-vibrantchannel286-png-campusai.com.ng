@@ -10,6 +10,7 @@ import { analyzeCGPA } from '../services/premiumToolsService';
 import { trackCalculatorUsed, trackCGPAInteraction } from '../services/analytics';
 import { logUserActivity, saveCalculationAttempt, saveUserCGPA, getUserCGPA, saveGlobalCgpaRecord } from '../services/dbService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Markdown from 'react-markdown';
 
 interface Course {
   id: string;
@@ -564,9 +565,18 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
                   </span>
                   <Brain size={20} className="text-purple-600" />
                 </div>
-                <p className="text-xs text-gray-600 dark:text-slate-300 font-medium leading-relaxed line-clamp-3">
-                  {aiAnalysis || "Click below to run an instant AI diagnostic on your course grades and get actionable study strategies."}
-                </p>
+                
+                {aiAnalysis ? (
+                  <div className="max-h-56 overflow-y-auto pr-2 space-y-2 text-xs text-gray-700 dark:text-slate-300 font-medium leading-relaxed custom-scrollbar">
+                    <div className="markdown-body space-y-1.5">
+                      <Markdown>{aiAnalysis}</Markdown>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-600 dark:text-slate-300 font-medium leading-relaxed">
+                    Click below to run an instant AI diagnostic on your course grades and get actionable study strategies.
+                  </p>
+                )}
               </div>
 
               <button
@@ -575,7 +585,7 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isAnalyzing ? <RefreshCw className="animate-spin" size={16} /> : <Brain size={16} />}
-                <span>{isAnalyzing ? 'Analyzing Grades...' : 'Run AI Academic Diagnostic'}</span>
+                <span>{isAnalyzing ? 'Analyzing Grades...' : aiAnalysis ? 'Re-run AI Academic Diagnostic' : 'Run AI Academic Diagnostic'}</span>
               </button>
             </div>
 

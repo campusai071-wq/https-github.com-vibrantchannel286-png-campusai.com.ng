@@ -74,10 +74,26 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
   const [capsStatus, setCapsStatus] = useState<CapsStatusData | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
   const [olevelGrades, setOlevelGrades] = useState<Array<{ subject: string; grade: string }>>([]);
+  const [targetConfig, setTargetConfig] = useState<{ university?: string; course?: string; score?: number | '' } | null>(() => {
+    try {
+      const s = localStorage.getItem('campusai_target_config');
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const refreshTelemetry = () => {
     const currentProfile = getLocalProfile();
     setProfile(currentProfile);
+
+    // 0. Target Configuration synchronization
+    try {
+      const targetConfigStr = localStorage.getItem('campusai_target_config');
+      if (targetConfigStr) {
+        setTargetConfig(JSON.parse(targetConfigStr));
+      }
+    } catch (e) {}
 
     // 1. O'Level Grades
     const grades = currentProfile.olevelGrades || currentProfile.academicProfile?.olevelGrades;
@@ -206,10 +222,25 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
   }, []);
 
   const completion = calculateProfileCompletion(profile);
-  const targetUni = profile.university || profile.academicProfile?.targetInstitution || (lastCalculation?.uniName && !lastCalculation.uniName.toLowerCase().includes('lagos') ? lastCalculation.uniName : 'FUTA');
-  const targetCourse = profile.targetCourse || profile.academicProfile?.targetCourse || (lastCalculation?.courseName && !lastCalculation.courseName.toLowerCase().includes('computer science') ? lastCalculation.courseName : 'Metallurgical and Materials Engineering');
-  const targetUTMEScore = profile.targetScore || profile.targetUTMEScore || profile.academicProfile?.targetUTMEScore || 280;
-  const currentJambScore = profile.jambScore || profile.academicProfile?.jambScore || lastCalculation?.jambScore || 250;
+  const targetUni = targetConfig?.university || profile.university || profile.academicProfile?.targetInstitution || (lastCalculation?.uniName && !lastCalculation.uniName.toLowerCase().includes('lagos') ? lastCalculation.uniName : 'FUTA');
+  const targetCourse = targetConfig?.course || profile.targetCourse || profile.academicProfile?.targetCourse || (lastCalculation?.courseName && !lastCalculation.courseName.toLowerCase().includes('computer science') ? lastCalculation.courseName : 'Metallurgical and Materials Engineering');
+  
+  // Single unified target score synced across /target planner, /dashboard, and profile settings
+  const targetUTMEScore = 
+    (typeof targetConfig?.score === 'number' && targetConfig.score > 0 ? targetConfig.score : undefined) ||
+    profile.targetScore || 
+    profile.targetUTMEScore || 
+    profile.academicProfile?.targetUTMEScore || 
+    350;
+
+  // Current score: either the latest CBT attempt score or student's logged JAMB score
+  const currentJambScore = 
+    (cbtSummary?.recentScore && cbtSummary.recentScore > 0 ? cbtSummary.recentScore : undefined) ||
+    profile.jambScore || 
+    profile.academicProfile?.jambScore || 
+    lastCalculation?.jambScore || 
+    200;
+
   const stateOfOrigin = profile.stateOfOrigin || profile.academicProfile?.stateOfOrigin || 'Delta';
   const subjects = profile.utmeSubjects || profile.academicProfile?.utmeSubjects || ['English Language', 'Mathematics', 'Physics', 'Chemistry'];
 
@@ -504,12 +535,12 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
                   ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
                   : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
               }`}>
-                {scoreGap <= 0 ? 'Goal Surpassed' : `${scoreGap} pts gap`}
+                {scoreGap <= 0 ? 'Goal Surpassed' : `+${scoreGap} pts gap`}
               </span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">UTME Target Score</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">UTME Target Goal</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                   {currentJambScore}

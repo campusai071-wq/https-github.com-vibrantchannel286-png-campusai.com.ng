@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, where, limit as fsLimit } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
@@ -67,14 +68,15 @@ import {
   Activity,
   Play,
   ShieldCheck,
-  History
+  History,
+  X
 } from 'lucide-react';
 
 import institutionsTree from '../data/institutionsTree.json';
 import masterCourses from '../data/masterCourses.json';
 import { trackCbtInteraction } from '../services/analytics';
 import { logUserActivity, saveCalculationAttempt, saveGlobalCbtRecord } from '../services/dbService';
-import { getLocalProfile } from '../services/userService';
+import { getLocalProfile, updateUserProfile } from '../services/userService';
 import AdUnit from './AdUnit';
 
 /**
@@ -161,6 +163,7 @@ export interface CbtExamRecord {
 }
 
 interface ExplanationData {
+  verifiedAnswer?: string;
   explanation?: string;
   simplifiedExplanation?: string;
   steps?: string[];
@@ -273,6 +276,23 @@ const NOVEL_SUMMARIES = [
 ];
 
 const PDF_STORE_ITEMS: any[] = [];
+
+/**
+ * Standardizes option sorting alphabetically (A, B, C, D, E) regardless of JSON key insertion order
+ */
+export const getSortedOptionEntries = (optionsObj?: Record<string, string>): Array<[string, string]> => {
+  if (!optionsObj || typeof optionsObj !== 'object') return [];
+  const entries = Object.entries(optionsObj).filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== '');
+  const standardOrder = ['a', 'b', 'c', 'd', 'e', 'f'];
+  return entries.sort(([keyA], [keyB]) => {
+    const idxA = standardOrder.indexOf(keyA.toLowerCase());
+    const idxB = standardOrder.indexOf(keyB.toLowerCase());
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return keyA.localeCompare(keyB, undefined, { sensitivity: 'base' });
+  });
+};
 
 interface CbtSimulatorProps {
   user?: any;
@@ -464,7 +484,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     }
   }, []);
 
-  // Save to local storage on change
+  // Save to local storage on change & broadcast sync to dashboard/user profile
   useEffect(() => {
     localStorage.setItem('campusai_target_config', JSON.stringify({
       university: targetUniversity,
@@ -472,6 +492,27 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       score: targetScore,
       history: progressHistory
     }));
+
+    const parsedScore = typeof targetScore === 'number' && targetScore > 0 ? targetScore : undefined;
+    const currentProfile = getLocalProfile();
+    const needsUpdate = 
+      (parsedScore !== undefined && currentProfile.targetScore !== parsedScore) ||
+      (targetUniversity && currentProfile.university !== targetUniversity) ||
+      (targetCourse && currentProfile.targetCourse !== targetCourse);
+
+    if (needsUpdate) {
+      updateUserProfile({
+        ...(targetUniversity ? { university: targetUniversity } : {}),
+        ...(targetCourse ? { targetCourse: targetCourse } : {}),
+        ...(parsedScore !== undefined ? { targetScore: parsedScore, targetUTMEScore: parsedScore } : {}),
+        academicProfile: {
+          ...(currentProfile.academicProfile || {}),
+          ...(targetUniversity ? { targetInstitution: targetUniversity } : {}),
+          ...(targetCourse ? { targetCourse: targetCourse } : {}),
+          ...(parsedScore !== undefined ? { targetUTMEScore: parsedScore } : {})
+        }
+      }).catch((e) => console.error("Profile sync error:", e));
+    }
   }, [targetUniversity, targetCourse, targetScore, progressHistory]);
 
   const [newMonthInput, setNewMonthInput] = useState('');
@@ -585,6 +626,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [showResults, setShowResults] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  // ----- Calculator State -----
+  const [calcInput, setCalcInput] = useState<string>('0');
+  const [calcHistory, setCalcHistory] = useState<string>('');
+  const [calcJustCalculated, setCalcJustCalculated] = useState<boolean>(false);
 
   // ----- Timer -----
   const [timeLeft, setTimeLeft] = useState(0);
@@ -600,9 +645,19 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [loadingExplain, setLoadingExplain] = useState<Record<string | number, boolean>>({});
   const [reviewFilter, setReviewFilter] = useState<'all' | 'incorrect' | 'correct' | 'flagged'>('all');
 
-  // ----- AI Score Analysis -----
+  // ----- AI Score Analysis & Batch Verification -----
   const [aiAnalysis, setAiAnalysis] = useState<AIScoreAnalysis | null>(null);
   const [loadingAiAnalysis, setLoadingAiAnalysis] = useState(false);
+  const [batchVerifying, setBatchVerifying] = useState(false);
+
+  // ----- Question Issue Reporting -----
+  const [reportingQuestion, setReportingQuestion] = useState<Question | null>(null);
+  const [reportIssueType, setReportIssueType] = useState<string>('wrong_answer');
+  const [reportSuggestedAnswer, setReportSuggestedAnswer] = useState<string>('');
+  const [reportComment, setReportComment] = useState<string>('');
+  const [submittingReport, setSubmittingReport] = useState<boolean>(false);
+  const [reportedQuestions, setReportedQuestions] = useState<Record<string | number, boolean>>({});
+  const [reportFeedbackSuccess, setReportFeedbackSuccess] = useState<string | null>(null);
 
   // ----- Study Section States -----
   const [studySubject, setStudySubject] = useState('mathematics');
@@ -1382,7 +1437,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     const answers = subjectKey ? answersBySubject[subjectKey] || {} : Object.assign({}, ...Object.values(answersBySubject));
     let score = 0;
     pool.forEach((q) => {
-      if (answers[q.id]?.toLowerCase() === q.answer.toLowerCase()) score++;
+      const correctKey = (explanations[q.id]?.verifiedAnswer || q.answer || '').trim().toLowerCase();
+      if (answers[q.id]?.trim().toLowerCase() === correctKey) score++;
     });
     return score;
   };
@@ -1636,14 +1692,20 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     if (explanations[q.id] || loadingExplain[q.id]) return;
     setLoadingExplain((prev) => ({ ...prev, [q.id]: true }));
     try {
+      const activeSubject = overrideSubject || (q as any).__subject || activeSubjectKey;
+      const userSelected = answersBySubject[activeSubject]?.[q.id] || studyAnswers[q.id];
       const res = await fetch('/api/aloc/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId: q.id,
           questionText: q.question,
+          options: q.option,
           correctAnswer: q.answer,
-          subject: overrideSubject || (q as any).__subject || activeSubjectKey,
+          userAnswer: userSelected,
+          subject: activeSubject,
+          examType: q.examType || examType,
+          examYear: q.examYear
         }),
       });
       const resData = await res.json();
@@ -1654,6 +1716,246 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       console.error('Failed to fetch explanation:', e);
     } finally {
       setLoadingExplain((prev) => ({ ...prev, [q.id]: false }));
+    }
+  };
+
+  // Batch verify all questions in the test with Academic AI
+  const handleBatchVerifyAll = async () => {
+    if (batchVerifying || allQuestionsFlat.length === 0) return;
+    setBatchVerifying(true);
+    try {
+      const unverified = allQuestionsFlat.filter(q => !explanations[q.id]);
+      // Process in batches of 4 for speed and rate limits
+      for (let i = 0; i < unverified.length; i += 4) {
+        const batch = unverified.slice(i, i + 4);
+        await Promise.all(batch.map(q => handleFetchExplanation(q)));
+      }
+    } catch (err) {
+      console.error('Batch verification error:', err);
+    } finally {
+      setBatchVerifying(false);
+    }
+  };
+
+  // Open Question Issue Report Modal
+  const handleOpenReportModal = (q: Question) => {
+    setReportingQuestion(q);
+    setReportIssueType('wrong_answer');
+    setReportSuggestedAnswer('');
+    setReportComment('');
+    setReportFeedbackSuccess(null);
+  };
+
+  // Submit Question Issue Report
+  const handleSubmitReport = async () => {
+    if (!reportingQuestion) return;
+    setSubmittingReport(true);
+    try {
+      const q = reportingQuestion;
+      const subjectKey = (q as any).__subject || activeSubjectKey;
+      const ans = answersBySubject[subjectKey] || {};
+      const userSelected = ans[q.id] || studyAnswers[q.id];
+
+      const issueLabels: Record<string, string> = {
+        wrong_answer: 'Wrong / Inaccurate Answer Key',
+        garbled_text: 'Garbled / Broken Text (OCR Error)',
+        missing_instruction: 'Missing Instruction / Oral English Target / Passage',
+        wrong_options: 'Incorrect / Incomplete Options',
+        explanation_issue: 'Flawed / Inaccurate AI Solution',
+        other: 'Other Issue'
+      };
+
+      const res = await fetch('/api/cbt/report-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId: q.id,
+          subject: subjectKey,
+          examType: q.examType || examType,
+          examYear: q.examYear,
+          questionText: q.question,
+          currentKey: q.answer,
+          userSelected: userSelected || '',
+          suggestedKey: reportSuggestedAnswer || '',
+          issueType: reportIssueType,
+          issueLabel: issueLabels[reportIssueType] || 'Question Issue',
+          comment: reportComment,
+          userEmail: user?.email || '',
+          userId: user?.uid || ''
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setReportedQuestions(prev => ({ ...prev, [q.id]: true }));
+        setReportFeedbackSuccess(data.message || 'Thank you! Your report has been submitted to the academic audit queue.');
+        setTimeout(() => {
+          setReportingQuestion(null);
+          setReportFeedbackSuccess(null);
+        }, 2200);
+      } else {
+        alert(data.message || 'Failed to submit report. Please try again.');
+      }
+    } catch (err) {
+      console.error('Submit question report error:', err);
+      alert('Error submitting report. Please check your connection and try again.');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  // ----- Scientific Calculator Logic -----
+  const handleCalcDigit = (digit: string) => {
+    if (calcJustCalculated) {
+      setCalcInput(digit === '.' ? '0.' : digit);
+      setCalcHistory('');
+      setCalcJustCalculated(false);
+      return;
+    }
+
+    if (digit === '.') {
+      if (!calcInput.includes('.')) {
+        setCalcInput((prev) => prev + '.');
+      }
+      return;
+    }
+
+    if (calcInput === '0' || calcInput === 'Error' || calcInput === 'Cannot divide by zero') {
+      setCalcInput(digit);
+    } else {
+      setCalcInput((prev) => (prev.length < 16 ? prev + digit : prev));
+    }
+  };
+
+  const handleCalcOperator = (op: string) => {
+    const symbolMap: Record<string, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    const displayOp = symbolMap[op] || op;
+
+    if (calcInput === 'Error' || calcInput === 'Cannot divide by zero') {
+      setCalcInput('0');
+      setCalcHistory('');
+      setCalcJustCalculated(false);
+      return;
+    }
+
+    if (calcJustCalculated) {
+      setCalcHistory(`${calcInput} ${displayOp}`);
+      setCalcInput('0');
+      setCalcJustCalculated(false);
+      return;
+    }
+
+    if (calcHistory && !calcJustCalculated && calcInput === '0') {
+      // Replace last operator if user changes mind
+      setCalcHistory((prev) => prev.slice(0, -1) + displayOp);
+      return;
+    }
+
+    setCalcHistory((prev) => (prev ? `${prev} ${calcInput} ${displayOp}` : `${calcInput} ${displayOp}`));
+    setCalcInput('0');
+    setCalcJustCalculated(false);
+  };
+
+  const handleCalcClear = () => {
+    setCalcInput('0');
+    setCalcHistory('');
+    setCalcJustCalculated(false);
+  };
+
+  const handleCalcBackspace = () => {
+    if (calcJustCalculated || calcInput === 'Error' || calcInput === 'Cannot divide by zero') {
+      handleCalcClear();
+      return;
+    }
+    if (calcInput.length <= 1 || (calcInput.length === 2 && calcInput.startsWith('-'))) {
+      setCalcInput('0');
+    } else {
+      setCalcInput((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const handleCalcToggleSign = () => {
+    if (calcInput === '0' || calcInput === 'Error' || calcInput === 'Cannot divide by zero') return;
+    if (calcInput.startsWith('-')) {
+      setCalcInput((prev) => prev.substring(1));
+    } else {
+      setCalcInput((prev) => '-' + prev);
+    }
+  };
+
+  const handleCalcSquareRoot = () => {
+    const val = parseFloat(calcInput);
+    if (isNaN(val) || val < 0) {
+      setCalcInput('Error');
+      setCalcJustCalculated(true);
+      return;
+    }
+    const res = Math.sqrt(val);
+    const formatted = parseFloat(res.toFixed(8)).toString();
+    setCalcHistory(`√(${val})`);
+    setCalcInput(formatted);
+    setCalcJustCalculated(true);
+  };
+
+  const handleCalcSquare = () => {
+    const val = parseFloat(calcInput);
+    if (isNaN(val)) return;
+    const res = val * val;
+    const formatted = parseFloat(res.toFixed(8)).toString();
+    setCalcHistory(`sqr(${val})`);
+    setCalcInput(formatted);
+    setCalcJustCalculated(true);
+  };
+
+  const handleCalcPercent = () => {
+    const val = parseFloat(calcInput);
+    if (isNaN(val)) return;
+    const res = val / 100;
+    const formatted = parseFloat(res.toFixed(8)).toString();
+    setCalcInput(formatted);
+    setCalcJustCalculated(true);
+  };
+
+  const handleCalcEquals = () => {
+    if (!calcHistory) return;
+    try {
+      const sanitized = calcHistory
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/−/g, '-');
+      const fullExpr = `${sanitized} ${calcInput}`.trim();
+      const tokens = fullExpr.split(/\s+/);
+      if (tokens.length < 3) return;
+
+      let result = parseFloat(tokens[0]);
+      for (let i = 1; i < tokens.length; i += 2) {
+        const op = tokens[i];
+        const nextNum = parseFloat(tokens[i + 1]);
+        if (isNaN(nextNum)) break;
+        if (op === '+') result += nextNum;
+        else if (op === '-') result -= nextNum;
+        else if (op === '*') result *= nextNum;
+        else if (op === '/') {
+          if (nextNum === 0) {
+            setCalcInput('Cannot divide by zero');
+            setCalcJustCalculated(true);
+            return;
+          }
+          result /= nextNum;
+        }
+      }
+
+      if (!isFinite(result) || isNaN(result)) {
+        setCalcInput('Error');
+      } else {
+        const formatted = parseFloat(result.toFixed(8)).toString();
+        setCalcHistory(`${calcHistory} ${calcInput} =`);
+        setCalcInput(formatted);
+      }
+      setCalcJustCalculated(true);
+    } catch {
+      setCalcInput('Error');
+      setCalcJustCalculated(true);
     }
   };
 
@@ -1709,19 +2011,22 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     setLoadingChat(true);
 
     try {
-      const res = await fetch('/api/aloc/explain', {
+      const res = await fetch('/api/cbt/chat-advisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          questionText: `Student question/query regarding ${selectedSubjects.join(', ')} examination prep: "${userMsg}"`,
-          correctAnswer: 'A',
-          subject: 'General Prep Advice'
+          message: userMsg,
+          subjects: selectedSubjects,
+          currentContext: {
+            activeTab,
+            activeSubjectKey,
+            testMode
+          }
         })
       });
       const data = await res.json();
-      if (data.success && data.data) {
-        const aiReply = data.data.explanation || data.data.simplifiedExplanation || "Keep practicing high-yield past questions daily and focus on your weakest topics!";
-        setChatMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
+      if (data.success && data.reply) {
+        setChatMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
       } else {
         setChatMessages((prev) => [...prev, { sender: 'ai', text: "Focus on daily past question drills, master formulas early, and practice time management (aim for 40 seconds per question)." }]);
       }
@@ -1793,6 +2098,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             if (currentQuestion.option[optionKey as keyof typeof currentQuestion.option]) {
               handleSelect(activeSubjectKey, currentQuestion.id, optionKey);
             }
+          }
+          break;
+        case 'R':
+          if (currentQuestion) {
+            e.preventDefault();
+            // Reverse / Deselect option (JAMB 8-key standard)
+            setAnswersBySubject((prev) => {
+              const updated = { ...prev };
+              if (updated[activeSubjectKey]) {
+                const subAns = { ...updated[activeSubjectKey] };
+                delete subAns[currentQuestion.id];
+                updated[activeSubjectKey] = subAns;
+              }
+              return updated;
+            });
           }
           break;
         case 'N':
@@ -2939,21 +3259,45 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Comprehensive Answer Review</h3>
-                      <p className="text-xs text-slate-500">Examine correct choices and step-by-step AI working</p>
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        Comprehensive Answer Review
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                          Syllabus & Phonetic Audited
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500">Examine correct choices, verified keys, and step-by-step AI working</p>
                     </div>
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold">
-                      {(['all', 'incorrect', 'correct', 'flagged'] as const).map((f) => (
-                        <button
-                          key={f}
-                          onClick={() => setReviewFilter(f)}
-                          className={`px-3 py-1.5 rounded-xl transition-all capitalize ${
-                            reviewFilter === f ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          {f}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={handleBatchVerifyAll}
+                        disabled={batchVerifying}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {batchVerifying ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                            Auditing Exam Questions...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} /> Audit All with Academic AI
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold">
+                        {(['all', 'incorrect', 'correct', 'flagged'] as const).map((f) => (
+                          <button
+                            key={f}
+                            onClick={() => setReviewFilter(f)}
+                            className={`px-3 py-1.5 rounded-xl transition-all capitalize ${
+                              reviewFilter === f ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -2962,7 +3306,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       .filter((q) => {
                         const ans = answersBySubject[(q as any).__subject] || {};
                         const userAnswer = ans[q.id]?.toLowerCase();
-                        const isCorrect = userAnswer === q.answer.toLowerCase();
+                        const explanation = explanations[q.id];
+                        const verifiedKey = explanation?.verifiedAnswer?.toLowerCase() || q.answer?.toLowerCase();
+                        const isCorrect = userAnswer === verifiedKey;
                         const isFlagged = bookmarkedQuestions[q.id];
                         if (reviewFilter === 'correct') return isCorrect;
                         if (reviewFilter === 'incorrect') return !isCorrect;
@@ -2973,11 +3319,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                         const subjectKey = (q as any).__subject;
                         const ans = answersBySubject[subjectKey] || {};
                         const userAnswer = ans[q.id]?.toLowerCase();
-                        const isCorrect = userAnswer === q.answer.toLowerCase();
-                        const isUnanswered = !userAnswer;
                         const explanation = explanations[q.id];
                         const isExplaining = loadingExplain[q.id];
                         const subjectLabel = SUBJECT_OPTIONS.find((s) => s.key === subjectKey)?.label || subjectKey;
+
+                        const rawKey = (q.answer || '').trim().toLowerCase();
+                        const verifiedKey = (explanation?.verifiedAnswer || rawKey).trim().toLowerCase();
+                        const hasKeyDiscrepancy = !!(explanation?.verifiedAnswer && explanation.verifiedAnswer.trim().toLowerCase() !== rawKey);
+                        const isCorrect = userAnswer === verifiedKey;
+                        const isUnanswered = !userAnswer;
 
                         return (
                           <div
@@ -2996,7 +3346,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               </div>
                               {isCorrect ? (
                                 <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                                  <CheckCircle2 size={14} /> Correct
+                                  <CheckCircle2 size={14} /> Correct {hasKeyDiscrepancy && '(AI Verified)'}
                                 </span>
                               ) : isUnanswered ? (
                                 <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
@@ -3009,12 +3359,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               )}
                             </div>
 
+                            {hasKeyDiscrepancy && (
+                              <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                                <span className="font-bold">⚠️ Syllabus Key Adjusted:</span>
+                                <span>
+                                  Academic AI verified Option <strong>({verifiedKey.toUpperCase()})</strong> as the mathematically/linguistically correct answer (corrected from upstream past-question key <strong>({rawKey.toUpperCase()})</strong>).
+                                </span>
+                              </div>
+                            )}
+
                             <div className="font-bold text-slate-900 mb-6 leading-relaxed text-base sm:text-lg" dangerouslySetInnerHTML={{ __html: q.question }} />
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base">
-                              {Object.entries(q.option).map(([key, val]) => {
+                              {getSortedOptionEntries(q.option).map(([key, val]) => {
                                 const isSelected = userAnswer === key.toLowerCase();
-                                const isActualAnswer = q.answer.toLowerCase() === key.toLowerCase();
+                                const isActualAnswer = verifiedKey === key.toLowerCase();
                                 let bgClass = 'bg-slate-50 border-slate-200 text-slate-700';
                                 if (isActualAnswer) bgClass = 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold';
                                 else if (isSelected && !isCorrect) bgClass = 'bg-red-50 border-red-300 text-red-900 line-through';
@@ -3028,7 +3387,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               })}
                             </div>
 
-                            {explanation ? (
+                            {explanation && (
                               <div className="mt-4 p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs space-y-3">
                                 <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
                                   <Lightbulb size={16} className="text-emerald-600" /> Step-by-Step AI Working
@@ -3046,12 +3405,29 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                                   </ol>
                                 )}
                               </div>
-                            ) : (
-                              <div className="mt-4 flex justify-end">
+                            )}
+
+                            {/* Card Footer Actions */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                              {reportedQuestions[q.id] ? (
+                                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+                                  <CheckCircle2 size={13} /> Report In Audit Queue
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReportModal(q)}
+                                  className="text-xs font-semibold text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-xl transition-all inline-flex items-center gap-1.5"
+                                >
+                                  <Flag size={13} /> Report Incorrect Question
+                                </button>
+                              )}
+
+                              {!explanation && (
                                 <button
                                   onClick={() => handleFetchExplanation(q)}
                                   disabled={isExplaining}
-                                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl transition-all inline-flex items-center gap-1.5"
+                                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-1.5 rounded-xl transition-all inline-flex items-center gap-1.5"
                                 >
                                   {isExplaining ? (
                                     <>
@@ -3064,8 +3440,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                                     </>
                                   )}
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -3076,15 +3452,21 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
               /* Active Exam Screen */
               <div className="flex-1 flex flex-col bg-slate-50">
                 {/* Header bar */}
-                <div className="bg-slate-900 text-white px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 shadow-md">
+                <div className="bg-slate-900 text-white px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
                   <div className="flex items-center gap-3">
                     <span className="font-extrabold text-base capitalize">{activeSubjectLabel}</span>
                     <span className="hidden sm:inline-block text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">
                       Q{currentIndex + 1} of {currentSubjectQuestions.length}
                     </span>
+                    {/* 2027 JAMB Speed Pace Indicator */}
+                    {totalQuestions > 0 && (
+                      <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full border border-slate-700">
+                        ⚡ Pace: {Math.max(1, Math.round(timeLeft / Math.max(1, totalQuestions - totalAttempted)))}s/q left
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => setShowCalc(!showCalc)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
@@ -3094,15 +3476,16 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       <Calculator size={14} /> Calculator
                     </button>
 
-                    <div className="font-mono text-sm sm:text-base font-bold bg-slate-800 px-3 py-1 rounded-xl text-emerald-400 border border-slate-700 flex items-center gap-1.5">
+                    <div className="font-mono text-sm sm:text-base font-bold bg-slate-800 px-3 py-1 rounded-xl text-emerald-400 border border-slate-700 flex items-center gap-1.5 shadow-inner">
                       <Clock size={14} /> {formatTime(timeLeft)}
                     </div>
 
                     <button
                       onClick={() => setShowSubmitModal(true)}
-                      className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-sm"
+                      className="px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-sm flex items-center gap-1.5"
                     >
-                      Submit Exam
+                      <span>Submit</span>
+                      <kbd className="hidden sm:inline-block px-1 py-0.2 bg-red-800 text-[10px] rounded font-mono">S</kbd>
                     </button>
                   </div>
                 </div>
@@ -3144,27 +3527,208 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
                 {/* Main question canvas */}
                 <div className="flex-1 p-4 sm:p-8 max-w-4xl w-full mx-auto space-y-6">
-                  {/* Embedded Scientific Calculator Modal */}
+                  {/* Embedded JAMB Scientific Calculator Modal */}
                   {showCalc && (
-                    <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-700 shadow-xl max-w-xs ml-auto mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                          <Calculator size={12} /> JAMB Calculator
-                        </span>
-                        <button onClick={() => setShowCalc(false)} className="text-slate-400 text-xs">Close</button>
+                    <div className="p-4 bg-slate-900 text-white rounded-3xl border border-slate-700 shadow-2xl max-w-xs ml-auto mb-4 animate-fadeIn">
+                      <div className="flex justify-between items-center mb-2.5 pb-2 border-b border-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          <div className="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                            <Calculator size={13} />
+                          </div>
+                          <span className="text-xs font-black text-slate-100 uppercase tracking-wider">
+                            JAMB Standard Calculator
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowCalc(false)}
+                          className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all text-xs"
+                          title="Close Calculator"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <input
-                        type="text"
-                        readOnly
-                        value="0.00"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-right font-mono text-emerald-400 text-sm mb-2"
-                      />
-                      <div className="grid grid-cols-4 gap-1 text-xs font-bold">
-                        {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map((btn) => (
-                          <button key={btn} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-center">
-                            {btn}
-                          </button>
-                        ))}
+
+                      {/* Display Screen */}
+                      <div className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-right font-mono mb-3 shadow-inner">
+                        <div className="text-[11px] text-slate-500 min-h-[16px] truncate tracking-wider">
+                          {calcHistory || '\u00A0'}
+                        </div>
+                        <div className="text-xl sm:text-2xl font-black text-emerald-400 truncate tracking-tight">
+                          {calcInput}
+                        </div>
+                      </div>
+
+                      {/* Button Grid */}
+                      <div className="grid grid-cols-4 gap-1.5 text-xs font-bold select-none">
+                        {/* Row 1: AC, DEL, %, ÷ */}
+                        <button
+                          type="button"
+                          onClick={handleCalcClear}
+                          className="p-2.5 bg-red-950/80 hover:bg-red-900 text-red-300 rounded-xl border border-red-900/60 active:scale-95 transition-all text-center font-black"
+                        >
+                          AC
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCalcBackspace}
+                          className="p-2.5 bg-amber-950/80 hover:bg-amber-900 text-amber-300 rounded-xl border border-amber-900/60 active:scale-95 transition-all text-center font-black"
+                        >
+                          DEL
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCalcPercent}
+                          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 active:scale-95 transition-all text-center font-bold"
+                        >
+                          %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcOperator('/')}
+                          className="p-2.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 rounded-xl border border-emerald-800/80 active:scale-95 transition-all text-center font-black text-sm"
+                        >
+                          ÷
+                        </button>
+
+                        {/* Row 2: √, x², ±, × */}
+                        <button
+                          type="button"
+                          onClick={handleCalcSquareRoot}
+                          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 active:scale-95 transition-all text-center font-bold"
+                          title="Square Root"
+                        >
+                          √
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCalcSquare}
+                          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 active:scale-95 transition-all text-center font-bold"
+                          title="Square (x²)"
+                        >
+                          x²
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCalcToggleSign}
+                          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 active:scale-95 transition-all text-center font-bold"
+                          title="Plus/Minus"
+                        >
+                          ±
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcOperator('*')}
+                          className="p-2.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 rounded-xl border border-emerald-800/80 active:scale-95 transition-all text-center font-black text-sm"
+                        >
+                          ×
+                        </button>
+
+                        {/* Row 3: 7, 8, 9, − */}
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('7')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          7
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('8')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          8
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('9')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          9
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcOperator('-')}
+                          className="p-2.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 rounded-xl border border-emerald-800/80 active:scale-95 transition-all text-center font-black text-sm"
+                        >
+                          −
+                        </button>
+
+                        {/* Row 4: 4, 5, 6, + */}
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('4')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          4
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('5')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          5
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('6')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          6
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcOperator('+')}
+                          className="p-2.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 rounded-xl border border-emerald-800/80 active:scale-95 transition-all text-center font-black text-sm"
+                        >
+                          +
+                        </button>
+
+                        {/* Row 5: 1, 2, 3, = (spanning 2 rows or direct) */}
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('1')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('2')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          2
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('3')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          3
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCalcEquals}
+                          className="row-span-2 p-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl border border-emerald-400 active:scale-95 transition-all flex items-center justify-center text-base shadow-lg shadow-emerald-500/20"
+                        >
+                          =
+                        </button>
+
+                        {/* Row 6: 0 (span 2), . */}
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('0')}
+                          className="col-span-2 p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-semibold"
+                        >
+                          0
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCalcDigit('.')}
+                          className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 transition-all text-center text-sm font-bold"
+                        >
+                          .
+                        </button>
                       </div>
                     </div>
                   )}
@@ -3238,7 +3802,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     )}
 
                     <div className="space-y-3">
-                      {Object.entries(currentQuestion.option || {}).map(([key, value]) => {
+                      {getSortedOptionEntries(currentQuestion.option).map(([key, value]) => {
                         const isSelected = currentAnswers[currentQuestion.id]?.toLowerCase() === key.toLowerCase();
                         return (
                           <button
@@ -3265,19 +3829,61 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   </div>
 
                   {/* Navigation Footer */}
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      onClick={goPrevious}
-                      disabled={currentIndex === 0}
-                      className="px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm text-slate-700 border border-slate-300 hover:bg-slate-100 disabled:opacity-40 transition-all"
-                    >
-                      Previous
-                    </button>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={goPrevious}
+                        disabled={currentIndex === 0}
+                        className="flex-1 sm:flex-initial px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-slate-700 border border-slate-300 hover:bg-slate-100 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                      >
+                        <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-mono rounded-md border border-slate-300">P</kbd>
+                        <span>Previous</span>
+                      </button>
+
+                      {currentAnswers[currentQuestion.id] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAnswersBySubject((prev) => {
+                              const updated = { ...prev };
+                              if (updated[activeSubjectKey]) {
+                                const subAns = { ...updated[activeSubjectKey] };
+                                delete subAns[currentQuestion.id];
+                                updated[activeSubjectKey] = subAns;
+                              }
+                              return updated;
+                            });
+                          }}
+                          className="px-3.5 py-3 rounded-2xl text-xs font-semibold text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-all flex items-center gap-1.5"
+                          title="Deselect answer choice [R]"
+                        >
+                          <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-mono rounded-md border border-slate-300">R</kbd>
+                          <span>Clear Choice</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* JAMB 8-Key Quick Reference Helper */}
+                    <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-500 font-medium bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
+                      <span className="font-bold text-slate-700">JAMB 8-Key:</span>
+                      <span>[A, B, C, D] Choose</span>
+                      <span>•</span>
+                      <span>[P] Prev</span>
+                      <span>•</span>
+                      <span>[N] Next</span>
+                      <span>•</span>
+                      <span>[R] Clear</span>
+                      <span>•</span>
+                      <span>[S] Submit</span>
+                    </div>
+
                     <button
                       onClick={goNext}
-                      className="px-6 py-3 rounded-2xl font-extrabold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 shadow-md transition-all flex items-center gap-2"
+                      className="w-full sm:w-auto px-6 py-3 rounded-2xl font-extrabold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 shadow-md transition-all flex items-center justify-center gap-2"
                     >
-                      Next Question <ChevronRight size={16} />
+                      <span>Next Question</span>
+                      <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-slate-700 text-slate-200 text-[10px] font-mono rounded-md border border-slate-600">N</kbd>
+                      <ChevronRight size={16} />
                     </button>
                   </div>
                 </div>
@@ -3709,7 +4315,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               <div className="text-sm font-bold text-slate-900" dangerouslySetInnerHTML={{ __html: q.question }} />
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                {Object.entries(q.option || {}).map(([optKey, optVal]) => {
+                                {getSortedOptionEntries(q.option).map(([optKey, optVal]) => {
                                   const isSelected = userAns?.toLowerCase() === optKey.toLowerCase();
                                   const isActual = q.answer.toLowerCase() === optKey.toLowerCase();
 
@@ -3963,6 +4569,162 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           </div>
         </div>
       )}
+
+      {/* Report Incorrect Question Modal */}
+      <AnimatePresence>
+        {reportingQuestion && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-red-50 text-red-600 rounded-2xl border border-red-100">
+                    <Flag size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Report Question Issue</h3>
+                    <p className="text-xs text-slate-500">Submit feedback to our academic verification audit team</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReportingQuestion(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {reportFeedbackSuccess ? (
+                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-2">
+                  <CheckCircle2 size={40} className="text-emerald-600 mx-auto" />
+                  <h4 className="text-sm font-bold text-emerald-900">Report Submitted</h4>
+                  <p className="text-xs text-emerald-700 leading-relaxed">{reportFeedbackSuccess}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Question Summary */}
+                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between text-slate-500 font-bold">
+                      <span className="capitalize text-slate-800">
+                        {(reportingQuestion as any).__subject || activeSubjectKey}
+                      </span>
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        {reportingQuestion.examType || 'JAMB'} {reportingQuestion.examYear}
+                      </span>
+                    </div>
+                    <div
+                      className="text-slate-800 font-medium line-clamp-2 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: reportingQuestion.question }}
+                    />
+                  </div>
+
+                  {/* Issue Category */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      What issue did you spot with this question?
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {[
+                        { id: 'wrong_answer', label: 'Wrong Answer Key', icon: '❌' },
+                        { id: 'garbled_text', label: 'Garbled / Broken OCR Text', icon: '🔤' },
+                        { id: 'missing_instruction', label: 'Missing Sound / Instruction', icon: '❓' },
+                        { id: 'wrong_options', label: 'Incomplete / Bad Options', icon: '⚠️' },
+                        { id: 'explanation_issue', label: 'Flawed AI Explanation', icon: '💡' },
+                        { id: 'other', label: 'Other Issue', icon: '📝' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setReportIssueType(item.id)}
+                          className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                            reportIssueType === item.id
+                              ? 'border-red-500 bg-red-50 text-red-950 font-bold shadow-xs'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="text-sm">{item.icon}</span>
+                          <span className="text-xs">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Suggested Answer Key Selector (if wrong answer key) */}
+                  {reportIssueType === 'wrong_answer' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        What should be the true correct option?
+                      </label>
+                      <div className="flex gap-2">
+                        {['A', 'B', 'C', 'D', 'E'].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() =>
+                              setReportSuggestedAnswer(
+                                reportSuggestedAnswer === opt.toLowerCase() ? '' : opt.toLowerCase()
+                              )
+                            }
+                            className={`flex-1 py-2 rounded-xl border text-xs font-bold transition-all ${
+                              reportSuggestedAnswer === opt.toLowerCase()
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            Option ({opt})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comments / Details */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Specific Notes or Proof (Optional)
+                    </label>
+                    <textarea
+                      value={reportComment}
+                      onChange={(e) => setReportComment(e.target.value)}
+                      placeholder="E.g., Option A has /ŋɡ/ sound matching the underlined letters; or the equation has a typo..."
+                      rows={3}
+                      className="w-full text-xs p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-end gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportingQuestion(null)}
+                      className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmitReport}
+                      disabled={submittingReport}
+                      className="px-5 py-2.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {submittingReport ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} /> Submit Question Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
