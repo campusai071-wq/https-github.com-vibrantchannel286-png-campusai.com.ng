@@ -1538,16 +1538,16 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* WHATSAPP STICKY BANNER */}
-      <div className="fixed bottom-24 right-4 md:right-8 md:bottom-24 z-[100] group flex items-center">
+      <div className="fixed bottom-20 right-3.5 md:right-8 md:bottom-24 z-[100] group flex items-center">
         <a 
           href="https://whatsapp.com/channel/0029VbD6bCD1NCraoIlpD218"
           target="_blank"
           rel="noopener noreferrer"
-          className="relative bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-4 rounded-full md:rounded-2xl shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all group border border-green-500/20"
+          className="relative bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 md:p-4 rounded-full md:rounded-2xl shadow-2xl flex items-center gap-2.5 md:gap-3 hover:scale-105 active:scale-95 transition-all group border border-green-500/20"
           title="Join WhatsApp Updates Channel"
         >
           <div className="flex items-center justify-center shrink-0">
-            <MessageSquare size={24} className="group-hover:scale-110 transition-transform duration-300" />
+            <MessageSquare size={20} className="md:w-6 md:h-6 group-hover:scale-110 transition-transform duration-300" />
           </div>
           <div className="hidden md:block overflow-hidden max-w-xs transition-all duration-300">
             <p className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Updates</p>
@@ -1588,7 +1588,7 @@ const AppContent: React.FC = () => {
         <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} user={user} />
         {/* Floating Ask AI Button (Navigates directly to /chat page) */}
         {currentPage !== 'chat' && (
-          <div className="fixed bottom-24 left-4 md:left-8 md:bottom-8 z-[150] group">
+          <div className="fixed bottom-20 left-3.5 md:left-8 md:bottom-8 z-[150] group">
             <button
               id="campusai-floating-chat-bubble"
               onClick={() => {
@@ -1596,10 +1596,10 @@ const AppContent: React.FC = () => {
                 navigate('/chat');
                 window.scrollTo(0, 0);
               }}
-              className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer border border-blue-500/20"
+              className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white p-3 md:p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer border border-blue-500/20"
               title="Consult AI Admissions Advisor"
             >
-              <Brain size={24} className="group-hover:rotate-12 transition-transform duration-300" />
+              <Brain size={20} className="md:w-6 md:h-6 group-hover:rotate-12 transition-transform duration-300" />
               <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 font-black uppercase text-[10px] tracking-widest transition-all duration-300 whitespace-nowrap">
                 Ask AI
               </span>

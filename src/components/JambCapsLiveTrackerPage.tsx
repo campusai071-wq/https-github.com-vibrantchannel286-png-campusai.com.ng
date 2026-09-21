@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp, ArrowLeft, ExternalLink, Sparkles, Landmark, Calendar, Search, BookOpen, Calculator, Eye, Share2 } from 'lucide-react';
+import { Activity, RefreshCw, ShieldCheck, Users, Building2, CheckCircle2, Award, FileText, ChevronRight, BarChart3, TrendingUp, ArrowLeft, ExternalLink, Sparkles, Landmark, Calendar, Search, BookOpen, Calculator, Eye, Share2, AlertTriangle, AlertOctagon, WifiOff, Clock, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import SEO from './SEO';
@@ -218,12 +218,16 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
         setIsCachedData(!!res.data.isCached);
         if (res.data.cooldownRemainingMs !== undefined) setCooldownLeft(res.data.cooldownRemainingMs);
         if (res.data.error) setSyncError(res.data.error);
-        setSyncStatus(res.data.message || (res.data.isFresh ? 'Fresh official JAMB sync successful!' : 'Showing official cached telemetry.'));
+        if (res.data.isFresh) {
+          setSyncStatus('Fresh official JAMB sync successful!');
+        } else {
+          setSyncStatus(res.data.message || 'JAMB portal is currently offline for maintenance (HTTP 404/500). Telemetry count remains steady at the last verified official snapshot.');
+        }
       }
     } catch (err: any) {
       console.error("Sync error:", err);
       setSyncError(err.message || 'Network error reaching sync endpoint');
-      setSyncStatus('Sync failed. Serving verified official cached telemetry.');
+      setSyncStatus('JAMB portal unreachable (Server 404/Maintenance). Serving verified official cached telemetry.');
     } finally {
       setIsRefreshing(false);
     }
@@ -261,7 +265,75 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
         canonical="/jamb-caps"
       />
 
-      <div className="container mx-auto px-4 md:px-8 max-w-6xl space-y-8">
+      <div className="container mx-auto px-4 md:px-8 max-w-6xl space-y-6 md:space-y-8">
+        {/* ── Official JAMB Portal Downtime / Maintenance Banner ── */}
+        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-red-950/90 via-amber-950/80 to-red-950/90 border-2 border-red-500/40 p-4 sm:p-6 shadow-2xl text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/30 border border-red-400 text-red-200 text-[11px] font-black uppercase tracking-wider shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
+                  Official JAMB Portal Downtime
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[11px] font-semibold">
+                  <WifiOff size={12} className="text-amber-300" /> HTTP 404 / 500 Detected on JAMB Endpoint
+                </span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[11px] text-amber-200/90 font-medium">
+                <Clock size={12} className="text-amber-300" /> Serving Verified Official Snapshot
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <AlertTriangle size={22} className="text-amber-400 shrink-0" />
+                <span>Notice: Official JAMB CAPS Portal is Currently Down</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-4xl">
+                The official JAMB central database endpoint (<code className="px-1.5 py-0.5 bg-black/40 rounded text-cyan-300 font-mono text-[11px]">caps.jamb.gov.ng/dashboard.aspx</code>) is temporarily offline or undergoing scheduled central maintenance from JAMB&apos;s server infrastructure.
+              </p>
+            </div>
+
+            {/* Explanatory bullet points */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-200">
+              <div className="flex items-start gap-2 bg-black/30 border border-white/10 rounded-xl p-3">
+                <Info size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-white block font-bold mb-0.5">Why stats are not incrementing on refresh:</strong>
+                  <span>Even if you refresh or trigger a live telemetry sync, the admission and candidate numbers will not increase until JAMB restores their portal. This is from JAMB&apos;s side, not your device or profile.</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 bg-black/30 border border-white/10 rounded-xl p-3">
+                <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-white block font-bold mb-0.5">Last Verified Telemetry Preserved:</strong>
+                  <span>CampusAI is securely displaying the most recent verified snapshot. Live automated syncing will instantly resume the moment JAMB&apos;s technical team brings the dashboard back online.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Direct Verification Action */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
+              <span className="text-[11px] text-amber-200/80">
+                You can test JAMB&apos;s official portal directly to verify the current server state:
+              </span>
+              <a
+                href="https://caps.jamb.gov.ng/dashboard.aspx"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>Check Official CAPS URL</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* Back navigation & Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

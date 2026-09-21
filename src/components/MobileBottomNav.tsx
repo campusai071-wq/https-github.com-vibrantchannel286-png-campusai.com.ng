@@ -19,8 +19,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onNavigate
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[140] bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-4 pb-6 pt-3">
-      <div className="flex justify-between items-center max-w-lg mx-auto">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[140] bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800/80 px-1.5 pb-5 pt-2 shadow-2xl">
+      <div className="flex justify-around items-center w-full max-w-md mx-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id || (tab.id === 'federal' && ['federal', 'state', 'private', 'polytechnic', 'coe', 'national'].includes(activeTab));
           
@@ -28,18 +28,18 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onNavigate
             <button
               key={tab.id}
               onClick={() => onNavigate(tab.id)}
-              className="relative flex flex-col items-center gap-1 min-w-[64px]"
+              className="relative flex-1 flex flex-col items-center justify-center py-1 cursor-pointer select-none"
             >
               {isActive && (
                 <motion.div 
                   layoutId="bottom-nav-active"
-                  className="absolute -top-3 w-8 h-1 bg-blue-600 rounded-full"
+                  className="absolute -top-2 w-6 h-1 bg-blue-600 dark:bg-cyan-400 rounded-full"
                 />
               )}
-              <div className={`transition-all duration-300 ${isActive ? 'text-blue-600 scale-110' : 'text-gray-400'}`}>
-                {tab.icon}
+              <div className={`transition-all duration-200 ${isActive ? 'text-blue-600 dark:text-cyan-400 scale-105' : 'text-gray-400 dark:text-gray-500'}`}>
+                {React.cloneElement(tab.icon, { size: 18 })}
               </div>
-              <span className={`text-[8px] font-black uppercase tracking-tighter transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+              <span className={`text-[9px] font-black uppercase tracking-tight mt-0.5 transition-colors ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-gray-400 dark:text-gray-500'}`}>
                 {tab.label}
               </span>
             </button>

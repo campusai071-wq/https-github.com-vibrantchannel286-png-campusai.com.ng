@@ -71,7 +71,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <SEO />
 
       {/* ── Main Command Center Hub ── */}
-      <div className="container mx-auto px-4 md:px-8 pt-6 max-w-6xl">
+      <div className="container mx-auto px-2.5 sm:px-4 md:px-8 pt-3 sm:pt-6 max-w-7xl">
         {isProfileConfigured ? (
           <StudentCommandCenter 
             user={user}

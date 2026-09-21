@@ -454,112 +454,112 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* ── Top Header Banner: Candidate Identity & Target Matrix ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 dark:bg-slate-950 border border-slate-800 shadow-xl p-6 sm:p-8 text-white">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-900 dark:bg-slate-950 border border-slate-800 shadow-xl p-4 sm:p-6 md:p-8 text-white">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-60 h-60 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
           {/* Candidate Greeting & Target Focus */}
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/15 border border-blue-400/30 text-cyan-300 font-bold text-[11px] uppercase tracking-wider rounded-full">
-                <ShieldCheck size={13} className="text-cyan-400 shrink-0" /> Admission Command Center
+          <div className="space-y-2.5 sm:space-y-3 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-blue-500/15 border border-blue-400/30 text-cyan-300 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider rounded-full">
+                <ShieldCheck size={12} className="text-cyan-400 shrink-0" /> Admission Command Center
               </span>
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-800/90 border border-slate-700 text-slate-300 font-semibold text-[11px] rounded-full">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-slate-800/90 border border-slate-700 text-slate-300 font-semibold text-[10px] sm:text-[11px] rounded-full">
                 <MapPin size={11} className="text-blue-400 shrink-0" /> {stateOfOrigin}
               </span>
               {profile.is_premium ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/20 border border-amber-400/40 text-amber-300 font-black text-[11px] uppercase tracking-wider rounded-full">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-amber-500/20 border border-amber-400/40 text-amber-300 font-black text-[10px] sm:text-[11px] uppercase tracking-wider rounded-full">
                   <Zap size={11} fill="currentColor" /> Scholar Pack Active
                 </span>
               ) : (
-                <span className="inline-flex items-center px-3 py-1 bg-slate-800/80 border border-slate-700 text-slate-300 font-medium text-[11px] rounded-full">
+                <span className="inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 bg-slate-800/80 border border-slate-700 text-slate-300 font-medium text-[10px] sm:text-[11px] rounded-full">
                   {profile.role || 'Pre-Admission Candidate'}
                 </span>
               )}
             </div>
 
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white">
                 {profile.displayName ? profile.displayName.split(' ')[0] : 'Candidate'}&apos;s Admission Hub
               </h1>
-              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs sm:text-sm text-slate-300">
-                <span className="text-slate-400 font-medium">Target Institution:</span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-extrabold rounded-lg">
-                  <School size={13} /> {targetUni}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 text-xs sm:text-sm text-slate-300">
+                <span className="text-slate-400 font-medium text-[11px] sm:text-xs">Target:</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-extrabold rounded-lg text-[11px] sm:text-xs">
+                  <School size={12} /> {targetUni}
                 </span>
                 <span className="text-slate-500">•</span>
-                <span className="font-bold text-white flex items-center gap-1">
-                  <GraduationCap size={14} className="text-blue-400" /> {targetCourse}
+                <span className="font-bold text-white flex items-center gap-1 text-[11px] sm:text-xs truncate max-w-[200px] sm:max-w-none">
+                  <GraduationCap size={13} className="text-blue-400 shrink-0" /> {targetCourse}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Profile Readiness & Action Button */}
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-slate-800/60 border border-slate-700/70 p-4 sm:p-5 rounded-2xl backdrop-blur-md">
-            <div className="space-y-1.5 min-w-[170px]">
+          <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 bg-slate-800/60 border border-slate-700/70 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl backdrop-blur-md">
+            <div className="space-y-1 sm:space-y-1.5 min-w-[150px] sm:min-w-[170px]">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300 text-[11px] uppercase tracking-wider">Profile Readiness</span>
-                <span className="font-black text-cyan-400">{completion.percentage}%</span>
+                <span className="font-bold text-slate-300 text-[10px] sm:text-[11px] uppercase tracking-wider">Profile Readiness</span>
+                <span className="font-black text-cyan-400 text-xs sm:text-sm">{completion.percentage}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${completion.percentage}%` }}
                   className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
                 />
               </div>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[9px] sm:text-[10px] text-slate-400">
                 {completion.percentage === 100 
-                  ? 'All parameters & O\'Level calibrated' 
-                  : `${completion.missingItems.length} ${completion.missingItems.length === 1 ? 'target field' : 'target fields'} remaining`}
+                  ? 'All parameters calibrated' 
+                  : `${completion.missingItems.length} field(s) remaining`}
               </p>
             </div>
 
             <button
               onClick={openSettingsModal}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap"
+              className="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] sm:text-xs uppercase tracking-wider rounded-lg sm:rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95 whitespace-nowrap"
             >
-              <Edit3 size={14} /> Edit Targets & O&apos;Level
+              <Edit3 size={13} /> Edit Targets & O&apos;Level
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── 4 Telemetry Pillars: Clean, Uniform Heights & Structured Data ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* ── 4 Telemetry Pillars: 2x2 on Mobile, 4-Col on Desktop ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
         
         {/* 1. Target Score & UTME Gap */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="p-2.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 rounded-xl">
-                <Target size={18} />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2.5 sm:space-y-4 group">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              <div className="p-1.5 sm:p-2.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 rounded-lg sm:rounded-xl">
+                <Target size={15} className="sm:w-[18px] sm:h-[18px]" />
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${
+              <span className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border whitespace-nowrap truncate max-w-[95px] sm:max-w-none ${
                 scoreGap <= 0 
                   ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
                   : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
               }`}>
-                {scoreGap <= 0 ? 'Goal Surpassed' : `+${scoreGap} pts gap`}
+                {scoreGap <= 0 ? 'Surpassed' : `+${scoreGap} gap`}
               </span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">UTME Target Goal</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">UTME Target Goal</p>
+              <div className="flex items-baseline gap-1 sm:gap-2 mt-1">
+                <span className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-none">
                   {currentJambScore}
                 </span>
-                <span className="text-xs font-bold text-slate-400">/ {targetUTMEScore} Goal</span>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400">/ {targetUTMEScore} Goal</span>
               </div>
             </div>
 
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 sm:h-2 rounded-full overflow-hidden">
               <div 
                 className="bg-blue-600 dark:bg-cyan-400 h-full rounded-full transition-all"
                 style={{ width: `${Math.min(100, (Number(currentJambScore) / Number(targetUTMEScore)) * 100)}%` }}
@@ -572,39 +572,39 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
               navigate('/target');
               window.scrollTo(0, 0);
             }}
-            className="w-full py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-cyan-400 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
+            className="w-full py-1.5 sm:py-2 px-1.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-cyan-400 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer mt-auto"
           >
-            Score Planner <ArrowRight size={13} />
+            Score Planner <ArrowRight size={12} />
           </button>
         </div>
 
         {/* 2. Calculated Aggregate & Probability */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                <Award size={18} />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2.5 sm:space-y-4 group">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              <div className="p-1.5 sm:p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-lg sm:rounded-xl">
+                <Award size={15} className="sm:w-[18px] sm:h-[18px]" />
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${verdictBadge.className}`}>
+              <span className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border whitespace-nowrap truncate max-w-[95px] sm:max-w-none ${verdictBadge.className}`}>
                 {verdictBadge.text}
               </span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Calculated Aggregate</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">Calculated Aggregate</p>
+              <div className="flex items-baseline gap-1 sm:gap-2 mt-1">
+                <span className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-none">
                   {activeTelemetry.aggregateScore !== null ? `${activeTelemetry.aggregateScore}%` : '—'}
                 </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 truncate max-w-[140px]" title={targetUni}>
-                  <School size={10} className="text-indigo-500 shrink-0" /> {targetUni}
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 truncate max-w-[70px] sm:max-w-[140px]" title={targetUni}>
+                  <School size={9} className="text-indigo-500 shrink-0" /> {targetUni}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
-              <span>Cutoff Benchmark:</span>
-              <span className="font-extrabold text-slate-700 dark:text-slate-200">
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+              <span className="truncate">Cutoff:</span>
+              <span className="font-extrabold text-slate-700 dark:text-slate-200 shrink-0">
                 {activeTelemetry.cutoffText}
               </span>
             </div>
@@ -621,38 +621,38 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
               });
               window.scrollTo(0, 0);
             }}
-            className="w-full py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
+            className="w-full py-1.5 sm:py-2 px-1.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer mt-auto"
           >
-            {activeTelemetry.isMatching ? 'Recalculate Score' : `Audit ${targetUni} Cutoff`} <ArrowRight size={13} />
+            {activeTelemetry.isMatching ? 'Recalculate' : `Audit ${targetUni}`} <ArrowRight size={12} />
           </button>
         </div>
 
         {/* 3. CBT Diagnostic Digest */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                <Brain size={18} />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2.5 sm:space-y-4 group">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              <div className="p-1.5 sm:p-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-lg sm:rounded-xl">
+                <Brain size={15} className="sm:w-[18px] sm:h-[18px]" />
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
-                {cbtSummary?.testsTaken || 0} Drills Done
+              <span className="px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+                {cbtSummary?.testsTaken || 0} Drills
               </span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CBT Mock Performance</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">CBT Performance</p>
+              <div className="flex items-baseline gap-1 sm:gap-2 mt-1">
+                <span className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-none">
                   {cbtSummary?.averageScore ? `${cbtSummary.averageScore}` : '248'}
                 </span>
-                <span className="text-xs font-bold text-slate-400">/ 400 Mock Avg</span>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400">/ 400 Avg</span>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-              <span className="text-amber-500 font-bold">Weak Topic: </span>
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              <span className="text-amber-500 font-bold">Weak: </span>
               <span className="font-semibold text-slate-800 dark:text-slate-200" title={cbtSummary?.weakestTopic || 'Organic Chemistry'}>
-                {cbtSummary?.weakestTopic || 'Organic Chemistry'}
+                {cbtSummary?.weakestTopic || 'Organic Chem'}
               </span>
             </div>
           </div>
@@ -662,42 +662,42 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
               navigate('/cbt-simulator');
               window.scrollTo(0, 0);
             }}
-            className="w-full py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
+            className="w-full py-1.5 sm:py-2 px-1.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer mt-auto"
           >
-            Launch CBT Drill <ArrowRight size={13} />
+            Launch CBT Drill <ArrowRight size={12} />
           </button>
         </div>
 
         {/* 4. JAMB CAPS Status & Freshness */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="p-2.5 bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-xl">
-                <ShieldCheck size={18} />
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-2.5 sm:space-y-4 group">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              <div className="p-1.5 sm:p-2.5 bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-lg sm:rounded-xl">
+                <ShieldCheck size={15} className="sm:w-[18px] sm:h-[18px]" />
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 flex items-center gap-1 whitespace-nowrap">
+              <span className="px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 flex items-center gap-1 whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" /> Live Sync
               </span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">JAMB CAPS Status</p>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">JAMB CAPS Status</p>
               <div className="mt-1">
-                <p className="text-lg font-black text-slate-900 dark:text-white uppercase truncate" title={capsStatus?.status || 'RECOMMENDED'}>
+                <p className="text-sm sm:text-base md:text-lg font-black text-slate-900 dark:text-white uppercase truncate" title={capsStatus?.status || 'RECOMMENDED'}>
                   {capsStatus?.status || 'RECOMMENDED'}
                 </p>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[9px] sm:text-[10px] text-slate-400 truncate">
                   {capsStatus?.lastVerifiedAt 
                     ? `Synced ${new Date(capsStatus.lastVerifiedAt).toLocaleDateString()}` 
-                    : 'Automated telemetry active'}
+                    : 'Telemetry active'}
                 </p>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-0.5">
-              <span>O&apos;Level Upload:</span>
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-0.5">
+              <span>O&apos;Level:</span>
               <span className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 size={12} /> Verified
+                <CheckCircle2 size={11} /> Verified
               </span>
             </div>
           </div>
@@ -707,9 +707,9 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
               navigate('/jamb-caps');
               window.scrollTo(0, 0);
             }}
-            className="w-full py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-auto"
+            className="w-full py-1.5 sm:py-2 px-1.5 bg-slate-50 dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider rounded-lg sm:rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer mt-auto"
           >
-            Check CAPS Live <ArrowRight size={13} />
+            Check CAPS Live <ArrowRight size={12} />
           </button>
         </div>
 
