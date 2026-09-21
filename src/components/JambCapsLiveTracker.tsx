@@ -291,31 +291,31 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* ── Official JAMB Portal Downtime / Maintenance Banner ── */}
-      <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-950/90 via-amber-950/80 to-red-950/90 border-2 border-red-500/40 p-4 sm:p-5 shadow-xl text-white">
+      <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-amber-950/70 to-slate-900 border-2 border-amber-500/40 p-4 sm:p-5 shadow-xl text-white">
         <div className="relative z-10 space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/30 border border-red-400 text-red-200 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
-              Official JAMB Portal Downtime
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Official Server Maintenance Advisory
             </span>
             <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-amber-200/90 font-medium">
-              <Clock size={11} className="text-amber-300" /> Serving Verified Official Snapshot
+              <Clock size={11} className="text-amber-300" /> Displaying Verified Official Snapshot
             </span>
           </div>
 
           <div className="space-y-1">
             <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
               <AlertTriangle size={18} className="text-amber-400 shrink-0" />
-              <span>Official JAMB CAPS Portal is Offline for Maintenance</span>
+              <span>Official JAMB CAPS Portal Under Maintenance</span>
             </h3>
             <p className="text-xs text-slate-200 leading-relaxed">
-              JAMB&apos;s central database portal (<code className="px-1 py-0.5 bg-black/40 rounded text-cyan-300 font-mono text-[10px]">caps.jamb.gov.ng/dashboard.aspx</code>) is returning a server error (404/500). If you sync or refresh and notice admission numbers do not increase, <strong>this is on JAMB&apos;s end</strong>. CampusAI is displaying the latest verified snapshot until JAMB servers come back online.
+              CampusAI fetches live admission data directly from JAMB&apos;s official database (<code className="px-1 py-0.5 bg-black/40 rounded text-cyan-300 font-mono text-[10px]">caps.jamb.gov.ng/dashboard.aspx</code>). Because JAMB&apos;s portal is currently undergoing maintenance on their side, we cannot pull new figures until their servers are back up. Refreshing will serve the last verified snapshot without fabricating numbers.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/10 text-[11px]">
-            <span className="text-amber-200/80 text-[10px] sm:text-[11px]">
-              Live updates will resume automatically once JAMB restores the portal.
+            <span className="text-slate-300 text-[10px] sm:text-[11px]">
+              Syncing will resume automatically as soon as JAMB restores the portal.
             </span>
             <a
               href="https://caps.jamb.gov.ng/dashboard.aspx"

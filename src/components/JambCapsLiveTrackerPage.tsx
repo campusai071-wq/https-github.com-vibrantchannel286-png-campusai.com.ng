@@ -267,33 +267,33 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
 
       <div className="container mx-auto px-4 md:px-8 max-w-6xl space-y-6 md:space-y-8">
         {/* ── Official JAMB Portal Downtime / Maintenance Banner ── */}
-        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-red-950/90 via-amber-950/80 to-red-950/90 border-2 border-red-500/40 p-4 sm:p-6 shadow-2xl text-white">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-slate-900 via-amber-950/70 to-slate-900 border-2 border-amber-500/40 p-4 sm:p-6 shadow-2xl text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative z-10 space-y-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/30 border border-red-400 text-red-200 text-[11px] font-black uppercase tracking-wider shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
-                  Official JAMB Portal Downtime
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-200 text-[11px] font-black uppercase tracking-wider shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  Official Server Maintenance Advisory
                 </span>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[11px] font-semibold">
-                  <WifiOff size={12} className="text-amber-300" /> HTTP 404 / 500 Detected on JAMB Endpoint
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-semibold">
+                  <WifiOff size={12} className="text-amber-400" /> Central Endpoint Inactive (HTTP 404/500)
                 </span>
               </div>
               <span className="inline-flex items-center gap-1 text-[11px] text-amber-200/90 font-medium">
-                <Clock size={12} className="text-amber-300" /> Serving Verified Official Snapshot
+                <Clock size={12} className="text-amber-300" /> Displaying Verified Official Snapshot
               </span>
             </div>
 
             <div className="space-y-2">
               <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
                 <AlertTriangle size={22} className="text-amber-400 shrink-0" />
-                <span>Notice: Official JAMB CAPS Portal is Currently Down</span>
+                <span>Notice: Official JAMB CAPS Portal Under Maintenance</span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed max-w-4xl">
-                The official JAMB central database endpoint (<code className="px-1.5 py-0.5 bg-black/40 rounded text-cyan-300 font-mono text-[11px]">caps.jamb.gov.ng/dashboard.aspx</code>) is temporarily offline or undergoing scheduled central maintenance from JAMB&apos;s server infrastructure.
+                The central JAMB database telemetry endpoint (<code className="px-1.5 py-0.5 bg-black/40 rounded text-cyan-300 font-mono text-[11px]">caps.jamb.gov.ng/dashboard.aspx</code>) is currently undergoing routine technical maintenance and system updates.
               </p>
             </div>
 
@@ -302,24 +302,24 @@ export const JambCapsLiveTrackerPage: React.FC = () => {
               <div className="flex items-start gap-2 bg-black/30 border border-white/10 rounded-xl p-3">
                 <Info size={16} className="text-cyan-400 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-white block font-bold mb-0.5">Why stats are not incrementing on refresh:</strong>
-                  <span>Even if you refresh or trigger a live telemetry sync, the admission and candidate numbers will not increase until JAMB restores their portal. This is from JAMB&apos;s side, not your device or profile.</span>
+                  <strong className="text-white block font-bold mb-0.5">Why we cannot update the statistics right now:</strong>
+                  <span>CampusAI directly synchronizes with JAMB&apos;s official database to ensure 100% authentic figures. Because the source portal is down on JAMB&apos;s side, fresh data cannot be fetched from JAMB until they bring their servers back online. Refreshing will continue to serve the last verified count.</span>
                 </div>
               </div>
 
               <div className="flex items-start gap-2 bg-black/30 border border-white/10 rounded-xl p-3">
                 <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-white block font-bold mb-0.5">Last Verified Telemetry Preserved:</strong>
-                  <span>CampusAI is securely displaying the most recent verified snapshot. Live automated syncing will instantly resume the moment JAMB&apos;s technical team brings the dashboard back online.</span>
+                  <strong className="text-white block font-bold mb-0.5">Official Snapshot Preserved:</strong>
+                  <span>We will not estimate or guess admission numbers. The dashboard safely displays the last official verified snapshot, and automatic updates will resume immediately once JAMB restores their server.</span>
                 </div>
               </div>
             </div>
 
             {/* Direct Verification Action */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <span className="text-[11px] text-amber-200/80">
-                You can test JAMB&apos;s official portal directly to verify the current server state:
+              <span className="text-[11px] text-slate-300">
+                You can check JAMB&apos;s official portal directly to review live server status:
               </span>
               <a
                 href="https://caps.jamb.gov.ng/dashboard.aspx"
