@@ -337,4 +337,87 @@ export interface AdmissionArticle {
   updatedAt?: any;
 }
 
+export type AdPackageType = 'starter_7d' | 'growth_14d' | 'pro_30d' | 'custom';
+export type AdPlacementType = 'all' | 'calculator' | 'cbt' | 'banner' | 'native';
+export type AdStatusType = 'pending' | 'active' | 'paused' | 'expired' | 'rejected';
+export type AdPaymentStatus = 'pending' | 'paid' | 'waived';
+
+export interface SponsoredAd {
+  id: string;
+  brandName: string;
+  contactEmail: string;
+  contactPhone: string;
+  whatsapp?: string;
+  packageType: AdPackageType;
+  packageName: string;
+  amount: number;
+  durationDays: number;
+  placement: AdPlacementType;
+  title: string;
+  description: string;
+  ctaText: string;
+  targetUrl: string;
+  imageUrl?: string;
+  badgeText?: string;
+  status: AdStatusType;
+  paymentStatus: AdPaymentStatus;
+  paymentMethod?: 'paystack' | 'flutterwave' | 'bank_transfer' | 'admin';
+  paymentReference?: string;
+  impressions: number;
+  clicks: number;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type PartnerCategory = 'cbt_centre' | 'tutorial_academy' | 'school' | 'hostel_housing' | 'predegree_consult' | 'student_union' | 'other';
+export type PartnerTier = 'verified_directory' | 'cbt_institutional' | 'strategic';
+export type PartnerStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+
+export interface PartnerOrganization {
+  id: string;
+  institutionName: string;
+  category: PartnerCategory;
+  tier: PartnerTier;
+  state: string;
+  city: string;
+  address: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  whatsapp?: string;
+  websiteUrl?: string;
+  cacNumber?: string;
+  jambCentreCode?: string;
+  description: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  verified: boolean;
+  featured: boolean;
+  rating?: number;
+  studentCapacity?: number;
+  servicesOffered?: string[];
+  status: PartnerStatus;
+  paymentStatus: 'pending' | 'paid' | 'waived';
+  amountPaid?: number;
+  createdAt: string;
+  approvedAt?: string;
+}
+
+export interface PlatformPricingConfig {
+  adStarterPrice: number;       // e.g. 5000 (7 days)
+  adGrowthPrice: number;        // e.g. 9000 (14 days)
+  adProPrice: number;           // e.g. 18000 (30 days)
+  partnerListingPrice: number;  // e.g. 25000 (Annual)
+  partnerCbtPrice: number;      // e.g. 75000 (Annual)
+  adminWhatsApp: string;
+  adminEmail: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  allowNegotiation: boolean;
+  updatedAt?: string;
+}
+
 

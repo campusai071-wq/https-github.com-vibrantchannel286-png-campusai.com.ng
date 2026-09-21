@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Award, Calendar, Mail, CheckCircle2, ExternalLink, Loader2, Sparkles, Wifi, WifiOff, Zap, Flag, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import universityData from '../data/universities';
@@ -15,6 +16,8 @@ const SidePanel: React.FC = () => {
   const [subscribed, setSubscribed] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const p = getLocalProfile();
@@ -160,7 +163,14 @@ const SidePanel: React.FC = () => {
            ></motion.div>
         </div>
         <button 
-          onClick={() => document.getElementById('roadmap')?.scrollIntoView({ behavior: 'smooth' })}
+          onClick={() => {
+            const el = document.getElementById('roadmap');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              navigate('/dashboard');
+            }
+          }}
           className="w-full py-3 bg-gray-50 dark:bg-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 transition-all"
         >
            View Full Roadmap
@@ -171,8 +181,21 @@ const SidePanel: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 rounded-[32px] p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-6"><Award className="text-emerald-600" /><h3 className="text-lg font-bold">Trending Intelligence</h3></div>
         <div className="flex flex-wrap gap-2">
-          {['Subject Combos', 'Cut-off Marks', 'NYSC Mobilization', 'GPA Tracker', 'Job Listings', 'Institutional Licensing'].map(tag => (
-            <span key={tag} className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-800 cursor-pointer">{tag}</span>
+          {[
+            { tag: 'Subject Combos', path: '/admissions' },
+            { tag: 'Cut-off Marks', path: '/calculator' },
+            { tag: 'NYSC Mobilization', path: '/study-hub' },
+            { tag: 'GPA Tracker', path: '/cgpa-calculator' },
+            { tag: 'Job Listings', path: '/news' },
+            { tag: 'Institutional Licensing', path: '/universities' },
+          ].map(({ tag, path }) => (
+            <button 
+              key={tag} 
+              onClick={() => navigate(path)}
+              className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 active:scale-95 transition-all rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-800 cursor-pointer"
+            >
+              {tag}
+            </button>
           ))}
         </div>
       </div>

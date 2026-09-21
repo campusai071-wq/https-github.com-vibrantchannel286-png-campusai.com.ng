@@ -165,6 +165,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
                 { label: 'JAMB CBT Exam Hub', id: 'cbt-simulator' },
                 { label: 'Aggregate Calculator', id: 'calculator' },
                 { label: 'JAMB CAPS Portal', id: 'jamb-caps' },
+                { label: 'Verified Partner Network', id: 'partners' },
+                { label: 'Advertise With Us', id: 'advertise' },
                 { label: 'CGPA Studio', id: 'cgpa-calculator' },
                 { label: 'Institutional Portals', id: 'universities' },
                 { label: 'Syllabus Explorer', id: 'syllabus' },
@@ -176,14 +178,13 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
               ].map((item) => (
                 <li key={item.id}>
                   {item.id === 'download' ? (
-                    <a 
-                      href="/CampusAI.ng.apk" 
-                      download="CampusAI.ng.apk"
+                    <button 
+                      onClick={() => window.dispatchEvent(new CustomEvent('campusai_trigger_install'))}
                       className="text-cyan-400 hover:text-white transition-all text-sm font-black flex items-center gap-3 group"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 group-hover:scale-150 transition-all"></div>
-                      Get Android App
-                    </a>
+                      Install Web App
+                    </button>
                   ) : (
                     <button 
                       onClick={() => onNavigate(item.id!)}
@@ -274,8 +275,8 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
 
         {/* Bottom Bar */}
         <div className="pt-12 border-t border-white/5 flex flex-col items-center gap-4 text-center">
-          <p className="text-[10px] text-gray-500 max-w-2xl">
-            CampusAI is an independent tool using official historical university formulas. We are not officially affiliated with JAMB.
+          <p className="text-[11px] text-gray-400 max-w-3xl leading-relaxed">
+            <span className="font-bold text-gray-300">Disclaimer:</span> CampusAI Nigeria is an independent educational technology platform providing exam preparation tools, admission guides, and aggregate calculations. CampusAI is not affiliated with, sponsored by, or endorsed by the Joint Admissions and Matriculation Board (JAMB), WAEC, NECO, or any government tertiary institution.
           </p>
           <div className="flex flex-col md:flex-row justify-between items-center w-full gap-8">
             <div className="flex flex-col items-center md:items-start">

@@ -51,6 +51,8 @@ const SyllabusExplorer = lazyWithRetry(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazyWithRetry(() => import('./AdmissionsExplorer'));
 const JambCapsLiveTrackerPage = lazyWithRetry(() => import('./JambCapsLiveTrackerPage'));
 const CGPACalculator = lazy(() => import('./CGPACalculator'));
+const AdvertisePage = lazyWithRetry(() => import('./AdvertisePage'));
+const PartnerNetworkPage = lazyWithRetry(() => import('./PartnerNetworkPage'));
 import { CbtCenterLocator } from './CbtCenterLocator';
 import { PdfStore } from './PdfStore';
 import { useDailyReminder } from '../hooks/useDailyReminder';
@@ -856,6 +858,14 @@ const AppContent: React.FC = () => {
       setCurrentPage('postutme');
       navigate('/postutme');
       window.scrollTo(0, 0);
+    } else if (p === 'advertise' || p === 'advertise-with-us' || p === 'ads') {
+      setCurrentPage('advertise');
+      navigate('/advertise');
+      window.scrollTo(0, 0);
+    } else if (p === 'partners' || p === 'partner-network' || p === 'partner') {
+      setCurrentPage('partners');
+      navigate('/partners');
+      window.scrollTo(0, 0);
     } else if (p === 'terms' || p === 'privacy' || p === 'cookies') {
       setCurrentPage(p);
       navigate(`/${p}`);
@@ -1505,6 +1515,10 @@ const AppContent: React.FC = () => {
           <Route path="/cookie-policy" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
           
           <Route path="/status" element={<><SEO title="System Status" canonical="/status" /><StatusPage /></>} />
+          <Route path="/advertise" element={<AdvertisePage onNavigate={handleNavigate} />} />
+          <Route path="/advertise-with-us" element={<AdvertisePage onNavigate={handleNavigate} />} />
+          <Route path="/partners" element={<PartnerNetworkPage onNavigate={handleNavigate} />} />
+          <Route path="/partner-network" element={<PartnerNetworkPage onNavigate={handleNavigate} />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/support" element={<ContactPage />} />

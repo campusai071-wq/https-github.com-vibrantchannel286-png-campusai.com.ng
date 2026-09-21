@@ -152,7 +152,7 @@
       "destination": "api/index.ts"
     },
     {
-      "source": "/((?!assets|static|favicon|robots\\.txt|ads\\.txt|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|14fbbbae19ab4b788d8153edd1d2550e\\.txt|llms\\.txt|llms-full\\.txt).*)",
+      "source": "/((?!assets|static|favicon|robots\\.txt|ads\\.txt|manifest\\.json|sw\\.js|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|screenshot-mobile\\.png|screenshot-desktop\\.png|c557dadad68347b8e26939a56c132027\\.txt|14fbbbae19ab4b788d8153edd1d2550e\\.txt|indexnow\\.txt|llms\\.txt|llms-full\\.txt).*)",
       "destination": "api/index.ts"
     }
   ]

@@ -39,7 +39,7 @@ const InstallPrompt: React.FC = () => {
     }
 
     if (!deferredPrompt) {
-      alert("To install as a Web App: Tap your browser's menu (\u22EE) and select 'Install app' or 'Add to Home screen'. Or use the Direct APK Download button below!");
+      alert("To install CampusAI as an app on your device:\n\n• On Chrome / Android: Tap your browser's menu (⋮) and select 'Install app' or 'Add to Home screen'.\n• On Safari / iPhone: Tap Share and select 'Add to Home Screen'.");
       return;
     }
 
@@ -47,7 +47,7 @@ const InstallPrompt: React.FC = () => {
       userId: '', // Anonymous ok for installs
       type: 'install_click',
       title: 'PWA Install Click',
-      description: 'Clicked Install PWA button'
+      description: 'Clicked Install App button'
     });
 
     deferredPrompt.prompt();
@@ -56,16 +56,6 @@ const InstallPrompt: React.FC = () => {
       setIsVisible(false);
     }
     setDeferredPrompt(null);
-  };
-
-  const handleDownloadAPK = () => {
-    logUserActivity({
-      userId: '',
-      type: 'install_click',
-      title: 'APK Download Click',
-      description: 'Clicked Download APK button'
-    });
-    setIsVisible(false);
   };
 
   const handleDismiss = () => {
@@ -100,32 +90,28 @@ const InstallPrompt: React.FC = () => {
                 <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest flex items-center gap-1">
                   <Sparkles size={10} /> Get CampusAI App
                 </p>
-                <h3 className="text-sm font-bold text-white mt-1">Download Mobile App</h3>
+                <h3 className="text-sm font-bold text-white mt-1">Install Web App</h3>
                 <p className="text-xs text-gray-300 mt-1">
-                  Access tools offline, get faster load times, and receive real-time admission notifications.
+                  Install CampusAI on your home screen for instant offline access and faster loading.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="flex gap-2 mt-4">
               <button 
                 onClick={handleInstallPWA}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-gray-800 hover:bg-gray-700 active:scale-[0.98] transition-all rounded-xl text-xs font-semibold border border-white/5"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] transition-all rounded-xl text-xs font-bold text-white shadow-lg shadow-blue-600/30"
                 id="btn-install-pwa"
               >
-                <AppWindow size={14} className="text-blue-400" />
-                Add to Screen
+                <AppWindow size={15} />
+                Install on Device
               </button>
-              <a 
-                href="/CampusAI.ng.apk"
-                download="CampusAI.ng.apk"
-                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] transition-all rounded-xl text-xs font-semibold text-white text-center"
-                id="btn-download-apk"
-                onClick={handleDownloadAPK}
+              <button 
+                onClick={handleDismiss}
+                className="py-3 px-4 bg-gray-800 hover:bg-gray-700 active:scale-[0.98] transition-all rounded-xl text-xs font-semibold text-gray-300"
               >
-                <Download size={14} />
-                Download APK
-              </a>
+                Maybe Later
+              </button>
             </div>
           </div>
         </motion.div>

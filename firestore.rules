@@ -414,5 +414,24 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    match /ad_campaigns/{campaignId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /partners/{partnerId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /platform_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

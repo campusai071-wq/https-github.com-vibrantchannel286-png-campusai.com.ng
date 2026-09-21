@@ -38,6 +38,7 @@ import { submitToIndexNow, INDEXNOW_KEY, INDEXNOW_KEY_LOCATION } from '../servic
 import NewsDetailView from './NewsDetailView';
 import { ADMIN_TOKEN } from '../lib/adminAuth';
 import PredictionDetailsModal from './PredictionDetailsModal';
+import { AdminAdsAndPartners } from './AdminAdsAndPartners';
 import CalculationStats from './CalculationStats';
 import { FileUploadHubModal } from './FileUploadHubModal';
 import { formatNewsPostTime } from '../utils/dateUtils';
@@ -89,14 +90,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<
-    'analytics' | 'tool_users' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
+    'analytics' | 'ads_partners' | 'tool_users' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
   >('analytics');
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures', 'pdf_management'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'ads_partners', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures', 'pdf_management'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
@@ -1308,109 +1309,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // ── Auth fail screen ──────────────────────────────────────────────────────────
-  if (authFailed) {
-    return (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
-        <div className="text-center space-y-4">
-          <ShieldAlert size={64} className="text-red-500 mx-auto" />
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Authentication Failed</h2>
-          <p className="text-xs text-gray-400 uppercase tracking-widest font-black">Invalid Security Key</p>
-          <button
-            onClick={() => { setAuthFailed(false); onAdminLogout(); onClose(); }}
-            className="px-8 py-3 bg-white text-black rounded-xl font-black uppercase text-xs"
-          >
-            Reset & Exit
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isOpen) return null;
-
-  // ── Analytics computation (memoised inline) ───────────────────────────────────
-  let totalCalculations = 0;
-  let registeredCalculations = 0;
-  let guestCalculations = 0;
-  let totalArticlesRead = 0;
-  let totalReadingMinutes = 0;
-  let totalInstalls = 0;
-  let cgpaCalculations = 0;
-  let cbtCalculations = 0;
-  const schoolCounts: Record<string, number> = {};
-  const courseCounts: Record<string, number> = {};
-  let helpfulCount = 0, unhelpfulCount = 0, admittedCount = 0, notAdmittedCount = 0;
-  const uniqueActiveToday = new Set<string>();
-  const oneDayAgo = Date.now() - 86_400_000;
-
-  allActivities.forEach(act => {
-    const desc = act.description || '';
-    const title = act.title || '';
-    const ts = toMs(act.timestamp);
-    if (ts > oneDayAgo) uniqueActiveToday.add(act.userId || act.id);
-
-    const actType = String(act.type || '');
-    if (title.includes('CGPA') || desc.includes('CGPA') || desc.includes('Scale') || title.includes('CGPA Calculation') || actType === 'cgpa_calculation') {
-      cgpaCalculations++;
-    }
-    if (title.includes('CBT') || desc.includes('CBT') || desc.includes('Exam') || desc.includes('Completed') || actType === 'cbt_exam' || actType === 'cbt_attempt') {
-      cbtCalculations++;
-    }
-
-    if (act.type === 'news_read') {
-      totalArticlesRead++;
-      if (act.metadata?.readTime) {
-        totalReadingMinutes += act.metadata.readTime;
-      } else {
-        totalReadingMinutes += 3; // Est. fallback for legacy logs
-      }
-    }
-    if (act.type === 'install_click') {
-      totalInstalls++;
-    }
-    if (act.type === 'calculation' || desc.includes('Calculated aggregate')) {
-      totalCalculations++;
-      if (act.userId === 'guest' || act.metadata?.isGuest || act.metadata?.userEmail === '' || act.title?.includes('Guest')) {
-        guestCalculations++;
-      } else {
-        registeredCalculations++;
-      }
-      const atIdx  = desc.indexOf(' at ');
-      const forIdx = desc.indexOf(' for ');
-      if (atIdx !== -1) {
-        const school = desc.substring(atIdx + 4).trim();
-        if (school) schoolCounts[school] = (schoolCounts[school] || 0) + 1;
-      }
-      if (forIdx !== -1 && atIdx !== -1 && atIdx > forIdx) {
-        const course = desc.substring(forIdx + 5, atIdx).trim();
-        if (course) courseCounts[course] = (courseCounts[course] || 0) + 1;
-      }
-    }
-    if (desc.startsWith('FEEDBACK:')) {
-      if (desc.includes('👍 Helpful'))   helpfulCount++;
-      if (desc.includes('👎 Unhelpful')) unhelpfulCount++;
-    } else if (desc.startsWith('OUTCOME:')) {
-      if (desc.includes('🎉 Gained Admission')) admittedCount++;
-      if (desc.includes('⏳ Not admitted'))      notAdmittedCount++;
-    }
-  });
-
-  const topSchools = Object.entries(schoolCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const topCourses = Object.entries(courseCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-  const finalHelpful     = helpfulCount;
-  const finalUnhelpful   = unhelpfulCount;
-  const helpfulRatio     = (finalHelpful + finalUnhelpful) > 0 ? Math.round((finalHelpful / (finalHelpful + finalUnhelpful)) * 100) : 100;
-  const finalAdmitted    = admittedCount;
-  const finalNotAdmitted = notAdmittedCount;
-  const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
-  const activeTodayCount = uniqueActiveToday.size;
-  const grandCalculations = trafficStats.totalCalculations || 0;
-  const effectiveGuestCalculations = guestCalculations;
-  const todayLagosStr     = getNigerianDateStr();
-  const todayLagosMidnight = getNigerianMidnight();
-
   // Merge and deduplicate all Tool Activity records (CBT exams + CGPA calculations)
   const mergedToolItems = useMemo(() => {
     const list: any[] = [];
@@ -1521,6 +1419,109 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     });
   }, [mergedToolItems, toolFilter, toolSearch]);
 
+  // ── Auth fail screen ──────────────────────────────────────────────────────────
+  if (authFailed) {
+    return (
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6">
+        <div className="text-center space-y-4">
+          <ShieldAlert size={64} className="text-red-500 mx-auto" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Authentication Failed</h2>
+          <p className="text-xs text-gray-400 uppercase tracking-widest font-black">Invalid Security Key</p>
+          <button
+            onClick={() => { setAuthFailed(false); onAdminLogout(); onClose(); }}
+            className="px-8 py-3 bg-white text-black rounded-xl font-black uppercase text-xs"
+          >
+            Reset & Exit
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOpen) return null;
+
+  // ── Analytics computation (memoised inline) ───────────────────────────────────
+  let totalCalculations = 0;
+  let registeredCalculations = 0;
+  let guestCalculations = 0;
+  let totalArticlesRead = 0;
+  let totalReadingMinutes = 0;
+  let totalInstalls = 0;
+  let cgpaCalculations = 0;
+  let cbtCalculations = 0;
+  const schoolCounts: Record<string, number> = {};
+  const courseCounts: Record<string, number> = {};
+  let helpfulCount = 0, unhelpfulCount = 0, admittedCount = 0, notAdmittedCount = 0;
+  const uniqueActiveToday = new Set<string>();
+  const oneDayAgo = Date.now() - 86_400_000;
+
+  allActivities.forEach(act => {
+    const desc = act.description || '';
+    const title = act.title || '';
+    const ts = toMs(act.timestamp);
+    if (ts > oneDayAgo) uniqueActiveToday.add(act.userId || act.id);
+
+    const actType = String(act.type || '');
+    if (title.includes('CGPA') || desc.includes('CGPA') || desc.includes('Scale') || title.includes('CGPA Calculation') || actType === 'cgpa_calculation') {
+      cgpaCalculations++;
+    }
+    if (title.includes('CBT') || desc.includes('CBT') || desc.includes('Exam') || desc.includes('Completed') || actType === 'cbt_exam' || actType === 'cbt_attempt') {
+      cbtCalculations++;
+    }
+
+    if (act.type === 'news_read') {
+      totalArticlesRead++;
+      if (act.metadata?.readTime) {
+        totalReadingMinutes += act.metadata.readTime;
+      } else {
+        totalReadingMinutes += 3; // Est. fallback for legacy logs
+      }
+    }
+    if (act.type === 'install_click') {
+      totalInstalls++;
+    }
+    if (act.type === 'calculation' || desc.includes('Calculated aggregate')) {
+      totalCalculations++;
+      if (act.userId === 'guest' || act.metadata?.isGuest || act.metadata?.userEmail === '' || act.title?.includes('Guest')) {
+        guestCalculations++;
+      } else {
+        registeredCalculations++;
+      }
+      const atIdx  = desc.indexOf(' at ');
+      const forIdx = desc.indexOf(' for ');
+      if (atIdx !== -1) {
+        const school = desc.substring(atIdx + 4).trim();
+        if (school) schoolCounts[school] = (schoolCounts[school] || 0) + 1;
+      }
+      if (forIdx !== -1 && atIdx !== -1 && atIdx > forIdx) {
+        const course = desc.substring(forIdx + 5, atIdx).trim();
+        if (course) courseCounts[course] = (courseCounts[course] || 0) + 1;
+      }
+    }
+    if (desc.startsWith('FEEDBACK:')) {
+      if (desc.includes('👍 Helpful'))   helpfulCount++;
+      if (desc.includes('👎 Unhelpful')) unhelpfulCount++;
+    } else if (desc.startsWith('OUTCOME:')) {
+      if (desc.includes('🎉 Gained Admission')) admittedCount++;
+      if (desc.includes('⏳ Not admitted'))      notAdmittedCount++;
+    }
+  });
+
+  const topSchools = Object.entries(schoolCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topCourses = Object.entries(courseCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const finalHelpful     = helpfulCount;
+  const finalUnhelpful   = unhelpfulCount;
+  const helpfulRatio     = (finalHelpful + finalUnhelpful) > 0 ? Math.round((finalHelpful / (finalHelpful + finalUnhelpful)) * 100) : 100;
+  const finalAdmitted    = admittedCount;
+  const finalNotAdmitted = notAdmittedCount;
+  const admissionRatio   = (finalAdmitted + finalNotAdmitted) > 0 ? Math.round((finalAdmitted / (finalAdmitted + finalNotAdmitted)) * 100) : 100;
+  const activeTodayCount = uniqueActiveToday.size;
+  const grandCalculations = trafficStats.totalCalculations || 0;
+  const effectiveGuestCalculations = guestCalculations;
+  const todayLagosStr     = getNigerianDateStr();
+  const todayLagosMidnight = getNigerianMidnight();
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
@@ -1577,12 +1578,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Tabs */}
             <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'tool_users', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
+              {(['analytics', 'ads_partners', 'tool_users', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setActiveTab(tab)}
                   className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
                 >
-                  {tab === 'tool_users' ? 'Tool Users & Scholars' : tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
+                  {tab === 'ads_partners' ? 'Ads & Partners' : tab === 'tool_users' ? 'Tool Users & Scholars' : tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
                   {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
                 </button>
               ))}
@@ -1593,6 +1594,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 won't shrink below its content's natural height in some browsers, so the
                 scrollbar never actually appears even though flex-1 + overflow-y-auto look right. */}
             <div className="p-6 md:p-8 overflow-y-auto flex-1 min-h-0">
+
+              {/* ── ADS & PARTNERS MANAGEMENT TAB ── */}
+              {activeTab === 'ads_partners' && (
+                <AdminAdsAndPartners />
+              )}
 
               {/* ── TOOL USERS TAB ── */}
               {activeTab === 'tool_users' && (

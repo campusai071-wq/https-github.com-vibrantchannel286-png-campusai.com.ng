@@ -51,7 +51,7 @@ dotenv.config();
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.VITE_ADMIN_TOKEN || "CAMPUS@2026";
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || "eiweh123@gmail.com").toLowerCase();
 const FIRECRAWL_WEBHOOK_SECRET = process.env.FIRECRAWL_WEBHOOK_SECRET || "";
-const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "";
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "14fbbbae19ab4b788d8153edd1d2550e";
 const INDEXNOW_HOST = process.env.INDEXNOW_HOST || "campusai.com.ng";
 
 if (process.env.NODE_ENV === "production") {
@@ -393,36 +393,50 @@ app.post("/api/indexnow", requireAdminToken as any, async (req: any, res: any) =
   try {
     const targetUrls: string[] = Array.isArray(req.body?.urlList) ? req.body.urlList : [];
 
-    // Only allow submitting URLs that actually belong to this site.
-    const safeUrls = targetUrls.filter((u: string) => {
+    // Group URLs by host and ensure they belong to campusai.com.ng or www.campusai.com.ng
+    const hostGroups = new Map<string, string[]>();
+    targetUrls.forEach((u: string) => {
       try {
         const parsed = new URL(u);
-        return parsed.hostname === INDEXNOW_HOST || parsed.hostname === `www.${INDEXNOW_HOST}`;
-      } catch {
-        return false;
-      }
+        if (parsed.hostname === INDEXNOW_HOST || parsed.hostname === `www.${INDEXNOW_HOST}`) {
+          const h = parsed.hostname;
+          if (!hostGroups.has(h)) hostGroups.set(h, []);
+          hostGroups.get(h)!.push(u);
+        }
+      } catch {}
     });
 
-    if (safeUrls.length === 0) {
+    if (hostGroups.size === 0) {
       return res.status(400).json({ success: false, message: "No valid URLs for this host were provided." });
     }
 
-    const payload = {
-      host: INDEXNOW_HOST,
-      key: INDEXNOW_KEY,
-      keyLocation: `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`,
-      urlList: safeUrls
-    };
+    const activeKey = INDEXNOW_KEY || "14fbbbae19ab4b788d8153edd1d2550e";
+    const results: any[] = [];
 
-    const response = await axios.post("https://api.indexnow.org/IndexNow", payload, {
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      timeout: 12000
-    });
+    for (const [host, urls] of hostGroups.entries()) {
+      const payload = {
+        host: host,
+        key: activeKey,
+        keyLocation: `https://${host}/${activeKey}.txt`,
+        urlList: urls
+      };
+
+      try {
+        const response = await axios.post("https://api.indexnow.org/IndexNow", payload, {
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+          timeout: 12000
+        });
+        results.push({ host, count: urls.length, status: response.status });
+      } catch (subErr: any) {
+        console.error(`[IndexNow Host ${host} Error]:`, subErr.response?.data || subErr.message);
+        results.push({ host, count: urls.length, error: subErr.response?.data || subErr.message });
+      }
+    }
 
     return res.json({
       success: true,
-      status: response.status,
-      message: `Successfully submitted ${safeUrls.length} URL(s) to IndexNow.`
+      message: `Processed IndexNow submission for ${targetUrls.length} URL(s).`,
+      results
     });
   } catch (err: any) {
     console.error("[IndexNow Proxy Error]:", err.response?.data || err.message);
@@ -5433,18 +5447,28 @@ app.post("/api/search", async (req: any, res: any) => {
 // Dynamic Sitemap for News & Pages
 app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
   try {
+    const reqHost = (req.headers['x-forwarded-host'] || req.headers.host || '').toString().toLowerCase();
+    const baseDomain = reqHost.includes('www.campusai.com.ng') ? 'https://www.campusai.com.ng' : 'https://campusai.com.ng';
+
     let newsDocs: any[] = [];
     if (adminDb) {
       try {
-        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(3000).get();
-        snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+        let snap: any;
+        try {
+          snap = await adminDb.collection("news").limit(3000).get();
+        } catch {
+          snap = await adminDb.collection("news").orderBy("date", "desc").limit(3000).get();
+        }
+        if (snap && !snap.empty) {
+          snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+        }
       } catch (e) {
         console.warn("[Sitemap] AdminDb error:", e);
       }
     }
     if (newsDocs.length === 0 && dbInstance) {
       try {
-        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(3000));
+        const q = query(collection(dbInstance, 'news'), limit(3000));
         const querySnap = await getDocs(q);
         querySnap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
       } catch (e) {
@@ -5461,6 +5485,17 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
         }
       });
     }
+
+    // Sort in memory by best available timestamp
+    const getDocTimestamp = (doc: any) => {
+      const val = doc.updatedAt || doc.date || doc.createdAt || doc.publishDate;
+      if (!val) return 0;
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.toDate === 'function') return val.toDate().getTime();
+      const parsed = Date.parse(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    newsDocs.sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a));
 
     const todayStr = new Date().toISOString().split('T')[0];
     const staticPages = [
@@ -5535,7 +5570,7 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
     const addedUrls = new Set<string>();
 
     const addUrl = (locPath: string, lastmod: string, changefreq: string, priority: string) => {
-      const fullUrl = `https://campusai.com.ng${locPath}`;
+      const fullUrl = `${baseDomain}${locPath}`;
       if (!addedUrls.has(fullUrl)) {
         addedUrls.add(fullUrl);
         xml += `\n  <url>\n    <loc>${fullUrl}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
@@ -5559,8 +5594,16 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
 
     // 4. Dynamic News Articles (/news/:slug)
     newsDocs.forEach((data: any) => {
-      const slug = data.slug || data.id;
-      const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
+      const slug = (data.slug || data.id || '').toString().trim();
+      if (!slug) return;
+      const rawDate = data.updatedAt || data.date || data.createdAt || data.publishDate;
+      let lastMod = todayStr;
+      try {
+        if (rawDate) {
+          const d = new Date(rawDate);
+          if (!isNaN(d.getTime())) lastMod = d.toISOString().split('T')[0];
+        }
+      } catch {}
       addUrl(`/news/${slug}`, lastMod, "weekly", "0.8");
     });
 
@@ -5579,18 +5622,28 @@ app.get(["/sitemap.xml", "/api/sitemap.xml"], async (req: any, res: any) => {
 // Google News Sitemap
 app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: any) => {
   try {
+    const reqHost = (req.headers['x-forwarded-host'] || req.headers.host || '').toString().toLowerCase();
+    const baseDomain = reqHost.includes('www.campusai.com.ng') ? 'https://www.campusai.com.ng' : 'https://campusai.com.ng';
+
     let newsDocs: any[] = [];
     if (adminDb) {
       try {
-        const snap = await adminDb.collection("news").orderBy("date", "desc").limit(1000).get();
-        snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+        let snap: any;
+        try {
+          snap = await adminDb.collection("news").limit(1000).get();
+        } catch {
+          snap = await adminDb.collection("news").orderBy("date", "desc").limit(1000).get();
+        }
+        if (snap && !snap.empty) {
+          snap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
+        }
       } catch (e) {
         console.warn("[Sitemap] AdminDb error:", e);
       }
     }
     if (newsDocs.length === 0 && dbInstance) {
       try {
-        const q = query(collection(dbInstance, 'news'), orderBy('date', 'desc'), limit(1000));
+        const q = query(collection(dbInstance, 'news'), limit(1000));
         const querySnap = await getDocs(q);
         querySnap.forEach((d: any) => newsDocs.push({ id: d.id, ...d.data() }));
       } catch (e) {
@@ -5607,6 +5660,17 @@ app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: an
       });
     }
 
+    // Sort by freshest timestamp
+    const getDocTimestamp = (doc: any) => {
+      const val = doc.updatedAt || doc.date || doc.createdAt || doc.publishDate;
+      if (!val) return 0;
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.toDate === 'function') return val.toDate().getTime();
+      const parsed = Date.parse(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+    newsDocs.sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a));
+
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">`;
@@ -5615,15 +5679,22 @@ app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: an
     const todayStr = new Date().toISOString().split('T')[0];
 
     newsDocs.forEach((data: any) => {
-      const slug = data.slug || data.id;
-      const fullUrl = `https://campusai.com.ng/news/${slug}`;
+      const slug = (data.slug || data.id || '').toString().trim();
+      if (!slug) return;
+      const fullUrl = `${baseDomain}/news/${slug}`;
       
       if (!addedUrls.has(fullUrl)) {
         addedUrls.add(fullUrl);
-        const lastMod = data.date ? new Date(data.date).toISOString().split('T')[0] : todayStr;
+        const rawDate = data.updatedAt || data.date || data.createdAt || data.publishDate;
+        let lastMod = todayStr;
+        try {
+          if (rawDate) {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) lastMod = d.toISOString().split('T')[0];
+          }
+        } catch {}
         
         let title = data.title || 'Campus News';
-        // Sanitize title for XML
         title = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
         
         xml += `
@@ -5653,22 +5724,36 @@ app.get(["/news-sitemap.xml", "/api/news-sitemap.xml"], async (req: any, res: an
   }
 });
 
-
 async function notifyIndexNow(urls: string[]) {
   try {
-    const payload = {
-      host: INDEXNOW_HOST,
-      key: INDEXNOW_KEY,
-      keyLocation: `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`,
-      urlList: urls
-    };
-    const response = await fetch("https://api.indexnow.org/indexnow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-    console.log(`[IndexNow] Pinged ${urls.length} URLs to IndexNow. Status: ${response.status}`);
-    return response.status;
+    const activeKey = INDEXNOW_KEY || "14fbbbae19ab4b788d8153edd1d2550e";
+    const hostGroups = new Map<string, string[]>();
+    for (const u of urls) {
+      try {
+        const parsed = new URL(u);
+        const host = parsed.hostname;
+        if (!hostGroups.has(host)) hostGroups.set(host, []);
+        hostGroups.get(host)!.push(u);
+      } catch {}
+    }
+
+    let lastStatus = 200;
+    for (const [host, groupUrls] of hostGroups.entries()) {
+      const payload = {
+        host: host,
+        key: activeKey,
+        keyLocation: `https://${host}/${activeKey}.txt`,
+        urlList: groupUrls
+      };
+      const response = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      lastStatus = response.status;
+      console.log(`[IndexNow] Pinged ${groupUrls.length} URLs for host ${host}. Status: ${response.status}`);
+    }
+    return lastStatus;
   } catch (err) {
     console.error("[IndexNow Error]", err);
     return false;
@@ -6098,14 +6183,21 @@ app.get(['/ads.txt', '/api/ads.txt'], (req, res) => {
 });
 
 // IndexNow & Webmaster .txt verification files route (e.g. /14fbbbae19ab4b788d8153edd1d2550e.txt or /c557dadad68347b8e26939a56c132027.txt)
-app.get('/:filename.txt', (req: any, res: any, next: any) => {
-  const filename = req.params?.filename;
-  if (filename && /^[a-f0-9]{32}$/i.test(filename)) {
+app.get(['/14fbbbae19ab4b788d8153edd1d2550e.txt', '/c557dadad68347b8e26939a56c132027.txt', '/indexnow.txt', '/:filename.txt'], (req: any, res: any, next: any) => {
+  let filename = req.params?.filename;
+  if (!filename) {
+    filename = req.path.replace(/^\//, '').replace(/\.txt$/, '');
+  }
+  if (filename && /^[a-zA-Z0-9_-]{8,128}$/i.test(filename)) {
     const filePath = path.join(process.cwd(), 'public', `${filename}.txt`);
+    const distFilePath = path.join(process.cwd(), 'dist', `${filename}.txt`);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800');
     if (fs.existsSync(filePath)) {
       return res.sendFile(filePath);
+    }
+    if (fs.existsSync(distFilePath)) {
+      return res.sendFile(distFilePath);
     }
     return res.status(200).send(filename);
   }

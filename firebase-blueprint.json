@@ -437,6 +437,18 @@
     "aloc_questions_vault/{questionId}": {
       "schema": "object",
       "description": "Persistent cache and vault of authentic ALOC past examination questions."
+    },
+    "ad_campaigns/{campaignId}": {
+      "schema": "object",
+      "description": "Sponsored advertiser campaigns, creative assets, package details, click analytics, and active placement flags."
+    },
+    "partners/{partnerId}": {
+      "schema": "object",
+      "description": "Accredited CBT centres, tutorial academies, schools, and student housing verified partner network."
+    },
+    "platform_settings/{settingId}": {
+      "schema": "object",
+      "description": "Dynamic pricing, package rates, admin contact, and platform runtime configurations."
     }
   }
 }

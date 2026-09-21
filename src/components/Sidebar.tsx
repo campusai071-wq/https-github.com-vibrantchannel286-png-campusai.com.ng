@@ -186,6 +186,20 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: <MessageSquare size={18} />,
       badge: 'Help',
       badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+    },
+    {
+      id: 'advertise',
+      name: 'Advertise With Us',
+      icon: <Sparkles size={18} />,
+      badge: 'Sponsors & Ads',
+      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+    },
+    {
+      id: 'partners',
+      name: 'Verified Partner Network',
+      icon: <ShieldCheck size={18} />,
+      badge: 'Accredited Centers',
+      badgeBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20'
     }
   ];
 

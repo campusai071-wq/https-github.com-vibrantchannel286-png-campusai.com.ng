@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, BookOpen, Newspaper, GraduationCap, FileText, CheckSquare, Search, Award, Image as ImageIcon, MapPin, Users, MessageSquare } from 'lucide-react';
+import { Calculator, BookOpen, Newspaper, GraduationCap, FileText, CheckSquare, Search, Award, Image as ImageIcon, MapPin, Users, MessageSquare, Sparkles, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getStoredLinkPreviews, fetchLinkPreviewsFromCloud, LinkPreviewMap } from '../services/linkPreviewService';
 
@@ -81,6 +81,8 @@ const ToolsGrid: React.FC = () => {
 
   const tools = [
     { title: "JAMB CBT Simulator", subtitle: "Live Mock Exams & AI", icon: Award, path: "/cbt-simulator" },
+    { title: "Verified Partner Network", subtitle: "Accredited CBT & Tutorial Centers", icon: ShieldCheck, path: "/partners" },
+    { title: "Advertise With CampusAI", subtitle: "Reach 500k+ Active Nigerian Scholars", icon: Sparkles, path: "/advertise" },
     { title: "Topic Study Hub", subtitle: "Drills, Novels & Formulas", icon: BookOpen, path: "/study-hub" },
     { title: "Student Discussion Hub", subtitle: "Q&A, Groups & Peer Advice", icon: Users, path: "/discussions" },
     { title: "JAMB CAPS Portal", subtitle: "Live Status Tracker", icon: Search, path: "/jamb-caps" },

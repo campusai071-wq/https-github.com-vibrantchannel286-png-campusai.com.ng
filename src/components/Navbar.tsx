@@ -226,6 +226,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   ];
 
   const moreNavItems = [
+    { name: 'Advertise With Us', icon: <Sparkles size={16} />, id: 'advertise' },
+    { name: 'Partner Network', icon: <ShieldCheck size={16} />, id: 'partners' },
     { name: 'Chat Advisor', icon: <Brain size={16} />, id: 'chat' },
     { name: 'Contact Us', icon: <MessageSquare size={16} />, id: 'contact' },
     { name: 'CBT Center Locator', icon: <MapPin size={16} />, id: 'cbt-locator' },
@@ -239,6 +241,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
 
   const allNavItems = [
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
+    { name: 'Advertise With Us', icon: <Sparkles size={18} />, id: 'advertise' },
+    { name: 'Partner Network', icon: <ShieldCheck size={18} />, id: 'partners' },
     { name: 'Chat Advisor', icon: <Brain size={18} />, id: 'chat' },
     { name: 'Admissions', icon: <GraduationCap size={18} />, id: 'admissions' },
     { name: 'Calculator', icon: <Zap size={18} />, id: 'calculator' },

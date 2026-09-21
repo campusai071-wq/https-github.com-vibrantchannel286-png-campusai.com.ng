@@ -87,6 +87,19 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Pr
   ]);
 }
 
+function formatSeoDescription(text: string, fallbackTopic?: string): string {
+  let clean = (text || "").replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  if (!clean || clean.length < 90) {
+    clean = `${clean ? clean + '. ' : ''}Get verified ${fallbackTopic || 'admission'} updates, cutoff marks, screening alerts, and preparation intelligence on CampusAI Nigeria.`;
+  }
+  if (clean.length > 158) {
+    const cut = clean.substring(0, 155);
+    const lastSpace = cut.lastIndexOf(' ');
+    clean = (lastSpace > 70 ? cut.substring(0, lastSpace) : cut) + '...';
+  }
+  return clean;
+}
+
 export async function injectSEO(html: string, reqPath: string, adminDb: any, dbInstance?: any): Promise<string> {
   const rawPath = reqPath ? reqPath.split('?')[0] : '/';
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
@@ -101,25 +114,80 @@ export async function injectSEO(html: string, reqPath: string, adminDb: any, dbI
     return await generateInjectedSEO(html, reqPath, adminDb, dbInstance);
   })();
 
-  // Race DB queries against a strict 500ms timeout so the user never waits for slow database calls on page load
-  const result = await withTimeout(resultPromise, 500, generateFastSEOFallback(html, reqPath));
+  // Race DB queries against 3500ms timeout so crawlers have sufficient time on cold starts
+  const result = await withTimeout(resultPromise, 3500, generateFastSEOFallback(html, reqPath));
   seoCache.set(cacheKey, { html: result, timestamp: Date.now() });
   return result;
 }
 
-function generateFastSEOFallback(html: string, reqPath: string): string {
+export function generateFastSEOFallback(html: string, reqPath: string): string {
   const siteDomain = "https://campusai.com.ng";
   const rawPath = reqPath ? reqPath.split('?')[0] : '/';
   const cleanPath = rawPath === '/' ? '' : rawPath.replace(/\/+$/, '');
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
-  const defaultTitle = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
-  const defaultDesc = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
+  let title = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
+  let description = "Nigeria's premier academic platform: JAMB CBT exam simulator, 2026 university aggregate calculators, cutoff marks, syllabus explorer, and admission studio.";
+  let h1Text = "JAMB 2026 Aggregate Calculator & Admission Portal";
 
-  return html
-    .replace(/<title>.*?<\/title>/gi, `<title>${defaultTitle}</title>`)
-    .replace(/<meta name="description" content=".*?"\s*\/?>/gi, `<meta name="description" content="${defaultDesc}">`)
-    .replace(/<link rel="canonical" href=".*?"\s*\/?>/gi, `<link rel="canonical" href="${canonical}">`);
+  if (cleanPath.startsWith('/news/')) {
+    const rawSlug = cleanPath.split('/news/')[1];
+    const slug = rawSlug ? decodeURIComponent(rawSlug).trim() : '';
+    const formattedTitle = slug
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .replace(/\bJamb\b/g, 'JAMB')
+      .replace(/\bUtme\b/g, 'UTME')
+      .replace(/\bUnilag\b/g, 'UNILAG')
+      .replace(/\bLasu\b/g, 'LASU')
+      .replace(/\bCbt\b/g, 'CBT')
+      .replace(/\bJupeb\b/g, 'JUPEB')
+      .replace(/\bFuotuoke\b/g, 'FUOTUOKE')
+      .replace(/\bOau\b/g, 'OAU')
+      .replace(/\bUi\b/g, 'UI')
+      .replace(/\bFuta\b/g, 'FUTA');
+
+    title = `${formattedTitle} | CampusAI News`;
+    description = formatSeoDescription(`Read verified updates on ${formattedTitle}. Latest JAMB cut-offs, screening alerts, and admission guidance on CampusAI Nigeria.`, formattedTitle);
+    h1Text = formattedTitle;
+  } else if (cleanPath === '/calculator') {
+    title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
+    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
+    h1Text = "Official 2026 JAMB & University Aggregate Calculator";
+  } else if (cleanPath.endsWith('-aggregate-calculator')) {
+    const schoolSlug = cleanPath.replace(/^\//, '').replace(/-aggregate-calculator$/, '').toUpperCase();
+    title = `${schoolSlug} Aggregate Score Calculator 2026 | CampusAI`;
+    description = `Calculate your 2026 ${schoolSlug} post-UTME screening aggregate score automatically using verified institutional admission weighting formulas.`;
+    h1Text = `${schoolSlug} Aggregate Score Calculator 2026`;
+  }
+
+  // Ensure canonical tag is strictly updated regardless of existing attributes
+  let output = html.replace(/<link[^>]*rel=["']?canonical["']?[^>]*\/?>/gi, '');
+  output = output.replace('</head>', `  <link data-rh="true" rel="canonical" href="${canonical}">\n</head>`);
+
+  // Ensure title and description are strictly updated
+  output = output.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);
+  output = output.replace(/<meta[^>]*name=["']description["'][^>]*\/?>/gi, `<meta data-rh="true" name="description" content="${description}">`);
+
+  // Inject semantic h1 and main article wrapper into root if rendering news or calculator fallback
+  if (cleanPath.startsWith('/news/') && h1Text) {
+    const fallbackArticleHtml = `
+      <article style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, sans-serif;">
+        <div style="margin-bottom: 20px;">
+          <a href="${siteDomain}/news" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #2563eb; text-decoration: none;">← Return to Admissions News Feed</a>
+        </div>
+        <h1 style="font-size: 2.25rem; font-weight: 900; color: #0f172a; margin-bottom: 16px; line-height: 1.25;">${h1Text}</h1>
+        <p style="font-size: 1.125rem; color: #475569; line-height: 1.7; margin-bottom: 24px;">${description}</p>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+          <p style="color: #334155; line-height: 1.7;">Official institutional update. Verified by CampusAI Nigeria Academic Intelligence Desk. Practice CBT past questions, check cut-off marks, and verify screening requirements.</p>
+        </div>
+        <p><a href="${siteDomain}/calculator" style="color: #2563eb; font-weight: 700; text-decoration: none;">Calculate Your 2026 Aggregate Score →</a></p>
+      </article>
+    `;
+    output = output.replace(/<div id="root">[\s\S]*<\/div>(?=\s*<script)/i, `<div id="root">\n${fallbackArticleHtml}\n</div>`);
+  }
+
+  return output;
 }
 
 async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, dbInstance?: any): Promise<string> {
@@ -187,6 +255,26 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
           docData = MOCK_NEWS.find((m: any) => (m.slug === slug || m.id === slug));
         }
 
+        // If still not found, construct a valid article from the slug itself so bots get a dedicated article page with matching canonical & H1
+        if (!docData) {
+          const derivedTitle = slug
+            .replace(/[-_]+/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase())
+            .replace(/\bJamb\b/g, 'JAMB')
+            .replace(/\bUtme\b/g, 'UTME')
+            .replace(/\bUnilag\b/g, 'UNILAG')
+            .replace(/\bLasu\b/g, 'LASU')
+            .replace(/\bCbt\b/g, 'CBT')
+            .replace(/\bJupeb\b/g, 'JUPEB');
+          docData = {
+            title: derivedTitle,
+            excerpt: `Read full verified reporting on ${derivedTitle}. Comprehensive admission guidelines, cutoff requirements, and official screening dates.`,
+            category: "JAMB News",
+            author: "CampusAI Editorial",
+            date: new Date().toISOString()
+          };
+        }
+
         if (docData) {
           const articleTitle = docData.title || "Admission News Update";
           const articleExcerpt = docData.excerpt || docData.description || description;
@@ -198,7 +286,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
           modifiedTimeIso = formatIsoDate(docData.updatedAt || docData.date || docData.createdAt);
 
           title = `${articleTitle} | CampusAI News`;
-          description = articleExcerpt.substring(0, 155);
+          description = formatSeoDescription(articleExcerpt, articleTitle);
 
           const rawArticleImg = docData.image || (Array.isArray(docData.images) && docData.images.length > 0 ? docData.images[0] : null) || docData.imageUrl || docData.coverImage || docData.featuredImage;
 
@@ -722,7 +810,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
   html = html.replace(/<meta[^>]*name="twitter:[^"]*"[^>]*>/gi, '');
   html = html.replace(/<meta[^>]*property="twitter:[^"]*"[^>]*>/gi, '');
   html = html.replace(/<meta[^>]*property="article:[^"]*"[^>]*>/gi, '');
-  html = html.replace(/<link[^>]*rel="canonical"[^>]*>/gi, '');
+  html = html.replace(/<link[^>]*rel=["']?canonical["']?[^>]*\/?>/gi, '');
 
   // Inject metaTags block before </head>
   html = html.replace('</head>', `${metaTags}\n</head>`);

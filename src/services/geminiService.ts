@@ -163,21 +163,43 @@ export const robustKeyExtract = (prefix?: string): string[] => {
     }
   });
 
-  // 2. Split keys that are stuck together without "KEY=" using known prefixes
+  // 2. Split keys that are stuck together without "KEY=" using known prefixes safely without lookaround regex
   const finalKeys: string[] = [];
   keys.forEach(val => {
     if (val.includes('AIzaSy') || val.includes('AQ.')) {
-      const subParts = val.split(/(?=AIzaSy)|(?=AQ\.)/);
-      subParts.forEach(sp => {
+      // Safely split on known prefixes without regex lookahead
+      const markers = ['AIzaSy', 'AQ.'];
+      let remaining = val;
+      const chunks: string[] = [];
+      while (remaining.length > 0) {
+        let nextIdx = -1;
+        let nextMarker = '';
+        for (const m of markers) {
+          const idx = remaining.indexOf(m, 1); // search from index 1 to not match at 0
+          if (idx !== -1 && (nextIdx === -1 || idx < nextIdx)) {
+            nextIdx = idx;
+            nextMarker = m;
+          }
+        }
+        if (nextIdx !== -1) {
+          chunks.push(remaining.substring(0, nextIdx));
+          remaining = remaining.substring(nextIdx);
+        } else {
+          chunks.push(remaining);
+          break;
+        }
+      }
+      chunks.forEach(sp => {
         const s = sp.trim();
         if ((s.startsWith('AIzaSy') || s.startsWith('AQ.')) && s.length >= 10) finalKeys.push(s);
       });
     } else if (val.includes('tvly-')) {
-       const subParts = val.split(/(?=tvly-)/);
-       subParts.forEach(sp => {
-         const s = sp.trim();
-         if (s.startsWith('tvly-') && s.length >= 10) finalKeys.push(s);
-       });
+      const parts = val.split('tvly-');
+      parts.forEach((p, idx) => {
+        if (idx === 0 && !val.startsWith('tvly-')) return;
+        const candidate = (idx === 0 && val.startsWith('tvly-') ? '' : 'tvly-') + p.trim();
+        if (candidate.startsWith('tvly-') && candidate.length >= 10) finalKeys.push(candidate);
+      });
     } else {
       finalKeys.push(val);
     }
