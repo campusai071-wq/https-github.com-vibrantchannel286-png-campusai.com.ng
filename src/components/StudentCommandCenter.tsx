@@ -18,6 +18,7 @@ import { LAUTECH_CUTOFFS_2025_2026 } from '../data/lautechCutoffs2025_2026';
 import { FUHSI_CUTOFFS_2026_2027 } from '../data/fuhsiCutoffs2026_2027';
 import { FUOYE_CUTOFFS_2026_2027 } from '../data/fuoyeCutoffs2026_2027';
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaCutoffByCourse } from '../data/fulokojaCutoffs2026_2027';
+import { DELSU_CUTOFFS_2026_2027, getDelsuCutoffByCourse } from '../data/delsuCutoffs2026_2027';
 import { YABATECH_CUTOFFS_2026_2027 } from '../data/yabatechCutoffs2026_2027';
 import unilagCutoffs from '../data/unilagCutoffs.json';
 
@@ -330,6 +331,14 @@ export const StudentCommandCenter: React.FC<StudentCommandCenterProps> = ({
     // 6. FULOKOJA
     if (cleanUni.includes('fulokoja') || cleanUni.includes('lokoja') || cleanUni.includes('federal university lokoja')) {
       const match = getFulokojaCutoffByCourse(targetCourse);
+      if (match) {
+        return { cutoffText: `${match.cutoff.toFixed(1)}% (Official 2026/2027)`, numericCutoff: match.cutoff, category: 'Merit' };
+      }
+    }
+
+    // 6b. DELSU
+    if (cleanUni.includes('delsu') || cleanUni.includes('delta state') || cleanUni.includes('abraka')) {
+      const match = getDelsuCutoffByCourse(targetCourse);
       if (match) {
         return { cutoffText: `${match.cutoff.toFixed(1)}% (Official 2026/2027)`, numericCutoff: match.cutoff, category: 'Merit' };
       }

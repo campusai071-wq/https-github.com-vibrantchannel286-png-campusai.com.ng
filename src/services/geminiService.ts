@@ -96,6 +96,7 @@ import { getFUTMINNACutoffByCourse } from "../data/futminnaCutoffs2026_2027";
 import { getYabatechCutoffByCourse } from "../data/yabatechCutoffs2026_2027";
 import { getFuoyeCutoffByCourse } from "../data/fuoyeCutoffs2026_2027";
 import { getFulokojaCutoffByCourse } from "../data/fulokojaCutoffs2026_2027";
+import { getDelsuCutoffByCourse } from "../data/delsuCutoffs2026_2027";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -838,7 +839,7 @@ const safeJsonParse = (text: string | undefined | null, fallback: any = {}) => {
 
     return JSON.parse(repaired);
   } catch {
-    console.error("[geminiService safeJsonParse] All recovery attempts failed. Sample:", text.substring(0, 150));
+    console.debug("[geminiService safeJsonParse] Non-JSON or plain text content received; using fallback response gracefully.");
     return fallback;
   }
 };
@@ -2263,6 +2264,18 @@ export const getCourseCutoffInfo = async (
           };
         }
       }
+      if (!manualOverride && (nUni.includes("delsu") || nUni.includes("delta state") || nUni.includes("abraka"))) {
+        const delsuCutoff = getDelsuCutoffByCourse(course);
+        if (delsuCutoff) {
+          manualOverride = {
+            institution: "Delta State University, Abraka (DELSU)",
+            course: delsuCutoff.programme,
+            departmentalCutoff: `${delsuCutoff.cutoff}%`,
+            institutionalCutoff: "150",
+            explanation: `Official DELSU 2026/2027 Approved Departmental Cut-off Mark for ${delsuCutoff.programme}: ${delsuCutoff.cutoff}% (Faculty: ${delsuCutoff.faculty}). Scoring System: 50:50 Composite ((JAMB / 8) + (Post-UTME / 2)).`
+          };
+        }
+      }
       if (manualOverride) {
         cachedResult.departmentalCutoff = manualOverride.departmentalCutoff;
         if (manualOverride.institutionalCutoff) cachedResult.institutionalCutoff = manualOverride.institutionalCutoff;
@@ -2435,6 +2448,18 @@ export const getCourseCutoffInfo = async (
           departmentalCutoff: `${fulokojaCutoff.cutoff.toFixed(2)}%`,
           institutionalCutoff: "160",
           explanation: `Official FULOKOJA 2026/2027 Approved Programme Cutoff: ${fulokojaCutoff.cutoff.toFixed(2)}% (Faculty: ${fulokojaCutoff.faculty}). Approved at the 45th Central Admissions Committee Meeting on Sept. 17, 2026.`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("delsu") || nUni.includes("delta state") || nUni.includes("abraka"))) {
+      const delsuCutoff = getDelsuCutoffByCourse(course);
+      if (delsuCutoff) {
+        manualOverride = {
+          institution: "Delta State University, Abraka (DELSU)",
+          course: delsuCutoff.programme,
+          departmentalCutoff: `${delsuCutoff.cutoff}%`,
+          institutionalCutoff: "150",
+          explanation: `Official DELSU 2026/2027 Approved Departmental Cut-off Mark for ${delsuCutoff.programme}: ${delsuCutoff.cutoff}% (Faculty: ${delsuCutoff.faculty}). Scoring System: 50:50 Composite ((JAMB / 8) + (Post-UTME / 2)).`
         };
       }
     }
@@ -2853,6 +2878,18 @@ Return JSON:
           departmentalCutoff: `${fulokojaCutoff.cutoff.toFixed(2)}%`,
           institutionalCutoff: "160",
           explanation: `Official FULOKOJA 2026/2027 Approved Programme Cutoff: ${fulokojaCutoff.cutoff.toFixed(2)}% (Faculty: ${fulokojaCutoff.faculty}). Approved at the 45th Central Admissions Committee Meeting on Sept. 17, 2026.`
+        };
+      }
+    }
+    if (!manualOverride && (nUni.includes("delsu") || nUni.includes("delta state") || nUni.includes("abraka"))) {
+      const delsuCutoff = getDelsuCutoffByCourse(course);
+      if (delsuCutoff) {
+        manualOverride = {
+          institution: "Delta State University, Abraka (DELSU)",
+          course: delsuCutoff.programme,
+          departmentalCutoff: `${delsuCutoff.cutoff}%`,
+          institutionalCutoff: "150",
+          explanation: `Official DELSU 2026/2027 Approved Departmental Cut-off Mark for ${delsuCutoff.programme}: ${delsuCutoff.cutoff}% (Faculty: ${delsuCutoff.faculty}). Scoring System: 50:50 Composite ((JAMB / 8) + (Post-UTME / 2)).`
         };
       }
     }

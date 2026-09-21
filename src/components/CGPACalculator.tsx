@@ -9,6 +9,7 @@ import {
 import { analyzeCGPA } from '../services/premiumToolsService';
 import { trackCalculatorUsed, trackCGPAInteraction } from '../services/analytics';
 import { logUserActivity, saveCalculationAttempt, saveUserCGPA, getUserCGPA, saveGlobalCgpaRecord } from '../services/dbService';
+import { incrementCgpaUsage } from '../services/userService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Markdown from 'react-markdown';
 
@@ -165,6 +166,12 @@ export const CGPACalculator: React.FC<CGPACalculatorProps> = ({ user, isPremium,
           totalCourses,
           totalUnits
         });
+
+        try {
+          if (user?.uid) {
+            await incrementCgpaUsage(user.uid);
+          }
+        } catch {}
 
         trackCGPAInteraction({
           action: 'calculate',

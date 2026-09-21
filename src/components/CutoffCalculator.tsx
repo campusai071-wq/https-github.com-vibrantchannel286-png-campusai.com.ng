@@ -35,6 +35,7 @@ import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTIT
 import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
 import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
+import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -1596,6 +1597,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isFulokojaCutoffsModalOpen, setIsFulokojaCutoffsModalOpen] = useState(false);
   const [fulokojaCutoffSearch, setFulokojaCutoffSearch] = useState('');
   const [fulokojaFacultyFilter, setFulokojaFacultyFilter] = useState('ALL');
+
+  // ── DELSU 2026/2027 Cutoffs Explorer State ──
+  const [isDelsuCutoffsModalOpen, setIsDelsuCutoffsModalOpen] = useState(false);
+  const [delsuCutoffSearch, setDelsuCutoffSearch] = useState('');
+  const [delsuFacultyFilter, setDelsuFacultyFilter] = useState('ALL');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -3289,6 +3295,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View Official FULOKOJA 2026/2027 Approved Cut-Off Marks (75+ Courses)
+                        </button>
+                      )}
+                      {(currentSchoolSlug === 'delsu' || currentSchoolSlug === 'delta-state') && (
+                        <button
+                          type="button"
+                          onClick={() => setIsDelsuCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official DELSU 2026/2027 Approved Departmental Cut-Off Marks (40+ Courses)
                         </button>
                       )}
                     </div>
@@ -8618,6 +8633,170 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsFulokojaCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* DELSU 2026/2027 Official Approved Departmental Cutoffs Modal */}
+        {isDelsuCutoffsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDelsuCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-5xl bg-gray-900 border border-amber-500/20 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-amber-950/60 to-gray-900 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-black">
+                    DEL
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">{DELSU_INSTITUTION_NAME}</h3>
+                    <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">{DELSU_SESSION} Official Approved Departmental Cut-off Marks (VC Directorate Bulletin)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDelsuCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Controls Bar */}
+              <div className="p-4 border-b border-white/5 bg-gray-950/60 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    value={delsuCutoffSearch}
+                    onChange={(e) => setDelsuCutoffSearch(e.target.value)}
+                    placeholder="Search course or faculty..."
+                    className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider shrink-0">Faculty:</span>
+                  <select
+                    value={delsuFacultyFilter}
+                    onChange={(e) => setDelsuFacultyFilter(e.target.value)}
+                    className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50"
+                  >
+                    <option value="ALL">All Faculties ({DELSU_CUTOFFS_2026_2027.length} Programmes)</option>
+                    {getDelsuFaculties().map((fac, fIdx) => (
+                      <option key={fIdx} value={fac}>{fac}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Modal Body / Table */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {(() => {
+                  const filtered = DELSU_CUTOFFS_2026_2027.filter(item => {
+                    const matchesSearch = item.programme.toLowerCase().includes(delsuCutoffSearch.toLowerCase()) ||
+                                          item.faculty.toLowerCase().includes(delsuCutoffSearch.toLowerCase());
+                    const matchesFaculty = delsuFacultyFilter === 'ALL' || item.faculty === delsuFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <p className="text-xs font-black uppercase">No programmes found matching your search.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-white/5">
+                            <th className="p-3">Programme / Course</th>
+                            <th className="p-3">Faculty</th>
+                            <th className="p-3 text-center">Approved Cut-off (50:50)</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-white/[0.02] transition-all">
+                              <td className="p-3 font-bold text-white flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-md bg-white/5 text-gray-400 text-[10px] flex items-center justify-center shrink-0">
+                                  {item.sn}
+                                </span>
+                                {item.programme}
+                              </td>
+                              <td className="p-3 text-gray-300">
+                                <span className="px-2 py-0.5 rounded-full bg-white/5 text-[10px] border border-white/10">
+                                  {item.faculty}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-black text-xs font-mono">
+                                  {item.cutoff.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const uObj = universityData.find((u: any) => u.slug === 'delsu' || u.slug === 'delta-state') || { name: DELSU_INSTITUTION_NAME, slug: 'delsu' };
+                                    setTargetUni(uObj);
+                                    setUniSearch(uObj.name);
+                                    setTargetCourse(item.programme);
+                                    setIsDelsuCutoffsModalOpen(false);
+                                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                                  }}
+                                  className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 ml-auto"
+                                >
+                                  Calculate <ArrowRight size={10} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-amber-400" />
+                  <span>Delta State University, Abraka {DELSU_SESSION} Official Approved Departmental Cut-Offs (50:50 Composite)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={DELSU_PORTAL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber-400 hover:underline flex items-center gap-1"
+                  >
+                    DELSU Official Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsDelsuCutoffsModalOpen(false)}
                     className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
                   >
                     Close

@@ -179,6 +179,8 @@ export const syncAndValidateProfile = async (
       if (isSameUser) {
         const finalCalculations = Math.max(local.lifetime_calculations || 0, cloud.lifetime_calculations || 0);
         merged.lifetime_calculations = finalCalculations;
+        merged.lifetime_cbt_tests = Math.max(local.lifetime_cbt_tests || 0, cloud.lifetime_cbt_tests || 0);
+        merged.lifetime_cgpa_calculations = Math.max(local.lifetime_cgpa_calculations || 0, cloud.lifetime_cgpa_calculations || 0);
         merged.is_premium = Boolean(local.is_premium || cloud.is_premium);
         merged.scholarCredits = Math.max(local.scholarCredits || 0, cloud.scholarCredits || 0);
         merged.premium_activated_at = local.premium_activated_at || cloud.premium_activated_at;
@@ -554,6 +556,50 @@ export const incrementCalculations = async (uid: string): Promise<{ current: num
   
   window.dispatchEvent(new CustomEvent('campusai_quota_updated', { detail: updated }));
   return { current: updated.daily_requests || 0, limit };
+};
+
+export const incrementCbtUsage = async (uid: string): Promise<number> => {
+  const profile = getLocalProfile();
+  const nextCbt = (profile.lifetime_cbt_tests || 0) + 1;
+  const updated: UserProfile = {
+    ...profile,
+    lifetime_cbt_tests: nextCbt
+  };
+  localStorage.setItem(QUOTA_KEY, stringify(updated));
+  if (db && isRealUser(uid)) {
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        lifetime_cbt_tests: nextCbt,
+        last_active: new Date().toISOString()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${uid}`);
+    }
+  }
+  window.dispatchEvent(new CustomEvent('campusai_quota_updated', { detail: updated }));
+  return nextCbt;
+};
+
+export const incrementCgpaUsage = async (uid: string): Promise<number> => {
+  const profile = getLocalProfile();
+  const nextCgpa = (profile.lifetime_cgpa_calculations || 0) + 1;
+  const updated: UserProfile = {
+    ...profile,
+    lifetime_cgpa_calculations: nextCgpa
+  };
+  localStorage.setItem(QUOTA_KEY, stringify(updated));
+  if (db && isRealUser(uid)) {
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        lifetime_cgpa_calculations: nextCgpa,
+        last_active: new Date().toISOString()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${uid}`);
+    }
+  }
+  window.dispatchEvent(new CustomEvent('campusai_quota_updated', { detail: updated }));
+  return nextCgpa;
 };
 
 export const fetchRecentUsers = async (): Promise<UserProfile[]> => {

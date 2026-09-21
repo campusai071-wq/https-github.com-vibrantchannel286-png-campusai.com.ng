@@ -3408,8 +3408,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           <div className="text-right flex flex-col items-end gap-1">
                             <p className="text-[9px] font-black text-blue-500 uppercase leading-none">{u.role || 'Scholar'}</p>
                             <div className="flex flex-col items-end gap-0.5 text-[9px] text-gray-500 dark:text-slate-300 mt-1">
-                              <p className="font-bold">Done: <span className="text-gray-800 dark:text-gray-200 font-extrabold">{u.lifetime_calculations || u.meritUsageCount || 0}</span></p>
-                              <p className="font-bold text-[8px]">
+                              <p className="font-bold">Cut-off Calcs: <span className="text-gray-800 dark:text-gray-200 font-extrabold">{u.lifetime_calculations || u.meritUsageCount || 0}</span></p>
+                              <p className="font-bold">CBT Taken: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{u.lifetime_cbt_tests || 0}</span></p>
+                              <p className="font-bold">CGPA Audits: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{u.lifetime_cgpa_calculations || 0}</span></p>
+                              <p className="font-bold text-[8px] mt-0.5">
                                 Left: <span className={`${u.is_premium ? "text-amber-500" : "text-blue-500"} font-extrabold`}>
                                   {u.is_premium
                                     ? `${u.scholarCredits || 0} SP`

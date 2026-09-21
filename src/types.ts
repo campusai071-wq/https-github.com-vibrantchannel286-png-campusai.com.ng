@@ -221,6 +221,8 @@ export interface UserProfile {
   gender?: string;
   last_active?: string;
   lifetime_calculations?: number;
+  lifetime_cbt_tests?: number;
+  lifetime_cgpa_calculations?: number;
   daily_requests?: number;
   daily_last_reset?: string;
   daily_chats?: number;

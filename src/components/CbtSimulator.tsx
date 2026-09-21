@@ -76,7 +76,7 @@ import institutionsTree from '../data/institutionsTree.json';
 import masterCourses from '../data/masterCourses.json';
 import { trackCbtInteraction } from '../services/analytics';
 import { logUserActivity, saveCalculationAttempt, saveGlobalCbtRecord } from '../services/dbService';
-import { getLocalProfile, updateUserProfile } from '../services/userService';
+import { getLocalProfile, updateUserProfile, incrementCbtUsage } from '../services/userService';
 import AdUnit from './AdUnit';
 
 /**
@@ -1657,6 +1657,12 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     };
 
     await saveGlobalCbtRecord(newRecord);
+    try {
+      const p = getLocalProfile();
+      if (p?.uid) {
+        await incrementCbtUsage(p.uid);
+      }
+    } catch {}
 
     setCbtHistoryList((prev) => {
       if (prev.some(r => r.id === newRecord.id)) return prev;

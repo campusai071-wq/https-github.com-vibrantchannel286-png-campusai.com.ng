@@ -790,6 +790,53 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     version: "2024/2026"
   },
   {
+    id: "delsu_departmental_cutoffs_2026_2027",
+    organization: "Delta State University, Abraka (DELSU)",
+    page_type: "policy",
+    category: "Institution Screening",
+    subcategory: "Departmental Cut-off Marks",
+    title: "DELSU 2026/2027 Official Departmental Cut-off Marks (Engineering, Environmental, Management, Science & Social Sciences)",
+    summary: "Official departmental cut-off marks released by the Directorate of Ceremonials, Information and Public Relations, Vice Chancellor's Office, Delta State University (DELSU), Abraka for 2026/2027 admissions exercise. Covering Faculty of Engineering, Faculty of Environmental Sciences, Faculty of Management Sciences, Faculty of Science (including SLT), and Faculty of the Social Sciences.",
+    steps: [
+      "Access the university bulletin on portal.delsuces.online or official DELSU channels.",
+      "Calculate your composite aggregate score using the 50:50 formula: (JAMB Score / 8) + (Post-UTME Score / 2).",
+      "Compare your aggregate score against the approved departmental cut-off marks.",
+      "Track your JAMB CAPS portal for provisional admission offer or consider a Change of Course if your score is within the range of other viable programmes."
+    ],
+    requirements: [
+      "Participation in DELSU Post-UTME CBT screening examination",
+      "Calculated composite aggregate score equal to or exceeding the departmental cut-off mark",
+      "O'Level credits in 5 relevant subjects uploaded to JAMB CAPS"
+    ],
+    eligibility_rules: [
+      "Candidates must meet the specific departmental cutoff score for their chosen course on merit.",
+      "Composite screening formula is strictly 50:50 (JAMB 50% + Post-UTME 50%)."
+    ],
+    key_facts: [
+      "Faculty of Engineering: Chemical Engineering (45.0), Civil Engineering (52.9), Electrical/Electronic Engineering (50.5), Mechanical Engineering (52.5), Petroleum Engineering (51.5).",
+      "Faculty of Environmental Sciences: Architecture (40.0), Building (40.0), Estate Management (40.0), Quantity Survey (40.0), Survey and Geo Informatics (40.0), Urban and Regional Planning (40.0), Environmental Management (40.0), Geography and Environmental Sustainability (40.0).",
+      "Faculty of Management Sciences: Accounting (56.7), Banking and Finance (48.5), Business Administration (55.1), Marketing (45.0), Public Administration (52.0), Entrepreneurship (40.0), Office and Information Management (40.0).",
+      "Faculty of Science: Animal & Environmental Biology/Zoology (40.0), Biochemistry (48.2), Botany (40.0), Biotechnology (40.0), Chemistry (40.0), Geology (40.0), Industrial Chemistry (40.0), Industrial Mathematics (40.0), Mathematics (40.0), Microbiology (50.0), Physics (40.0), Environmental Science & Toxicology (40.0).",
+      "Science Laboratory Technology (SLT): S.L.T. Biochemistry Tech (40.0), S.L.T. Biological Tech (40.0), S.L.T. Chemistry Tech (40.0), S.L.T. Physics & Electronic Tech (40.0).",
+      "Faculty of the Social Sciences: Criminology and Security Studies (40.0), Economics (45.0), Library and Information Science (40.0), Political Science (50.0), Psychology (40.0), Social Work (40.0), Sociology (40.0)."
+    ],
+    important_notes: [
+      "Highest cutoffs in this release include Accounting (56.7), Business Administration (55.1), Civil Engineering (52.9), Mechanical Engineering (52.5), Public Administration (52.0), Petroleum Engineering (51.5), and Electrical/Electronic Engineering (50.5).",
+      "Official publication issued by the Public Relations Unit of Directorate of Ceremonials, Information and Public Relations, Vice Chancellor's Office, DELSU Abraka."
+    ],
+    keywords: [
+      "delsu departmental cutoff", "delsu cut off marks 2026", "delsu civil engineering cutoff",
+      "delsu accounting cutoff", "delsu mechanical engineering cutoff", "delsu microbiology cutoff",
+      "delsu political science cutoff", "delsu portal.delsuces.online", "delsu slt cutoff",
+      "delta state university abraka departmental cutoff"
+    ],
+    related_topics: ["DELSU Post-UTME Screening", "DELSU 50:50 Aggregate Formula", "JAMB CAPS Admission"],
+    official_source: "https://portal.delsuces.online",
+    source_type: "Official Directorate of Information & PR Bulletin",
+    last_verified: "2026-09-21",
+    version: "2026/2027"
+  },
+  {
     id: "jamb_policy_meeting_cutoffs_2026",
     organization: "JAMB / Federal Ministry of Education",
     page_type: "policy",
