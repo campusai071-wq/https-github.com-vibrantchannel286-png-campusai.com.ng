@@ -305,7 +305,7 @@ const calculateAggregateScore = (
     return (jamb / 400 * 50) + (post / 100 * 20) + (olevelTotal / 50 * 30);
   }
   if (formula === '50:40:10' || formula === '50/40/10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
-    return (jamb / 8) + (post / 100 * 40) + olevelTotal;
+    return (jamb / 8) + (post / 100 * 40) + (olevelTotal / 5);
   }
   if (formula === '50:50' || formula === '50/50' || desc.includes('50:50') || desc.includes('50/50') || (desc.includes('50%') && desc.includes('50%'))) {
     return (jamb / 8) + (post / 2);
@@ -2213,13 +2213,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const targetA = parseFloat(targetAggregateInput);
     if (isNaN(targetA)) return { valid: false, error: "Please enter a valid target aggregate score." };
 
-    const oLPoints = activeOlevelPoints || 0;
-    const currentPost = parseFloat(postUtmeScore) || 50;
-    const currentJamb = parseFloat(jambScore) || 200;
-
     const system = computedScoringSystem;
     const normUni = (targetUni?.name || '').toLowerCase();
     const formula = system?.formula || '';
+
+    const oLPoints = (normUni.includes('oau') || formula === '50:40:10') ? (activeOlevelPoints || 0) / 5 : (activeOlevelPoints || 0);
 
     if (normUni.includes('ui') || normUni.includes('uniben') || normUni.includes('uniport') || formula === '50:50') {
       if (reverseSolveFor === 'jamb') {
