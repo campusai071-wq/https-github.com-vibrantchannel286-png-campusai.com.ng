@@ -242,7 +242,7 @@ const DEDICATED_SCHOOL_CALCULATORS: Array<{
   { name: 'Ahmadu Bello University (ABU Zaria)', slug: 'abu-zaria', formula: '50:50 Ratio (UTME Score / 8 + Post-UTME / 2)', keywords: ['abu', 'zaria', 'ahmadu bello university', 'abu zaria'] },
   { name: 'Federal University, Oye-Ekiti (FUOYE)', slug: 'fuoye', formula: '60:40 Ratio (UTME 60% + O\'Level 40% Online Screening)', keywords: ['fuoye', 'oye ekiti', 'oye-ekiti', 'federal university oye ekiti'] },
   { name: 'Delta State University (DELSU)', slug: 'delsu', formula: '50:50 Composite Screening Formula', keywords: ['delsu', 'abraka', 'delta state university'] },
-  { name: 'Kwara State University (KWASU)', slug: 'kwasu', formula: '50:50 Ratio (UTME 50% + O\'Level Points 50%)', keywords: ['kwasu', 'malete', 'kwara state university'] },
+  { name: 'Kwara State University (KWASU)', slug: 'kwasu', formula: '70:30 Ratio (UTME/DE 70% + 5 O\'Level Grades 30%)', keywords: ['kwasu', 'malete', 'kwara state university'] },
   { name: 'Adekunle Ajasin University (AAUA)', slug: 'aaua', formula: 'UTME + Post-UTME Screening Composite Aggregate', keywords: ['aaua', 'akungba', 'adekunle ajasin university'] },
   { name: 'Yaba College of Technology (YABATECH)', slug: 'yabatech', formula: '50:50 National Diploma Screening Aggregate', keywords: ['yabatech', 'yaba tech', 'polytechnic', 'yaba college of technology'] },
   { name: 'Olabisi Onabanjo University (OOU)', slug: 'oou', formula: '50:50 Ratio (UTME 50% + Post-UTME 50%)', keywords: ['oou', 'ago iwoye', 'olabisi onabanjo university'] },

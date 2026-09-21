@@ -220,11 +220,11 @@ const BASELINE_POST_UTME: Record<string, Omit<PostUtmeSchoolRecord, 'schoolName'
   "Kwara State University": {
     status: 'OPEN',
     statusText: 'Registration Active',
-    details: 'KWASU Malete 2025/2026 Post-UTME form is officially out on the portal.',
-    portalLink: 'https://portal.kwasu.edu.ng/',
+    details: 'KWASU Malete 2026/2027 Pre-Admission Screening (Post-UTME/DE) is open. 70% UTME + 30% O-Level. Closes Friday 10th July, 2026.',
+    portalLink: 'https://portal.kwasu.edu.ng/ug/admissions',
     cutoffScore: '160',
     registrationFee: 2000,
-    requirements: 'Minimum JAMB score: 160.'
+    requirements: 'First choice or change on JAMB. 5 credits max 2 sittings (MBBS 1 sitting). Awaiting results accepted.'
   },
   "Nasarawa State University": {
     status: 'OPEN',

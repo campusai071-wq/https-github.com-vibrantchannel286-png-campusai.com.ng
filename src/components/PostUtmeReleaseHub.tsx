@@ -1024,8 +1024,8 @@ const PostUtmeReleaseHub: React.FC<PostUtmeReleaseHubProps> = ({ onCalculateChan
           category: "State",
           isOut: true,
           statusText: "Registration Active",
-          details: "KWASU 2025/2026 pre-admission screening forms are available on the school internet registry. Deadline: September 4, 2026.",
-          portalLink: "https://portal.kwasu.edu.ng",
+          details: "KWASU 2026/2027 pre-admission screening forms (UTME/DE) are open. Aggregate: 70% UTME + 30% O'Level. Screening fee: ₦2,000. Registration closes Friday 10th July, 2026.",
+          portalLink: "https://portal.kwasu.edu.ng/ug/admissions",
           cutoffScore: "160"
         },
         {

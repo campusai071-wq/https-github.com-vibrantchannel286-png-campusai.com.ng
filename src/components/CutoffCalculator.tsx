@@ -294,10 +294,13 @@ const calculateAggregateScore = (
   if (formula === 'lasu_point_based') {
     return (jamb / 8) + olevelTotal;
   }
+  if (formula === '70:30' || formula === '70/30' || formula === '70_30' || desc.includes('70:30') || desc.includes('70/30') || (desc.includes('70%') && desc.includes('30%')) || normalizedUni.includes('kwasu')) {
+    return (jamb / 400 * 70) + (olevelTotal / 50 * 30);
+  }
   if (formula === '50:30:20' || formula === '50/30/20' || formula === '50_30_20' || desc.includes('50:30:20') || desc.includes('50/30/20') || (desc.includes('50%') && desc.includes('30%') && desc.includes('20%'))) {
     return (jamb / 400 * 50) + (post / 100 * 30) + olevelTotal;
   }
-  if (formula === '50:20:30' || formula === '50/20/30' || desc.includes('50:20:30') || desc.includes('kwasu')) {
+  if (formula === '50:20:30' || formula === '50/20/30' || desc.includes('50:20:30')) {
     return (jamb / 400 * 50) + (post / 100 * 20) + (olevelTotal / 50 * 30);
   }
   if (formula === '50:40:10' || formula === '50/40/10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
@@ -522,7 +525,7 @@ const getPostUtmeStatus = (schoolName: string): PostUtmeStatusInfo => {
   if (n.includes("lautech") || n.includes("ladoke akintola"))
     return active("LAUTECH 2025/2026 Post-UTME screening portal active. Cutoff: 170.", "https://eportal.lautech.edu.ng/ug/admissions");
   if (n.includes("kwara state") || n.includes("kwasu"))
-    return active("KWASU 2025/2026 Post-UTME registration portal active.", "https://portal.kwasu.edu.ng/");
+    return active("KWASU 2026/2027 Pre-Admission screening portal active (70% UTME/DE + 30% O'Level). Deadline: Friday 10th July, 2026.", "https://portal.kwasu.edu.ng/ug/admissions");
   if (n.includes("nasarawa state") || n.includes("nsuk"))
     return active("NSUK Keffi 2025/2026 Post-UTME screening application portal active.", "https://portal.nsuk.edu.ng/");
   if (n.includes("sule lamido") || n.includes("slu"))

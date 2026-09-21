@@ -1446,6 +1446,67 @@ export const JAMB_KNOWLEDGE_BASE: KnowledgeDocument[] = [
     version: "2025/2026"
   },
   {
+    id: "kwasu_2026_2027_preadmission_screening_circular",
+    organization: "Kwara State University, Malete (KWASU)",
+    page_type: "policy",
+    category: "Post-UTME & Admissions",
+    subcategory: "Undergraduate Pre-Admission Screening",
+    title: "KWASU 2026/2027 Undergraduate Pre-Admission Registration and Screening Procedure",
+    summary: "Official circular (REF: KWASU/REG:26/06/11-01) from the Office of the Registrar detailing the 2026/2027 Pre-Admission Screening Procedure for UTME and Direct Entry (DE) candidates at Kwara State University, Malete. Details candidate eligibility, the 70:30 aggregate formula (70% UTME/DE + 30% O'Level), N2,000 screening fee, online application steps on portal.kwasu.edu.ng, O'Level sitting limits, awaiting results policy, and registration deadlines.",
+    steps: [
+      "Visit the official portal at http://portal.kwasu.edu.ng and click 'Post-UTME Registration' OR navigate directly to https://portal.kwasu.edu.ng/ug/admissions.",
+      "Click on 'Verify Your Details' and enter your JAMB Registration Number.",
+      "Complete the basic information page with a valid personal phone number and personal email address, then click 'Verify'.",
+      "On the payment review page, click on 'Proceed', then 'Pay Now' to navigate to the secure payment gateway.",
+      "Enter your ATM card details (MasterCard, Visa Card, or Verve card) to pay the non-refundable screening fee of Two Thousand Naira (₦2,000.00) only.",
+      "Enter the One-Time Password (OTP) sent to your mobile phone and click continue to complete payment.",
+      "After successful payment, click on 'Login' on the portal and enter your JAMB registration number and password sent to your email.",
+      "Click on 'My Application' and complete all required sections of your registration.",
+      "Print your completed registration form and official payment receipt under the 'Printouts' menu tab."
+    ],
+    requirements: [
+      "JAMB UTME / DE Registration Number",
+      "Choice of KWASU as first choice institution (or evidence of change of institution to KWASU on the JAMB portal before pre-admission registration)",
+      "Five (5) O'Level credits in relevant subjects at not more than two (2) sittings (except for MBBS which strictly requires one sitting)",
+      "Non-refundable screening fee payment of ₦2,000.00 via ATM card",
+      "Valid personal phone number and email address",
+      "Candidate awaiting O'Level results can apply provided their results are uploaded before the conclusion of the admission exercise"
+    ],
+    eligibility_rules: [
+      "Eligibility Category 1: Candidates whose first choice of institution is KWASU, Malete.",
+      "Eligibility Category 2: Candidates who wish to change to KWASU as their first choice (must complete change of institution on JAMB portal first).",
+      "Aggregate Scoring: Offer of admission is based on an aggregate of UTME/DE score (70%) and five (5) relevant O'Level grades (30%).",
+      "MBBS Programme Sitting Rule: Five (5) O'Level credits in relevant subjects must be obtained at ONE (1) sitting only for Medicine & Surgery (MBBS). Other programmes allow a maximum of two (2) sittings.",
+      "Awaiting Results (AR): Candidates awaiting O'Level results can register, but will not be considered for admission unless results are made available before the close of the admission exercise.",
+      "Disqualification & Penalty: Wrong entries lead to automatic disqualification. Falsification of citizenship certificates or any other documents will lead to disqualification and prosecution."
+    ],
+    key_facts: [
+      "Official Reference: REF: KWASU/REG:26/06/11-01 (Office of the Registrar)",
+      "Screening Fee: Non-refundable ₦2,000.00 only",
+      "Aggregate Formula: 70% UTME/DE score + 30% five (5) relevant O'Level subject grades",
+      "Online Registration Window: Opens Thursday 11th June, 2026",
+      "Closing Date: Friday 10th July, 2026",
+      "Official Registration Portal: https://portal.kwasu.edu.ng/ug/admissions",
+      "Main Website: www.kwasu.edu.ng | Email: admissions@kwasu.edu.ng",
+      "Helpline Support (WhatsApp/Calls/SMS): 08127202297, 07059608072, 08035196608"
+    ],
+    important_notes: [
+      "Candidates changing institution to KWASU must effect the change on JAMB portal before starting pre-admission screening registration.",
+      "Only valid personal phone numbers and email addresses should be used to ensure login credentials and notifications are received.",
+      "Ensure you retain printed copies of the screening application form and payment receipt for physical clearance and verification upon admission."
+    ],
+    keywords: [
+      "kwasu post utme", "kwasu screening 2026", "kwara state university post utme", "kwasu 2026/2027",
+      "kwasu admissions", "kwasu registration procedure", "kwasu aggregate formula", "kwasu closing date",
+      "kwasu 70:30", "kwasu mbbs sitting", "portal.kwasu.edu.ng/ug/admissions", "kwasu registrar circular"
+    ],
+    related_topics: ["Post-UTME Registration", "O'Level Sitting Rules", "KWASU Cutoff Aggregate", "JAMB CAPS Admission"],
+    official_source: "https://portal.kwasu.edu.ng/ug/admissions",
+    source_type: "Official Institution Registrar Circular",
+    last_verified: "2026-06-11",
+    version: "2026/2027"
+  },
+  {
     id: "futa_agricultural_environmental_engineering_profile",
     organization: "FUTA",
     page_type: "policy",

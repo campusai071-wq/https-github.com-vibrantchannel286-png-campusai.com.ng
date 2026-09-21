@@ -252,12 +252,12 @@ const BASELINE_RELEASES: Record<string, Partial<SchoolReleaseStatus>> = {
   "Kwara State University": {
     isOut: true,
     statusText: "Registration Active",
-    details: "KWASU Malete 2025/2026 Post-UTME form is officially out on the portal.",
-    portalLink: "https://portal.kwasu.edu.ng/",
+    details: "KWASU Malete 2026/2027 Pre-Admission Screening (Post-UTME/DE) is active. Offer of admission is based on UTME/DE (70%) and 5 relevant O'Level grades (30%). Registration closes Friday 10th July, 2026.",
+    portalLink: "https://portal.kwasu.edu.ng/ug/admissions",
     cutoffScore: "160",
     registrationFee: 2000,
-    citationUrl: "https://myschoolgist.com/news/kwara-state-university-post-utme-form-out/",
-    eligibilityText: "Candidates who chose the university as first choice and scored required minimum JAMB mark."
+    citationUrl: "https://portal.kwasu.edu.ng/ug/admissions",
+    eligibilityText: "Candidates who chose KWASU as first choice or changed to KWASU on JAMB portal. Requires 5 O'Level credits at max 2 sittings (MBBS requires 1 sitting only). Awaiting results accepted."
   },
   "Nasarawa State University, Keffi": {
     isOut: true,

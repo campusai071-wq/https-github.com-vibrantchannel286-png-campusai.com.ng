@@ -3070,7 +3070,7 @@ export const getUniversityScoringSystem = async (institution: string) => {
       return { hasJamb: true, hasPostUtme: false, hasOLevel: true, explanation: "LASU: Aggregate = (JAMB / 8) + O'Level verification points.", formula: "lasu_point_based" };
     }
     if (nameLower.includes("kwara") || nameLower.includes("kwasu")) {
-      return { hasJamb: true, hasPostUtme: true, hasOLevel: true, explanation: "KWASU 50:20:30 ratio: Aggregate = (JAMB/400 * 50) + (Post-UTME/100 * 20) + (O-Level points/50 * 30).", formula: "50:20:30" };
+      return { hasJamb: true, hasPostUtme: false, hasOLevel: true, explanation: "KWASU: Aggregate = UTME/DE score (70%) + 5 relevant O'Level grades (30%). Online pre-admission screening.", formula: "70:30" };
     }
     if (nameLower.includes("delta state") || nameLower.includes("delsu")) {
       return { hasJamb: true, hasPostUtme: true, hasOLevel: false, explanation: "DELSU (50:50): JAMB (50%) + Post-UTME (50%). No O'Level points are used in the aggregate score calculation.", formula: "50:50" };
