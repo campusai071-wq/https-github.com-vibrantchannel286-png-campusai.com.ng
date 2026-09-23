@@ -1018,7 +1018,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
           )}
 
           <div className="mb-10">
-            <AdUnit type="leaderboard" />
+            <AdUnit type="leaderboard" placement="native" />
           </div>
 
           <div className="markdown-body text-lg text-gray-800 dark:text-gray-200 leading-relaxed font-medium select-text pointer-events-auto">
@@ -1226,7 +1226,7 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
         )}
 
         <div className="my-12">
-          <AdUnit type="rectangle" />
+          <AdUnit type="rectangle" placement="native" />
         </div>
 
         {/* Aggregate Calculator CTA */}

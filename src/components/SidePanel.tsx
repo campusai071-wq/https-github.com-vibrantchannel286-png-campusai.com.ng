@@ -126,7 +126,7 @@ const SidePanel: React.FC = () => {
         </div>
       </div>
 
-      <AdUnit type="sidebar" />
+      <AdUnit type="sidebar" placement="sidebar" />
       
       {/* JAMB CAPS Guide */}
       <div className="bg-orange-600 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden group">

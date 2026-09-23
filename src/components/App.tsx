@@ -17,6 +17,7 @@ import ToolsGrid from './ToolsGrid';
 import HowItWorks from './HowItWorks';
 import SimpleCalculator from './SimpleCalculator';
 import CalculationStats from './CalculationStats';
+import AdUnit from './AdUnit';
 
 // Code-split heavy secondary views & modals for faster initial load
 const CutoffCalculator = lazyWithRetry(() => import('./CutoffCalculator'));
@@ -937,6 +938,7 @@ const AppContent: React.FC = () => {
         currentPage={currentPage} 
         user={user}
         admin={adminState}
+        showImportantBanner={showImportantBanner}
         theme={theme}
         onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
         onLoginRequest={() => navigate('/login')}
@@ -946,11 +948,6 @@ const AppContent: React.FC = () => {
         onScholarPackRequest={() => setIsScholarPackOpen(true)}
         onOpenSidebar={() => setIsSidebarOpen(true)}
       />
-
-      {/* Global Important Message Banner across all pages */}
-      {(() => {
-        return null;
-      })()}
 
       <Suspense fallback={null}>
         <Sidebar
@@ -1368,9 +1365,19 @@ const AppContent: React.FC = () => {
                     }}
                   />
                   
+                  {/* Top Homepage Banner / Hero Billboard */}
+                  <div className="container mx-auto px-4 md:px-8 max-w-5xl my-6">
+                    <AdUnit type="leaderboard" placement="banner" />
+                  </div>
+
                   <Suspense fallback={<div className="h-40 flex items-center justify-center text-blue-500">Loading tools...</div>}>
                     <ToolsGrid />
                   </Suspense>
+
+                  {/* Mid-Page Billboard Banner */}
+                  <div className="container mx-auto px-4 md:px-8 max-w-5xl my-8">
+                    <AdUnit type="billboard" placement="all" />
+                  </div>
 
                   <HowItWorks />
 

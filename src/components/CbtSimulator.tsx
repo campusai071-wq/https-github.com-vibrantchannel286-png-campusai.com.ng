@@ -3071,7 +3071,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   </div>
                 </div>
 
-                <AdUnit type="leaderboard" className="mx-auto" />
+                <AdUnit type="leaderboard" placement="cbt" className="mx-auto" />
 
                 {/* AI Score Analysis Box */}
                 <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm p-6 space-y-5 relative overflow-hidden">

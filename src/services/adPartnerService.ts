@@ -90,6 +90,7 @@ export const createAdCampaign = async (data: Omit<SponsoredAd, 'id' | 'createdAt
   const adId = data.id || `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newAd: SponsoredAd = {
     ...data,
+    badgeText: data.badgeText || 'VERIFIED SPONSOR',
     id: adId,
     status: data.status || 'pending',
     impressions: 0,
@@ -116,33 +117,64 @@ export const createAdCampaign = async (data: Omit<SponsoredAd, 'id' | 'createdAt
 };
 
 export const getActiveSponsoredAds = async (placement?: AdPlacementType): Promise<SponsoredAd[]> => {
-  let ads: SponsoredAd[] = [];
+  const adMap = new Map<string, SponsoredAd>();
 
-  // Try Firestore
+  // 1. Load from local storage cache (filter out any mock entries)
+  try {
+    const localAds: SponsoredAd[] = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
+    localAds.forEach(a => {
+      if (a && a.id && !a.id.includes('sponsor_edupath_verified') && (a.status === 'active' || String(a.status).toLowerCase().trim() === 'active')) {
+        adMap.set(a.id, a);
+      }
+    });
+  } catch (err) {
+    console.warn('Error reading local ads cache:', err);
+  }
+
+  // 2. Fetch from Firestore if available
   if (db) {
     try {
-      const q = query(
-        collection(db, 'ad_campaigns'),
-        where('status', '==', 'active')
-      );
-      const snap = await getDocs(q);
-      ads = snap.docs.map(d => d.data() as SponsoredAd);
+      const snap = await getDocs(collection(db, 'ad_campaigns'));
+      snap.docs.forEach(d => {
+        const adData = d.data() as SponsoredAd;
+        if (adData && adData.id && !adData.id.includes('sponsor_edupath_verified')) {
+          if (adData.status === 'active' || String(adData.status).toLowerCase().trim() === 'active') {
+            adMap.set(adData.id, adData);
+          } else {
+            adMap.delete(adData.id);
+          }
+        }
+      });
     } catch (e) {
       console.warn('Falling back to cached sponsored ads:', e);
     }
   }
 
-  // Fallback to local cache if offline or empty
-  if (ads.length === 0) {
-    const localAds: SponsoredAd[] = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
-    ads = localAds.filter(a => a.status === 'active');
-  }
+  const allActiveAds = Array.from(adMap.values());
 
+  // 3. Strict Placement Filtering:
   if (placement && placement !== 'all') {
-    return ads.filter(a => a.placement === placement || a.placement === 'all');
+    const target = placement.toLowerCase().trim();
+
+    return allActiveAds.filter(a => {
+      const adPlacement = (a.placement || 'all').toLowerCase().trim();
+
+      // Sitewide takeover campaigns show in all placements
+      if (adPlacement === 'all') return true;
+
+      // Exact match for the requested placement
+      if (adPlacement === target) return true;
+
+      // Top banner aliases (hero, banner, top, header)
+      const isBannerTarget = target === 'banner' || target === 'hero' || target === 'top';
+      const isBannerAd = adPlacement === 'banner' || adPlacement === 'hero' || adPlacement === 'top' || adPlacement === 'header';
+      if (isBannerTarget && isBannerAd) return true;
+
+      return false;
+    });
   }
 
-  return ads;
+  return allActiveAds;
 };
 
 export const getAllAdCampaigns = async (): Promise<SponsoredAd[]> => {
@@ -151,14 +183,14 @@ export const getAllAdCampaigns = async (): Promise<SponsoredAd[]> => {
   if (db) {
     try {
       const snap = await getDocs(collection(db, 'ad_campaigns'));
-      ads = snap.docs.map(d => d.data() as SponsoredAd);
+      ads = snap.docs.map(d => d.data() as SponsoredAd).filter(a => a && a.id && !a.id.includes('sponsor_edupath_verified'));
     } catch (e) {
       console.warn('Error fetching all ads from cloud:', e);
     }
   }
 
   if (ads.length === 0) {
-    ads = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
+    ads = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]').filter((a: SponsoredAd) => a && a.id && !a.id.includes('sponsor_edupath_verified'));
   }
 
   return ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -169,15 +201,31 @@ export const updateAdCampaignStatus = async (adId: string, updates: Partial<Spon
   const idx = localAds.findIndex(a => a.id === adId);
   if (idx !== -1) {
     localAds[idx] = { ...localAds[idx], ...updates, updatedAt: new Date().toISOString() };
-    localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(localAds));
+  } else {
+    // If not in local cache yet, push a stub/updated object so it's tracked
+    localAds.unshift({
+      id: adId,
+      brandName: updates.brandName || 'Sponsor',
+      title: updates.title || '',
+      description: updates.description || '',
+      placement: updates.placement || 'all',
+      durationDays: 7,
+      amount: updates.amount || 5000,
+      status: updates.status || 'active',
+      paymentStatus: 'paid',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...updates
+    } as SponsoredAd);
   }
+  localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(localAds));
 
   if (db) {
     try {
-      await updateDoc(doc(db, 'ad_campaigns', adId), {
+      await setDoc(doc(db, 'ad_campaigns', adId), {
         ...updates,
         updatedAt: new Date().toISOString()
-      });
+      }, { merge: true });
     } catch (e) {
       console.warn('Error updating ad campaign status in Firestore:', e);
     }
@@ -294,13 +342,13 @@ export const getAllPartners = async (): Promise<PartnerOrganization[]> => {
   if (db) {
     try {
       const snap = await getDocs(collection(db, 'partners'));
-      cloudPartners = snap.docs.map(d => d.data() as PartnerOrganization);
+      cloudPartners = snap.docs.map(d => d.data() as PartnerOrganization).filter(p => p && p.id && !p.id.includes('partner_edupath_hub'));
     } catch (e) {
       console.warn('Error fetching all partners from cloud:', e);
     }
   }
 
-  const localList: PartnerOrganization[] = filterRealPartners(JSON.parse(localStorage.getItem(LOCAL_PARTNERS_KEY) || '[]'));
+  const localList: PartnerOrganization[] = filterRealPartners(JSON.parse(localStorage.getItem(LOCAL_PARTNERS_KEY) || '[]')).filter(p => p && p.id && !p.id.includes('partner_edupath_hub'));
   const mergedMap = new Map<string, PartnerOrganization>();
 
   localList.forEach(p => mergedMap.set(p.id, p));
@@ -326,4 +374,36 @@ export const updatePartnerStatus = async (partnerId: string, updates: Partial<Pa
   }
 
   window.dispatchEvent(new CustomEvent('campusai_partner_updated', { detail: { partnerId, updates } }));
+};
+
+export const deleteAdCampaign = async (adId: string): Promise<void> => {
+  const localAds: SponsoredAd[] = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
+  const filtered = localAds.filter(a => a.id !== adId);
+  localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(filtered));
+
+  if (db) {
+    try {
+      await deleteDoc(doc(db, 'ad_campaigns', adId));
+    } catch (e) {
+      console.warn('Error deleting ad campaign from Firestore:', e);
+    }
+  }
+
+  window.dispatchEvent(new CustomEvent('campusai_ad_deleted', { detail: { adId } }));
+};
+
+export const deletePartner = async (partnerId: string): Promise<void> => {
+  const localList: PartnerOrganization[] = JSON.parse(localStorage.getItem(LOCAL_PARTNERS_KEY) || '[]');
+  const filtered = localList.filter(p => p.id !== partnerId);
+  localStorage.setItem(LOCAL_PARTNERS_KEY, JSON.stringify(filtered));
+
+  if (db) {
+    try {
+      await deleteDoc(doc(db, 'partners', partnerId));
+    } catch (e) {
+      console.warn('Error deleting partner from Firestore:', e);
+    }
+  }
+
+  window.dispatchEvent(new CustomEvent('campusai_partner_deleted', { detail: { partnerId } }));
 };

@@ -19,12 +19,16 @@ import {
   Layers, 
   ChevronRight,
   ExternalLink,
-  Target
+  Target,
+  Edit3,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   getPricingConfig, 
   createAdCampaign, 
+  getAllAdCampaigns,
+  updateAdCampaignStatus,
   PlatformPricingConfig, 
   DEFAULT_PRICING_CONFIG 
 } from '../services/adPartnerService';
@@ -63,8 +67,75 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
   const [targetUrl, setTargetUrl] = useState('https://');
   const [badgeText, setBadgeText] = useState('Verified Sponsor');
   const [imageUrl, setImageUrl] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'paystack' | 'whatsapp'>('whatsapp');
+  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'paystack' | 'whatsapp' | 'flutterwave'>('flutterwave');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Advertiser Self-Service Management State
+  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+  const [lookupEmailOrPhone, setLookupEmailOrPhone] = useState('');
+  const [searchedAds, setSearchedAds] = useState<SponsoredAd[] | null>(null);
+  const [isSearchingAds, setIsSearchingAds] = useState(false);
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [isUpdatingAd, setIsUpdatingAd] = useState(false);
+  const [payingAdId, setPayingAdId] = useState<string | null>(null);
+  const [adActionMessage, setAdActionMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleLookupAds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lookupEmailOrPhone.trim()) return;
+    setIsSearchingAds(true);
+    setAdActionMessage(null);
+    try {
+      const all = await getAllAdCampaigns();
+      const queryStr = lookupEmailOrPhone.trim().toLowerCase();
+      const filtered = all.filter(a => 
+        (a.contactPhone && a.contactPhone.toLowerCase().includes(queryStr)) ||
+        (a.brandName && a.brandName.toLowerCase().includes(queryStr)) ||
+        (a.contactEmail && a.contactEmail.toLowerCase().includes(queryStr))
+      );
+      setSearchedAds(filtered);
+    } catch (e) {
+      console.warn('Error looking up ads:', e);
+      setSearchedAds([]);
+    } finally {
+      setIsSearchingAds(false);
+    }
+  };
+
+  const handleSaveAdEdit = async (adId: string, currentStatus?: string) => {
+    setIsUpdatingAd(true);
+    try {
+      const updates: any = {
+        title: editTitle,
+        description: editDesc,
+        targetUrl: editUrl,
+        imageUrl: editImageUrl,
+        updatedAt: new Date().toISOString()
+      };
+      // If was rejected, resubmit to pending for admin review
+      if (currentStatus === 'rejected') {
+        updates.status = 'pending';
+        updates.rejectionReason = '';
+      }
+      await updateAdCampaignStatus(adId, updates);
+      setSearchedAds(prev => prev ? prev.map(a => a.id === adId ? { ...a, ...updates } : a) : null);
+      setEditingAdId(null);
+      setAdActionMessage({
+        type: 'success',
+        message: currentStatus === 'rejected'
+          ? 'Campaign updated and resubmitted to admin for review!'
+          : 'Campaign details updated successfully!'
+      });
+    } catch (e) {
+      setAdActionMessage({ type: 'error', message: 'Failed to update campaign details.' });
+    } finally {
+      setIsUpdatingAd(false);
+    }
+  };
 
   useEffect(() => {
     getPricingConfig().then(setConfig);
@@ -199,7 +270,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
         whatsapp: whatsapp.trim() || contactPhone.trim(),
         packageType: selectedPackage,
         packageName: currentPkg.title,
-        amount: currentPkg.price,
+        amount: finalPrice,
         durationDays: currentPkg.duration,
         placement,
         title: adTitle.trim(),
@@ -209,7 +280,8 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
         imageUrl: imageUrl.trim() || undefined,
         badgeText: badgeText.trim() || 'Verified Sponsor',
         paymentStatus: 'pending',
-        paymentMethod: paymentMethod === 'whatsapp' ? 'admin' : paymentMethod
+        paymentMethod: paymentMethod === 'whatsapp' ? 'admin' : paymentMethod,
+        status: 'pending' // Pending admin review before payment
       });
 
       setSubmissionSuccess(created);
@@ -294,6 +366,248 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        {/* Tab Switcher: Create vs Manage */}
+        <div className="flex items-center justify-center mb-10">
+          <div className="bg-slate-900 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab('create')}
+              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'create'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🚀 Create Ad Campaign
+            </button>
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'manage'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              ✏️ Manage / Edit My Ads
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'manage' ? (
+          <div className="bg-slate-900/80 rounded-3xl p-6 sm:p-10 border border-slate-800 max-w-3xl mx-auto mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-white mb-2">Advertiser Self-Service Portal</h2>
+              <p className="text-xs text-slate-400">Enter your registered Phone Number, Email, or Brand Name to view, check status, and edit your ad campaigns.</p>
+            </div>
+
+            <form onSubmit={handleLookupAds} className="flex flex-col sm:flex-row gap-3 mb-8">
+              <input
+                type="text"
+                required
+                placeholder="Enter Phone, Email, or Brand Name..."
+                value={lookupEmailOrPhone}
+                onChange={e => setLookupEmailOrPhone(e.target.value)}
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+              <button
+                type="submit"
+                disabled={isSearchingAds}
+                className="px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg"
+              >
+                {isSearchingAds ? 'Searching...' : 'Find My Ads'}
+              </button>
+            </form>
+
+            {adActionMessage && (
+              <div className={`p-4 rounded-2xl mb-6 text-xs font-bold border flex items-center justify-between ${
+                adActionMessage.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              }`}>
+                <span>{adActionMessage.message}</span>
+                <button
+                  type="button"
+                  onClick={() => setAdActionMessage(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {searchedAds !== null && (
+              <div className="space-y-4">
+                {searchedAds.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    No ad campaigns found matching <strong className="text-white">"{lookupEmailOrPhone}"</strong>.
+                  </div>
+                ) : (
+                  searchedAds.map(ad => (
+                    <div key={ad.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-black text-white">{ad.brandName}</span>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              ad.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                              ad.status === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                              ad.status === 'pending_payment' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                              'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {ad.status === 'pending_payment' ? 'AWAITING PAYMENT' : ad.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold text-slate-200">{ad.title}</h4>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-mono text-emerald-400 font-bold">₦{(ad.amount || 0).toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-500">{ad.placement.toUpperCase()}</div>
+                        </div>
+                      </div>
+
+                      {ad.rejectionReason && (
+                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                          <strong className="font-bold">Rejection Reason:</strong> {ad.rejectionReason}
+                          <p className="mt-1 text-[11px] text-rose-300/80">You can edit your campaign details below using the "Edit Campaign" button and save to automatically resubmit for admin review.</p>
+                        </div>
+                      )}
+
+                      {ad.status === 'pending' && (
+                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                          <span><strong>Under Admin Review:</strong> Your campaign is currently being reviewed. Once approved by the admin, you will be prompted here to complete your payment and go live.</span>
+                        </div>
+                      )}
+
+                      {ad.status === 'pending_payment' && (
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div>
+                            <div className="text-xs font-black text-amber-400 uppercase tracking-wider mb-1">🎉 Ad Approved by Admin!</div>
+                            <div className="text-xs text-slate-300">Your campaign has been reviewed and accepted. Please complete your payment to launch it live.</div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={payingAdId === ad.id}
+                            onClick={async () => {
+                              setPayingAdId(ad.id);
+                              try {
+                                await updateAdCampaignStatus(ad.id, {
+                                  status: 'active',
+                                  paymentStatus: 'paid',
+                                  paymentReference: `FLW_TX_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+                                });
+                                setSearchedAds(prev => prev ? prev.map(item => item.id === ad.id ? { ...item, status: 'active', paymentStatus: 'paid' } : item) : null);
+                                setAdActionMessage({
+                                  type: 'success',
+                                  message: 'Payment received via Flutterwave! Your ad campaign is now active and live across CampusAI.'
+                                });
+                              } catch (e) {
+                                setAdActionMessage({ type: 'error', message: 'Failed to process payment activation. Please try again.' });
+                              } finally {
+                                setPayingAdId(null);
+                              }
+                            }}
+                            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50 transition-all"
+                          >
+                            {payingAdId === ad.id ? (
+                              <>
+                                <Loader2 size={14} className="animate-spin" /> Verifying Payment...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard size={14} /> Pay ₦{(ad.amount || 5000).toLocaleString()} (Flutterwave)
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {editingAdId === ad.id ? (
+                        <div className="space-y-3 pt-3 border-t border-slate-800/80">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Headline</label>
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={e => setEditTitle(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Description</label>
+                            <textarea
+                              rows={2}
+                              value={editDesc}
+                              onChange={e => setEditDesc(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Target URL</label>
+                              <input
+                                type="url"
+                                value={editUrl}
+                                onChange={e => setEditUrl(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Image URL</label>
+                              <input
+                                type="url"
+                                value={editImageUrl}
+                                onChange={e => setEditImageUrl(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingAdId(null)}
+                              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isUpdatingAd}
+                              onClick={() => handleSaveAdEdit(ad.id, ad.status)}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold"
+                            >
+                              {isUpdatingAd ? 'Saving...' : ad.status === 'rejected' ? 'Save & Resubmit for Review' : 'Save Changes'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
+                          <div className="flex items-center gap-4 text-xs text-slate-400">
+                            <span>👁 {ad.impressions || 0} Impressions</span>
+                            <span>🖱 {ad.clicks || 0} Clicks</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingAdId(ad.id);
+                              setEditTitle(ad.title);
+                              setEditDesc(ad.description);
+                              setEditUrl(ad.targetUrl || '');
+                              setEditImageUrl(ad.imageUrl || '');
+                            }}
+                            className="px-4 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+                          >
+                            <Edit3 size={14} /> Edit Campaign
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
         {/* Step 1: Package Selector */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
@@ -544,20 +858,20 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                   <label className="block text-xs font-black text-slate-300 uppercase tracking-wider mb-3">
                     Preferred Payment / Activation Option
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('whatsapp')}
+                      onClick={() => setPaymentMethod('flutterwave')}
                       className={`p-4 rounded-2xl text-left border transition-all ${
-                        paymentMethod === 'whatsapp'
-                          ? 'bg-emerald-950/40 border-[#25D366] text-white ring-1 ring-[#25D366]'
+                        paymentMethod === 'flutterwave'
+                          ? 'bg-amber-950/40 border-amber-500 text-white ring-1 ring-amber-500'
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2 font-black text-xs text-[#25D366] mb-1">
-                        <MessageSquare size={16} /> WhatsApp / Negotiate
+                      <div className="flex items-center gap-2 font-black text-xs text-amber-400 mb-1">
+                        <CreditCard size={16} /> Flutterwave Checkout
                       </div>
-                      <div className="text-[11px] text-slate-400">Discuss custom terms, discount, or payment on WhatsApp.</div>
+                      <div className="text-[11px] text-slate-400">Instant card, bank transfer, or USSD checkout via Flutterwave.</div>
                     </button>
 
                     <button
@@ -573,6 +887,21 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                         <Building2 size={16} /> Direct Bank Transfer
                       </div>
                       <div className="text-[11px] text-slate-400">Pay directly to our verified bank account.</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('whatsapp')}
+                      className={`p-4 rounded-2xl text-left border transition-all ${
+                        paymentMethod === 'whatsapp'
+                          ? 'bg-emerald-950/40 border-[#25D366] text-white ring-1 ring-[#25D366]'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-black text-xs text-[#25D366] mb-1">
+                        <MessageSquare size={16} /> WhatsApp / Negotiate
+                      </div>
+                      <div className="text-[11px] text-slate-400">Discuss custom terms or discount on WhatsApp.</div>
                     </button>
                   </div>
                 </div>
@@ -686,6 +1015,8 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

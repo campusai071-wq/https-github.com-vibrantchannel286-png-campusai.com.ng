@@ -16,6 +16,25 @@
   }
 }
 
+/* Core Web Vitals & Performance Optimizations */
+* {
+  box-sizing: border-box;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+.contain-paint {
+  contain: paint layout;
+}
+
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
 /* Custom Markdown styles for pristine academic reports */
 .markdown-body {
   overflow-wrap: break-word;

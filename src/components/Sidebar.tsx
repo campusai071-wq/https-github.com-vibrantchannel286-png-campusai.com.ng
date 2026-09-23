@@ -6,6 +6,7 @@ import {
   CheckCircle2, AlertTriangle, ShieldCheck, Sparkles, Building, School, Building2, Crown, BarChart3, Target, MapPin, FolderDown, MessageSquare, Users
 } from 'lucide-react';
 import { getPostUtmeStats } from '../services/postUtmeTracker';
+import AdUnit from './AdUnit';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -423,6 +424,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Sponsored Banner Unit in Sidebar */}
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-850">
+                <AdUnit type="sidebar" placement="sidebar" />
               </div>
 
             </div>

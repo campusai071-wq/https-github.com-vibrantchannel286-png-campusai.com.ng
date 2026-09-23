@@ -338,8 +338,8 @@ export interface AdmissionArticle {
 }
 
 export type AdPackageType = 'starter_7d' | 'growth_14d' | 'pro_30d' | 'custom';
-export type AdPlacementType = 'all' | 'calculator' | 'cbt' | 'banner' | 'native';
-export type AdStatusType = 'pending' | 'active' | 'paused' | 'expired' | 'rejected';
+export type AdPlacementType = 'all' | 'calculator' | 'cbt' | 'banner' | 'native' | 'hero' | 'sidebar' | 'dashboard';
+export type AdStatusType = 'pending' | 'pending_payment' | 'active' | 'paused' | 'expired' | 'rejected';
 export type AdPaymentStatus = 'pending' | 'paid' | 'waived';
 
 export interface SponsoredAd {
@@ -365,6 +365,7 @@ export interface SponsoredAd {
   paymentReference?: string;
   impressions: number;
   clicks: number;
+  rejectionReason?: string;
   startDate?: string;
   endDate?: string;
   createdAt: string;

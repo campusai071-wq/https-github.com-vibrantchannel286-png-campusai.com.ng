@@ -22,15 +22,21 @@ import {
   Globe,
   Star,
   ExternalLink,
-  Edit3
+  Edit3,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+  X
 } from 'lucide-react';
 import { 
   getAllAdCampaigns, 
   updateAdCampaignStatus, 
   createAdCampaign,
+  deleteAdCampaign,
   getAllPartners, 
   updatePartnerStatus, 
   submitPartnerApplication,
+  deletePartner,
   getPricingConfig, 
   updatePricingConfig, 
   DEFAULT_PRICING_CONFIG 
@@ -56,9 +62,27 @@ export const AdminAdsAndPartners: React.FC = () => {
   // Ads State
   const [ads, setAds] = useState<SponsoredAd[]>([]);
   const [adsLoading, setAdsLoading] = useState(false);
-  const [adFilter, setAdFilter] = useState<'all' | 'active' | 'pending' | 'paused' | 'expired'>('all');
+  const [adFilter, setAdFilter] = useState<'all' | 'active' | 'pending' | 'pending_payment' | 'rejected' | 'paused'>('all');
   const [adSearch, setAdSearch] = useState('');
   const [showCreateAdModal, setShowCreateAdModal] = useState(false);
+
+  // In-app Action Notification Banner
+  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Ad Modals State
+  const [adToReject, setAdToReject] = useState<SponsoredAd | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const [adToDelete, setAdToDelete] = useState<SponsoredAd | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [adToApprove, setAdToApprove] = useState<SponsoredAd | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Partner Modals State
+  const [partnerToDelete, setPartnerToDelete] = useState<PartnerOrganization | null>(null);
+  const [isDeletingPartner, setIsDeletingPartner] = useState(false);
 
   // Partners State
   const [partners, setPartners] = useState<PartnerOrganization[]>([]);
@@ -76,7 +100,61 @@ export const AdminAdsAndPartners: React.FC = () => {
   const [newAdPhone, setNewAdPhone] = useState('');
   const [newAdPkg, setNewAdPkg] = useState<AdPackageType>('growth_14d');
   const [newAdPlacement, setNewAdPlacement] = useState<AdPlacementType>('all');
+  const [newAdBadge, setNewAdBadge] = useState('VERIFIED SPONSOR');
   const [isCreatingAd, setIsCreatingAd] = useState(false);
+
+  // Edit Ad Modal State
+  const [editingAd, setEditingAd] = useState<SponsoredAd | null>(null);
+  const [editBrand, setEditBrand] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCta, setEditCta] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAmount, setEditAmount] = useState(0);
+  const [editPlacement, setEditPlacement] = useState<AdPlacementType>('all');
+  const [editBadge, setEditBadge] = useState('VERIFIED SPONSOR');
+  const [isSavingEditAd, setIsSavingEditAd] = useState(false);
+
+  const handleStartEditAd = (ad: SponsoredAd) => {
+    setEditingAd(ad);
+    setEditBrand(ad.brandName || '');
+    setEditTitle(ad.title || '');
+    setEditDesc(ad.description || '');
+    setEditCta(ad.ctaText || 'Learn More');
+    setEditUrl(ad.targetUrl || '');
+    setEditPhone(ad.contactPhone || '');
+    setEditAmount(ad.amount || 0);
+    setEditPlacement(ad.placement || 'all');
+    setEditBadge(ad.badgeText || 'VERIFIED SPONSOR');
+  };
+
+  const handleSaveEditAdSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAd) return;
+    setIsSavingEditAd(true);
+    try {
+      const updates: Partial<SponsoredAd> = {
+        brandName: editBrand.trim(),
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        ctaText: editCta.trim(),
+        targetUrl: editUrl.trim(),
+        contactPhone: editPhone.trim(),
+        amount: Number(editAmount),
+        placement: editPlacement,
+        badgeText: editBadge.trim() || 'VERIFIED SPONSOR',
+        updatedAt: new Date().toISOString()
+      };
+      await updateAdCampaignStatus(editingAd.id, updates);
+      setAds(prev => prev.map(a => a.id === editingAd.id ? { ...a, ...updates } : a));
+      setEditingAd(null);
+    } catch (e) {
+      alert('Failed to update ad campaign.');
+    } finally {
+      setIsSavingEditAd(false);
+    }
+  };
 
   // New Partner Form
   const [newPartName, setNewPartName] = useState('');
@@ -133,21 +211,105 @@ export const AdminAdsAndPartners: React.FC = () => {
 
   const handleToggleAdStatus = async (adId: string, currentStatus: SponsoredAd['status']) => {
     const nextStatus: SponsoredAd['status'] = currentStatus === 'active' ? 'paused' : 'active';
-    await updateAdCampaignStatus(adId, { status: nextStatus, paymentStatus: 'paid' });
-    setAds(prev => prev.map(a => a.id === adId ? { ...a, status: nextStatus, paymentStatus: 'paid' } : a));
+    try {
+      await updateAdCampaignStatus(adId, { status: nextStatus, paymentStatus: 'paid' });
+      setAds(prev => prev.map(a => a.id === adId ? { ...a, status: nextStatus, paymentStatus: 'paid' } : a));
+      setActionNotice({ type: 'success', message: `Campaign status changed to ${nextStatus}.` });
+    } catch (e) {
+      console.error('Failed to toggle ad status:', e);
+      setActionNotice({ type: 'error', message: 'Failed to update campaign status.' });
+    }
+  };
+
+  const handleApproveAdConfirm = async () => {
+    if (!adToApprove) return;
+    setIsApproving(true);
+    try {
+      await updateAdCampaignStatus(adToApprove.id, { status: 'pending_payment' });
+      setAds(prev => prev.map(a => a.id === adToApprove.id ? { ...a, status: 'pending_payment' } : a));
+      setActionNotice({ type: 'success', message: `Campaign for "${adToApprove.brandName}" approved! Now awaiting advertiser payment.` });
+      setAdToApprove(null);
+    } catch (e) {
+      console.error('Failed to approve ad:', e);
+      setActionNotice({ type: 'error', message: 'Failed to approve ad campaign.' });
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleRejectAdConfirm = async () => {
+    if (!adToReject) return;
+    const reason = rejectionReasonInput.trim() || 'Did not meet platform advertising guidelines.';
+    setIsRejecting(true);
+    try {
+      await updateAdCampaignStatus(adToReject.id, { status: 'rejected', rejectionReason: reason });
+      setAds(prev => prev.map(a => a.id === adToReject.id ? { ...a, status: 'rejected', rejectionReason: reason } : a));
+      setActionNotice({ type: 'success', message: `Campaign "${adToReject.brandName}" rejected. Feedback recorded.` });
+      setAdToReject(null);
+      setRejectionReasonInput('');
+    } catch (e) {
+      console.error('Failed to reject ad:', e);
+      setActionNotice({ type: 'error', message: 'Failed to reject ad campaign.' });
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const handleDeleteAdConfirm = async () => {
+    if (!adToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteAdCampaign(adToDelete.id);
+      setAds(prev => prev.filter(a => a.id !== adToDelete.id));
+      setActionNotice({ type: 'success', message: `Campaign "${adToDelete.brandName}" permanently deleted.` });
+      setAdToDelete(null);
+    } catch (e) {
+      console.error('Failed to delete ad:', e);
+      setActionNotice({ type: 'error', message: 'Failed to delete ad campaign.' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeletePartnerConfirm = async () => {
+    if (!partnerToDelete) return;
+    setIsDeletingPartner(true);
+    try {
+      await deletePartner(partnerToDelete.id);
+      setPartners(prev => prev.filter(p => p.id !== partnerToDelete.id));
+      setActionNotice({ type: 'success', message: `Partner organization "${partnerToDelete.institutionName}" deleted.` });
+      setPartnerToDelete(null);
+    } catch (e) {
+      console.error('Failed to delete partner:', e);
+      setActionNotice({ type: 'error', message: 'Failed to delete partner organization.' });
+    } finally {
+      setIsDeletingPartner(false);
+    }
   };
 
   const handleTogglePartnerVerified = async (partnerId: string, currentVerified: boolean) => {
     const nextVerified = !currentVerified;
     const nextStatus = nextVerified ? 'approved' : 'pending';
-    await updatePartnerStatus(partnerId, { verified: nextVerified, status: nextStatus });
-    setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, verified: nextVerified, status: nextStatus } : p));
+    try {
+      await updatePartnerStatus(partnerId, { verified: nextVerified, status: nextStatus });
+      setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, verified: nextVerified, status: nextStatus } : p));
+      setActionNotice({ type: 'success', message: `Partner verification set to ${nextVerified ? 'Verified' : 'Pending'}.` });
+    } catch (e) {
+      console.error('Failed to update partner verification:', e);
+      setActionNotice({ type: 'error', message: 'Failed to update partner verification.' });
+    }
   };
 
   const handleTogglePartnerFeatured = async (partnerId: string, currentFeatured: boolean) => {
     const nextFeatured = !currentFeatured;
-    await updatePartnerStatus(partnerId, { featured: nextFeatured });
-    setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, featured: nextFeatured } : p));
+    try {
+      await updatePartnerStatus(partnerId, { featured: nextFeatured });
+      setPartners(prev => prev.map(p => p.id === partnerId ? { ...p, featured: nextFeatured } : p));
+      setActionNotice({ type: 'success', message: `Partner feature status set to ${nextFeatured ? 'Featured' : 'Standard'}.` });
+    } catch (e) {
+      console.error('Failed to toggle partner featured:', e);
+      setActionNotice({ type: 'error', message: 'Failed to update partner feature status.' });
+    }
   };
 
   const handleCreateAdSubmit = async (e: React.FormEvent) => {
@@ -171,7 +333,7 @@ export const AdminAdsAndPartners: React.FC = () => {
         description: newAdDesc.trim(),
         ctaText: newAdCta.trim() || 'Learn More',
         targetUrl: newAdUrl.trim(),
-        badgeText: 'Verified Sponsor',
+        badgeText: newAdBadge.trim() || 'VERIFIED SPONSOR',
         status: 'active',
         paymentStatus: 'paid',
         paymentMethod: 'admin'
@@ -293,6 +455,23 @@ export const AdminAdsAndPartners: React.FC = () => {
         </button>
       </div>
 
+      {/* Global In-App Action Notice */}
+      {actionNotice && (
+        <div className={`p-4 rounded-2xl text-xs font-bold border flex items-center justify-between transition-all ${
+          actionNotice.type === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+        }`}>
+          <span>{actionNotice.message}</span>
+          <button
+            onClick={() => setActionNotice(null)}
+            className="text-gray-400 hover:text-white ml-2 p-1 text-sm leading-none"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── 1. ADS TAB ── */}
       {activeSubTab === 'ads' && (
         <div className="space-y-6">
@@ -313,16 +492,24 @@ export const AdminAdsAndPartners: React.FC = () => {
                 onChange={e => setAdFilter(e.target.value as any)}
                 className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none"
               >
-                <option value="all">All Status</option>
-                <option value="active">Active Only</option>
-                <option value="pending">Pending Approval</option>
-                <option value="paused">Paused</option>
+                <option value="all">All Campaigns ({ads.length})</option>
+                <option value="pending">Pending Review ({ads.filter(a => a.status === 'pending').length})</option>
+                <option value="pending_payment">Awaiting Payment ({ads.filter(a => a.status === 'pending_payment').length})</option>
+                <option value="active">Active & Live ({ads.filter(a => a.status === 'active').length})</option>
+                <option value="paused">Paused ({ads.filter(a => a.status === 'paused').length})</option>
+                <option value="rejected">Rejected ({ads.filter(a => a.status === 'rejected').length})</option>
               </select>
             </div>
 
             <button
-              onClick={() => setShowCreateAdModal(true)}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+              onClick={() => {
+                setNewAdBrand('');
+                setNewAdTitle('');
+                setNewAdDesc('');
+                setNewAdBadge('VERIFIED SPONSOR');
+                setShowCreateAdModal(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
             >
               <Plus size={14} /> New Sponsored Ad
             </button>
@@ -342,15 +529,26 @@ export const AdminAdsAndPartners: React.FC = () => {
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                        ad.status === 'active'
-                          ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                          : ad.status === 'pending'
-                          ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                          : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                      }`}>
-                        {ad.status.toUpperCase()}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                          ad.status === 'active'
+                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            : ad.status === 'pending'
+                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            : ad.status === 'pending_payment'
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : ad.status === 'rejected'
+                            ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                            : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                        }`}>
+                          {ad.status === 'pending_payment' ? 'AWAITING PAYMENT' : ad.status.toUpperCase()}
+                        </span>
+                        {ad.badgeText && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                            <Sparkles size={10} className="text-amber-500" /> {ad.badgeText}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-mono text-gray-400 uppercase">
                         {ad.placement} • {ad.durationDays}d
                       </span>
@@ -363,10 +561,27 @@ export const AdminAdsAndPartners: React.FC = () => {
                       {ad.description}
                     </p>
 
+                    {ad.imageUrl && (
+                      <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 h-28 w-full relative">
+                        <img 
+                          src={ad.imageUrl} 
+                          alt={ad.title} 
+                          className="w-full h-full object-cover" 
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+
                     <div className="mt-3 flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-200 dark:border-gray-800/80 pt-2">
                       <span className="font-bold text-gray-700 dark:text-gray-200">{ad.brandName}</span>
                       <span className="font-mono text-blue-500">₦{(ad.amount || 0).toLocaleString()}</span>
                     </div>
+
+                    {ad.rejectionReason && (
+                      <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px]">
+                        <strong>Rejection Reason:</strong> {ad.rejectionReason}
+                      </div>
+                    )}
 
                     <div className="mt-2 flex items-center gap-4 text-[10px] font-mono text-gray-400">
                       <span className="flex items-center gap-1">
@@ -378,10 +593,46 @@ export const AdminAdsAndPartners: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+                    {ad.status === 'pending' && (
+                      <button
+                        onClick={() => setAdToApprove(ad)}
+                        className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all border border-emerald-500/20"
+                        title="Approve & Request Payment"
+                      >
+                        <CheckCircle2 size={14} /> Approve & Pay
+                      </button>
+                    )}
+
+                    {ad.status !== 'rejected' && (
+                      <button
+                        onClick={() => {
+                          setAdToReject(ad);
+                          setRejectionReasonInput(ad.rejectionReason || '');
+                        }}
+                        className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all border border-rose-500/20"
+                        title="Reject Application"
+                      >
+                        <XCircle size={14} /> Reject
+                      </button>
+                    )}
+
+                    {ad.status === 'rejected' && (
+                      <button
+                        onClick={() => {
+                          setAdToReject(ad);
+                          setRejectionReasonInput(ad.rejectionReason || '');
+                        }}
+                        className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all border border-rose-500/20"
+                        title="Update Rejection Reason"
+                      >
+                        <Edit3 size={12} /> Edit Reason
+                      </button>
+                    )}
+
                     <button
                       onClick={() => handleToggleAdStatus(ad.id, ad.status)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
+                      className={`flex-1 min-w-[90px] py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
                         ad.status === 'active'
                           ? 'bg-amber-600/10 text-amber-500 hover:bg-amber-600/20 border border-amber-500/20'
                           : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
@@ -390,12 +641,29 @@ export const AdminAdsAndPartners: React.FC = () => {
                       {ad.status === 'active' ? <><PauseCircle size={14} /> Pause</> : <><PlayCircle size={14} /> Activate</>}
                     </button>
 
+                    <button
+                      onClick={() => setAdToDelete(ad)}
+                      className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-colors"
+                      title="Permanently Delete Campaign"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+
+                    <button
+                      onClick={() => handleStartEditAd(ad)}
+                      className="p-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 text-gray-400 hover:text-blue-400 transition-colors"
+                      title="Edit Campaign"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+
                     {ad.targetUrl && (
                       <a
                         href={ad.targetUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-gray-200 dark:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                        className="p-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                        title="Visit Target Link"
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -510,6 +778,14 @@ export const AdminAdsAndPartners: React.FC = () => {
                     title="Toggle featured flag"
                   >
                     <Star size={14} className={partner.featured ? 'fill-amber-400' : ''} />
+                  </button>
+
+                  <button
+                    onClick={() => setPartnerToDelete(partner)}
+                    className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 transition-colors"
+                    title="Permanently Delete Partner Organization"
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
@@ -658,15 +934,55 @@ export const AdminAdsAndPartners: React.FC = () => {
               <button onClick={() => setShowCreateAdModal(false)} className="text-gray-400 hover:text-white">✕</button>
             </div>
             <form onSubmit={handleCreateAdSubmit} className="space-y-3">
-              <div>
-                <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Brand Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={newAdBrand}
-                  onChange={e => setNewAdBrand(e.target.value)}
-                  className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Brand Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAdBrand}
+                    onChange={e => setNewAdBrand(e.target.value)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Target Placement *</label>
+                  <select
+                    value={newAdPlacement}
+                    onChange={e => setNewAdPlacement(e.target.value as AdPlacementType)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  >
+                    <option value="banner">Top Header Banner</option>
+                    <option value="all">Sitewide Takeover (All)</option>
+                    <option value="calculator">Cut-off Calculator</option>
+                    <option value="cbt">JAMB CBT Simulator</option>
+                    <option value="native">News Articles & Guides</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Package Plan</label>
+                  <select
+                    value={newAdPkg}
+                    onChange={e => setNewAdPkg(e.target.value as AdPackageType)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  >
+                    <option value="starter_7d">Starter (7 Days)</option>
+                    <option value="growth_14d">Growth (14 Days)</option>
+                    <option value="pro_30d">Pro Takeover (30 Days)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={newAdPhone}
+                    onChange={e => setNewAdPhone(e.target.value)}
+                    placeholder="080..."
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Ad Headline *</label>
@@ -688,7 +1004,7 @@ export const AdminAdsAndPartners: React.FC = () => {
                   className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Target URL</label>
                   <input
@@ -705,6 +1021,16 @@ export const AdminAdsAndPartners: React.FC = () => {
                     value={newAdCta}
                     onChange={e => setNewAdCta(e.target.value)}
                     className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={newAdBadge}
+                    onChange={e => setNewAdBadge(e.target.value)}
+                    placeholder="VERIFIED SPONSOR"
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800 font-bold"
                   />
                 </div>
               </div>
@@ -794,6 +1120,359 @@ export const AdminAdsAndPartners: React.FC = () => {
                 {isCreatingPartner ? 'Saving...' : 'Add Verified Partner'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Ad Modal */}
+      {editingAd && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Edit3 size={18} className="text-blue-500" /> Edit Ad Campaign
+              </h3>
+              <button onClick={() => setEditingAd(null)} className="text-gray-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <form onSubmit={handleSaveEditAdSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Brand Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editBrand}
+                    onChange={e => setEditBrand(e.target.value)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Target Placement</label>
+                  <select
+                    value={editPlacement}
+                    onChange={e => setEditPlacement(e.target.value as AdPlacementType)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  >
+                    <option value="all">Sitewide</option>
+                    <option value="banner">Top Header Banner</option>
+                    <option value="calculator">Cut-off Calculator</option>
+                    <option value="cbt">CBT Simulator</option>
+                    <option value="native">Admission Articles</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Headline / Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Description</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editDesc}
+                  onChange={e => setEditDesc(e.target.value)}
+                  className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">CTA Button Text</label>
+                  <input
+                    type="text"
+                    value={editCta}
+                    onChange={e => setEditCta(e.target.value)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Amount (₦)</label>
+                  <input
+                    type="number"
+                    value={editAmount}
+                    onChange={e => setEditAmount(Number(e.target.value))}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Target URL</label>
+                  <input
+                    type="url"
+                    value={editUrl}
+                    onChange={e => setEditUrl(e.target.value)}
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={editBadge}
+                    onChange={e => setEditBadge(e.target.value)}
+                    placeholder="VERIFIED SPONSOR"
+                    className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800 font-bold"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={isSavingEditAd}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider"
+              >
+                {isSavingEditAd ? 'Saving Changes...' : 'Save Ad Changes'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. REJECT AD MODAL WITH REASON INPUT ── */}
+      {adToReject && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+                  Reject Campaign
+                </span>
+                <h3 className="text-lg font-black text-gray-900 dark:text-white mt-1">
+                  Reject "{adToReject.brandName}"?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Provide constructive feedback for the advertiser. They will see this reason in their Self-Service Portal so they can correct and resubmit their ad.
+                </p>
+              </div>
+              <button
+                onClick={() => setAdToReject(null)}
+                className="p-1 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick preset chips */}
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-400 block mb-2">Click a Preset Reason</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Inappropriate or prohibited content',
+                  'Destination URL broken or invalid',
+                  'Low resolution or blurry banner image',
+                  'Unverified credentials or misleading claims',
+                  'Violates student safety policies'
+                ].map(preset => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRejectionReasonInput(preset)}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                      rejectionReasonInput === preset
+                        ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 font-bold'
+                        : 'bg-gray-100 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700/60 text-gray-600 dark:text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-400 block mb-1">
+                Detailed Rejection Reason <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={rejectionReasonInput}
+                onChange={e => setRejectionReasonInput(e.target.value)}
+                placeholder="Explain what needs to be fixed before this ad can be accepted..."
+                className="w-full p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-xs dark:text-white border border-gray-200 dark:border-gray-800 focus:outline-none focus:border-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setAdToReject(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isRejecting || !rejectionReasonInput.trim()}
+                onClick={handleRejectAdConfirm}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-rose-600/20 disabled:opacity-50 transition-all"
+              >
+                {isRejecting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Rejecting...
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={14} /> Confirm Rejection
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 6. DELETE AD CONFIRMATION MODAL ── */}
+      {adToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                  Permanently Delete Ad Campaign?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Are you sure you want to permanently delete the campaign for <strong className="text-gray-900 dark:text-white">"{adToDelete.brandName}"</strong> ({adToDelete.title})?
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              ⚠️ <strong>Irreversible:</strong> This will permanently delete the campaign, click/impression analytics, and assets from the database and live display.
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setAdToDelete(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteAdConfirm}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-rose-600/20 disabled:opacity-50 transition-all"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} /> Yes, Permanently Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 7. APPROVE AD CONFIRMATION MODAL ── */}
+      {adToApprove && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                <CheckCircle2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                  Approve Campaign & Request Payment
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Approve <strong className="text-gray-900 dark:text-white">"{adToApprove.brandName}"</strong> ({adToApprove.title})?
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              The status will update to <strong className="text-blue-400 font-mono">AWAITING PAYMENT</strong>. The advertiser will be notified to pay <strong className="text-emerald-400 font-mono">₦{(adToApprove.amount || 5000).toLocaleString()}</strong> via Flutterwave to launch their campaign.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setAdToApprove(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isApproving}
+                onClick={handleApproveAdConfirm}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
+              >
+                {isApproving ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Approving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} /> Confirm & Approve
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 8. DELETE PARTNER CONFIRMATION MODAL ── */}
+      {partnerToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                  Delete Partner Organization?
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Permanently remove <strong className="text-gray-900 dark:text-white">"{partnerToDelete.institutionName}"</strong> ({partnerToDelete.city}, {partnerToDelete.state}) from the partner directory?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setPartnerToDelete(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingPartner}
+                onClick={handleDeletePartnerConfirm}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-rose-600/20 disabled:opacity-50 transition-all"
+              >
+                {isDeletingPartner ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} /> Yes, Delete Partner
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

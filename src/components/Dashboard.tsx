@@ -161,7 +161,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* JAMB 2027 Countdown Tracker */}
         <Jamb2027Tracker />
 
-        <AdUnit type="leaderboard" className="my-8" />
+        <AdUnit type="leaderboard" placement="dashboard" className="my-8" />
         
         {/* JAMB CAPS Live Admission Statistics Tracker */}
         <JambCapsLiveTracker 
@@ -224,7 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <PolicySection />
 
       <div id="news" className="container mx-auto px-4 md:px-8 py-12">
-        <AdUnit type="billboard" className="mb-12" />
+        <AdUnit type="billboard" placement="native" className="mb-12" />
         <NewsGrid 
           user={user} 
           onReadArticle={onReadArticle} 

@@ -2213,6 +2213,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const targetA = parseFloat(targetAggregateInput);
     if (isNaN(targetA)) return { valid: false, error: "Please enter a valid target aggregate score." };
 
+    const currentJamb = parseFloat(jambScore) || 200;
+    const currentPost = parseFloat(postUtmeScore) || 50;
+
     const system = computedScoringSystem;
     const normUni = (targetUni?.name || '').toLowerCase();
     const formula = system?.formula || '';
@@ -3410,7 +3413,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           )}
 
           <div className="mb-8">
-            <AdUnit type="leaderboard" />
+            <AdUnit type="leaderboard" placement="calculator" />
           </div>
 
           {/* Main form card */}
@@ -5061,7 +5064,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           </div>
 
                           <div className="my-8">
-                            <AdUnit type="billboard" />
+                            <AdUnit type="billboard" placement="calculator" />
                           </div>
 
                           {/* 3-Pillar Verification & Model Audit Matrix */}

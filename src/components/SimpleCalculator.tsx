@@ -132,7 +132,7 @@ const SimpleCalculator: React.FC = () => {
           <a href="/calculator" className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline">Want Advanced Analysis?</a>
         </div>
       </div>
-      <AdUnit type="leaderboard" className="max-w-2xl mx-auto mt-8" />
+      <AdUnit type="leaderboard" placement="calculator" className="max-w-2xl mx-auto mt-8" />
     </div>
   );
 };

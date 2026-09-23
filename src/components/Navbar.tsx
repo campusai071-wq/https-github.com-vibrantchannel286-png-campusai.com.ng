@@ -8,12 +8,14 @@ import { searchUnified, searchInternalCampusAI, SearchResultItem } from '../serv
 import { AdminState } from '../types';
 import { auth } from '../services/firebaseConfig';
 import { updateUserProfile } from '../services/userService';
+import TopHeaderBanner from './TopHeaderBanner';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
   currentPage: string;
   user: any;
   admin?: AdminState;
+  showImportantBanner?: boolean;
   onLoginRequest: () => void;
   onSignUpRequest?: () => void;
   onShareRequest: () => void;
@@ -24,7 +26,7 @@ interface NavbarProps {
   onOpenSidebar?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, onLoginRequest, onSignUpRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, showImportantBanner = true, onLoginRequest, onSignUpRequest, onShareRequest, onInviteEarnRequest, onScholarPackRequest, theme, onThemeToggle, onOpenSidebar }) => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -277,10 +279,15 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, o
   return (
     <nav className={`fixed top-0 left-0 right-0 w-full z-[100] transition-all duration-300 ease-in-out ${
       isScrolled 
-        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm py-2.5' 
-        : 'bg-white/95 dark:bg-gray-950/95 py-3 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
+        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm' 
+        : 'bg-white/95 dark:bg-gray-950/95 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
     }`}>
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 flex justify-between items-center gap-2">
+      {/* Top Banner: Sponsored Campaign or Pinned Announcement Ribbon */}
+      <TopHeaderBanner showImportantBanner={showImportantBanner} onNavigate={onNavigate} />
+
+      <div className={`container mx-auto px-3 sm:px-4 md:px-6 flex justify-between items-center gap-2 ${
+        isScrolled ? 'py-2.5' : 'py-3'
+      }`}>
         <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
           {onOpenSidebar && (
             <button

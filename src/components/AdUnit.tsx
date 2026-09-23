@@ -21,19 +21,47 @@ const AdUnit: React.FC<AdUnitProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    getActiveSponsoredAds(placement).then((ads) => {
-      if (isMounted) {
+    let interval: any = null;
+
+    const fetchAds = () => {
+      getActiveSponsoredAds(placement).then((ads) => {
+        if (!isMounted) return;
         if (ads && ads.length > 0) {
-          const randomAd = ads[Math.floor(Math.random() * ads.length)];
-          setActiveAd(randomAd);
-          recordAdImpression(randomAd.id);
+          const currentIndex = Math.floor(Math.random() * ads.length);
+          setActiveAd(ads[currentIndex]);
+          recordAdImpression(ads[currentIndex].id);
+
+          if (ads.length > 1) {
+            if (interval) clearInterval(interval);
+            let idx = currentIndex;
+            interval = setInterval(() => {
+              if (!isMounted) return;
+              idx = (idx + 1) % ads.length;
+              setActiveAd(ads[idx]);
+              recordAdImpression(ads[idx].id);
+            }, 8000); // Rotate every 8 seconds among active sponsors
+          }
+        } else {
+          setActiveAd(null);
         }
         setLoaded(true);
-      }
-    });
+      });
+    };
+
+    fetchAds();
+
+    const handleAdUpdate = () => {
+      fetchAds();
+    };
+
+    window.addEventListener('campusai_ad_updated', handleAdUpdate);
+    window.addEventListener('storage', handleAdUpdate);
 
     return () => {
       isMounted = false;
+      if (interval) clearInterval(interval);
+      window.removeEventListener('campusai_ad_updated', handleAdUpdate);
+      window.removeEventListener('storage', handleAdUpdate);
     };
   }, [placement]);
 
@@ -71,15 +99,34 @@ const AdUnit: React.FC<AdUnitProps> = ({
       >
         <div className="flex items-center justify-between gap-2 mb-2">
           <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-            <Sparkles size={10} /> {activeAd.badgeText || 'Sponsored'}
+            <ShieldCheck size={11} className="text-amber-400" /> {activeAd.badgeText || 'VERIFIED SPONSOR'}
           </span>
-          <button
-            onClick={handleNavigate}
-            className="text-[9px] font-bold text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider"
-          >
-            Advertise Here
-          </button>
+          <div className="flex items-center gap-2">
+            {activeAd.amount && (
+              <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                ₦{activeAd.amount.toLocaleString()}
+              </span>
+            )}
+            <button
+              onClick={handleNavigate}
+              className="text-[9px] font-bold text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider"
+            >
+              Advertise Here
+            </button>
+          </div>
         </div>
+
+        {activeAd.imageUrl && (
+          <div className="mb-3 rounded-2xl overflow-hidden border border-slate-800 h-32 sm:h-44 w-full relative">
+            <img 
+              src={activeAd.imageUrl} 
+              alt={activeAd.title} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1">

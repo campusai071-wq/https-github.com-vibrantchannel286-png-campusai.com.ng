@@ -960,7 +960,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
       </div>
 
       <div className="mb-10">
-        <AdUnit type="leaderboard" />
+        <AdUnit type="leaderboard" placement="native" />
       </div>
 
       {/* Active filter badge */}
@@ -1018,7 +1018,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
                 />
                 {index > 0 && index % 8 === 0 && (
                   <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 py-4">
-                    <AdUnit type="leaderboard" />
+                    <AdUnit type="leaderboard" placement="native" />
                   </div>
                 )}
               </React.Fragment>
