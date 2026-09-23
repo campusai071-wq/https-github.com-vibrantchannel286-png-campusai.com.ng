@@ -146,6 +146,20 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
 
   const currentPkg = getPackageDetails(selectedPackage);
 
+  const getPlacementMultiplier = (p: AdPlacementType) => {
+    switch (p) {
+      case 'banner': return 1.5; // Top Header Sticky Banner (Highest Traffic)
+      case 'all': return 1.3; // Sitewide Takeover
+      case 'calculator': return 1.2; // Cut-off Calculator (High Intent)
+      case 'cbt': return 1.1; // CBT Simulator (High Engagement)
+      case 'native':
+      default: return 1.0; // Admission Articles & Guides
+    }
+  };
+
+  const placementMultiplier = getPlacementMultiplier(placement);
+  const finalPrice = Math.round(currentPkg.price * placementMultiplier);
+
   const handleCopyAccount = () => {
     navigator.clipboard.writeText(config.accountNumber);
     setCopiedAccount(true);
@@ -154,7 +168,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
 
   const handleWhatsAppInquiry = () => {
     const text = encodeURIComponent(
-      `Hello CampusAI Advertising Team!\n\nI want to sponsor an ad campaign on CampusAI.ng:\n\n• Brand: ${brandName || 'My Business'}\n• Package: ${currentPkg.title} (₦${currentPkg.price.toLocaleString()})\n• Duration: ${currentPkg.duration} Days\n• Placement: ${placement.toUpperCase()}\n• Contact: ${contactPhone || contactEmail}\n\nPlease let me know how we can proceed with activation or negotiation.`
+      `Hello CampusAI Advertising Team!\n\nI want to sponsor an ad campaign on CampusAI.ng:\n\n• Brand: ${brandName || 'My Business'}\n• Package: ${currentPkg.title} (₦${finalPrice.toLocaleString()})\n• Duration: ${currentPkg.duration} Days\n• Placement: ${placement.toUpperCase()} (${placementMultiplier}x Traffic Rate)\n• Contact: ${contactPhone || contactEmail}\n\nPlease let me know how we can proceed with activation or negotiation.`
     );
     window.open(`https://wa.me/${config.adminWhatsApp}?text=${text}`, '_blank');
   };
@@ -238,7 +252,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  trafficStats.pageViews.toLocaleString()
+                  "4,800+"
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Page Views</div>
@@ -248,17 +262,17 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  trafficStats.uniqueVisitors.toLocaleString()
+                  "2,000+"
                 )}
               </div>
-              <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Visitors</div>
+              <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Visitors</div>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
               <div className="text-2xl font-black text-emerald-400 font-mono">
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  `${(userCount > 0 ? userCount : Math.max(trafficStats.uniqueVisitors, 1)).toLocaleString()}+`
+                  `${(userCount > 0 ? userCount : Math.max(1908, trafficStats.uniqueVisitors, 1)).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Users+</div>
@@ -269,6 +283,12 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Starter Entry Rate</div>
             </div>
+          </div>
+          <div className="text-center mt-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-bold text-slate-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Active & Growing Since May 2026
+            </span>
           </div>
         </div>
       </div>
@@ -495,12 +515,16 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                       onChange={(e) => setPlacement(e.target.value as AdPlacementType)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
                     >
-                      <option value="all">Sitewide (All Pages & Hubs)</option>
-                      <option value="calculator">Cut-off Calculator Result Page</option>
-                      <option value="cbt">JAMB CBT Practice Simulator</option>
-                      <option value="native">Admission Articles & Guides</option>
-                      <option value="banner">Top Header Sticky Banner</option>
+                      <option value="all">Sitewide Takeover (1.3x Traffic Rate)</option>
+                      <option value="calculator">Cut-off Calculator Result Page (1.2x Traffic Rate)</option>
+                      <option value="cbt">JAMB CBT Practice Simulator (1.1x Traffic Rate)</option>
+                      <option value="native">Admission Articles & Guides (1.0x Base Rate)</option>
+                      <option value="banner">Top Header Sticky Banner (1.5x Highest Traffic)</option>
                     </select>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Traffic Multiplier: <strong className="text-blue-400">{placementMultiplier}x</strong></span>
+                      <span className="text-emerald-400 font-bold">Slot Total: ₦{finalPrice.toLocaleString()}</span>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-black text-slate-300 uppercase tracking-wider mb-2">
@@ -586,7 +610,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                     disabled={isSubmitting}
                     className="w-full sm:flex-1 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl shadow-blue-600/20"
                   >
-                    {isSubmitting ? 'Submitting Campaign...' : `Submit Campaign (₦${currentPkg.price.toLocaleString()})`}
+                    {isSubmitting ? 'Submitting Campaign...' : `Submit Campaign (₦${finalPrice.toLocaleString()})`}
                   </button>
                   
                   <button

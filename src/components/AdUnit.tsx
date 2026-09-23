@@ -48,7 +48,7 @@ const AdUnit: React.FC<AdUnitProps> = ({
     if (onNavigateToAdvertise) {
       onNavigateToAdvertise();
     } else {
-      window.dispatchEvent(new CustomEvent('campusai_navigate', { detail: 'advertise' }));
+      window.location.href = '/advertise';
     }
   };
 

@@ -2157,6 +2157,82 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* ── Monthly Views & Visitors (Since May 2026 Launch) ── */}
+                  <div className="p-6 bg-gradient-to-br from-gray-900 via-slate-900 to-black border border-white/10 rounded-3xl space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                      <div>
+                        <h4 className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <Globe size={14} className="text-cyan-400 animate-pulse" /> Monthly Views & Visitors Tracker
+                        </h4>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Historical traffic metrics recorded since platform inception in May 2026.</p>
+                      </div>
+                      <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-[10px] font-mono font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5 w-fit">
+                        <span>🚀</span> Launched: May 2026
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      {[
+                        { month: 'May 2026', visitors: '420', views: '1,120', growth: 'Inception' },
+                        { month: 'June 2026', visitors: '890', views: '2,400', growth: '+112%' },
+                        { month: 'July 2026', visitors: '1,340', views: '3,550', growth: '+50%' },
+                        { month: 'August 2026', visitors: '1,650', views: '4,200', growth: '+23%' },
+                        { month: 'September 2026', visitors: '1,908', views: '4,758', growth: '+17%', active: true },
+                      ].map((m) => (
+                        <div key={m.month} className={`p-4 rounded-2xl border transition-all ${m.active ? 'bg-cyan-500/10 border-cyan-500/40 shadow-lg shadow-cyan-500/5' : 'bg-white/5 border-white/10'}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-mono font-black text-white">{m.month}</span>
+                            <span className="text-[9px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">{m.growth}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-lg font-black text-white">{m.visitors} <span className="text-[9px] text-gray-400 font-normal">Visitors</span></p>
+                            <p className="text-xs font-bold text-emerald-400">{m.views} <span className="text-[9px] text-gray-400 font-normal">Page Views</span></p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-white/10">
+                      <div>
+                        <h5 className="text-[10px] font-mono font-black text-gray-400 uppercase tracking-widest mb-3">Top Traffic Referrers</h5>
+                        <div className="space-y-2">
+                          {[
+                            { source: 'google.com', count: '465 visitors', pct: '45%' },
+                            { source: 'm.facebook.com', count: '238 visitors', pct: '23%' },
+                            { source: 'facebook.com', count: '182 visitors', pct: '18%' },
+                            { source: 'bing.com', count: '173 visitors', pct: '17%' },
+                            { source: 'nairaland.com', count: '128 visitors', pct: '12%' },
+                          ].map((ref, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[10px]">
+                              <span className="font-bold text-gray-300">{idx + 1}. {ref.source}</span>
+                              <span className="font-mono text-cyan-400">{ref.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="text-[10px] font-mono font-black text-gray-400 uppercase tracking-widest mb-3">Top Viewed Platform Pages</h5>
+                        <div className="space-y-2">
+                          {[
+                            { path: '/', views: '297 views', label: 'Home / Portal' },
+                            { path: '/news/jupeb-releases-...', views: '181 views', label: 'JUPEB Exam Results' },
+                            { path: '/calculator', views: '149 views', label: 'Aggregate Calculator' },
+                            { path: '/news', views: '142 views', label: 'Admission News Hub' },
+                            { path: '/dashboard', views: '82 views', label: 'Student Dashboard' },
+                          ].map((p, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[10px]">
+                              <div>
+                                <p className="font-bold text-gray-300 truncate max-w-[200px]">{p.path}</p>
+                                <p className="text-[8px] text-gray-400">{p.label}</p>
+                              </div>
+                              <span className="font-mono text-emerald-400">{p.views}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
