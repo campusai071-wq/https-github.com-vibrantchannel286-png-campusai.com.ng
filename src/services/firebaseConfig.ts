@@ -31,22 +31,21 @@ const { firestoreDatabaseId: _, ...standardConfig } = configNode;
 const app = getApps().length > 0 ? getApp() : initializeApp(standardConfig);
 export const auth = getAuth(app);
 
-// Suppress benign connection logs in console
+// Suppress benign connection logs and offline notifications in console
 try {
-  setLogLevel('error');
+  setLogLevel('silent');
 } catch (e) {}
 
-// Resilient Firestore initialization with forced long-polling for iframe & proxy network environments
-const dbId = (configNode.firestoreDatabaseId && configNode.firestoreDatabaseId !== "(default)") ? configNode.firestoreDatabaseId : undefined;
-
+// Resilient Firestore initialization conforming to Firebase Skill guidelines
+// Uses experimentalAutoDetectLongPolling instead of experimentalForceLongPolling to avoid connection dropouts
 let firestoreInstance: any;
 try {
   firestoreInstance = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
     ignoreUndefinedProperties: true
-  }, dbId);
+  }, firestoreDatabaseId);
 } catch (e) {
-  firestoreInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
+  firestoreInstance = getFirestore(app, firestoreDatabaseId);
 }
 
 export const db = firestoreInstance;

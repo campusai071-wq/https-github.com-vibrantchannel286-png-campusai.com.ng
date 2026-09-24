@@ -14,7 +14,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn, CheckCircle2 } from 'lucide-react';
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn, CheckCircle2, BookmarkCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
@@ -37,7 +37,7 @@ import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
 import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
-import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick } from '../services/analytics';
+import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick, trackResultSaved } from '../services/analytics';
 import AdUnit from './AdUnit';
 import QuotaModal from './QuotaModal';
 import Testimonials from './Testimonials';
@@ -5179,6 +5179,43 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                 <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">{user.scholarCredits} Premium Trials Left</span>
                               </div>
                             )}
+                          </div>
+
+                          {/* Non-intrusive Save Results & Admission Checklist Conversion Card */}
+                          <div className="w-full my-5 p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900/80 to-indigo-950/60 border border-cyan-500/30 shadow-xl text-left flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 text-[9px] font-black uppercase tracking-wider">
+                                <BookmarkCheck size={11} />
+                                <span>Save My Results & Checklist</span>
+                              </div>
+                              <h4 className="text-sm font-black text-white">
+                                Save my results and admission checklist
+                              </h4>
+                              <p className="text-[11px] text-gray-300 leading-relaxed max-w-xl">
+                                Pin this composite aggregate calculation, historical cutoff margin, and official Post-UTME screening requirements to your free student workspace.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const activeCourseName = targetCourse || courseSearch || 'General';
+                                trackResultSaved({ 
+                                  tool_name: 'aggregate_calculator', 
+                                  result_id: aiResult.predictionId || targetUni?.id || 'calc_result',
+                                  institution: targetUni?.name,
+                                  course: activeCourseName
+                                });
+                                if (!user) {
+                                  onLoginRequest?.();
+                                } else {
+                                  setIsPdfExportModalOpen(true);
+                                }
+                              }}
+                              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-cyan-500/20 transition-all shrink-0 cursor-pointer"
+                            >
+                              <BookmarkCheck size={15} />
+                              <span>Save my results & checklist</span>
+                            </button>
                           </div>
 
                         {/* Export & Upload Action Bar */}

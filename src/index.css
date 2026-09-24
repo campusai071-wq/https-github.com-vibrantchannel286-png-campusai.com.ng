@@ -90,6 +90,40 @@ img, video {
   @apply p-0 bg-transparent text-inherit rounded-none break-normal whitespace-pre;
 }
 
+/* Responsive Table Card Fallback Mode */
+.table-card-layout thead {
+  display: none;
+}
+.table-card-layout tbody {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.85rem !important;
+}
+.table-card-layout tr {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 1rem !important;
+  border-radius: 1.25rem !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  background: rgba(248, 250, 252, 0.8) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.dark .table-card-layout tr {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(51, 65, 85, 0.7) !important;
+}
+.table-card-layout td {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0.4rem 0 !important;
+  border: none !important;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.2) !important;
+  min-width: 0 !important;
+}
+.table-card-layout td:last-child {
+  border-bottom: none !important;
+}
+
 #root {
   overflow-x: hidden !important;
   width: 100%;

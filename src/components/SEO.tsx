@@ -151,6 +151,31 @@ const SEO: React.FC<SEOProps> = ({
     } : {})
   };
 
+  const breadcrumbData = article ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": siteDomain
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": section || "News",
+        "item": `${siteDomain}/news`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": cleanTitle,
+        "item": fullUrl
+      }
+    ]
+  } : null;
+
   useEffect(() => {
     trackPageView(fullUrl, cleanTitle);
   }, [fullUrl, cleanTitle]);
@@ -207,6 +232,11 @@ const SEO: React.FC<SEOProps> = ({
       <script type="application/ld+json">
         {stringify(structuredData)}
       </script>
+      {breadcrumbData && (
+        <script type="application/ld+json">
+          {stringify(breadcrumbData)}
+        </script>
+      )}
     </Helmet>
   );
 };

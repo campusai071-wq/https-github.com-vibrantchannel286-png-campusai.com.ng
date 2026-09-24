@@ -75,9 +75,27 @@ service cloud.firestore {
     }
 
     function isValidNews(data) {
-      return data.title is string && data.title.size() <= 500 &&
-             data.content is string && data.content.size() <= 20000 &&
-             data.slug is string && data.slug.size() <= 500;
+      return data.title is string && data.title.size() <= 500 && data.title.size() > 0 &&
+             (!('slug' in data) || (data.slug is string && data.slug.size() <= 500)) &&
+             (!('status' in data) || data.status in ['published', 'draft', 'archived', 'pending']) &&
+             (!('publicationStatus' in data) || data.publicationStatus in ['published', 'draft', 'archived', 'pending']) &&
+             (!('source' in data) || (data.source is string && data.source.size() <= 2000)) &&
+             (!('sourceUrl' in data) || (data.sourceUrl is string && data.sourceUrl.size() <= 2000)) &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 2000)) &&
+             (!('featuredImageUrl' in data) || (data.featuredImageUrl is string && data.featuredImageUrl.size() <= 2000)) &&
+             (!('author' in data) || (data.author is string && data.author.size() <= 200)) &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() <= 200)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 100000)) &&
+             (!('fullContent' in data) || (data.fullContent is string && data.fullContent.size() <= 100000)) &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 2000)) &&
+             (!('excerpt' in data) || (data.excerpt is string && data.excerpt.size() <= 2000)) &&
+             (!('lastVerifiedDate' in data) || (data.lastVerifiedDate is string && data.lastVerifiedDate.size() <= 50)) &&
+             (!('lastVerified' in data) || (data.lastVerified is string && data.lastVerified.size() <= 50)) &&
+             (!('createdAt' in data) || data.createdAt is string || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is string || data.updatedAt is timestamp) &&
+             (!('created_at' in data) || data.created_at is string || data.created_at is timestamp) &&
+             (!('updated_at' in data) || data.updated_at is string || data.updated_at is timestamp);
     }
 
     function isValidComment(data) {
@@ -194,7 +212,14 @@ service cloud.firestore {
 
     match /news/{newsId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin() && isValidNews(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /news_articles/{articleId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidNews(incoming());
+      allow delete: if isAdmin();
     }
 
     match /comments/{commentId} {

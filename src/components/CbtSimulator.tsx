@@ -6,6 +6,7 @@ import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, query, 
 import { db } from '../services/firebaseConfig';
 import { FormulaSheet } from './FormulaSheet';
 import { PdfStore } from './PdfStore';
+import { trackResultSaved, trackCbtSessionStarted } from '../services/analytics';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -52,6 +53,7 @@ import {
   Target,
   ArrowRight,
   Bookmark,
+  BookmarkCheck,
   SlidersHorizontal,
   BarChart3,
   Flame,
@@ -308,100 +310,6 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // If user is not logged in, show Auth Guard requiring Sign Up / Login
-  if (!user) {
-    return (
-      <div className="min-h-[85vh] flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
-        {/* Background glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative z-10 text-center space-y-6">
-          <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg mb-2">
-            <Monitor size={40} />
-          </div>
-
-          <div>
-            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[11px] uppercase tracking-widest rounded-full">
-              Account Required
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-3 tracking-tight">
-              Sign Up to Access CBT Practice & Study Hub
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
-              Create a free account or log in to unlock full JAMB/WAEC past question drills, step-by-step AI solutions, and personalized score target tracking.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
-            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-                <Sparkles size={18} />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">AI Working Derivations</div>
-                <div className="text-[11px] text-slate-400">Step-by-step math & science solutions</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-                <Target size={18} />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">Score Target Engine</div>
-                <div className="text-[11px] text-slate-400">Track admission score gap & progress</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-                <Brain size={18} />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">AI Subject Tutor</div>
-                <div className="text-[11px] text-slate-400">Instant explanations & exam advice</div>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                <BookOpen size={18} />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">10,000+ Past Questions</div>
-                <div className="text-[11px] text-slate-400">JAMB, WAEC, NECO & Post-UTME drills</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => {
-                if (onSignUpRequest) onSignUpRequest();
-                else if (onLoginRequest) onLoginRequest();
-                else navigate('/login');
-              }}
-              className="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Create Free Account</span>
-              <ArrowRight size={16} />
-            </button>
-            
-            <button
-              onClick={() => {
-                if (onLoginRequest) onLoginRequest();
-                else navigate('/login');
-              }}
-              className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
-            >
-              Log In
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
   // Navigation tabs: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'
   const [activeTab, setActiveTab] = useState<'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor' | 'discussions'>(initialTab);
 
@@ -1314,6 +1222,12 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
 
   // Start CBT test
   const fetchAllSubjects = async () => {
+    if (!user) {
+      if (onSignUpRequest) onSignUpRequest();
+      else if (onLoginRequest) onLoginRequest();
+      else navigate('/signup');
+      return;
+    }
     isSubmittingExamRef.current = false;
     setLoading(true);
     setError('');
@@ -1436,6 +1350,14 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         user_id: user?.uid,
         user_email: user?.email,
         user_name: user?.displayName
+      });
+
+      trackCbtSessionStarted({
+        exam_type: examType,
+        test_mode: testMode,
+        subject_count: selectedSubjects.length,
+        total_questions: calculatedTotalQuestions,
+        timed: isTimed
       });
 
       // Save shuffled question IDs and temporary session state to Firestore
@@ -2070,14 +1992,20 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   };
 
   useEffect(() => {
+    if (!user) return;
     if (activeTab === 'study' && studyTab === 'practice' && studyQuestions.length === 0) {
       fetchTopicStudyQuestions();
     }
-  }, [activeTab, studyTab, studySubject]);
+  }, [user, activeTab, studyTab, studySubject]);
 
   // Send message to AI Tutor
   const handleSendChatMessage = async () => {
     if (!chatInput.trim() || loadingChat) return;
+    if (!user) {
+      if (onSignUpRequest) onSignUpRequest();
+      else if (onLoginRequest) onLoginRequest();
+      return;
+    }
     const userMsg = chatInput.trim();
     setChatInput('');
     setChatMessages((prev) => [...prev, { sender: 'user', text: userMsg }]);
@@ -2208,6 +2136,101 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   }, [started, showResults, showSubmitModal, currentQuestion, activeSubjectKey, currentIndex, currentSubjectQuestions.length]);
 
   const activeSubjectLabel = SUBJECT_OPTIONS.find((s) => s.key === activeSubjectKey)?.label || activeSubjectKey;
+
+  // If user is not logged in, show Auth Guard requiring Sign Up / Login before starting exams, using study hub, AI coach, or history
+  if (!user) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
+        {/* Background ambient glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative z-10 text-center space-y-6">
+          <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-emerald-400 shadow-lg mb-2">
+            <Monitor size={40} />
+          </div>
+
+          <div>
+            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[11px] uppercase tracking-widest rounded-full">
+              Account Required
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-3 tracking-tight">
+              Sign Up to Access CBT Examination Simulator
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed max-w-md mx-auto">
+              Create a free account or log in to practice authentic JAMB UTME, WAEC, and Post-UTME past questions, track subject mastery, use the AI Coach, and save your exam session history.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left pt-2">
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <Zap size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Official CBT Simulator</div>
+                <div className="text-[11px] text-slate-400">Timed 8-key JAMB & WAEC exam modes</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400">
+                <BookOpen size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Study Hub & Formulas</div>
+                <div className="text-[11px] text-slate-400">Past questions with in-depth solutions</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <Brain size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">AI Admissions Coach</div>
+                <div className="text-[11px] text-slate-400">Weakness analysis & score diagnosis</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                <Target size={18} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">Target Score Tracker</div>
+                <div className="text-[11px] text-slate-400">Persistent CBT history & score graph</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                if (onSignUpRequest) onSignUpRequest();
+                else if (onLoginRequest) onLoginRequest();
+                else navigate('/signup');
+              }}
+              className="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Create Free Account</span>
+              <ArrowRight size={16} />
+            </button>
+            
+            <button
+              onClick={() => {
+                if (onLoginRequest) onLoginRequest();
+                else navigate('/login');
+              }}
+              className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
+            >
+              Log In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800">
@@ -3136,6 +3159,38 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </button>
                     </div>
                   </div>
+                </div>
+
+                {/* Non-intrusive Save Results and Admission Checklist Prompt */}
+                <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-teal-950/60 p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
+                      <BookmarkCheck size={12} />
+                      <span>Preserve Exam Progress</span>
+                    </div>
+                    <h4 className="text-base sm:text-lg font-black text-white">
+                      Save my results and admission checklist
+                    </h4>
+                    <p className="text-xs text-slate-300 max-w-xl">
+                      Pin this mock score, track subject weaknesses, and link it with your university Post-UTME screening requirements.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackResultSaved({ tool_name: 'cbt_simulator', exam_type: examType, score: calculateScore(), total: totalQuestions });
+                      if (!user) {
+                        if (onLoginRequest) onLoginRequest();
+                      } else {
+                        setActiveTab('history');
+                        navigate('/cbt-history');
+                      }
+                    }}
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all shrink-0 cursor-pointer"
+                  >
+                    <BookmarkCheck size={16} />
+                    <span>Save my results & checklist</span>
+                  </button>
                 </div>
 
                 <AdUnit type="leaderboard" placement="cbt" className="mx-auto" />

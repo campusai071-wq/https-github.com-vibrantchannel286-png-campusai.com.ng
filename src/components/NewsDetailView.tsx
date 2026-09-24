@@ -4,8 +4,9 @@ import {
   ArrowLeft, Clock, Share2, Bookmark, ThumbsUp, ShieldCheck, Sparkles,
   User, Send, MessageSquare, Trash2, Loader2, LogIn, Check, RefreshCw,
   Wand2, Brain, Edit3, Zap, Eye, Copy, Link, CheckCircle2, Image as ImageIcon,
-  Maximize2, ChevronLeft, ChevronRight, X, ExternalLink
+  Maximize2, ChevronLeft, ChevronRight, X, ExternalLink, Calculator, BookOpen, Activity, BookmarkCheck
 } from 'lucide-react';
+import { trackOfficialPortalClick, trackCalculatorOpen, trackArticleSignupClick } from '../services/analytics';
 import { NewsItem, Comment } from '../types';
 import {
   fetchNewsComments, postNewsComment, deleteNewsComment,
@@ -665,6 +666,17 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     }
     text = text.replace(/\\(\*\*|\*|#|`|_)/g, '$1');
 
+    // Strip dangerous tags, inline scripts, event handlers, and javascript URIs
+    text = text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+      .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
+      .replace(/<link\b[^>]*>/gi, '')
+      .replace(/<meta\b[^>]*>/gi, '')
+      .replace(/\bon\w+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/href\s*=\s*(['"])javascript:.*?\1/gi, 'href="#"');
+
     // Auto-link official government & university portals mentioned in text without markdown link syntax
     text = text.replace(/(^|[\s(])([a-zA-Z0-9-]+\.(?:gov\.ng|edu\.ng|org\.ng|net\.ng|com\.ng)(?:\/[^\s\)\],]*)?)(?=$|[\s),.])/gi, (match, prefix, domain) => {
       return `${prefix}[${domain}](https://${domain})`;
@@ -697,10 +709,35 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
       <div className="max-w-4xl mx-auto px-6 md:px-0">
 
+        {/* Structured Breadcrumbs */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-6 pb-2 flex-wrap font-medium">
+          <button 
+            onClick={() => { onClose(); navigate('/'); }}
+            className="hover:text-blue-600 dark:hover:text-cyan-400 font-bold transition-colors cursor-pointer"
+          >
+            Home
+          </button>
+          <ChevronRight size={12} className="text-slate-400 shrink-0" />
+          <button 
+            onClick={() => { onClose(); navigate('/news'); }}
+            className="hover:text-blue-600 dark:hover:text-cyan-400 font-bold transition-colors cursor-pointer"
+          >
+            Intelligence Feed
+          </button>
+          <ChevronRight size={12} className="text-slate-400 shrink-0" />
+          <span className="text-blue-600 dark:text-cyan-400 font-bold truncate max-w-[140px]">
+            {news.category}
+          </span>
+          <ChevronRight size={12} className="text-slate-400 shrink-0" />
+          <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[200px]" title={news.title}>
+            {news.title}
+          </span>
+        </nav>
+
         {/* Back button */}
         <button
           onClick={onClose}
-          className="flex items-center gap-2 mb-12 py-4 text-blue-600 font-black uppercase text-[10px] tracking-widest hover:translate-x-[-4px] transition-transform"
+          className="flex items-center gap-2 mb-8 py-3 text-blue-600 font-black uppercase text-[10px] tracking-widest hover:translate-x-[-4px] transition-transform cursor-pointer"
         >
           <ArrowLeft size={16} /> Return to Intelligence Feed
         </button>
@@ -1213,18 +1250,112 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                       );
                     }
 
-                    // Standard Link
+                    // Standard or Institutional Portal Link
                     let finalHref = cleanHref;
                     if (finalHref && !finalHref.startsWith('http://') && !finalHref.startsWith('https://') && !finalHref.startsWith('mailto:') && !finalHref.startsWith('tel:') && !finalHref.startsWith('#')) {
                       finalHref = 'https://' + finalHref;
                     }
+
+                    // Check if URL is an official university/institution or scholarship portal
+                    let isOfficialPortal = false;
+                    let hostName = '';
+                    try {
+                      const urlObj = new URL(finalHref);
+                      hostName = urlObj.hostname.toLowerCase();
+                      isOfficialPortal = 
+                        hostName.endsWith('.gov.ng') ||
+                        hostName.endsWith('.edu.ng') ||
+                        hostName.includes('jamb.gov.ng') ||
+                        hostName.includes('waecdirect.org') ||
+                        hostName.includes('mynecoexams.com') ||
+                        hostName.includes('fsb.gov.ng') ||
+                        hostName.includes('scholarship.education.gov.ng') ||
+                        text.toLowerCase().includes('official portal') ||
+                        text.toLowerCase().includes('application portal') ||
+                        text.toLowerCase().includes('admission portal');
+                    } catch (_) {}
+
+                    if (isOfficialPortal) {
+                      const isCalculatorMatch = 
+                        news.title.toUpperCase().includes('CUT') || 
+                        news.title.toUpperCase().includes('AGGREGATE') || 
+                        news.title.toUpperCase().includes('POST-UTME') ||
+                        news.title.toUpperCase().includes('UNILAG') ||
+                        news.title.toUpperCase().includes('LASU') ||
+                        news.title.toUpperCase().includes('OAU') ||
+                        news.title.toUpperCase().includes('UI ') ||
+                        news.title.toUpperCase().includes('FUTA');
+
+                      return (
+                        <div className="my-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-blue-50/90 dark:from-slate-900/90 dark:via-slate-800/90 dark:to-slate-900/90 border-2 border-blue-200 dark:border-blue-800 shadow-md not-prose flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 text-[10px] font-black uppercase tracking-wider">
+                                <ShieldCheck size={11} /> Verified Portal
+                              </span>
+                              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                                {hostName}
+                              </span>
+                            </div>
+                            <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                              {text || 'Official Application & Admission Portal'}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap shrink-0">
+                            <a
+                              href={finalHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                trackOfficialPortalClick({
+                                  url: finalHref,
+                                  domain: hostName,
+                                  sourceArticleId: news.id,
+                                  label: 'article_inline_portal'
+                                });
+                              }}
+                              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                            >
+                              <span>Open official portal</span>
+                              <ExternalLink size={13} />
+                            </a>
+
+                            {isCalculatorMatch && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  trackCalculatorOpen({ source: 'article_portal_companion' });
+                                  onClose();
+                                  navigate('/calculator');
+                                }}
+                                className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
+                              >
+                                <Calculator size={13} className="text-blue-500" />
+                                <span>Calculate Aggregate</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <a 
                         {...props} 
                         href={finalHref} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (finalHref.startsWith('http')) {
+                            trackOfficialPortalClick({
+                              url: finalHref,
+                              sourceArticleId: news.id,
+                              label: 'article_external_link'
+                            });
+                          }
+                        }}
                         className="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-500 break-words font-semibold inline-flex items-center gap-1 cursor-pointer"
                       >
                         {children}
@@ -1263,6 +1394,93 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
         <div className="my-12">
           <AdUnit type="rectangle" placement="native" />
+        </div>
+
+        {/* Account Conversion / Admission Checklist Card */}
+        <div className="my-10 p-6 md:p-8 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-black uppercase tracking-wider">
+              <BookmarkCheck size={13} /> Admission Checklist
+            </div>
+            <h4 className="text-xl md:text-2xl font-black text-white">
+              Save this update & track key 2026 admission deadlines
+            </h4>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-lg">
+              Pin screening notices, departmental aggregate cutoffs, and post-UTME requirements directly to your free student workspace.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              trackArticleSignupClick({ article_id: news.id, placement: 'article_admission_checklist' });
+              if (!user) {
+                onLoginRequest();
+              } else {
+                handleToggleBookmark();
+              }
+            }}
+            className="w-full md:w-auto px-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+          >
+            <BookmarkCheck size={16} />
+            <span>Save to My Admission Checklist</span>
+          </button>
+        </div>
+
+        {/* Internal Admission Tools Grid */}
+        <div className="my-10">
+          <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+            <span>Essential Admission Tools</span>
+            <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              onClick={() => {
+                trackCalculatorOpen({ source: 'article_internal_tools' });
+                onClose();
+                navigate('/calculator');
+              }}
+              className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left hover:border-blue-500 transition-all group cursor-pointer shadow-sm"
+            >
+              <Calculator className="text-blue-500 mb-2" size={20} />
+              <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">
+                Aggregate Calculator
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Calculate your Post-UTME composite score
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                navigate('/cbt-simulator');
+              }}
+              className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left hover:border-emerald-500 transition-all group cursor-pointer shadow-sm"
+            >
+              <Activity className="text-emerald-500 mb-2" size={20} />
+              <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors">
+                JAMB CBT Simulator
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Practice official past questions with AI working
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                navigate('/study-hub');
+              }}
+              className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left hover:border-amber-500 transition-all group cursor-pointer shadow-sm"
+            >
+              <BookOpen className="text-amber-500 mb-2" size={20} />
+              <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                Topic Revision Hub
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                High-yield summaries and syllabus formulas
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Aggregate Calculator CTA */}

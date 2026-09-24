@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   MapPin, Navigation, Search, Building2, BookOpen, Compass,
   Info, CheckCircle, ExternalLink, RefreshCw, Map as MapIcon,
-  Layers, ChevronRight, Phone, Users, Globe
+  Layers, ChevronRight, Phone, Users, Globe, LocateFixed, ShieldAlert, X
 } from 'lucide-react';
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 import { OpenStreetMapViewer } from './OpenStreetMapViewer';
 import { VoiceInputButton } from './VoiceInputButton';
 import { getCentersForState, getCampusesForState, getHostelsForState, STATE_COORDINATES, CbtCenter } from '../data/cbtCentersData';
+import { trackPermissionPromptAccepted, trackPermissionPromptDeclined } from '../services/analytics';
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
@@ -143,6 +144,80 @@ export const CbtCenterLocator: React.FC = () => {
     }
   };
 
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
+
+  // Clear notice after 6 seconds
+  useEffect(() => {
+    if (locationNotice) {
+      const timer = setTimeout(() => setLocationNotice(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [locationNotice]);
+
+  const handleRequestLocationClick = () => {
+    setLocationNotice(null);
+    setShowLocationPrompt(true);
+  };
+
+  const handleDeclineLocation = () => {
+    setShowLocationPrompt(false);
+    trackPermissionPromptDeclined({
+      permission_type: 'geolocation',
+      feature: 'cbt_center_locator',
+      reason: 'user_declined'
+    });
+    setLocationNotice("Location detection was skipped. You can manually pick your state from the dropdown.");
+  };
+
+  const handleAcceptLocation = () => {
+    setShowLocationPrompt(false);
+    trackPermissionPromptAccepted({
+      permission_type: 'geolocation',
+      feature: 'cbt_center_locator'
+    });
+
+    if (!navigator.geolocation) {
+      setLocationNotice("Geolocation is not supported by your browser. Please select your state manually.");
+      return;
+    }
+
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // Find nearest Nigerian state from STATE_COORDINATES
+        let closestState = selectedState;
+        let shortestDist = Infinity;
+
+        for (const [stateName, coords] of Object.entries(STATE_COORDINATES)) {
+          const dLat = coords.lat - latitude;
+          const dLng = coords.lng - longitude;
+          const distSq = dLat * dLat + dLng * dLng;
+          if (distSq < shortestDist) {
+            shortestDist = distSq;
+            closestState = stateName;
+          }
+        }
+
+        setSelectedState(closestState);
+        setLocationNotice(`Location detected! Showing accredited centers for ${closestState}.`);
+        setLoading(false);
+      },
+      (geoErr) => {
+        console.warn("[Geolocation error]:", geoErr);
+        setLoading(false);
+        trackPermissionPromptDeclined({
+          permission_type: 'geolocation',
+          feature: 'cbt_center_locator',
+          reason: geoErr.message || 'permission_denied'
+        });
+        setLocationNotice("Location permission was denied or unavailable. Please choose your state from the dropdown.");
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
   const handleVoiceTranscript = (text: string) => {
     setQuery(text);
     handleSearch(text);
@@ -256,7 +331,18 @@ export const CbtCenterLocator: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* State Dropdown */}
           <div className="md:col-span-1">
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">State / Territory</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400">State / Territory</label>
+              <button
+                type="button"
+                onClick={handleRequestLocationClick}
+                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition-colors"
+                title="Detect state based on your location"
+              >
+                <LocateFixed className="w-3 h-3" />
+                Detect Near Me
+              </button>
+            </div>
             <select
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
@@ -603,6 +689,67 @@ export const CbtCenterLocator: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Temporary Location Status Notice */}
+      {locationNotice && (
+        <div className="p-3 bg-slate-900 text-white text-xs rounded-xl shadow-md border border-slate-700 flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <LocateFixed size={14} className="text-emerald-400 shrink-0" />
+            <span>{locationNotice}</span>
+          </div>
+          <button
+            onClick={() => setLocationNotice(null)}
+            className="text-slate-400 hover:text-white p-1 cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Geolocation Permission Explanation Dialog */}
+      {showLocationPrompt && (
+        <div 
+          className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="geo-permission-title"
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 text-left space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <LocateFixed size={24} />
+            </div>
+
+            <div>
+              <h3 id="geo-permission-title" className="text-lg font-black text-slate-900 dark:text-white">
+                Find Nearest Centers
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                CampusAI uses your device coordinates to identify your state and calculate distances to nearby accredited JAMB CBT centers and campuses. Your location coordinates are processed on your device and are never shared or stored.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400">
+              💡 <span className="font-semibold text-slate-700 dark:text-slate-300">Alternative:</span> If you decline, you can pick any of the 36 states and FCT directly from the dropdown.
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleDeclineLocation}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-center"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptLocation}
+                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/20 transition-colors cursor-pointer text-center"
+              >
+                Use Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

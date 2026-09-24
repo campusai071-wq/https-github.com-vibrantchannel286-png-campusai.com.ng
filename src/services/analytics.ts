@@ -403,4 +403,149 @@ export const trackToolInteraction = (tool: 'cbt' | 'cgpa' | 'calculator' | 'syll
   }
 };
 
+// ─── 11. official_portal_click ─────────────────────────────────────────────
+export const trackOfficialPortalClick = (data: {
+  url: string;
+  domain?: string;
+  label?: string;
+  sourceArticleId?: string;
+  institution?: string;
+}) => {
+  trackCustomEvent('official_portal_click', {
+    url: data.url,
+    domain: data.domain || (typeof window !== 'undefined' ? new URL(data.url).hostname : undefined),
+    label: data.label || 'official_portal',
+    source_article_id: data.sourceArticleId,
+    institution: data.institution
+  });
+  if (data.institution) claritySet('portal_institution', data.institution);
+  clarityUpgrade('portal_link_clicked');
+};
+
+// ─── 12. calculator_open ───────────────────────────────────────────────────
+export const trackCalculatorOpen = (data: {
+  source: string;
+  university?: string;
+  course?: string;
+}) => {
+  trackCustomEvent('calculator_open', {
+    source: data.source,
+    university: data.university,
+    course: data.course
+  });
+  if (data.university) claritySet('calculator_preset_uni', data.university);
+};
+
+// ─── 13. table_horizontal_scroll ──────────────────────────────────────────
+export const trackTableHorizontalScroll = (data: {
+  direction?: 'left' | 'right';
+  scroll_percentage?: number;
+  table_title?: string;
+}) => {
+  trackCustomEvent('table_horizontal_scroll', {
+    direction: data.direction,
+    scroll_percentage: data.scroll_percentage,
+    table_title: data.table_title || 'unspecified'
+  });
+};
+
+// ─── 14. table_row_action_click ───────────────────────────────────────────
+export const trackTableRowActionClick = (data: {
+  action: string;
+  row_title?: string;
+  target_url?: string;
+}) => {
+  trackCustomEvent('table_row_action_click', {
+    action: data.action,
+    row_title: data.row_title,
+    target_url: data.target_url
+  });
+};
+
+// ─── 15. article_signup_click ─────────────────────────────────────────────
+export const trackArticleSignupClick = (data: {
+  article_id?: string;
+  placement?: string;
+  role?: string;
+}) => {
+  trackCustomEvent('article_signup_click', {
+    article_id: data.article_id,
+    placement: data.placement || 'article_footer_checklist',
+    role: data.role || 'candidate'
+  });
+  clarityUpgrade('article_conversion_intent');
+};
+
+// ─── 16. cbt_session_started ───────────────────────────────────────────────
+export const trackCbtSessionStarted = (data: {
+  exam_type: string;
+  subject_count?: number;
+  mode?: string;
+  test_mode?: string;
+  subjects?: string[];
+  total_questions?: number;
+  timed?: boolean;
+}) => {
+  trackCustomEvent('cbt_session_started', {
+    exam_type: data.exam_type,
+    subject_count: data.subject_count,
+    mode: data.mode || data.test_mode || 'standard',
+    subjects: data.subjects?.join(','),
+    total_questions: data.total_questions,
+    timed: data.timed
+  });
+  clarityUpgrade('cbt_session_started');
+};
+
+// ─── 17. result_saved ─────────────────────────────────────────────────────
+export const trackResultSaved = (data: {
+  result_type?: 'calculator' | 'cbt' | 'cgpa' | 'admission_prediction';
+  tool_name?: string;
+  score?: number | string;
+  total?: number;
+  university?: string;
+  institution?: string;
+  course?: string;
+  result_id?: string;
+  exam_type?: string;
+  user_id?: string;
+}) => {
+  trackCustomEvent('result_saved', {
+    result_type: data.result_type || data.tool_name || 'calculator',
+    score: data.score,
+    total: data.total,
+    university: data.university || data.institution,
+    course: data.course,
+    result_id: data.result_id,
+    user_id: data.user_id
+  });
+  clarityUpgrade('admission_result_saved');
+  claritySet('has_saved_results', 'true');
+};
+
+// ─── 18. permission_prompt_accepted ───────────────────────────────────────
+export const trackPermissionPromptAccepted = (data: {
+  permission_type: 'microphone' | 'geolocation' | 'notifications';
+  feature?: string;
+}) => {
+  trackCustomEvent('permission_prompt_accepted', {
+    permission_type: data.permission_type,
+    feature: data.feature
+  });
+};
+
+// ─── 19. permission_prompt_declined ───────────────────────────────────────
+export const trackPermissionPromptDeclined = (data: {
+  permission_type: 'microphone' | 'geolocation' | 'notifications';
+  feature?: string;
+  reason?: string;
+}) => {
+  trackCustomEvent('permission_prompt_declined', {
+    permission_type: data.permission_type,
+    feature: data.feature,
+    reason: data.reason || 'user_declined'
+  });
+};
+
+
 
