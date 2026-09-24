@@ -180,7 +180,8 @@ export const PartnerNetworkPage: React.FC<PartnerNetworkPageProps> = ({ onNaviga
       customText ||
       `Hello CampusAI Admin, I would like to register our institution (${institutionName || 'Our Center'}) as an official Verified Educational Partner.\n\nTier: ${appTier === 'cbt_institutional' ? 'CBT Institutional' : 'Verified Directory'}\nState: ${appState}\nPhone: ${phone}`
     );
-    window.open(`https://wa.me/${config.adminWhatsApp}?text=${text}`, '_blank');
+    const waNumber = (config.adminWhatsApp || '2349169760634').replace(/\D/g, '');
+    window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
   };
 
   return (

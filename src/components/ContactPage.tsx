@@ -18,7 +18,7 @@ export const ContactPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [contactInfo, setContactInfo] = useState<ContactConfig>({
     email: 'support@campusai.com.ng',
-    whatsapp: '+234 802 764 1663',
+    whatsapp: '+234 916 976 0634',
     address: 'FUTA Tech Park, Akure, Ondo State, Nigeria',
     supportHours: 'Mon – Sat: 8:00 AM – 6:00 PM WAT'
   });
@@ -214,7 +214,7 @@ export const ContactPage: React.FC = () => {
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Phone Number / WhatsApp</label>
                     <input
                       type="tel"
-                      placeholder="e.g. +234 801 234 5678"
+                      placeholder="e.g. +234 916 976 0634"
                       value={formData.phone}
                       onChange={e => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-900 dark:text-white font-medium outline-none focus:border-purple-500"

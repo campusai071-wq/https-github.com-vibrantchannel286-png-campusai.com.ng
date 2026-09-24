@@ -30,7 +30,7 @@ const PremiumChannelBanner: React.FC = () => {
     payment_options: 'card,mobilemoney,ussd',
     customer: {
       email: auth.currentUser?.email || 'student@campusai.com.ng',
-      phone_number: '08000000000',
+      phone_number: '+2349169760634',
       name: 'CampusAI Student',
     },
     customizations: {

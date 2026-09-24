@@ -135,7 +135,7 @@ const faqs: FAQItem[] = [
   {
     category: 'General',
     question: "I want to distribute free application documents to prospective applicants, is this possible?",
-    answer: "Any philanthropist wishing to distribute free application documents should contact the Board on +2348027641663 or e-mail fabian.benjamin@jamb.gov.ng for special offer."
+    answer: "Any philanthropist wishing to distribute free application documents should contact the Board on +234 916 976 0634 or e-mail fabian.benjamin@jamb.gov.ng for special offer."
   },
   {
     category: 'Admission',

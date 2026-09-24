@@ -355,7 +355,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="text" 
                       value={whatsappNumber} 
                       onChange={(e) => setWhatsappNumber(e.target.value)} 
-                      placeholder="e.g. 2348123456789" 
+                      placeholder="e.g. 2349169760634" 
                       className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl text-gray-900 dark:text-white outline-none font-bold"
                     />
                   </div>

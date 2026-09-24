@@ -241,7 +241,8 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
     const text = encodeURIComponent(
       `Hello CampusAI Advertising Team!\n\nI want to sponsor an ad campaign on CampusAI.ng:\n\n• Brand: ${brandName || 'My Business'}\n• Package: ${currentPkg.title} (₦${finalPrice.toLocaleString()})\n• Duration: ${currentPkg.duration} Days\n• Placement: ${placement.toUpperCase()} (${placementMultiplier}x Traffic Rate)\n• Contact: ${contactPhone || contactEmail}\n\nPlease let me know how we can proceed with activation or negotiation.`
     );
-    window.open(`https://wa.me/${config.adminWhatsApp}?text=${text}`, '_blank');
+    const waNumber = (config.adminWhatsApp || '2349169760634').replace(/\D/g, '');
+    window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
   };
 
   const handleSubmitAd = async (e: React.FormEvent) => {

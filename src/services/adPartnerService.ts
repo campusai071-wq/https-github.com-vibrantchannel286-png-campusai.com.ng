@@ -22,7 +22,7 @@ export const DEFAULT_PRICING_CONFIG: PlatformPricingConfig = {
   adProPrice: 18000,           // 30 Days (1 Month - save ₦2,000)
   partnerListingPrice: 25000,  // Annual Verified Directory
   partnerCbtPrice: 75000,      // Annual CBT & Institutional Portal
-  adminWhatsApp: '',
+  adminWhatsApp: '+234 916 976 0634',
   adminEmail: 'eiweh123@gmail.com',
   bankName: '',
   accountNumber: '',

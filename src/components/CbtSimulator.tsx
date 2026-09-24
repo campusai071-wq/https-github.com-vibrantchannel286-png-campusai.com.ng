@@ -1069,6 +1069,47 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     return passagePatterns.some(pattern => pattern.test(q));
   };
 
+  // Helper to ensure text in 'section' is a genuine literary reading passage and NEVER leaks math/science solutions or workings
+  const isLegitimateReadingPassage = (sectionText?: string | null, subjectName?: string): boolean => {
+    if (!sectionText || typeof sectionText !== 'string') return false;
+    const trimmed = sectionText.trim();
+    if (trimmed.length < 30 || trimmed.toLowerCase().endsWith('.pdf') || trimmed.toLowerCase().startsWith('jamb-') || trimmed.toLowerCase().startsWith('waec-')) {
+      return false;
+    }
+
+    const lower = trimmed.toLowerCase();
+
+    // Solution or explanation headers must never be shown as a reading passage during exam
+    if (
+      lower.includes('solution:') || 
+      lower.includes('soln:') || 
+      lower.includes('explanation:') ||
+      lower.includes('working:') ||
+      lower.includes('ans:') ||
+      lower.includes('answer:') ||
+      lower.includes('correct option') ||
+      lower.includes('answer is') ||
+      lower.includes('step 1:') ||
+      lower.includes('steps:')
+    ) {
+      return false;
+    }
+
+    // Quantitative subjects do not have reading passages in JAMB CBT; any mathematical formulas/steps are calculations
+    const sub = (subjectName || '').toLowerCase();
+    const isQuantitative = sub.includes('math') || sub.includes('phys') || sub.includes('chem') || sub.includes('bio') || sub.includes('calc') || sub.includes('agric');
+    if (isQuantitative) {
+      if (
+        /[\=\+\-\*\/\^√]|sqrt|frac|\(\d+\s*[\+\-]\s*\d+\)/i.test(trimmed) ||
+        /(\b(x_?\d|y_?\d)\s*=|\\sqrt|√|\b(d|r|v|a|f|m)\s*=\s*[\d\(\\\/]|=>|∴|\btherefore\b)/i.test(trimmed)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Helper to fetch directly from Firebase Firestore past_questions collection as client fallback
   const fetchQuestionsFromClientFirestore = async (subjectKey: string, limitCount: number = 40): Promise<Question[]> => {
     try {
@@ -1320,10 +1361,23 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           const data = await response.json();
 
           if (response.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
-            questionsArray = data.data;
-            // Record seen IDs in the session ref to prevent repeating questions
-            questionsArray.forEach((q: Question) => {
+            questionsArray = data.data.map((q: Question) => {
               if (q && q.id) sessionSeenQuestionIdsRef.current.add(String(q.id));
+              
+              // Validate that passage/section is truly a reading passage and not a leaked solution
+              const isRealPassage = isLegitimateReadingPassage(q.section, subjectKey);
+              if (!isRealPassage && q.section) {
+                const solutionText = q.solution && !q.solution.toLowerCase().includes('official')
+                  ? `${q.solution}\n\n${q.section}`
+                  : q.section;
+                return {
+                  ...q,
+                  section: null,
+                  hasPassage: false,
+                  solution: solutionText
+                };
+              }
+              return q;
             });
           } else {
             console.warn(`[CBT] ALOC API response empty or notice for ${subjectKey}:`, data.message);
@@ -1990,6 +2044,19 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       if (data.success && data.data) {
         const tagged = (data.data as Question[]).map(q => {
           if (q && q.id) sessionSeenQuestionIdsRef.current.add(String(q.id));
+          const isRealPassage = isLegitimateReadingPassage(q.section, studySubject);
+          if (!isRealPassage && q.section) {
+            const solutionText = q.solution && !q.solution.toLowerCase().includes('official')
+              ? `${q.solution}\n\n${q.section}`
+              : q.section;
+            return {
+              ...q,
+              __subject: studySubject,
+              section: null,
+              hasPassage: false,
+              solution: solutionText
+            };
+          }
           return { ...q, __subject: studySubject };
         });
         setStudyQuestions(tagged);
@@ -3770,13 +3837,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       </button>
                     </div>
 
-                    {currentQuestion.section && currentQuestion.section.trim().length >= 30 && !currentQuestion.section.toLowerCase().endsWith('.pdf') ? (
+                    {isLegitimateReadingPassage(currentQuestion.section, activeSubjectKey) ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 overflow-y-auto max-h-[400px]">
                           <h4 className="text-[10px] font-black uppercase text-slate-500 mb-2 tracking-wider">Reading Passage / Excerpt</h4>
                           <div
                             className="text-sm font-medium text-slate-800 leading-relaxed prose prose-sm prose-slate max-w-none"
-                            dangerouslySetInnerHTML={{ __html: currentQuestion.section }}
+                            dangerouslySetInnerHTML={{ __html: currentQuestion.section || '' }}
                           />
                         </div>
                         <div className="flex flex-col">

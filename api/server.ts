@@ -1074,6 +1074,71 @@ function isPassageMissingOrOrphan(questionText: string, passageCandidate?: strin
   return passagePatterns.some(pattern => pattern.test(q));
 }
 
+function extractValidPassageAndSolution(
+  rawPassage: any,
+  rawSection: any,
+  rawSolution: any,
+  rawExplanation: any,
+  subjectName: string
+): { section: string | null; hasPassage: boolean; solution: string } {
+  const candidate = (rawPassage && typeof rawPassage === 'string' && rawPassage.trim().length >= 30 && !rawPassage.toLowerCase().endsWith('.pdf'))
+    ? rawPassage.trim()
+    : (rawSection && typeof rawSection === 'string' && rawSection.trim().length >= 30 && !rawSection.toLowerCase().endsWith('.pdf'))
+      ? rawSection.trim()
+      : null;
+
+  const existingSol = (rawSolution || rawExplanation || '').toString().trim();
+  const sub = (subjectName || '').toLowerCase();
+  const isQuantitative = sub.includes('math') || sub.includes('phys') || sub.includes('chem') || sub.includes('bio') || sub.includes('calc') || sub.includes('agric');
+
+  if (!candidate) {
+    return {
+      section: null,
+      hasPassage: false,
+      solution: existingSol || `Official past examination solution. Review core curriculum concepts.`
+    };
+  }
+
+  const lowerCandidate = candidate.toLowerCase();
+  const isExplicitSolution = 
+    lowerCandidate.includes('solution:') ||
+    lowerCandidate.includes('soln:') ||
+    lowerCandidate.includes('explanation:') ||
+    lowerCandidate.includes('working:') ||
+    lowerCandidate.includes('ans:') ||
+    lowerCandidate.includes('answer:') ||
+    lowerCandidate.includes('correct option') ||
+    lowerCandidate.includes('answer is') ||
+    lowerCandidate.includes('step 1:') ||
+    lowerCandidate.includes('steps:');
+
+  const hasMathDerivation = isQuantitative && (
+    /[\=\+\-\*\/\^√]|sqrt|frac|\(\d+\s*[\+\-]\s*\d+\)/i.test(candidate) ||
+    /(\b(x_?\d|y_?\d)\s*=|\\sqrt|√|\b(d|r|v|a|f|m)\s*=\s*[\d\(\\\/]|=>|∴|\btherefore\b)/i.test(candidate)
+  );
+
+  if (isExplicitSolution || hasMathDerivation) {
+    // This text is actually a solution/explanation, not a reading passage!
+    // Never expose it during the active test session.
+    const mergedSolution = existingSol && !existingSol.toLowerCase().includes('past paper')
+      ? `${existingSol}\n\nWorking/Explanation:\n${candidate}`
+      : candidate;
+
+    return {
+      section: null,
+      hasPassage: false,
+      solution: mergedSolution
+    };
+  }
+
+  // Valid literary / comprehension passage
+  return {
+    section: candidate,
+    hasPassage: true,
+    solution: existingSol || `Refer to the provided comprehension passage/excerpt for details.`
+  };
+}
+
 async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: string): Promise<any[]> {
   const allDocs = await getAllFirestorePastQuestions();
   if (!allDocs || allDocs.length === 0) return [];
@@ -1149,11 +1214,13 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
       ? doc.subjectFile.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ')
       : 'Authentic Past Paper';
 
-    const validPassageText = (doc.passage && typeof doc.passage === 'string' && doc.passage.trim().length >= 80 && !doc.passage.toLowerCase().endsWith('.pdf'))
-      ? doc.passage.trim()
-      : (doc.section && typeof doc.section === 'string' && doc.section.trim().length >= 80 && !doc.section.toLowerCase().endsWith('.pdf'))
-        ? doc.section.trim()
-        : null;
+    const parsedPassage = extractValidPassageAndSolution(
+      doc.passage,
+      doc.section,
+      doc.solution,
+      doc.explanation || `From official past question archive: ${cleanExamName}. Review standard curriculum syllabus for this topic.`,
+      mappedSubject || sFile
+    );
 
     return {
       id: doc.id || `fb_${Math.random().toString(36).substring(2, 9)}`,
@@ -1166,11 +1233,11 @@ async function fetchFirebasePastQuestions(mappedSubject: string, rawSubject: str
         ...(optE ? { e: optE } : {})
       },
       answer: cleanAns,
-      solution: doc.explanation || `From official past question archive: ${cleanExamName}. Review standard curriculum syllabus for this topic.`,
+      solution: parsedPassage.solution,
       examType: isWaec ? 'WAEC' : isPostUtme ? 'POST_UTME' : 'JAMB',
       examYear: sFile.match(/\b(19\d\d|20\d\d)\b/)?.[0] || '2024',
-      section: validPassageText,
-      hasPassage: !!validPassageText,
+      section: parsedPassage.section,
+      hasPassage: parsedPassage.hasPassage,
       imageUrl: doc.imageUrl || doc.image || null,
       metadata: {
         source: 'firebase_past_questions',
@@ -1249,16 +1316,24 @@ function normalizeAlocQuestion(q: any, fallbackSubject: string): any {
     rawQuestionText = `Choose the option that has the same vowel or consonant sound as the word: <strong>${rawQuestionText}</strong>`;
   }
 
+  const parsedPassage = extractValidPassageAndSolution(
+    q.passage,
+    q.section,
+    q.solution,
+    q.explanation,
+    rawSubject
+  );
+
   return {
     id: String(q.id || Math.random().toString(36).substring(2)),
     question: rawQuestionText,
     option: cleanOptions,
     answer: String(q.correctAnswer || q.answer || '').trim().toLowerCase(),
-    solution: q.solution || q.explanation || (q.section ? `Passage/Section: ${q.section}` : `Official ${q.examType ? q.examType.toUpperCase() : 'JAMB'} Past Question (${q.year || 'Standard curriculum'}).`),
+    solution: parsedPassage.solution,
     examType: String(q.examType || 'JAMB').toUpperCase(),
     examYear: String(q.year || q.examYear || '2024'),
-    section: q.section || null,
-    hasPassage: !!(q.section || q.hasPassage),
+    section: parsedPassage.section,
+    hasPassage: parsedPassage.hasPassage,
     imageUrl: q.imageUrl || q.image || null,
     metadata: {
       source: 'aloc',
