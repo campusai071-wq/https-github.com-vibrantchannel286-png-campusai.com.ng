@@ -22,6 +22,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NewsCard } from './NewsGrid';
 import { OfficialPdfDownloadCard } from './OfficialPdfDownloadCard';
+import { ResponsiveMarkdownTable, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from './ResponsiveMarkdownTable';
 import { formatNewsPostTime } from '../utils/dateUtils';
 import AdUnit from './AdUnit';
 
@@ -663,6 +664,12 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
       text = text.replace(/\s*```$/, '');
     }
     text = text.replace(/\\(\*\*|\*|#|`|_)/g, '$1');
+
+    // Auto-link official government & university portals mentioned in text without markdown link syntax
+    text = text.replace(/(^|[\s(])([a-zA-Z0-9-]+\.(?:gov\.ng|edu\.ng|org\.ng|net\.ng|com\.ng)(?:\/[^\s\)\],]*)?)(?=$|[\s),.])/gi, (match, prefix, domain) => {
+      return `${prefix}[${domain}](https://${domain})`;
+    });
+
     return text.trim();
   };
 
@@ -1049,6 +1056,35 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
               <Markdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  table: ({ children }) => <ResponsiveMarkdownTable>{children}</ResponsiveMarkdownTable>,
+                  thead: ({ children }) => <TableHead>{children}</TableHead>,
+                  tbody: ({ children }) => <TableBody>{children}</TableBody>,
+                  tr: ({ children }) => <TableRow>{children}</TableRow>,
+                  th: ({ children }) => <TableHeaderCell>{children}</TableHeaderCell>,
+                  td: ({ children }) => <TableCell>{children}</TableCell>,
+                  blockquote: ({ children }) => (
+                    <blockquote className="my-6 border-l-4 border-blue-600 dark:border-cyan-500 bg-blue-50/50 dark:bg-slate-900/80 p-5 rounded-r-3xl not-prose text-slate-800 dark:text-slate-200 shadow-sm border border-blue-100 dark:border-slate-800">
+                      {children}
+                    </blockquote>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="my-5 space-y-3 list-decimal list-outside ml-6 text-gray-800 dark:text-gray-200 font-medium">
+                      {children}
+                    </ol>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="my-5 space-y-2.5 list-disc list-outside ml-6 text-gray-800 dark:text-gray-200 font-medium">
+                      {children}
+                    </ul>
+                  ),
+                  li: ({ children }) => (
+                    <li className="leading-relaxed pl-1">
+                      {children}
+                    </li>
+                  ),
+                  hr: () => (
+                    <hr className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent" />
+                  ),
                   img: ({ node, src, alt, ...props }) => (src && typeof src === 'string' && src.trim() ? <img {...props} src={src.trim()} alt={alt || ""} referrerPolicy="no-referrer" /> : null),
                   h3: ({ node, children, ...props }) => {
                     const text = String(children || '');
