@@ -212,16 +212,15 @@ const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenSupport,
               <li>
                 <button onClick={() => onNavigate('cookies')} className="text-gray-400 hover:text-white transition-colors text-sm font-bold flex items-center gap-2">Cookie Protocol <ExternalLink size={12} className="opacity-20" /></button>
               </li>
-              {isAdmin && (
-                <li className="pt-6">
-                  <button 
-                    onClick={() => onNavigate('admin')}
-                    className="w-full py-3 bg-red-600/10 border border-red-600/20 text-red-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all animate-pulse"
-                  >
-                    <Lock size={12} /> Architect Portal
-                  </button>
-                </li>
-              )}
+              <li className="pt-6">
+                <button 
+                  onClick={() => onNavigate('admin')}
+                  className="w-full py-3 bg-red-600/10 border border-red-600/20 text-red-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+                  title="Open Architect Console"
+                >
+                  <Lock size={12} /> Architect Portal
+                </button>
+              </li>
             </ul>
           </div>
 

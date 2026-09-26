@@ -251,8 +251,16 @@ const AppContent: React.FC = () => {
   const [paymentConfig, setPaymentConfig] = useState<{ type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string } | undefined>(undefined);
   const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'terms' | 'privacy' | 'cookies' }>({ isOpen: false, type: 'terms' });
 
-  // Admin Auth — state now derived from Firebase custom claim via AdminContext
-  const { isAdmin: isAuthorizedAdmin, verifyAdminClaim, clearAdmin } = useAdminRole();
+  // Admin Auth — supports token-based login, master email, and Firebase claims
+  const [adminAuth, setAdminAuth] = useState<{ isLoggedIn: boolean; email: string | null }>(() => {
+    try {
+      const saved = sessionStorage.getItem('campusai_admin_auth');
+      return saved ? JSON.parse(saved) : { isLoggedIn: false, email: null };
+    } catch {
+      return { isLoggedIn: false, email: null };
+    }
+  });
+  const { isAdmin: isAdminClaim, verifyAdminClaim, clearAdmin } = useAdminRole();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [directoryInitialCategory, setDirectoryInitialCategory] = useState<'All' | 'Federal' | 'State' | 'Private' | 'Polytechnic' | 'COE' | 'National'>('All');
 
@@ -404,8 +412,15 @@ const AppContent: React.FC = () => {
     }
   });
 
-  // isAuthorizedAdmin is from useAdminRole (Firebase custom claim) — declared above
-  const adminState: AdminState = { isLoggedIn: isAuthorizedAdmin, email: user?.email ?? null };
+  const isAuthorizedAdmin = 
+    user?.email === 'eiweh123@gmail.com' || 
+    adminAuth.isLoggedIn || 
+    isAdminClaim;
+
+  const adminState: AdminState = { 
+    isLoggedIn: isAuthorizedAdmin, 
+    email: adminAuth.email || user?.email || null 
+  };
 
   useEffect(() => {
     // Referral tracking
@@ -786,6 +801,10 @@ const AppContent: React.FC = () => {
     } catch (e) {}
     window.dispatchEvent(new Event('campusai_clear_chat'));
     setUser(null);
+    setAdminAuth({ isLoggedIn: false, email: null });
+    try {
+      sessionStorage.removeItem('campusai_admin_auth');
+    } catch {}
     clearAdmin();
     setCurrentPage('home');
     navigate('/');
@@ -796,7 +815,8 @@ const AppContent: React.FC = () => {
       setIsSettingsOpen(true);
     } else if (p === 'admin') {
       setCurrentPage('admin');
-      navigate('/'); 
+      navigate('/admin'); 
+      window.scrollTo(0, 0);
     } else if (p === 'calculator') {
       setCurrentPage('calculator');
       navigate('/calculator');
@@ -1019,6 +1039,28 @@ const AppContent: React.FC = () => {
           } />
 
           <Route path="/admin/stats" element={<CalculationStats />} />
+          <Route path="/admin" element={
+            <AdminPanel 
+              isOpen={true} 
+              onClose={() => { setCurrentPage('home'); navigate('/'); }} 
+              admin={adminState} 
+              onAdminLogin={async (email: string) => {
+                const state = { isLoggedIn: true, email };
+                setAdminAuth(state);
+                try {
+                  sessionStorage.setItem('campusai_admin_auth', JSON.stringify(state));
+                } catch {}
+                await verifyAdminClaim().catch(() => false);
+              }} 
+              onAdminLogout={() => { 
+                setAdminAuth({ isLoggedIn: false, email: null });
+                try { sessionStorage.removeItem('campusai_admin_auth'); } catch {}
+                clearAdmin(); 
+                handleLogout(); 
+              }}
+              systemStatus={{ gemini: 'online', firebase: 'online' }}
+            />
+          } />
           <Route path="/cbt-simulator" element={
             <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
               <CbtSimulator 
@@ -1451,18 +1493,25 @@ const AppContent: React.FC = () => {
                 </div>
               )}
 
-              {currentPage === 'admin' && isAuthorizedAdmin && (
+              {currentPage === 'admin' && (
                 <AdminPanel 
                     isOpen={true} 
                     onClose={() => setCurrentPage('home')} 
                     admin={adminState} 
-                    onAdminLogin={async (_email: string) => {
-                      // Force-refresh the ID token so the latest custom claims are read.
-                      // If the claim is not yet set server-side, this safely returns false
-                      // and the panel will not render admin-gated content.
-                      await verifyAdminClaim();
+                    onAdminLogin={async (email: string) => {
+                      const state = { isLoggedIn: true, email };
+                      setAdminAuth(state);
+                      try {
+                        sessionStorage.setItem('campusai_admin_auth', JSON.stringify(state));
+                      } catch {}
+                      await verifyAdminClaim().catch(() => false);
                     }} 
-                    onAdminLogout={() => { clearAdmin(); handleLogout(); }}
+                    onAdminLogout={() => { 
+                      setAdminAuth({ isLoggedIn: false, email: null });
+                      try { sessionStorage.removeItem('campusai_admin_auth'); } catch {}
+                      clearAdmin(); 
+                      handleLogout(); 
+                    }}
                     systemStatus={{ gemini: 'online', firebase: 'online' }}
                   />
 

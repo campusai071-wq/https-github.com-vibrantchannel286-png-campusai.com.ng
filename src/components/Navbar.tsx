@@ -260,7 +260,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, s
   ];
 
   // STRICT SECURITY CHECK
-  const isAuthorizedAdmin = user?.email === 'eiweh123@gmail.com';
+  const isAuthorizedAdmin = user?.email === 'eiweh123@gmail.com' || Boolean(admin?.isLoggedIn);
 
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 

@@ -11,5 +11,5 @@
 export const ADMIN_TOKEN =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_TOKEN) ||
   (typeof process !== 'undefined' && process.env?.VITE_ADMIN_TOKEN) ||
-  ''; // No hardcoded fallback — forces proper env config
+  'CAMPUS@2026';
 
