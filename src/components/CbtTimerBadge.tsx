@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Clock } from 'lucide-react';
 
-interface CbtTimerBadgeProps {
+export interface CbtTimerBadgeProps {
   endTime: number;
   isTimerRunning: boolean;
   totalQuestions: number;
@@ -15,7 +16,7 @@ export const CbtTimerBadge: React.FC<CbtTimerBadgeProps> = ({
   totalQuestions,
   totalAttempted,
   onTimeExpired,
-}) => {
+}: CbtTimerBadgeProps) => {
   const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
     if (!endTime) return 0;
     return Math.max(0, Math.floor((endTime - Date.now()) / 1000));

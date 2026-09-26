@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CbtTimerBadge } from './CbtTimerBadge';
 import { CbtMobileDrawer } from './CbtMobileDrawer';
 import {
