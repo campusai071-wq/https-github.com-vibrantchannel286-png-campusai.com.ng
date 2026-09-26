@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { AdminProvider, useAdminRole } from '../contexts/AdminContext';
 import { lazyWithRetry } from '../utils/lazyWithRetry';
 import Navbar from './Navbar';
 import HeroSection from './HeroSection';
@@ -51,7 +53,16 @@ const AdmissionChecklistPage = lazyWithRetry(() => import('./AdmissionChecklistP
 const SyllabusExplorer = lazyWithRetry(() => import('./SyllabusExplorer'));
 const AdmissionsExplorer = lazyWithRetry(() => import('./AdmissionsExplorer'));
 const JambCapsLiveTrackerPage = lazyWithRetry(() => import('./JambCapsLiveTrackerPage'));
-const CGPACalculator = lazy(() => import('./CGPACalculator'));
+interface CGPACalculatorProps {
+  user?: any;
+  isPremium?: boolean;
+  onUpgrade?: () => void;
+  onLoginRequest?: () => void;
+  onSignUpRequest?: () => void;
+}
+const CGPACalculator = lazy(() =>
+  import('./CGPACalculator').then(m => ({ default: m.CGPACalculator as React.ComponentType<CGPACalculatorProps> }))
+);
 const AdvertisePage = lazyWithRetry(() => import('./AdvertisePage'));
 const PartnerNetworkPage = lazyWithRetry(() => import('./PartnerNetworkPage'));
 import { CbtCenterLocator } from './CbtCenterLocator';
@@ -194,7 +205,7 @@ const SchoolCalculatorWrapper = ({ user, setIsAuthModalOpen, setAuthModalMode, s
           onLoginRequest={() => { setAuthModalMode?.('signup'); setIsAuthModalOpen(true); }}
           onSignUpRequest={() => { setAuthModalMode?.('signup'); setIsAuthModalOpen(true); }}
           onPremiumRequired={() => setIsScholarPackOpen(true)}
-          onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
+          onDiscussWithAI={(msg: string) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
           initialSchoolName={computedSchoolName}
           onClearInitialSchool={() => setSelectedSchoolForChances('')}
         />
@@ -240,8 +251,8 @@ const AppContent: React.FC = () => {
   const [paymentConfig, setPaymentConfig] = useState<{ type: 'pack' | 'refill' | 'tool'; amount: number; label: string; toolId?: string } | undefined>(undefined);
   const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'terms' | 'privacy' | 'cookies' }>({ isOpen: false, type: 'terms' });
 
-  // Admin Auth State
-  const [adminAuth, setAdminAuth] = useState({ isLoggedIn: false, email: null as string | null });
+  // Admin Auth — state now derived from Firebase custom claim via AdminContext
+  const { isAdmin: isAuthorizedAdmin, verifyAdminClaim, clearAdmin } = useAdminRole();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [directoryInitialCategory, setDirectoryInitialCategory] = useState<'All' | 'Federal' | 'State' | 'Private' | 'Polytechnic' | 'COE' | 'National'>('All');
 
@@ -393,8 +404,8 @@ const AppContent: React.FC = () => {
     }
   });
 
-  const isAuthorizedAdmin = user?.email === 'eiweh123@gmail.com';
-  const adminState: AdminState = { isLoggedIn: adminAuth.isLoggedIn, email: adminAuth.email };
+  // isAuthorizedAdmin is from useAdminRole (Firebase custom claim) — declared above
+  const adminState: AdminState = { isLoggedIn: isAuthorizedAdmin, email: user?.email ?? null };
 
   useEffect(() => {
     // Referral tracking
@@ -775,7 +786,7 @@ const AppContent: React.FC = () => {
     } catch (e) {}
     window.dispatchEvent(new Event('campusai_clear_chat'));
     setUser(null);
-    setAdminAuth({ isLoggedIn: false, email: null });
+    clearAdmin();
     setCurrentPage('home');
     navigate('/');
   };
@@ -1088,7 +1099,7 @@ const AppContent: React.FC = () => {
                   onLoginRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }} 
                   onSignUpRequest={() => { setAuthModalMode('signup'); setIsAuthModalOpen(true); }} 
                   onPremiumRequired={() => setIsScholarPackOpen(true)}
-                  onDiscussWithAI={(msg) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
+                  onDiscussWithAI={(msg: string) => window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: msg }))} 
                   initialSchoolName={selectedSchoolForChances}
                   onClearInitialSchool={() => setSelectedSchoolForChances('')}
                 />
@@ -1164,7 +1175,7 @@ const AppContent: React.FC = () => {
                 canonical="/postutme"
               />
               <PostUtmeReleaseHub 
-                onCalculateChances={(schoolName) => {
+                onCalculateChances={(schoolName: string) => {
                     const nameLower = schoolName.toLowerCase();
                     let slug = '';
                     if (nameLower.includes('lagos') && !nameLower.includes('state')) slug = 'unilag';
@@ -1199,7 +1210,7 @@ const AppContent: React.FC = () => {
                 canonical="/postutme"
               />
               <PostUtmeReleaseHub 
-                onCalculateChances={(schoolName) => {
+                onCalculateChances={(schoolName: string) => {
                     const nameLower = schoolName.toLowerCase();
                     let slug = '';
                     if (nameLower.includes('lagos') && !nameLower.includes('state')) slug = 'unilag';
@@ -1234,7 +1245,7 @@ const AppContent: React.FC = () => {
                 canonical="/result-slip"
               />
               <PostUtmeReleaseHub 
-                onCalculateChances={(schoolName) => {
+                onCalculateChances={(schoolName: string) => {
                     const nameLower = schoolName.toLowerCase();
                     let slug = '';
                     if (nameLower.includes('lagos') && !nameLower.includes('state')) slug = 'unilag';
@@ -1307,7 +1318,7 @@ const AppContent: React.FC = () => {
                 description="Browse official UTME examination syllabuses for Chemistry, Biology, Physics, Mathematics, English, Commerce, Economics, Government, CRS, French, Art, Arabic, and Computer Studies."
               />
               <SyllabusExplorer 
-                onAskAI={(topicQuery) => {
+                onAskAI={(topicQuery: string) => {
                   window.dispatchEvent(new CustomEvent('campusai_open_ai', { detail: topicQuery }));
                 }}
               />
@@ -1407,7 +1418,7 @@ const AppContent: React.FC = () => {
 
                   {/* TOP RANKINGS SECTION */}
                   <Suspense fallback={<div className="py-12 text-center text-gray-400">Loading Rankings...</div>}>
-                    <TopRankings onSelectUni={(slug) => {
+                    <TopRankings onSelectUni={(slug: string) => {
                       setCurrentPage('universities');
                       navigate(`/universities/${slug}`);
                     }} />
@@ -1445,8 +1456,13 @@ const AppContent: React.FC = () => {
                     isOpen={true} 
                     onClose={() => setCurrentPage('home')} 
                     admin={adminState} 
-                    onAdminLogin={(email) => setAdminAuth({ isLoggedIn: true, email })} 
-                    onAdminLogout={handleLogout}
+                    onAdminLogin={async (_email: string) => {
+                      // Force-refresh the ID token so the latest custom claims are read.
+                      // If the claim is not yet set server-side, this safely returns false
+                      // and the panel will not render admin-gated content.
+                      await verifyAdminClaim();
+                    }} 
+                    onAdminLogout={() => { clearAdmin(); handleLogout(); }}
                     systemStatus={{ gemini: 'online', firebase: 'online' }}
                   />
 
@@ -1464,7 +1480,7 @@ const AppContent: React.FC = () => {
               <PostUtmeReleaseHub 
                 user={user} 
                 onLoginRequest={() => navigate('/login')}
-                onCalculateChances={(schoolName) => {
+                onCalculateChances={(schoolName: string) => {
                   setSelectedSchoolForChances(schoolName);
                   setCurrentPage('home');
                   navigate('/');
@@ -1579,7 +1595,7 @@ const AppContent: React.FC = () => {
 
       <Footer 
         onNavigate={handleNavigate} 
-        onOpenLegal={(type) => setLegalModal({ isOpen: true, type })} 
+        onOpenLegal={(type: 'terms' | 'privacy' | 'cookies') => setLegalModal({ isOpen: true, type })} 
         onOpenSupport={() => setIsSupportOpen(true)} 
         isAdmin={isAuthorizedAdmin} 
         socialLinks={socialLinks}
@@ -1638,7 +1654,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Router>
-      <AppContent />
+      <AdminProvider>
+        <AppContent />
+      </AdminProvider>
     </Router>
   );
 };
