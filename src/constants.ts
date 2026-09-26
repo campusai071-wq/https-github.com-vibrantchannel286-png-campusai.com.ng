@@ -33,7 +33,8 @@ Candidates can download the complete official timetable in PDF format using the 
 2. **Prohibited Items**: Cell phones, electronic organizers, programmable calculators, smart wristwatches, and unauthorized papers are strictly banned from examination halls.
 3. **Materials Required**: Non-programmable mathematical log tables and standard scientific calculators are allowed only for designated science and commercial papers.`,
     sourceUrl: 'https://waecnigeria.org',
-    isImportant: true
+    isImportant: true,
+    views: 29410
   },
   {
     id: 'jamb-policy-meeting-2026',
@@ -45,7 +46,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) holds its annual Policy Meeting on admissions into tertiary institutions in Nigeria, determining cut-off marks and admission guidelines for the 2025/2026 academic session.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has officially convened the 2026 Policy Meeting on Admissions to tertiary institutions in Nigeria. Presided over by the Minister of Education and JAMB Registrar Prof. Is-haq Oloyede, stakeholders discussed and ratified the general minimum cut-off marks, admission policy timelines, and operational guidelines for the 2025/2026 academic session.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: true
+    isImportant: true,
+    views: 34820
   },
   {
     id: 'jamb-training-school-kaduna',
@@ -57,7 +59,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'In a bid to enhance staff capacity and operational efficiency, the Joint Admissions and Matriculation Board (JAMB) has established its dedicated training institute in Kaduna.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has commissioned its brand-new professional training school in Kaduna State. The facility is designed to provide specialized technical training, CBT administration certification, and rigorous capacity building for board personnel and examination partners.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 3920
   },
   {
     id: 'jamb-warri-remote-access-crackdown',
@@ -69,7 +72,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'Joint operatives of JAMB and the Nigeria Police Force have uncovered syndicate operations attempting remote access manipulation during the 2026 UTME at the College of Education, Warri centre.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB), in collaboration with the Nigeria Police Force, successfully intercepted and dismantled an illegal remote-access syndicate attempting to manipulate candidate computers during the 2026 UTME at the College of Education, Warri CBT centre. The perpetrators have been apprehended for prosecution.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: true
+    isImportant: true,
+    views: 8720
   },
   {
     id: 'fg-honorary-degree-dr-ban',
@@ -81,7 +85,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Federal Government has issued a strict directive prohibiting recipients of honorary doctorate degrees from prefixing their names with the \'Dr\' title, warning of severe sanctions.',
     fullContent: 'The Federal Government, through the supervising Ministry of Education and the National Universities Commission (NUC), has reiterated that recipients of honorary doctorate degrees are strictly barred from using the title "Doctor" or "Dr." in official and public correspondence. Defaulters face statutory sanctions.',
     sourceUrl: 'https://nuc.edu.ng',
-    isImportant: false
+    isImportant: false,
+    views: 3450
   },
   {
     id: 'jamb-mop-up-2026',
@@ -93,7 +98,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'JAMB has successfully concluded the mop-up Unified Tertiary Matriculation Examination (UTME) for candidates who experienced technical hitches during the main examination window.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has concluded its mop-up UTME examination for candidates affected by verified technical glitches, biometric verification delays, or center disruptions during the primary 2026 examination schedule.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 4890
   },
   {
     id: 'jamb-withholds-four-centres',
@@ -105,7 +111,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'Following comprehensive video review and audit reports, JAMB has announced the withholding of results for specific sessions across four CBT centres due to suspicious irregularities.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has exercised its statutory powers by withholding specific examination results across four CBT centres nationwide following forensic CCTV audits and behavioral anomaly detections during screening.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: true
+    isImportant: true,
+    views: 9450
   },
   {
     id: 'us-certificates-accepted-jamb',
@@ -117,7 +124,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'JAMB has clarified that educational certificates and diplomas earned from accredited United States institutions are formally recognized and acceptable for matriculation and Direct Entry admissions in Nigeria.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has confirmed that academic qualifications, high school diplomas, and associate degrees from accredited United States institutions meet evaluation benchmarks for admission into Nigerian tertiary institutions, subject to standard equivalency validation by the Federal Ministry of Education.',
     sourceUrl: 'https://jamb.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 2640
   },
   {
     id: 'fg-mandatory-drug-test',
@@ -129,7 +137,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Federal Government has approved a mandatory pre-employment drug screening protocol for all prospective applicants seeking entry into federal public service ministries and parastatals.',
     fullContent: 'In alignment with national health policies and workplace integrity standards, the Federal Government has instituted mandatory drug screening as a prerequisite for recruitment into federal civil service positions.',
     sourceUrl: 'https://gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 2120
   },
   {
     id: '19',
@@ -141,7 +150,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially released the approved departmental aggregate cut-off marks for the 2026/2026 admission exercise across all faculties.',
     fullContent: 'The Undergraduate Admissions Unit of the University of Ibadan (UI) has officially published the approved departmental aggregate cut-off marks for the 2026/2026 undergraduate admission exercise.\n\nThe released document contains merit, catchment, and Educationally Less Developed States (ELDS) cutoff marks across all 13 faculties:\n\nKey Highlights:\n- Medicine and Surgery: 78.875 (Merit & Catchment) / 77.375 (ELDS)\n- Nursing Science: 71.375 (Merit & Catchment) / 67.875 (ELDS)\n- Law: 70.875 (Merit & Catchment) / 67.625 (ELDS)\n- Mechanical Engineering: 70.500 (Merit & Catchment) / 60.125 (ELDS)\n- Electrical and Electronics Engineering: 70.000 (Merit & Catchment) / 58.875 (ELDS)\n- Pharmacy: 69.125 (Merit & Catchment) / 62.875 (ELDS)\n- Dentistry: 68.625 (Merit & Catchment) / 66.750 (ELDS)\n- Accounting: 68.500 (Merit & Catchment) / 66.125 (ELDS)\n- Physiotherapy: 65.125 (Merit & Catchment) / 61.625 (ELDS)\n- Computer Science: 63.500 (Merit & Catchment) / 53.500 (ELDS)\n- Medical Laboratory Science: 63.250 (Merit & Catchment) / 60.250 (ELDS)\n- Civil Engineering: 63.250 (Merit & Catchment) / 57.000 (ELDS)\n- Petroleum Engineering: 62.750 (Merit & Catchment) / 57.125 (ELDS)\n- Communication and Language Arts: 61.000 (Merit & Catchment) / 58.500 (ELDS)\n- Economics: 58.125 (Merit & Catchment) / 53.625 (ELDS)\n- Veterinary Medicine: 57.125 (Merit & Catchment) / 57.125 (ELDS)\n\nCandidates are advised that aggregate scores are computed via: Aggregate = (JAMB / 8) + (Post-UTME / 2).',
     sourceUrl: 'https://admissions.ui.edu.ng',
-    isImportant: false
+    isImportant: false,
+    views: 26780
   },
   {
     id: '18',
@@ -153,7 +163,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'While a universal date has not been set by all, several Nigerian universities have started announcing their specific Post-UTME screening procedures for the 2025/2026 session.',
     fullContent: 'For the 2025/2026 academic session, a number of Nigerian universities have started to release their specific Post-UTME screening requirements and registration procedures. Candidates are strongly advised to check the official websites of their preferred institutions regularly as announcements are being made gradually.\n\nBe cautious of third-party platforms claiming to handle registrations or charging for "guaranteed" admission. Always use official university portals.',
     sourceUrl: 'https://myschool.ng',
-    isImportant: false
+    isImportant: false,
+    views: 18900
   },
   {
     id: '15',
@@ -165,7 +176,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has officially released the results of the 2026 Unified Tertiary Matriculation Examination (UTME), showing a sharp decline in average scores.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has officially announced the release of the 2026 Unified Tertiary Matriculation Examination (UTME) results.\n\nOut of the 1,985,642 candidates who registered and sat for the exam across 750 CBT centres nationwide, only about 24% scored 200 and above, while approximately 76% scored below the 200 mark. This has raised concerns among parents, teachers, and university administrators regarding the high-stakes testing environment and candidate preparation.\n\nJAMB Registrar, Prof. Is-haq Oloyede, stated that the board will not compromise on its standards and warned against fraudulent sites claiming to upgrade scores.\n\nHow to check your results:\n- Send UTME-RESULT to 55019 or 66019 using the phone number registered for the profile.\n- Alternatively, log in to the official JAMB e-facility portal to print your result slip.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 42650
   },
   {
     id: '16',
@@ -177,7 +189,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Nigerian Education Loan Fund (NELFUND) has successfully disbursed academic fees for over 20,000 undergraduate applicants in several state and federal universities.',
     fullContent: 'The management of the Nigerian Education Loan Fund (NELFUND) has announced the successful clearance and disbursement of administrative and academic tuition fees directly to selected institutions under its first phase.\n\nKey beneficiaries in this round include:\n- University of Lagos (UNILAG) - N1.2 Billion\n- University of Ibadan (UI) - N950 Million\n- Ahmadu Bello University (ABU) - N1.5 Billion\n- University of Nigeria, Nsukka (UNN) - N1.1 Billion\n\nThe Managing Director of NELFUND stated that this direct disbursement covers 100% of institutional charges for student loan applicants. In addition to the tuition support, qualified students will begin receiving their monthly N20,000 upkeep allowances directly into their bank accounts from the end of May 2026.',
     sourceUrl: 'https://nelfund.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 15800
   },
   {
     id: '17',
@@ -189,7 +202,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Academic Staff Union of Universities (ASUU) has put federal and state branches on high alert for a potential warning strike, citing government indifference to renegotiated welfare packages.',
     fullContent: 'Following an Emergency National Executive Council (NEC) session on May 23, 2026, the Academic Staff Union of Universities (ASUU) has criticized the Federal Government over its continuous delay in implementing the negotiated 2026 Funding and Revitalization Agreement.\n\nThe union has given a final 14-day ultimatum, threatening a 2-week warning strike if their demands are not addressed.\n\nMain demands include:\n- Immediate full settlement of withheld salaries and earned academic allowances (EAA).\n- Total removal of university payroll systems from IPPIS to safeguard university autonomy.\n- Release of revitalization funding to arrest decaying campus infrastructures nationwide.\n\nASUU President urged students and parents to understand that this push is necessary to secure the quality and survival of public education in Nigeria.',
     sourceUrl: 'https://asuu.org.ng',
-    isImportant: false
+    isImportant: false,
+    views: 17250
   },
   {
     id: '5',
@@ -201,7 +215,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has announced that there will be NO extension for the 2026 registration period. ePIN sales end Feb 26th, while final registration closes Feb 28th.',
     fullContent: 'JAMB has officially confirmed that approximately one million candidates have already registered for the ongoing 2026 UTME. The Board has made it clear that the registration timeline remains unchanged to align with the calendars of other examination bodies. \n\nKey Dates to Note:\n- Monday, Jan 26: Registration Commenced\n- Thursday, Feb 26: Sales of ePIN Conclude\n- Saturday, Feb 28: Final Registration Deadline\n\nThe Board expressed concern over the "near absence" of candidates at many accredited CBT centres at this stage and warns that late-minute agitations for extensions will not be entertained. Candidates are also warned to beware of registration cheats and fraudulent tutorial centres posing as CBT agents.',
     sourceUrl: 'https://myschool.ng',
-    isImportant: false
+    isImportant: false,
+    views: 12100
   },
   {
     id: '3',
@@ -212,7 +227,8 @@ Candidates can download the complete official timetable in PDF format using the 
     image: '',
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has scheduled the 2026 Unified Tertiary Matriculation Examination (UTME) registration to commence on January 31, 2026. Candidates are required to generate their profile codes using their NIN.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: false
+    isImportant: false,
+    views: 13400
   },
   {
     id: '1',
@@ -222,7 +238,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Jan 02, 2026',
     image: '',
     excerpt: 'The University of Lagos (UNILAG) has released the early schedule for the 2026 screening exercise. Candidates are advised to prepare their O-Level results.',
-    sourceUrl: 'https://unilag.edu.ng/?cat=4'
+    sourceUrl: 'https://unilag.edu.ng/?cat=4',
+    views: 14200
   },
   {
     id: '2',
@@ -232,7 +249,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Jan 01, 2026',
     image: '',
     excerpt: 'Lagos State University (LASU) continues its dominance in research and student welfare, securing the #1 spot in the latest January rankings.',
-    sourceUrl: 'https://lasu.edu.ng/home/news/'
+    sourceUrl: 'https://lasu.edu.ng/home/news/',
+    views: 7650
   },
   {
     id: '6',
@@ -242,7 +260,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 15, 2026',
     image: '',
     excerpt: 'Shell Nigeria (SPDC) invites applications from full-time second-year undergraduates in Nigerian Universities for its 2026 University Scholarship Scheme.',
-    sourceUrl: 'https://www.shell.com.ng'
+    sourceUrl: 'https://www.shell.com.ng',
+    views: 8300
   },
   {
     id: '7',
@@ -252,7 +271,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 18, 2026',
     image: '',
     excerpt: 'The Federal Civil Service Commission is inviting applications from qualified Nigerians for various positions in several Ministries, Departments, and Agencies.',
-    sourceUrl: 'https://fedcivilservice.gov.ng'
+    sourceUrl: 'https://fedcivilservice.gov.ng',
+    views: 6450
   },
   {
     id: '8',
@@ -262,7 +282,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 20, 2026',
     image: '',
     excerpt: 'The National Youth Service Corps (NYSC) has directed all prospective corps members for 2026 Batch A to verify their names on the Senate list.',
-    sourceUrl: 'https://www.nysc.gov.ng'
+    sourceUrl: 'https://www.nysc.gov.ng',
+    views: 7120
   },
   {
     id: '9',
@@ -272,7 +293,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 22, 2026',
     image: '',
     excerpt: 'The National Universities Commission (NUC) has granted operational licenses to 12 new private institutions to expand access to higher education.',
-    sourceUrl: 'https://nuc.edu.ng'
+    sourceUrl: 'https://nuc.edu.ng',
+    views: 4350
   },
   {
     id: '10',
@@ -283,7 +305,8 @@ Candidates can download the complete official timetable in PDF format using the 
     image: '',
     excerpt: 'The Academic Staff Union of Universities (ASUU) has warned of a potential strike if the Federal Government fails to implement the 2026 funding roadmap.',
     sourceUrl: 'https://asuu.org.ng',
-    isImportant: true
+    isImportant: true,
+    views: 10650
   },
   {
     id: '11',
@@ -293,7 +316,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 25, 2026',
     image: '',
     excerpt: 'In a bid to curb examination malpractice, JAMB will implement advanced biometric verification for the upcoming 2026 Mock UTME scheduled for March.',
-    sourceUrl: 'https://jamb.gov.ng'
+    sourceUrl: 'https://jamb.gov.ng',
+    views: 5200
   },
   {
     id: '12',
@@ -303,7 +327,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 26, 2026',
     image: '',
     excerpt: 'Several tier-1 Nigerian banks have opened their 2026 graduate trainee portals. Applicants must have a minimum of 2:1 and be under 26 years old.',
-    sourceUrl: 'https://proshare.co'
+    sourceUrl: 'https://proshare.co',
+    views: 5980
   },
   {
     id: '13',
@@ -313,7 +338,8 @@ Candidates can download the complete official timetable in PDF format using the 
     date: 'Feb 27, 2026',
     image: '',
     excerpt: 'The NYSC management has released the official timetable for the 2026 Batch A orientation course. Registration begins next week.',
-    sourceUrl: 'https://nysc.gov.ng'
+    sourceUrl: 'https://nysc.gov.ng',
+    views: 6890
   },
   {
     id: '14',
@@ -324,7 +350,8 @@ Candidates can download the complete official timetable in PDF format using the 
     image: '',
     excerpt: 'The National Universities Commission (NUC) has introduced 16 stringent guidelines for the award of honorary degrees in Nigerian universities to maintain academic integrity.',
     fullContent: 'The National Universities Commission (NUC) has released a new set of 16 guidelines to regulate the award of honorary doctorate degrees in the Nigerian University System (NUS). \n\nThis move aims to curb the perceived "commercialization" of honorary degrees and ensure that such honors are reserved for individuals who have made truly exceptional contributions to society. \n\nKey Guidelines Include:\n- Mandatory 7-year gap between awards for the same individual.\n- Prohibition of awarding honorary degrees to individuals currently holding political office.\n- Strict criteria for the selection process involving the University Senate and Council.\n- Limitation on the number of honorary degrees a university can award per convocation.\n\nThe NUC warned that universities found violating these guidelines would face sanctions, including the withdrawal of accreditation for certain programs.',
-    sourceUrl: 'https://nuc.edu.ng'
+    sourceUrl: 'https://nuc.edu.ng',
+    views: 2980
   },
   {
     id: '99',
@@ -336,7 +363,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'The Joint Admissions and Matriculation Board (JAMB) has released new directives for 2025/2026 admissions, strengthening Central Admissions Processing System (CAPS) operations and admission integrity.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has released mandatory guidelines and directives governing the 2025/2026 academic session admissions cycle through the Central Admissions Processing System (CAPS). This release seeks to eliminate administrative arbitrariness, enforce transparency, and safeguard the absolute integrity of university admission selections across Nigeria.\n\n### The Supremacy of CAPS\nJAMB Registrar, Prof. Is-haq Oloyede, reiterated that any admission offer processed outside the official CAPS platform is not only illegal but completely null and void. Candidates who accept "paper admissions" or informal school listings do so at their own risk, as such admissions will not be recognized for mobilization by the National Youth Service Corps (NYSC) or for the validation of graduation credentials.\n\n### Key Regulations Implemented\n1. **First Choice Priority**: Tertiary institutions are strictly prohibited from recommending candidates for admission who did not choose them as their first-choice institution during the primary window.\n2. **Threshold Adherence**: Recommendations must strictly comply with the officially approved institutional and departmental cutoff marks. No candidate with an aggregate score lower than the defined minimum can be recommended under any circumstances.\n3. **Acceptance Timeline**: Once an admission recommendation is uploaded and approved on CAPS, candidates have a strict, non-negotiable window to accept or reject the offer. Unaccepted offers will be automatically withdrawn and the slot declared vacant for subsequent batches.\n4. **Quota and Geopolitics**: All institutions must adhere strictly to their approved capacities and the federal government\'s policy on Catchment Areas, Merit, and Educationally Less Developed States (ELDS) during the recommendation process on the platform.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: true
+    isImportant: true,
+    views: 21500
   },
   {
     id: '100',
@@ -348,7 +376,8 @@ Candidates can download the complete official timetable in PDF format using the 
     excerpt: 'JAMB warns candidates on the importance of visiting accredited centers for correction of data and change of institution. The board has also introduced a mandatory status declaration to enforce compliance.',
     fullContent: 'The Joint Admissions and Matriculation Board (JAMB) has issued comprehensive new guidelines for candidates wishing to apply for a Change of Institution, Course, or Correction of Data for the 2025/2026 academic session. The board warns candidates against utilizing unauthorized platforms or cybercafes, emphasizing that all such transactions must be completed strictly at accredited JAMB CBT centers nationwide.\n\n### Mandatory Matriculation Status Declaration\nIn a decisive step to strengthen compliance and prevent double enrollment, JAMB has introduced a **mandatory status declaration for all candidates, requiring anyone already enrolled in a tertiary institution to clearly state their matriculation status during registration**.\n\nFailure to disclose or falsifying this status will result in the immediate cancellation of registration and the withdrawal of previous admissions. This directive is designed to prevent candidates from blocking multiple admission slots across different universities, ensuring a fair opportunity for all UTME participants.\n\n### Security and Biometric Protocols\nTo eliminate third-party interference and identity theft during corrections, JAMB has enforced strict biometric verification before any database alteration can take place. candidates must undergo fingerprint validation at an accredited CBT center. No change of institution, course, or date of birth can be initiated without the physical presence and biometric confirmation of the candidate.\n\n### Navigating CAPS Portal Transfers\nCandidates are advised to closely monitor the "Transfer Approval" tab on their JAMB CAPS profiles. Under the new guidelines, if a candidate does not meet the highly competitive cutoff mark for their primary choice of course, but meets the threshold for a related or alternative program, the institution may propose a transfer. Candidates must manually accept this program transfer on CAPS for the new recommendation to progress.',
     sourceUrl: 'https://www.jamb.gov.ng',
-    isImportant: true
+    isImportant: true,
+    views: 19340
   }
 ];
 

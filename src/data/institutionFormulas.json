@@ -63,5 +63,13 @@
     "formula_description": "Aggregate Score = (UTME Score / 8) + (Post-UTME Screening Score / 2) (50:50) evaluated against official approved programme cut-off percentages.",
     "utme_weighting": 50,
     "post_utme_weighting": 50
+  },
+  {
+    "institution_name": "Obafemi Awolowo University (OAU)",
+    "slug": "oau",
+    "formula_description": "Aggregate Score = (UTME Score / 8) + Post-UTME (out of 40) + O'Level Points (out of 10) (50:40:10 ratio). O'Level points scale: A1=10, B2=9, B3=8, C4=7, C5=6, C6=5 divided by 5.",
+    "utme_weighting": 50,
+    "post_utme_weighting": 40,
+    "olevel_weighting": 10
   }
 ]

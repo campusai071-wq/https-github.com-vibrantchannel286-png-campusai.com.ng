@@ -430,9 +430,14 @@ const AppContent: React.FC = () => {
       localStorage.setItem('campusai_referral_code', ref);
     }
     
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    // Request notification permission safely (handling iframe permission policy rejection)
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      try {
+        const res = Notification.requestPermission();
+        if (res && typeof (res as any).catch === 'function') {
+          (res as any).catch(() => {});
+        }
+      } catch {}
     }
 
     // Real-time site traffic tracker and recorder
@@ -493,7 +498,9 @@ const AppContent: React.FC = () => {
       }
     };
 
-    loadGlobalSettings();
+    loadGlobalSettings().catch((err) => {
+      console.warn("[App] loadGlobalSettings failed gracefully:", err);
+    });
 
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
@@ -507,10 +514,10 @@ const AppContent: React.FC = () => {
         const sortedNews = [...newsItems].sort((a, b) => sortNewsBySyncAndDate(a, b));
         setNews(sortedNews);
       } catch (err) {
-        console.error("App: reloadNews error:", err);
+        console.warn("App: reloadNews error:", err);
       }
     };
-    reloadNews();
+    reloadNews().catch(() => {});
     window.addEventListener('campusai_news_updated', reloadNews);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {

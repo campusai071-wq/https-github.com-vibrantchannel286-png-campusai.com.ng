@@ -24,12 +24,23 @@ describe('admissionsEngine', () => {
       const grades = ['A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1']; // more than 5 A1s
       expect(calculateOlevelPoints(grades, 'unilag')).toBeLessThanOrEqual(20);
     });
+
+    it('calculates OAU A1=10 scale divided by 5 up to 10 max', () => {
+      // C4(7) + B3(8) + C4(7) + B3(8) + C5(6) = 36 / 5 = 7.2
+      const grades = ['C4', 'B3', 'C4', 'B3', 'C5'];
+      expect(calculateOlevelPoints(grades, 'oau')).toBe(7.2);
+    });
   });
 
   describe('getDepartmentalCutoff', () => {
     it('returns official 2025/2026 UNILAG Medicine cutoff', () => {
       const cutoff = getDepartmentalCutoff('University of Lagos', 'Medicine & Surgery');
       expect(cutoff).toBe(80.50);
+    });
+
+    it('returns official 2025/2026 OAU Computer Science with Mathematics cutoff', () => {
+      const cutoff = getDepartmentalCutoff('Obafemi Awolowo University', 'Computer Science with Mathematics');
+      expect(cutoff).toBe(67.73);
     });
 
     it('returns -1 for unknown department or institution', () => {
@@ -99,6 +110,33 @@ describe('admissionsEngine', () => {
 
       expect(result.aggregate).toBe(70.0);
       expect(result.quotaPool).toBe('merit');
+    });
+
+    it('evaluates OAU 50:40:10 formula correctly for Computer Science with Mathematics', () => {
+      // Candidate inputs:
+      // JAMB: 242 (242 / 8 = 30.25)
+      // Post-UTME: 62.5% (scaled to 40% = 25.0)
+      // O'Level: C4, B3, C4, B3, C5 -> (7+8+7+8+6)/5 = 7.2
+      // Aggregate = 30.25 + 25.0 + 7.2 = 62.45
+      // Published Merit Cutoff: 67.73
+      // Catchment discount: 3.0 -> Effective Cutoff: 64.73
+      // Buffer: 62.45 - 64.73 = -2.28 (Candidate is borderline/below cutoff)
+      const olevel = calculateOlevelPoints(['C4', 'B3', 'C4', 'B3', 'C5'], 'OAU');
+      const result = evaluateAdmission(
+        'Obafemi Awolowo University',
+        'Computer Science with Mathematics',
+        242,
+        62.5,
+        olevel,
+        false, // not ELDS
+        true   // Oyo is in Catchment for OAU
+      );
+
+      expect(result.aggregate).toBe(62.45);
+      expect(result.publishedCutoff).toBe(67.73);
+      expect(result.effectiveCutoff).toBe(64.73);
+      expect(result.quotaPool).toBe('catchment');
+      expect(result.buffer).toBe(-2.28);
     });
   });
 });

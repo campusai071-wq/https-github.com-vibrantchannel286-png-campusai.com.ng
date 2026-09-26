@@ -63,15 +63,37 @@ export const UNILAG_OLEVEL_GRADE_MAP: Record<string, number> = {
   F9: 0.0,
 };
 
+export const OAU_OLEVEL_GRADE_MAP: Record<string, number> = {
+  A1: 10,
+  B2: 9,
+  B3: 8,
+  C4: 7,
+  C5: 6,
+  C6: 5,
+  D7: 0,
+  E8: 0,
+  F9: 0,
+};
+
 /**
  * Calculates candidate's O-Level aggregate contribution based on best 5 relevant subjects.
  * For UNILAG: A1=4.0, B2=3.6, B3=3.2, C4=2.8, C5=2.4, C6=2.0 (Max = 20.0 points)
+ * For OAU: A1=10, B2=9, B3=8, C4=7, C5=6, C6=5 -> sum of 5 ÷ 5 (Max = 10.0 points)
  */
 export function calculateOlevelPoints(
   grades: string[],
   institution: string = 'unilag'
 ): number {
   const uni = institution.toLowerCase();
+  if (uni.includes('oau') || uni.includes('obafemi') || uni.includes('ife')) {
+    const sorted = grades
+      .map((g) => OAU_OLEVEL_GRADE_MAP[g.toUpperCase().trim()] ?? 0)
+      .sort((a, b) => b - a)
+      .slice(0, 5);
+    const sum = sorted.reduce((acc, curr) => acc + curr, 0);
+    return parseFloat((sum / 5).toFixed(2));
+  }
+
   const sortedPoints = grades
     .map((g) => UNILAG_OLEVEL_GRADE_MAP[g.toUpperCase().trim()] ?? 0)
     .sort((a, b) => b - a)
@@ -212,6 +234,38 @@ export const UNN_CUTOFFS_2025: Record<string, number> = {
   'Education': 55.00,
 };
 
+/**
+ * OAU (Obafemi Awolowo University) 2025/2026 Departmental Cutoffs (50:40:10 model, out of 100)
+ */
+export const OAU_CUTOFFS_2025: Record<string, number> = {
+  'Medicine & Surgery': 82.60,
+  'Dentistry': 74.00,
+  'Nursing Science': 75.80,
+  'Pharmacy': 76.50,
+  'Medical Rehabilitation': 69.50,
+  'Law': 73.50,
+  'Computer Science': 71.20,
+  'Computer Science with Mathematics': 67.73,
+  'Computer Engineering': 73.50,
+  'Electronic & Electrical Engineering': 74.20,
+  'Mechanical Engineering': 73.80,
+  'Civil Engineering': 71.50,
+  'Chemical Engineering': 72.00,
+  'Accounting': 70.80,
+  'Economics': 67.50,
+  'Business Administration': 66.80,
+  'International Relations': 68.20,
+  'Political Science': 65.50,
+  'Mass Communication': 67.00,
+  'English Language': 64.00,
+  'Architecture': 69.50,
+  'Microbiology': 65.00,
+  'Biochemistry': 65.50,
+  'Mathematics': 62.00,
+  'Physics': 60.50,
+  'Chemistry': 61.00,
+};
+
 // ─── Departmental Cutoff Lookup ───────────────────────────────────────────────
 
 /** Fuzzy cutoff lookup: exact → case-insensitive → substring */
@@ -240,6 +294,9 @@ export function getDepartmentalCutoff(institutionName: string, courseName: strin
   }
   if (uni.includes('nsukka') || uni.includes('unn') || (uni.includes('nigeria') && uni.includes('university'))) {
     return lookupCutoff(UNN_CUTOFFS_2025, course);
+  }
+  if (uni.includes('oau') || uni.includes('obafemi') || uni.includes('ife')) {
+    return lookupCutoff(OAU_CUTOFFS_2025, course);
   }
   return -1;
 }
@@ -324,6 +381,12 @@ export function evaluateAdmission(
     const j = jamb / 8;
     aggregate = parseFloat(Math.min(j + postUtme, 100).toFixed(2));
     formulaBreakdown = `UNN Online Screening → (${jamb}/8) + O'Level screening(${postUtme}) = ${j.toFixed(2)} + ${postUtme} = ${aggregate}`;
+  } else if (uni.includes('oau') || uni.includes('obafemi') || uni.includes('ife')) {
+    const j = jamb / 8; // UTME scaled to 50%
+    const p = postUtme > 40 ? (postUtme / 100) * 40 : postUtme; // Post-UTME scaled to 40%
+    const o = Math.min(olevelPoints, 10); // O'Level points out of 10
+    aggregate = parseFloat(Math.min(j + p + o, 100).toFixed(2));
+    formulaBreakdown = `OAU 50:40:10 → JAMB(${j.toFixed(2)}) + Post-UTME(${p.toFixed(2)}) + O'Level(${o.toFixed(2)}) = ${aggregate}`;
   } else {
     // Generic 50:30:20 fallback
     const j = jamb / 400 * 50;

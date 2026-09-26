@@ -271,7 +271,8 @@ const calculateAggregateScore = (
   post: number,
   olevelTotal: number,
   uniName: string,
-  system: ScoringSystem | null
+  system: ScoringSystem | null,
+  oauScale: 'raw40' | 'percent100' = 'raw40'
 ): number => {
   if (!system) {
     return jamb / 4;
@@ -305,7 +306,13 @@ const calculateAggregateScore = (
     return (jamb / 400 * 50) + (post / 100 * 20) + (olevelTotal / 50 * 30);
   }
   if (formula === '50:40:10' || formula === '50/40/10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
-    return (jamb / 8) + (post / 100 * 40) + (olevelTotal / 5);
+    let postScaled: number;
+    if (oauScale === 'percent100') {
+      postScaled = (post / 100) * 40;
+    } else {
+      postScaled = post > 40 ? (post / 100) * 40 : post;
+    }
+    return (jamb / 8) + postScaled + olevelTotal;
   }
   if (formula === '50:50' || formula === '50/50' || desc.includes('50:50') || desc.includes('50/50') || (desc.includes('50%') && desc.includes('50%'))) {
     return (jamb / 8) + (post / 2);
@@ -1345,6 +1352,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     localStorage.setItem('campusai_aggregate_calc_count', String(newCount));
   };
   const [postUtmeScore, setPostUtmeScore] = useState('');
+  const [oauScoreScale, setOauScoreScale] = useState<'raw40' | 'percent100'>('raw40');
   const [targetUni, setTargetUni] = useState<any>(null);
   const [targetCourse, setTargetCourse] = useState('');
   const [uniSearch, setUniSearch] = useState('');
@@ -1434,6 +1442,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
     return scoringSystem;
   }, [manualOverrideActive, scoringSystem, targetUni, manualHasJamb, manualHasPostUtme, manualHasOLevel, manualFormula]);
+
+  const isOau = useMemo(() => {
+    const checkText = ((targetUni?.name || '') + ' ' + (targetUni?.slug || '') + ' ' + (initialSchoolName || '') + ' ' + (currentSchoolSlug || '') + ' ' + uniSearch).toLowerCase();
+    return checkText.includes('awolowo') || checkText.includes('oau') || checkText.includes('ife');
+  }, [targetUni, initialSchoolName, currentSchoolSlug, uniSearch]);
 
   // Synchronize dynamic inputs toggle when manual formula preset selection changes
   useEffect(() => {
@@ -2194,10 +2207,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       const sittingBonus = sittings === 1 ? 10 : 6;
       return parseFloat(Math.min(100, Math.max(0, jambPoints + olevelPoints + sittingBonus)).toFixed(2));
     }
-    let total = calculateAggregateScore(jamb, post, activeOlevelPoints, uniName, computedScoringSystem);
+    let total = calculateAggregateScore(jamb, post, activeOlevelPoints, uniName, computedScoringSystem, oauScoreScale);
     if (sittings > 1) total -= 2;
     return parseFloat(Math.min(100, Math.max(0, total)).toFixed(2));
-  }, [jambScore, postUtmeScore, targetUni, computedScoringSystem, activeOlevelPoints, sittings, isDirectEntry, dePoints]);
+  }, [jambScore, postUtmeScore, targetUni, computedScoringSystem, activeOlevelPoints, sittings, isDirectEntry, dePoints, oauScoreScale]);
 
   const jambCutoffWarning = useMemo(() => {
     if (!targetUni || targetUni.category === 'COE' || isAR) return null;
@@ -2220,7 +2233,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     const normUni = (targetUni?.name || '').toLowerCase();
     const formula = system?.formula || '';
 
-    const oLPoints = (normUni.includes('oau') || formula === '50:40:10') ? (activeOlevelPoints || 0) / 5 : (activeOlevelPoints || 0);
+    const oLPoints = activeOlevelPoints || 0;
 
     if (normUni.includes('ui') || normUni.includes('uniben') || normUni.includes('uniport') || formula === '50:50') {
       if (reverseSolveFor === 'jamb') {
@@ -2275,29 +2288,30 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       }
     } else if (normUni.includes('oau') || formula === '50:40:10') {
       if (reverseSolveFor === 'jamb') {
-        const rem = targetA - (currentPost / 100 * 40) - oLPoints;
+        const postVal = currentPost > 40 ? (currentPost / 100 * 40) : currentPost;
+        const rem = targetA - postVal - oLPoints;
         const requiredJamb = rem * 8;
         return {
           valid: true,
           solvedVar: 'JAMB UTME Score',
           requiredValue: Math.round(requiredJamb),
           maxLimit: 400,
-          formulaText: `JAMB = (Target - (Post-UTME * 0.4) - O'Level) * 8`,
+          formulaText: `JAMB = (Target - Post-UTME (out of 40) - O'Level) * 8`,
           isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
-          details: `To achieve ${targetA.toFixed(1)} at OAU, given Post-UTME (${currentPost}) and O'Level (${oLPoints.toFixed(1)}), you need JAMB ${Math.round(requiredJamb)} / 400.`
+          details: `To achieve ${targetA.toFixed(1)} at OAU, given Post-UTME (${postVal.toFixed(1)} / 40) and O'Level (${oLPoints.toFixed(1)} / 10), you need JAMB ${Math.round(requiredJamb)} / 400.`
         };
       } else {
         const jambPart = currentJamb / 8;
         const rem = targetA - jambPart - oLPoints;
-        const requiredPost = rem * (100 / 40);
+        const requiredPost = rem;
         return {
           valid: true,
-          solvedVar: 'Post-UTME Score',
+          solvedVar: 'Post-UTME Score (out of 40)',
           requiredValue: Number(requiredPost.toFixed(1)),
-          maxLimit: 100,
-          formulaText: `Post-UTME = (Target - (JAMB / 8) - O'Level) * (100 / 40)`,
-          isAchievable: requiredPost >= 0 && requiredPost <= 100,
-          details: `To achieve ${targetA.toFixed(1)} at OAU, given JAMB (${currentJamb}) and O'Level (${oLPoints.toFixed(1)}), you need Post-UTME ${requiredPost.toFixed(1)} / 100.`
+          maxLimit: 40,
+          formulaText: `Post-UTME (out of 40) = Target - (JAMB / 8) - O'Level`,
+          isAchievable: requiredPost >= 0 && requiredPost <= 40,
+          details: `To achieve ${targetA.toFixed(1)} at OAU, given JAMB (${currentJamb}) and O'Level (${oLPoints.toFixed(1)} / 10), you need a Post-UTME score of ${requiredPost.toFixed(1)} / 40 (or ${Math.min(100, Math.max(0, (requiredPost / 40) * 100)).toFixed(1)}%).`
         };
       }
     } else if (normUni.includes('futa') || formula === 'futa_75_25') {
@@ -2414,11 +2428,11 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       return parseFloat((jambPoints + olevelPoints + sittingBonus).toFixed(2));
     }
 
-    let total = calculateAggregateScore(simJamb, simPost, simOlevelTotal, uniName, computedScoringSystem);
+    let total = calculateAggregateScore(simJamb, simPost, simOlevelTotal, uniName, computedScoringSystem, oauScoreScale);
 
     if (sittings > 1) total -= 2;
     return parseFloat(Math.max(0, total).toFixed(2));
-  }, [simJamb, simPost, simOlevelTotal, targetUni, computedScoringSystem, sittings]);
+  }, [simJamb, simPost, simOlevelTotal, targetUni, computedScoringSystem, sittings, oauScoreScale]);
 
   const simulatedProbability = useMemo(() => {
     const cutoffBase = (quotaBreakdown?.adjustedCutoff || aiResult?.departmentalCutoff || aiResult?.cutoff || 50);
@@ -4269,7 +4283,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     <div className="flex items-center justify-between">
                       <p className="text-[8px] font-bold text-cyan-200 flex items-center gap-1.5">
                         <Sparkles size={11} className="text-cyan-400 shrink-0" />
-                        <span><strong>Simulation Mode Active:</strong> Simulating admission chances with a target score of <span className="text-cyan-300 font-black underline">{postUtmeScore || '70'}/100</span>.</span>
+                        <span><strong>Simulation Mode Active:</strong> Simulating admission chances with a target score of <span className="text-cyan-300 font-black underline">{postUtmeScore || (isOau ? (oauScoreScale === 'raw40' ? '28' : '70') : '70')}{isOau ? (oauScoreScale === 'raw40' ? '/40' : '%') : '/100'}</span>.</span>
                       </p>
                       <span className="text-[7px] font-black uppercase bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full shrink-0">
                         Target Simulation
@@ -4277,7 +4291,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                       <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider">Quick test target score:</span>
-                      {['55', '60', '65', '70', '75', '80', '85', '90'].map(pts => (
+                      {(isOau 
+                        ? (oauScoreScale === 'raw40' ? ['18', '20', '22', '25', '28', '30', '32', '35'] : ['50', '55', '60', '65', '70', '75', '80', '85'])
+                        : ['55', '60', '65', '70', '75', '80', '85', '90']
+                      ).map(pts => (
                         <button
                           key={pts}
                           type="button"
@@ -4288,7 +4305,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                               : 'bg-black/40 text-gray-300 hover:bg-cyan-500/20 hover:text-white border border-white/5'
                           }`}
                         >
-                          {pts}%
+                          {pts}{isOau ? (oauScoreScale === 'raw40' ? '/40' : '%') : '%'}
                         </button>
                       ))}
                     </div>
@@ -4337,16 +4354,68 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               {/* Post-UTME */}
               {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) && (
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                     <label htmlFor="post-utme-score" className="text-[8px] font-black uppercase text-gray-400 tracking-widest ml-1">
-                      {isPostUtmePending ? 'Simulated Target Post-UTME (Max 100)' : 'Post-UTME Score (Max 100)'}
+                      {isOau
+                        ? (isPostUtmePending 
+                            ? `Simulated Post-UTME (${oauScoreScale === 'raw40' ? 'Max 40' : 'Percentage %'})` 
+                            : `OAU Post-UTME (${oauScoreScale === 'raw40' ? 'Score / 40' : 'Percentage %'})`)
+                        : (isPostUtmePending ? 'Simulated Target Post-UTME (Max 100)' : 'Post-UTME Score (Max 100)')}
                     </label>
-                    <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${isPostUtmePending ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'}`}>
-                      {isPostUtmePending ? 'Pending Mode' : 'Written'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isOau && (
+                        <div className="flex items-center bg-black/70 p-0.5 rounded-lg border border-cyan-500/30">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (oauScoreScale !== 'raw40') {
+                                setOauScoreScale('raw40');
+                                if (postUtmeScore && parseFloat(postUtmeScore) > 40) {
+                                  const converted = ((parseFloat(postUtmeScore) / 100) * 40).toFixed(1).replace(/\.0$/, '');
+                                  setPostUtmeScore(converted);
+                                }
+                              }
+                            }}
+                            className={`px-2 py-0.5 rounded text-[7.5px] font-black uppercase transition-all cursor-pointer ${
+                              oauScoreScale === 'raw40'
+                                ? 'bg-cyan-500 text-black shadow-sm font-black'
+                                : 'text-gray-400 hover:text-white'
+                            }`}
+                            title="Enter raw score out of 40"
+                          >
+                            / 40
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (oauScoreScale !== 'percent100') {
+                                setOauScoreScale('percent100');
+                                if (postUtmeScore && parseFloat(postUtmeScore) <= 40 && parseFloat(postUtmeScore) > 0) {
+                                  const converted = ((parseFloat(postUtmeScore) / 40) * 100).toFixed(1).replace(/\.0$/, '');
+                                  setPostUtmeScore(converted);
+                                }
+                              }
+                            }}
+                            className={`px-2 py-0.5 rounded text-[7.5px] font-black uppercase transition-all cursor-pointer ${
+                              oauScoreScale === 'percent100'
+                                ? 'bg-cyan-500 text-black shadow-sm font-black'
+                                : 'text-gray-400 hover:text-white'
+                            }`}
+                            title="Enter score as percentage out of 100"
+                          >
+                            % / 100
+                          </button>
+                        </div>
+                      )}
+                      <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${isPostUtmePending ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'}`}>
+                        {isPostUtmePending ? 'Pending Mode' : 'Written'}
+                      </span>
+                    </div>
                   </div>
                   <input
-                    id="post-utme-score" name="post-utme-score" type="number" placeholder={isPostUtmePending ? "70" : "e.g. 74"}
+                    id="post-utme-score" name="post-utme-score" type="number" 
+                    placeholder={isOau ? (oauScoreScale === 'raw40' ? (isPostUtmePending ? "28" : "e.g. 26") : (isPostUtmePending ? "70" : "e.g. 65")) : (isPostUtmePending ? "70" : "e.g. 74")}
+                    max={isOau ? (oauScoreScale === 'raw40' ? 40 : 100) : 100}
                     value={postUtmeScore}
                     onChange={e => {
                       setPostUtmeScore(e.target.value);
@@ -4362,8 +4431,17 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           : 'border-white/5 text-white focus:border-blue-500'
                     }`}
                   />
+                  {isOau && (
+                    <p className="text-[7.5px] text-cyan-400 font-semibold mt-1 text-center">
+                      {oauScoreScale === 'raw40'
+                        ? "📌 OAU raw score mode: 4 subjects × 10 marks = 40 max. (Toggle above if your score is in %)"
+                        : "📌 OAU percentage mode: Enter your score out of 100% (e.g. 62.5%). CampusAI will compute its 40% aggregate share."}
+                    </p>
+                  )}
                   {highlightedFieldKeys['post-utme-score'] && (
-                    <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider text-center">⚠️ Enter screening score or click Pending</p>
+                    <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider text-center">
+                      {isOau ? `⚠️ Enter your OAU score (0 - ${oauScoreScale === 'raw40' ? 40 : 100}) or click Pending` : '⚠️ Enter screening score or click Pending'}
+                    </p>
                   )}
                 </div>
               )}

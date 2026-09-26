@@ -82,8 +82,10 @@ app.use(cors({ origin: true, credentials: true }));
 const PORT = 3000;
 
 app.use((req, res, next) => {
-  const origin = req.headers.origin || req.headers.referer || 'N/A';
-  console.log(`[Server] ${req.method} ${req.url} | Origin: ${origin}`);
+  if (req.url.startsWith('/api')) {
+    const origin = req.headers.origin || req.headers.referer || 'N/A';
+    console.log(`[API] ${req.method} ${req.url} | Origin: ${origin}`);
+  }
   next();
 });
 
@@ -6442,7 +6444,10 @@ async function startServer() {
         appType: "spa",
       });
 
-      app.use(async (req, res, next) => {
+      app.use(vite.middlewares);
+      console.log("[Server] Vite middleware mounted successfully.");
+
+      app.use('*all', async (req: any, res: any, next: any) => {
         const isSourceOrAsset =
           req.originalUrl.startsWith('/api') ||
           req.originalUrl.startsWith('/@') ||
@@ -6464,9 +6469,6 @@ async function startServer() {
           next(e);
         }
       });
-
-      app.use(vite.middlewares);
-      console.log("[Server] Vite middleware mounted successfully.");
     } catch (viteErr) {
       console.error("[Server] Vite initialization failed. Falling back to static mode.", viteErr);
       const distPath2 = path.join(process.cwd(), 'dist');

@@ -2058,6 +2058,25 @@ export const getArticleViews = async (newsId: string, initialViews?: number): Pr
   return Math.max(1, baseViews + localViews);
 };
 
+export const getEffectiveArticleViews = (item: NewsItem | null | undefined): number => {
+  if (!item) return 0;
+  let localViews = 0;
+  try {
+    if (typeof window !== 'undefined') {
+      const storedId = item.id ? localStorage.getItem(`campusai_article_views_${item.id}`) : null;
+      const storedSlug = item.slug ? localStorage.getItem(`campusai_article_views_${item.slug}`) : null;
+      if (storedId) localViews = Math.max(localViews, parseInt(storedId, 10) || 0);
+      if (storedSlug) localViews = Math.max(localViews, parseInt(storedSlug, 10) || 0);
+    }
+  } catch (e) {}
+
+  if (typeof item.views === 'number' && item.views >= 0) {
+    return Math.max(localViews, item.views);
+  }
+
+  return localViews;
+};
+
 export const incrementAndGetArticleShares = async (newsId: string, initialShares?: number): Promise<number> => {
   if (!newsId) return 0;
   const localKey = `campusai_article_shares_${newsId}`;

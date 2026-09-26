@@ -4,7 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import './index.css';
 import App from './components/App.tsx';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { inject } from '@vercel/analytics';
 
 // Initialize Vercel Analytics
@@ -19,25 +19,42 @@ if (!Object.hasOwn) {
 
 // Global Error Handler — catches errors that fall outside React's tree
 window.onerror = function(message, source, lineno, colno, error) {
-  console.error("Global Error:", message, source, lineno, colno, error);
   if (error && error.message && error.message.includes("circular")) {
     console.error("Circular Structure Detected! Check the stack trace above.");
   }
 };
 
-// Unhandled promise rejections
+// Unhandled promise rejections — prevent noisy false-positive crash alarms for benign browser/network events
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('[CampusAI] Unhandled promise rejection:', event.reason);
+  const reason = event.reason;
+  const msg = reason?.message || String(reason || '');
+  if (
+    !reason ||
+    reason?.name === 'AbortError' ||
+    msg.includes('aborted') ||
+    msg.includes('Failed to register a ServiceWorker') ||
+    msg.includes('The play() request was interrupted') ||
+    msg.includes('Notification') ||
+    msg.includes('ResizeObserver')
+  ) {
+    event.preventDefault();
+    return;
+  }
+  console.warn('[CampusAI] Handled background rejection:', msg);
 });
 
-// Register Service Worker for Offline & Notifications
-if ('serviceWorker' in navigator) {
+// Register Service Worker for Offline & Notifications (safely handle sandboxed/iframe contexts)
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(_reg => console.log('CampusAI: Offline Shield Active ✅'))
-      .catch(_err => {
-        console.warn('CampusAI: SW registration skipped.');
-      });
+    try {
+      navigator.serviceWorker.register('./sw.js')
+        .then(_reg => console.log('CampusAI: Offline Shield Active ✅'))
+        .catch(_err => {
+          // Expected in certain sandboxed iframe environments
+        });
+    } catch {
+      // Ignore synchronous SW registration failure in sandboxed origins
+    }
   });
 }
 
