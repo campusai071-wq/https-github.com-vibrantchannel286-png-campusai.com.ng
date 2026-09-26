@@ -5,7 +5,7 @@ export const getApiUrl = (path: string): string => {
   if (typeof window === 'undefined') return path;
   
   // Detect if we are running in a native app context (Capacitor/Cordova) or file:// protocol
-  const isNativeApp = !!(window as any).Capacitor || !!(window as any).cordova || location.protocol === 'file:';
+  const isNativeApp = Capacitor.isNativePlatform() || !!(window as any).cordova || location.protocol === 'file:';
   
   // Detect if we are on Capacitor's internal mobile webview (usually port 80 or empty)
   const isCapacitorLocalhost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && 

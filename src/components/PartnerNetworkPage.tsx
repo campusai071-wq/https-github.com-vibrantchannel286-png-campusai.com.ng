@@ -38,22 +38,43 @@ interface PartnerNetworkPageProps {
 
 const NIGERIAN_STATES = [
   'ALL',
-  'Lagos',
-  'FCT Abuja',
-  'Oyo',
-  'Edo',
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
   'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
   'Enugu',
-  'Ondo',
-  'Rivers',
+  'FCT Abuja',
+  'Gombe',
+  'Imo',
+  'Jigawa',
   'Kaduna',
   'Kano',
-  'Osun',
-  'Ogun',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
   'Kwara',
-  'Imo',
-  'Anambra',
-  'Akwa Ibom'
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
 ];
 
 const CATEGORIES: { id: PartnerCategory | 'all'; label: string; icon: any }[] = [
@@ -130,8 +151,8 @@ export const PartnerNetworkPage: React.FC<PartnerNetworkPageProps> = ({ onNaviga
     e.preventDefault();
     setAppError(null);
 
-    if (!institutionName.trim() || !contactPerson.trim() || !phone.trim()) {
-      setAppError('Please fill in the required fields (Institution Name, Contact Person, Phone Number).');
+    if (!institutionName.trim() || !contactPerson.trim() || !phone.trim() || !appCity.trim() || !appAddress.trim()) {
+      setAppError('Please fill in all required fields: Institution Name, Contact Person, Phone Number, City, and Address.');
       return;
     }
 
@@ -162,7 +183,7 @@ export const PartnerNetworkPage: React.FC<PartnerNetworkPageProps> = ({ onNaviga
         servicesOffered: services.length > 0 ? services : ['JAMB Examination', 'Candidate Registration'],
         paymentStatus: 'pending',
         amountPaid: fee,
-        rating: 5.0,
+        rating: undefined,
         featured: false
       });
 
@@ -327,7 +348,7 @@ export const PartnerNetworkPage: React.FC<PartnerNetworkPageProps> = ({ onNaviga
                         </span>
                       )}
                     </div>
-                    {partner.rating && (
+                    {partner.rating != null && (
                       <div className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
                         <Star size={12} className="fill-amber-400 text-amber-400" />
                         {partner.rating.toFixed(1)}
@@ -375,7 +396,7 @@ export const PartnerNetworkPage: React.FC<PartnerNetworkPageProps> = ({ onNaviga
 
                   {partner.whatsapp && (
                     <a
-                      href={`https://wa.me/${partner.whatsapp.replace(/\+/g, '')}?text=${encodeURIComponent(`Hello, I saw ${partner.institutionName} on CampusAI Verified Partner Directory.`)}`}
+                      href={`https://wa.me/${partner.whatsapp.replace(/[\s+\-()]/g, '')}?text=${encodeURIComponent(`Hello, I saw ${partner.institutionName} on CampusAI Verified Partner Directory.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md"

@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+// @ts-ignore
+import { useFlutterwave } from 'flutterwave-react-v3';
+import { auth, MASTER_CONFIG } from '../services/firebaseConfig';
 import { 
   Megaphone, 
   Sparkles, 
@@ -64,11 +67,13 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
   const [adTitle, setAdTitle] = useState('');
   const [adDescription, setAdDescription] = useState('');
   const [ctaText, setCtaText] = useState('Learn More');
-  const [targetUrl, setTargetUrl] = useState('https://');
+  const [targetUrl, setTargetUrl] = useState('');
   const [badgeText, setBadgeText] = useState('Verified Sponsor');
   const [imageUrl, setImageUrl] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'paystack' | 'whatsapp' | 'flutterwave'>('flutterwave');
   const [formError, setFormError] = useState<string | null>(null);
+  const [payingAdId, setPayingAdId] = useState<string | null>(null);
+  const [payingAdAmount, setPayingAdAmount] = useState<number>(5000);
 
   // Advertiser Self-Service Management State
   const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
@@ -81,21 +86,48 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
   const [editUrl, setEditUrl] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [isUpdatingAd, setIsUpdatingAd] = useState(false);
-  const [payingAdId, setPayingAdId] = useState<string | null>(null);
   const [adActionMessage, setAdActionMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Flutterwave config for ad payment (populated when a pending_payment ad is found)
+  const adPaymentFwConfig = {
+    public_key: (typeof MASTER_CONFIG !== 'undefined' && MASTER_CONFIG?.FLUTTERWAVE_PUBLIC_KEY) || localStorage.getItem('campusai_flutterwave_key') || 'FLWPUBK_TEST_PLACEHOLDER',
+    tx_ref: `ad_${payingAdId || 'none'}_${Date.now()}`,
+    amount: payingAdAmount,
+    currency: 'NGN',
+    payment_options: 'card,mobilemoney,ussd,bank_transfer',
+    customer: {
+      email: (auth as any)?.currentUser?.email || contactEmail || 'advertiser@campusai.com.ng',
+      phone_number: contactPhone || '',
+      name: brandName || 'CampusAI Advertiser',
+    },
+    customizations: {
+      title: 'CampusAI Ad Campaign',
+      description: `Activate your ad on CampusAI.ng`,
+      logo: 'https://campusai.com.ng/favicon.svg',
+    },
+  };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const initiateAdPayment = useFlutterwave(adPaymentFwConfig);
+
+  // Security: only lookup by phone/email — never brand name — to prevent scraping other advertisers' data
   const handleLookupAds = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lookupEmailOrPhone.trim()) return;
+    const queryStr = lookupEmailOrPhone.trim().toLowerCase();
+    if (!queryStr) return;
+    // Only allow lookup by phone or email (not brand name) to prevent data leakage
+    const isPhone = /^[\d+\s\-()]+$/.test(queryStr);
+    const isEmail = queryStr.includes('@');
+    if (!isPhone && !isEmail) {
+      setAdActionMessage({ type: 'error', message: 'Please enter a valid phone number or email address.' });
+      return;
+    }
     setIsSearchingAds(true);
     setAdActionMessage(null);
     try {
       const all = await getAllAdCampaigns();
-      const queryStr = lookupEmailOrPhone.trim().toLowerCase();
-      const filtered = all.filter(a => 
-        (a.contactPhone && a.contactPhone.toLowerCase().includes(queryStr)) ||
-        (a.brandName && a.brandName.toLowerCase().includes(queryStr)) ||
-        (a.contactEmail && a.contactEmail.toLowerCase().includes(queryStr))
+      const filtered = all.filter(a =>
+        (isPhone && a.contactPhone && a.contactPhone.replace(/[\s\-()]/g, '').toLowerCase().includes(queryStr.replace(/[\s\-()]/g, ''))) ||
+        (isEmail && a.contactEmail && a.contactEmail.toLowerCase() === queryStr)
       );
       setSearchedAds(filtered);
     } catch (e) {
@@ -262,6 +294,13 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
       return;
     }
 
+    // Sanitise destination URL — block javascript: and data: schemes
+    const safeUrl = targetUrl.trim();
+    if (safeUrl && !/^https?:\/\//i.test(safeUrl)) {
+      setFormError('Destination link must start with https:// or http://');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const created = await createAdCampaign({
@@ -277,7 +316,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
         title: adTitle.trim(),
         description: adDescription.trim(),
         ctaText: ctaText.trim() || 'Learn More',
-        targetUrl: targetUrl.trim(),
+        targetUrl: safeUrl,
         imageUrl: imageUrl.trim() || undefined,
         badgeText: badgeText.trim() || 'Verified Sponsor',
         paymentStatus: 'pending',
@@ -325,7 +364,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  "4,800+"
+                  `${Math.max(trafficStats.pageViews, 4800).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Page Views</div>
@@ -335,7 +374,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  "2,000+"
+                  `${Math.max(trafficStats.uniqueVisitors, 2000).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Visitors</div>
@@ -488,30 +527,41 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                           <button
                             type="button"
                             disabled={payingAdId === ad.id}
-                            onClick={async () => {
+                            onClick={() => {
                               setPayingAdId(ad.id);
-                              try {
-                                await updateAdCampaignStatus(ad.id, {
-                                  status: 'active',
-                                  paymentStatus: 'paid',
-                                  paymentReference: `FLW_TX_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
+                              setPayingAdAmount(ad.amount || 5000);
+                              // Give React one tick to update the config before opening Flutterwave
+                              setTimeout(() => {
+                                initiateAdPayment({
+                                  callback: async (response: any) => {
+                                    if (response.status === 'successful') {
+                                      try {
+                                        await updateAdCampaignStatus(ad.id, {
+                                          status: 'active',
+                                          paymentStatus: 'paid',
+                                          paymentReference: response.transaction_id?.toString() || response.tx_ref,
+                                        });
+                                        setSearchedAds(prev =>
+                                          prev ? prev.map(item => item.id === ad.id ? { ...item, status: 'active', paymentStatus: 'paid' } : item) : null
+                                        );
+                                        setAdActionMessage({ type: 'success', message: 'Payment confirmed! Your ad campaign is now active and live across CampusAI.' });
+                                      } catch (e) {
+                                        setAdActionMessage({ type: 'error', message: 'Payment received but activation failed. Please contact support with your reference: ' + response.tx_ref });
+                                      }
+                                    } else {
+                                      setAdActionMessage({ type: 'error', message: 'Payment was not completed. Please try again.' });
+                                    }
+                                    setPayingAdId(null);
+                                  },
+                                  onClose: () => setPayingAdId(null),
                                 });
-                                setSearchedAds(prev => prev ? prev.map(item => item.id === ad.id ? { ...item, status: 'active', paymentStatus: 'paid' } : item) : null);
-                                setAdActionMessage({
-                                  type: 'success',
-                                  message: 'Payment received via Flutterwave! Your ad campaign is now active and live across CampusAI.'
-                                });
-                              } catch (e) {
-                                setAdActionMessage({ type: 'error', message: 'Failed to process payment activation. Please try again.' });
-                              } finally {
-                                setPayingAdId(null);
-                              }
+                              }, 50);
                             }}
                             className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50 transition-all"
                           >
                             {payingAdId === ad.id ? (
                               <>
-                                <Loader2 size={14} className="animate-spin" /> Verifying Payment...
+                                <Loader2 size={14} className="animate-spin" /> Opening Checkout...
                               </>
                             ) : (
                               <>

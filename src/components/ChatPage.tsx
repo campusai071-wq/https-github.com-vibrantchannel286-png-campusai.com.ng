@@ -19,7 +19,12 @@ import QuotaModal from './QuotaModal';
 import SEO from './SEO';
 import { useNavigate } from 'react-router-dom';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configure PDF.js worker with local bundler URL and unpkg fallback
+try {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+} catch {
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+}
 
 type GroundingChunk = any;
 
@@ -279,7 +284,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     let lastStreamTime = 0;
 
     try {
-      await executeAiChatStream(
+      const finalResult = await executeAiChatStream(
         currentInput,
         latestMessages,
         (streamedText, groundingChunks) => {
@@ -301,6 +306,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({
           }
         }
       );
+
+      if (finalResult && finalResult.text) {
+        setMessages(prev => {
+          const newArr = [...prev];
+          const lastIdx = newArr.length - 1;
+          if (lastIdx >= 0 && newArr[lastIdx].role === 'model') {
+            newArr[lastIdx] = {
+              ...newArr[lastIdx],
+              text: finalResult.text,
+              groundingChunks: finalResult.groundingChunks || newArr[lastIdx].groundingChunks
+            };
+          }
+          return newArr;
+        });
+      }
     } catch (err: any) {
       console.error("Chat execution error:", err);
       setMessages(prev => {

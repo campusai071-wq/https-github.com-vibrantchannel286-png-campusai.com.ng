@@ -1,4 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { CbtTimerBadge } from './CbtTimerBadge';
+import { CbtMobileDrawer } from './CbtMobileDrawer';
+import {
+  saveCbtSessionToStorage,
+  loadCbtSessionFromStorage,
+  clearCbtSessionFromStorage,
+  updateCbtAnswerInStorage,
+  updateCbtBookmarkInStorage,
+} from '../utils/cbtStorage';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
@@ -532,6 +541,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [showFormulas, setShowFormulas] = useState(false);
   const [error, setError] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   // ----- Calculator State -----
@@ -540,6 +550,10 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   const [calcJustCalculated, setCalcJustCalculated] = useState<boolean>(false);
 
   // ----- Timer -----
+  // NOTE: timeLeft is kept only for legacy reads (submit logic, pace indicator).
+  // The 1-second visual tick is now entirely inside <CbtTimerBadge> to prevent
+  // full-tree re-renders. We use a coarse 5-second interval here just to keep
+  // timeLeft roughly accurate for the submit guard and pace indicator.
   const [timeLeft, setTimeLeft] = useState(0);
   const [endTime, setEndTime] = useState<number | null>(null);
   const [timeElapsedSeconds, setTimeElapsedSeconds] = useState(0);
@@ -1370,21 +1384,20 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     }
   };
 
-  // Timer countdown and time tracking (prevent drifting)
+  // Coarse 5-second interval — only updates timeLeft for submit guard / pace.
+  // The 1-second visual countdown lives inside <CbtTimerBadge> to prevent
+  // the full component tree from re-rendering every second.
   useEffect(() => {
     if (!isTimerRunning || showResults || !endTime) return;
-    const timer = setInterval(() => {
+    const coarseTick = setInterval(() => {
       const remainingMs = endTime - Date.now();
-      if (remainingMs <= 1000) {
-        clearInterval(timer);
-        setTimeLeft(0);
-        triggerSubmitTest();
-      } else {
-        setTimeLeft(Math.floor(remainingMs / 1000));
+      setTimeLeft(Math.max(0, Math.floor(remainingMs / 1000)));
+      setTimeElapsedSeconds((prev) => prev + 5);
+      if (remainingMs <= 0) {
+        clearInterval(coarseTick);
       }
-      setTimeElapsedSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
+    }, 5000);
+    return () => clearInterval(coarseTick);
   }, [isTimerRunning, showResults, endTime]);
 
   const formatTime = (totalSeconds: number) => {
@@ -1420,6 +1433,9 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   };
 
   const handleSelect = (subjectKey: string, questionId: string | number, optionKey: string) => {
+    // 1. Write to localStorage instantly — survives offline / browser crash
+    updateCbtAnswerInStorage(subjectKey, questionId, optionKey);
+
     setAnswersBySubject((prev) => {
       const updatedSubjectAnswers = { ...(prev[subjectKey] || {}), [questionId]: optionKey };
       const updated = {
@@ -1427,7 +1443,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
         [subjectKey]: updatedSubjectAnswers,
       };
 
-      // Auto-sync answers to Firestore temporary session state
+      // 2. Best-effort async Firestore sync (fire-and-forget)
       if (activeSessionId) {
         updateDoc(doc(db, 'exam_sessions', activeSessionId), {
           answersBySubject: updated,
@@ -2073,6 +2089,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Don't intercept if user is typing in chat or input fields
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+      // On touch (coarse-pointer) devices the on-screen keyboard intercepts key
+      // events. Skip desktop shortcuts entirely — navigation is handled by the
+      // CbtMobileDrawer and Prev/Next buttons.
+      if (window.matchMedia('(pointer: coarse)').matches) return;
 
       const key = e.key.toUpperCase();
       
@@ -3586,12 +3607,6 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                     <span className="hidden sm:inline-block text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">
                       Q{currentIndex + 1} of {currentSubjectQuestions.length}
                     </span>
-                    {/* 2027 JAMB Speed Pace Indicator */}
-                    {totalQuestions > 0 && (
-                      <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full border border-slate-700">
-                        ⚡ Pace: {Math.max(1, Math.round(timeLeft / Math.max(1, totalQuestions - totalAttempted)))}s/q left
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -3604,9 +3619,16 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                       <Calculator size={14} /> Calculator
                     </button>
 
-                    <div className="font-mono text-sm sm:text-base font-bold bg-slate-800 px-3 py-1 rounded-xl text-emerald-400 border border-slate-700 flex items-center gap-1.5 shadow-inner">
-                      <Clock size={14} /> {formatTime(timeLeft)}
-                    </div>
+                    {/* Isolated timer — ticks every 1s without re-rendering parent */}
+                    {endTime && (
+                      <CbtTimerBadge
+                        endTime={endTime}
+                        isTimerRunning={isTimerRunning}
+                        totalQuestions={totalQuestions}
+                        totalAttempted={totalAttempted}
+                        onTimeExpired={triggerSubmitTest}
+                      />
+                    )}
 
                     <button
                       onClick={() => setShowSubmitModal(true)}
@@ -4016,8 +4038,45 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                   </div>
                 </div>
 
-                {/* Question Grid Navigator */}
-                <div className="bg-white border-t border-slate-200 p-4 sm:px-8">
+                {/* Mobile Sticky Bottom Nav — touch-optimised, replaces keyboard hints */}
+                <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[130] bg-white border-t border-slate-200 px-4 py-3 flex items-center gap-2 shadow-2xl safe-area-inset-bottom">
+                  <button
+                    onClick={goPrevious}
+                    disabled={currentIndex === 0}
+                    className="flex-1 h-12 rounded-2xl font-extrabold text-sm text-slate-700 border-2 border-slate-300 hover:bg-slate-100 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    ← Prev
+                  </button>
+                  <button
+                    onClick={() => setShowMobileDrawer(true)}
+                    className="h-12 px-4 rounded-2xl font-bold text-xs text-slate-600 bg-slate-100 border border-slate-200 flex items-center justify-center gap-1.5"
+                    title="Jump to any question"
+                  >
+                    <SlidersHorizontal size={16} />
+                    <span>{Object.keys(currentAnswers).length}/{currentSubjectQuestions.length}</span>
+                  </button>
+                  <button
+                    onClick={goNext}
+                    className="flex-1 h-12 rounded-2xl font-extrabold text-sm text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    Next →
+                  </button>
+                </div>
+
+                {/* Mobile Question Palette Drawer */}
+                <CbtMobileDrawer
+                  isOpen={showMobileDrawer}
+                  onClose={() => setShowMobileDrawer(false)}
+                  questions={currentSubjectQuestions}
+                  answers={currentAnswers}
+                  bookmarks={bookmarkedQuestions}
+                  currentIndex={currentIndex}
+                  onSelectQuestion={goToQuestion}
+                  activeSubjectLabel={activeSubjectLabel}
+                />
+
+                {/* Question Grid Navigator — hidden on mobile (use drawer instead) */}
+                <div className="hidden sm:block bg-white border-t border-slate-200 p-4 sm:px-8">
                   <div className="max-w-7xl mx-auto">
                     <div className="text-xs font-extrabold text-slate-500 mb-2.5 flex items-center justify-between">
                       <span>Question Palette ({Object.keys(currentAnswers).length} Attempted)</span>

@@ -12,6 +12,7 @@ import {
 export type { PlatformPricingConfig };
 
 const PRICING_STORAGE_KEY = 'campusai_pricing_config';
+const PRICING_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const LOCAL_ADS_KEY = 'campusai_sponsored_ads';
 const LOCAL_PARTNERS_KEY = 'campusai_partners_list';
 
@@ -34,9 +35,21 @@ export const DEFAULT_PRICING_CONFIG: PlatformPricingConfig = {
 // ─── 1. PRICING & CONFIG MANAGEMENT ──────────────────────────────────────────
 
 export const getPricingConfig = async (): Promise<PlatformPricingConfig> => {
-  // Check local cache first
-  const localCached = localStorage.getItem(PRICING_STORAGE_KEY);
-  let config: PlatformPricingConfig = localCached ? JSON.parse(localCached) : { ...DEFAULT_PRICING_CONFIG };
+  // Check local cache first (with TTL)
+  let config: PlatformPricingConfig = { ...DEFAULT_PRICING_CONFIG };
+  try {
+    const raw = localStorage.getItem(PRICING_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as PlatformPricingConfig & { _cachedAt?: number };
+      const cachedAt = (parsed as any)._cachedAt || 0;
+      if (Date.now() - cachedAt < PRICING_CACHE_TTL_MS) {
+        // Cache is still fresh — strip internal field and use it
+        const { _cachedAt: _, ...rest } = parsed as any;
+        config = rest;
+        // Still apply migration logic below
+      }
+    }
+  } catch { /* ignore */ }
 
   // Migrate legacy 12,000 rate to the fair 9,000 rate
   if (config.adGrowthPrice === 12000) {
@@ -53,10 +66,11 @@ export const getPricingConfig = async (): Promise<PlatformPricingConfig> => {
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       config = { ...DEFAULT_PRICING_CONFIG, ...(snap.data() as PlatformPricingConfig) };
-      localStorage.setItem(PRICING_STORAGE_KEY, JSON.stringify(config));
+      // Store with timestamp so TTL can be enforced on next read
+      localStorage.setItem(PRICING_STORAGE_KEY, JSON.stringify({ ...config, _cachedAt: Date.now() }));
     }
   } catch (e) {
-    console.warn('Using default pricing config due to network / permission state:', e);
+    console.warn('Using cached/default pricing config due to network state:', e);
   }
 
   return config;

@@ -33,9 +33,34 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       input: {
         main: './index.html',
+      },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('/react/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('lucide-react') || id.includes('framer-motion') || id.includes('/motion/')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('jspdf') || id.includes('pdfjs-dist') || id.includes('html2canvas') || id.includes('html-to-image')) {
+              return 'vendor-docs';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('@google/genai') || id.includes('@google/generative-ai')) {
+              return 'vendor-genai';
+            }
+          }
+        },
       },
     },
   },

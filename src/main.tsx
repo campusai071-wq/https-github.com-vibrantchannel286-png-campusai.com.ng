@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import './index.css';
 import App from './components/App.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { inject } from '@vercel/analytics';
 
 // Initialize Vercel Analytics
@@ -16,7 +17,7 @@ if (!Object.hasOwn) {
   };
 }
 
-// Global Error Handler
+// Global Error Handler — catches errors that fall outside React's tree
 window.onerror = function(message, source, lineno, colno, error) {
   console.error("Global Error:", message, source, lineno, colno, error);
   if (error && error.message && error.message.includes("circular")) {
@@ -24,12 +25,17 @@ window.onerror = function(message, source, lineno, colno, error) {
   }
 };
 
+// Unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[CampusAI] Unhandled promise rejection:', event.reason);
+});
+
 // Register Service Worker for Offline & Notifications
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('CampusAI: Offline Shield Active ✅'))
-      .catch(err => {
+      .then(_reg => console.log('CampusAI: Offline Shield Active ✅'))
+      .catch(_err => {
         console.warn('CampusAI: SW registration skipped.');
       });
   });
@@ -43,9 +49,12 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <HelmetProvider>
-      <App />
-      <SpeedInsights />
-    </HelmetProvider>
+    {/* Top-level error boundary catches any unhandled component crash */}
+    <ErrorBoundary>
+      <HelmetProvider>
+        <App />
+        <SpeedInsights />
+      </HelmetProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

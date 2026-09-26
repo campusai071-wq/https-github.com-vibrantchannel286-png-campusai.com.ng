@@ -228,6 +228,124 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // =============================================================================
+// REQUEST TRACING — Inject a unique request ID so logs are correlatable
+// =============================================================================
+app.use((req: any, res: any, next: any) => {
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  req.requestId = id;
+  res.setHeader('X-Request-Id', id);
+  next();
+});
+
+// =============================================================================
+// SERVER-SIDE RATE LIMITING (no external dependency)
+// -----------------------------------------------------------------------------
+// Sliding-window per-IP counter stored in a plain Map.  Entries are evicted
+// after they fall outside the window so memory stays bounded.
+//
+// Tiers:
+//   /api/ai/*   : 30 req / 60 s  (AI calls are expensive)
+//   /api/*      : 120 req / 60 s (all other API routes)
+// =============================================================================
+interface RLBucket { timestamps: number[] }
+
+const rlStore = new Map<string, RLBucket>();
+
+function slidingWindowAllow(
+  key: string,
+  windowMs: number,
+  maxRequests: number
+): boolean {
+  const now = Date.now();
+  let bucket = rlStore.get(key);
+  if (!bucket) {
+    bucket = { timestamps: [] };
+    rlStore.set(key, bucket);
+  }
+  // Evict expired timestamps
+  bucket.timestamps = bucket.timestamps.filter(t => now - t < windowMs);
+  if (bucket.timestamps.length >= maxRequests) return false;
+  bucket.timestamps.push(now);
+  return true;
+}
+
+// Periodic sweep to prevent unbounded Map growth (~every 5 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rlStore.entries()) {
+    bucket.timestamps = bucket.timestamps.filter(t => now - t < 60_000);
+    if (bucket.timestamps.length === 0) rlStore.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+function getClientIp(req: any): string {
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
+}
+
+// AI route rate limiter (tight)
+app.use('/api/ai', (req: any, res: any, next: any) => {
+  const ip = getClientIp(req);
+  if (!slidingWindowAllow(`ai:${ip}`, 60_000, 30)) {
+    return res.status(429).json({
+      success: false,
+      error: 'Too many AI requests. Please wait a moment before trying again.',
+      retryAfterMs: 60_000,
+    });
+  }
+  next();
+});
+
+// General API rate limiter (relaxed)
+app.use('/api', (req: any, res: any, next: any) => {
+  const ip = getClientIp(req);
+  if (!slidingWindowAllow(`api:${ip}`, 60_000, 120)) {
+    return res.status(429).json({
+      success: false,
+      error: 'Rate limit exceeded. Please slow down.',
+      retryAfterMs: 60_000,
+    });
+  }
+  next();
+});
+
+// =============================================================================
+// CLIENT-SIDE CRASH REPORTER
+// POST /api/errors — receives structured error payloads from the ErrorBoundary
+// =============================================================================
+app.post('/api/errors', (req: any, res: any) => {
+  try {
+    const {
+      message, name, stack, componentStack, url, userAgent, ts
+    } = req.body || {};
+
+    // Emit a structured log line — can be shipped to any log aggregator
+    console.error(
+      JSON.stringify({
+        level: 'CLIENT_CRASH',
+        requestId: req.requestId,
+        name: String(name || 'Error').slice(0, 100),
+        message: String(message || '').slice(0, 500),
+        url: String(url || '').slice(0, 256),
+        userAgent: String(userAgent || '').slice(0, 200),
+        stack: String(stack || '').slice(0, 2000),
+        componentStack: String(componentStack || '').slice(0, 2000),
+        ts: ts || new Date().toISOString(),
+      })
+    );
+
+    res.status(204).end(); // No content — client doesn't need a body
+  } catch (err) {
+    // Never 500 on a crash report — the client might be in a bad state
+    res.status(204).end();
+  }
+});
+
+// =============================================================================
 // ORIGIN / AUTH GUARDS
 // -----------------------------------------------------------------------------
 // isAllowedOrigin now does an exact scheme+host match against an allowlist,
@@ -5032,10 +5150,12 @@ Only output the JSON object or NO_UPDATES, no other text.`;
 // Flutterwave Webhook with Idempotency & Verification
 app.post("/api/webhooks/flutterwave", express.json(), async (req: any, res: any) => {
   const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET || process.env.FLUTTERWAVE_SECRET_KEY;
-  const signature = req.headers["verif-hash"];
+  const signature = req.headers["verif-hash"] as string;
 
-  if (secretHash && signature && signature !== secretHash) {
-    return res.status(401).json({ error: "Invalid signature" });
+  if (secretHash) {
+    if (!signature || !safeEquals(signature, secretHash)) {
+      return res.status(401).json({ error: "Invalid signature" });
+    }
   }
 
   const payload = req.body;
@@ -5143,10 +5263,14 @@ app.post("/api/verify-payment", async (req: any, res: any) => {
       } catch (e: any) {
         console.error("[Flutterwave Verify API Error]:", e.response?.data || e.message);
       }
-    } else {
-      // Test / development mode verification fallback
+    } else if (process.env.NODE_ENV !== "production") {
+      // Test / development mode verification fallback only allowed outside production
+      console.warn("[Payment] Dev mode: Mocking verification for tx:", transaction_id || tx_ref);
       verified = true;
       txData = { id: transaction_id || tx_ref, amount: 500, currency: 'NGN', customer: { email } };
+    } else {
+      console.error("[Payment Security] Payment verification rejected: missing FLUTTERWAVE_SECRET_KEY or transaction_id in production");
+      return res.status(400).json({ success: false, error: "Payment verification failed: valid transaction ID and gateway key required" });
     }
 
     if (!verified) {

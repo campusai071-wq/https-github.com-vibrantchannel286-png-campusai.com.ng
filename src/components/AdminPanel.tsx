@@ -5,7 +5,8 @@ import {
   Brain, Activity, Check, ShieldCheck, Database, Zap, Trash2, Key,
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
-  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen, GraduationCap, Copy
+  ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen, GraduationCap, Copy,
+  Menu, ChevronLeft, ChevronRight, Command, Bell, Layers, ExternalLink, ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -67,6 +68,76 @@ const toMs = (val: any): number => {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type AdminTab =
+  | 'analytics'
+  | 'ads_partners'
+  | 'tool_users'
+  | 'infrastructure'
+  | 'cutoffs'
+  | 'accuracy'
+  | 'content'
+  | 'users'
+  | 'notifications'
+  | 'intelligence'
+  | 'admissions_kb'
+  | 'emails'
+  | 'link_pictures'
+  | 'stats'
+  | 'pdf_management';
+
+export interface TabItemConfig {
+  id: AdminTab;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  desc: string;
+  badge?: string;
+}
+
+export interface TabCategoryConfig {
+  category: string;
+  items: TabItemConfig[];
+}
+
+export const ADMIN_TAB_CATEGORIES: TabCategoryConfig[] = [
+  {
+    category: 'Insights & Metrics',
+    items: [
+      { id: 'analytics', label: 'Analytics Overview', icon: Activity, desc: 'Live traffic, queries & demographic activity' },
+      { id: 'stats', label: 'Calculation Stats', icon: Sliders, desc: 'Breakdowns of student cutoff and odds evaluations' },
+      { id: 'accuracy', label: 'Accuracy & Pipeline', icon: Brain, desc: 'Model evaluation benchmarks & sync ground truth' },
+      { id: 'tool_users', label: 'Tool Scholars', icon: Calculator, desc: 'Real-time CGPA calculations & CBT exam sessions' },
+    ]
+  },
+  {
+    category: 'Growth & Monetization',
+    items: [
+      { id: 'ads_partners', label: 'Ads & Partners', icon: Megaphone, desc: 'Sponsored ad campaigns, verification & affiliate hub', badge: 'Revenue' },
+      { id: 'emails', label: 'Email Campaigns', icon: Mail, desc: 'Direct broadcast newsletters, admission alerts & blasts' },
+    ]
+  },
+  {
+    category: 'Content & Admissions',
+    items: [
+      { id: 'content', label: 'News & Editorial', icon: Newspaper, desc: 'Publish, edit, sanitize & archive intelligence' },
+      { id: 'link_pictures', label: 'Link Pictures', icon: ImageIcon, desc: 'Social open-graph previews & banner cards' },
+      { id: 'cutoffs', label: 'Cutoff Overrides', icon: Layout, desc: 'Custom university departmental score rules' },
+      { id: 'admissions_kb', label: 'Admissions KB', icon: Sparkles, desc: 'Direct knowledge base explorer & cloud sync' },
+      { id: 'intelligence', label: 'AI Intelligence', icon: Database, desc: 'Prompt rules & institutional ground truth' },
+      { id: 'pdf_management', label: 'PDF & Syllabus Hub', icon: FileText, desc: 'Official syllabuses, brochures & documents' },
+    ]
+  },
+  {
+    category: 'Community & Security',
+    items: [
+      { id: 'users', label: 'User Directory', icon: Users, desc: 'Manage registered scholars, roles & VIP tiers' },
+      { id: 'notifications', label: 'Admin Alerts', icon: ShieldAlert, desc: 'System notices, error reports & feedback' },
+      { id: 'infrastructure', label: 'Infrastructure & Health', icon: Power, desc: 'API keys, database health, IndexNow & sync' },
+    ]
+  },
+];
+
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -89,15 +160,97 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedUserForPredictions, setSelectedUserForPredictions] = useState<any>(null);
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<
-    'analytics' | 'ads_partners' | 'tool_users' | 'infrastructure' | 'cutoffs' | 'accuracy' | 'content' | 'users' | 'notifications' | 'intelligence' | 'admissions_kb' | 'emails' | 'link_pictures' | 'stats' | 'pdf_management'
-  >('analytics');
+  const [activeTab, setActiveTab] = useState<AdminTab>('analytics');
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  // ── Dashboard Navigation & Command Palette State ─────────────────────────────
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('campusai_admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [paletteSearch, setPaletteSearch] = useState('');
+  const [selectedPaletteIndex, setSelectedPaletteIndex] = useState(0);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('campusai_admin_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const selectTab = useCallback((tab: AdminTab) => {
+    setActiveTab(tab);
+    setIsMobileDrawerOpen(false);
+    setIsCommandPaletteOpen(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+  }, []);
+
+  // Keyboard shortcut listener for Command Palette (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      } else if (e.key === 'Escape' && isCommandPaletteOpen) {
+        setIsCommandPaletteOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCommandPaletteOpen]);
+
+  const allTabsFlat = useMemo(() => {
+    return ADMIN_TAB_CATEGORIES.flatMap(cat =>
+      cat.items.map(item => ({ ...item, category: cat.category }))
+    );
+  }, []);
+
+  const filteredPaletteItems = useMemo(() => {
+    if (!paletteSearch.trim()) return allTabsFlat;
+    const q = paletteSearch.toLowerCase().trim();
+    return allTabsFlat.filter(
+      item =>
+        item.label.toLowerCase().includes(q) ||
+        item.desc.toLowerCase().includes(q) ||
+        item.category.toLowerCase().includes(q) ||
+        item.id.toLowerCase().includes(q)
+    );
+  }, [allTabsFlat, paletteSearch]);
+
+  useEffect(() => {
+    setSelectedPaletteIndex(0);
+  }, [paletteSearch]);
+
+  const currentTabConfig = useMemo(() => {
+    for (const cat of ADMIN_TAB_CATEGORIES) {
+      const found = cat.items.find(i => i.id === activeTab);
+      if (found) return { ...found, category: cat.category };
+    }
+    return {
+      id: activeTab,
+      label: activeTab,
+      icon: Activity,
+      desc: '',
+      category: 'General',
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['analytics', 'ads_partners', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures', 'pdf_management'].includes(tabParam)) {
+    if (tabParam && ['analytics', 'ads_partners', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'users', 'notifications', 'intelligence', 'admissions_kb', 'emails', 'link_pictures', 'stats', 'pdf_management', 'tool_users'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, []);
@@ -1525,80 +1678,423 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 w-full flex flex-col">
-
-        {/* Header */}
-        <div className="p-6 bg-gray-900 text-white flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center">
-              <ShieldAlert size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black uppercase tracking-widest">Admin Console</h2>
-              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Architect Level Access</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
-        </div>
+    <div className="h-screen w-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
 
         {/* Login form */}
         {!admin.isLoggedIn ? (
-          <div className="p-12 text-center space-y-6">
-            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-900 rounded-[30px] flex items-center justify-center mx-auto">
-              <Key size={40} className="text-gray-400" />
+          <div className="flex-1 flex items-center justify-center p-6 bg-slate-950 relative overflow-hidden">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="relative w-full max-w-md bg-slate-900/90 backdrop-blur-2xl p-8 sm:p-10 rounded-3xl border border-red-500/20 shadow-2xl shadow-red-950/40 text-center space-y-6">
+              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30 flex items-center justify-center text-red-500 shadow-xl shadow-red-500/10">
+                <ShieldAlert size={40} className="animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight">Security Clearance</h3>
+                <p className="text-xs text-slate-400 mt-1 font-medium">CampusAI Architecture & Master Control Console</p>
+              </div>
+
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (loginToken === SECRET_TOKEN) {
+                    onAdminLogin(auth.currentUser?.email || 'eiweh123@gmail.com');
+                  } else {
+                    setAuthFailed(true);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-2 text-left">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <Key size={12} className="text-red-400" /> Security Architect Token
+                  </label>
+                  <input
+                    type="password"
+                    value={loginToken}
+                    onChange={e => { setLoginToken(e.target.value); setAuthFailed(false); }}
+                    placeholder="••••••••••••••••"
+                    autoFocus
+                    className="w-full bg-slate-950/90 border border-slate-800 focus:border-red-500 p-4 rounded-2xl text-center font-mono text-white text-base tracking-widest outline-none transition-all focus:ring-4 focus:ring-red-500/20"
+                  />
+                  {authFailed && (
+                    <p className="text-xs text-red-400 font-bold text-center mt-2 flex items-center justify-center gap-1">
+                      <AlertTriangle size={14} /> Invalid authentication token. Access denied.
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-[0.98] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-600/25 transition-all flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck size={16} /> Authenticate Access
+                </button>
+              </form>
+
+              <div className="pt-2 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  Return to CampusAI Main Platform
+                </button>
+              </div>
             </div>
-            <h3 className="text-2xl font-black dark:text-white">Secure Authentication Required</h3>
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                if (loginToken === SECRET_TOKEN) {
-                  onAdminLogin(auth.currentUser?.email || 'eiweh123@gmail.com');
-                } else {
-                  setAuthFailed(true);
-                }
-              }}
-              className="max-w-xs mx-auto space-y-4"
-            >
-              <input
-                type="password"
-                value={loginToken}
-                onChange={e => setLoginToken(e.target.value)}
-                placeholder="Security Token"
-                className="w-full bg-gray-50 dark:bg-gray-900 p-4 rounded-2xl text-center font-mono text-gray-900 dark:text-white border-2 border-transparent focus:border-red-500 outline-none"
-              />
-              <button className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">
-                Authenticate
-              </button>
-            </form>
           </div>
         ) : (
-          // ✅ FIX: replaced h-full with min-h-0 so this flex child can actually shrink
-          // inside the max-h-[90vh] parent, which lets the content pane below scroll
-          // instead of growing the whole modal past the viewport.
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Tabs */}
-            <div className="flex border-b border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-950 shrink-0 overflow-x-auto">
-              {(['analytics', 'ads_partners', 'tool_users', 'infrastructure', 'cutoffs', 'accuracy', 'content', 'link_pictures', 'intelligence', 'users', 'notifications', 'admissions_kb', 'emails', 'stats', 'pdf_management'] as const).map(tab => (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-950 text-slate-100">
+            {/* ── Top Modern Glassmorphic Navbar ── */}
+            <header className="h-16 px-4 sm:px-6 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 flex items-center justify-between gap-4 shrink-0 z-30">
+              {/* Left branding & collapse toggles */}
+              <div className="flex items-center gap-3">
+                {/* Mobile Hamburger */}
                 <button
-                  key={tab} onClick={() => setActiveTab(tab)}
-                  className={`flex-1 min-w-[110px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab ? 'text-red-500' : 'text-gray-400'}`}
+                  onClick={() => setIsMobileDrawerOpen(true)}
+                  className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-xl transition-all"
+                  aria-label="Open Navigation Drawer"
                 >
-                  {tab === 'ads_partners' ? 'Ads & Partners' : tab === 'tool_users' ? 'Tool Users & Scholars' : tab === 'emails' ? 'Email Campaigns' : tab === 'link_pictures' ? 'Link Pictures' : tab === 'intelligence' ? 'Intelligence' : tab === 'admissions_kb' ? 'Admissions KB' : tab === 'accuracy' ? 'Accuracy & Pipeline' : tab === 'stats' ? 'Calc Stats' : tab}
-                  {activeTab === tab && <motion.div layoutId="tab-admin" className="absolute bottom-0 left-0 right-0 h-1 bg-red-600" />}
+                  <Menu size={20} />
                 </button>
-              ))}
-            </div>
 
-            {/* Content */}
-            {/* ✅ FIX: added min-h-0 here too — without it, a flex child with overflow-y-auto
-                won't shrink below its content's natural height in some browsers, so the
-                scrollbar never actually appears even though flex-1 + overflow-y-auto look right. */}
-            <div className="p-6 md:p-8 overflow-y-auto flex-1 min-h-0">
+                {/* Desktop Sidebar Collapse */}
+                <button
+                  onClick={toggleSidebar}
+                  className="hidden lg:flex p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-xl transition-all"
+                  title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                >
+                  {isSidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                </button>
 
-              {/* ── ADS & PARTNERS MANAGEMENT TAB ── */}
-              {activeTab === 'ads_partners' && (
-                <AdminAdsAndPartners />
-              )}
+                {/* Brand Logo & Title */}
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-red-600/25 shrink-0">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black uppercase tracking-wider text-white">Admin Console</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        LIVE
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      WAT · {todayLagosStr}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Center: Command Palette Trigger Bar */}
+              <div className="flex-1 max-w-xs sm:max-w-md mx-2">
+                <button
+                  onClick={() => setIsCommandPaletteOpen(true)}
+                  className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 rounded-2xl text-xs text-slate-400 hover:text-slate-200 transition-all shadow-inner group"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <Search size={14} className="text-slate-500 group-hover:text-red-400 transition-colors shrink-0" />
+                    <span className="truncate">Jump to section...</span>
+                  </span>
+                  <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono bg-slate-950 text-slate-400 border border-slate-800 px-2 py-0.5 rounded-lg shrink-0">
+                    <Command size={10} /> K
+                  </kbd>
+                </button>
+              </div>
+
+              {/* Right: Telemetry & Actions */}
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                {/* System Status Indicator (desktop) */}
+                <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Gemini AI
+                  </span>
+                  <span className="text-slate-600">|</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Firebase
+                  </span>
+                </div>
+
+                {/* Refresh data */}
+                <button
+                  onClick={() => {
+                    loadAnalyticsData();
+                    if (activeTab === 'tool_users') loadToolUsersData();
+                    if (activeTab === 'content') loadAdminNews();
+                    if (activeTab === 'link_pictures') loadLinkPreviews();
+                    if (activeTab === 'cutoffs') loadCutoffOverrides();
+                    if (activeTab === 'intelligence') loadIntelligenceData();
+                    if (activeTab === 'accuracy') loadAccuracyData();
+                  }}
+                  title="Refresh Dashboard Data"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-xl transition-all"
+                >
+                  <RefreshCw size={18} className={analyticsLoading ? 'animate-spin text-red-400' : ''} />
+                </button>
+
+                {/* Exit Admin */}
+                <button
+                  onClick={onClose}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border border-slate-800 hover:border-red-500/30 rounded-xl text-xs font-bold transition-all"
+                  title="Close Admin Console"
+                >
+                  <X size={16} />
+                  <span className="hidden sm:inline">Exit</span>
+                </button>
+              </div>
+            </header>
+
+            {/* ── Main Layout Body: Sidebar + Workspace ── */}
+            <div className="flex-1 flex min-h-0 overflow-hidden relative">
+
+              {/* Desktop Collapsible Sidebar */}
+              <aside
+                className={`hidden lg:flex flex-col border-r border-slate-800/80 bg-slate-950/70 backdrop-blur-xl shrink-0 transition-all duration-300 z-20 ${
+                  isSidebarCollapsed ? 'w-20' : 'w-64 xl:w-72'
+                }`}
+              >
+                <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scrollbar">
+                  {ADMIN_TAB_CATEGORIES.map(category => (
+                    <div key={category.category} className="space-y-1">
+                      {!isSidebarCollapsed && (
+                        <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                          {category.category}
+                        </div>
+                      )}
+                      {category.items.map(item => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => selectTab(item.id)}
+                            title={isSidebarCollapsed ? `${item.label} — ${item.desc}` : undefined}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all relative group text-left ${
+                              isActive
+                                ? 'bg-gradient-to-r from-red-600/20 to-red-600/5 text-white border border-red-500/30 shadow-lg shadow-red-600/10'
+                                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent'
+                            } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                          >
+                            <Icon
+                              size={18}
+                              className={`shrink-0 transition-colors ${
+                                isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-white'
+                              }`}
+                            />
+                            {!isSidebarCollapsed && (
+                              <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
+                                <span className="truncate">{item.label}</span>
+                                {item.badge && (
+                                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 shrink-0">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {isActive && (
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-red-500 rounded-r-full" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Sidebar Footer info */}
+                {!isSidebarCollapsed && (
+                  <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
+                    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                      <div className="truncate">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Master Console</div>
+                        <div className="text-[11px] font-mono text-slate-300 truncate">v2026.1 · Architect</div>
+                      </div>
+                      <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+                    </div>
+                  </div>
+                )}
+              </aside>
+
+              {/* Mobile Drawer (Overlay + Drawer) */}
+              <AnimatePresence>
+                {isMobileDrawerOpen && (
+                  <div className="fixed inset-0 z-50 lg:hidden flex">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                      className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                    />
+                    <motion.div
+                      initial={{ x: '-100%' }}
+                      animate={{ x: 0 }}
+                      exit={{ x: '-100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                      className="relative w-80 max-w-[85vw] bg-slate-950 border-r border-slate-800 flex flex-col h-full shadow-2xl z-10"
+                    >
+                      {/* Drawer Header */}
+                      <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold">
+                            <ShieldAlert size={16} />
+                          </div>
+                          <div>
+                            <div className="text-xs font-black uppercase tracking-wider text-white">CampusAI Admin</div>
+                            <div className="text-[10px] text-slate-400">Architect Navigation</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIsMobileDrawerOpen(false)}
+                          className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-900"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      {/* Drawer Tabs List */}
+                      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scrollbar">
+                        {ADMIN_TAB_CATEGORIES.map(category => (
+                          <div key={category.category} className="space-y-1">
+                            <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                              {category.category}
+                            </div>
+                            {category.items.map(item => {
+                              const Icon = item.icon;
+                              const isActive = activeTab === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => selectTab(item.id)}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
+                                    isActive
+                                      ? 'bg-red-600/20 text-white border border-red-500/30'
+                                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
+                                  }`}
+                                >
+                                  <Icon size={18} className={isActive ? 'text-red-500' : 'text-slate-400'} />
+                                  <span className="flex-1 truncate">{item.label}</span>
+                                  {item.badge && (
+                                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* Main Workspace Pane */}
+              <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900/40 to-slate-950">
+
+                {/* Content Scroll Container */}
+                <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+
+                  {/* ── Global Executive KPI Stat Ribbon ── */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                    {/* Active Today Scholars */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/50 backdrop-blur-md border border-slate-800/80 p-4 shadow-sm hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Active Today</span>
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                        {activeTodayCount.toLocaleString()}
+                      </div>
+                      <p className="text-[10px] text-emerald-400/90 mt-1 flex items-center gap-1 font-semibold">
+                        <span>●</span> Live in Nigeria (GMT+1)
+                      </p>
+                    </div>
+
+                    {/* Total Admissions Evaluated */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/50 backdrop-blur-md border border-slate-800/80 p-4 shadow-sm hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Evaluations Run</span>
+                        <Calculator size={14} className="text-blue-400" />
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                        {grandCalculations.toLocaleString()}
+                      </div>
+                      <p className="text-[10px] text-blue-400/90 mt-1 font-semibold truncate">
+                        {effectiveGuestCalculations.toLocaleString()} guest sessions
+                      </p>
+                    </div>
+
+                    {/* Helpful Feedback Score */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/50 backdrop-blur-md border border-slate-800/80 p-4 shadow-sm hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accuracy & Trust</span>
+                        <Star size={14} className="text-amber-400 fill-amber-400" />
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                        {helpfulRatio}%
+                      </div>
+                      <p className="text-[10px] text-amber-400/90 mt-1 font-semibold truncate">
+                        {finalHelpful} helpful · {finalUnhelpful} feedback
+                      </p>
+                    </div>
+
+                    {/* Predicted Admitted Ratio */}
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/50 backdrop-blur-md border border-slate-800/80 p-4 shadow-sm hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Predicted Admitted</span>
+                        <GraduationCap size={14} className="text-purple-400" />
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                        {admissionRatio}%
+                      </div>
+                      <p className="text-[10px] text-purple-400/90 mt-1 font-semibold truncate">
+                        {finalAdmitted} admitted candidates
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* ── Active Section Header Banner ── */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        <span>{currentTabConfig.category}</span>
+                        <span>/</span>
+                        <span className="text-red-400">{currentTabConfig.label}</span>
+                      </div>
+                      <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                        {React.createElement(currentTabConfig.icon, { size: 22, className: 'text-red-500' })}
+                        {currentTabConfig.label}
+                      </h1>
+                      <p className="text-xs text-slate-400 mt-1 font-medium">
+                        {currentTabConfig.desc}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {activeTab === 'pdf_management' && (
+                        <button
+                          onClick={() => setIsPdfModalOpen(true)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-red-600/20 transition-all"
+                        >
+                          <Plus size={14} /> Upload PDF/Syllabus
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── ADS & PARTNERS MANAGEMENT TAB ── */}
+                  {activeTab === 'ads_partners' && (
+                    <AdminAdsAndPartners />
+                  )}
 
               {/* ── TOOL USERS TAB ── */}
               {activeTab === 'tool_users' && (
@@ -4424,9 +4920,131 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
               )}
+                </div>
+              </main>
             </div>
           </div>
         )}
+
+        {/* ── Command Palette (Ctrl+K / ⌘K) Modal ── */}
+        <AnimatePresence>
+          {isCommandPaletteOpen && (
+            <div className="fixed inset-0 z-[3000] flex items-start justify-center pt-20 px-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsCommandPaletteOpen(false)}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: -20 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10"
+              >
+                {/* Search Input Bar */}
+                <div className="p-4 border-b border-slate-800 flex items-center gap-3">
+                  <Search size={20} className="text-red-500 shrink-0" />
+                  <input
+                    type="text"
+                    value={paletteSearch}
+                    onChange={e => setPaletteSearch(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSelectedPaletteIndex(i => (i + 1) % Math.max(1, filteredPaletteItems.length));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSelectedPaletteIndex(i => (i - 1 + filteredPaletteItems.length) % Math.max(1, filteredPaletteItems.length));
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const selected = filteredPaletteItems[selectedPaletteIndex];
+                        if (selected) {
+                          selectTab(selected.id);
+                        }
+                      }
+                    }}
+                    placeholder="Search tools, analytics, cutoffs, editorial, users..."
+                    autoFocus
+                    className="w-full bg-transparent text-sm sm:text-base font-semibold text-white placeholder-slate-500 outline-none"
+                  />
+                  {paletteSearch && (
+                    <button
+                      onClick={() => setPaletteSearch('')}
+                      className="text-slate-500 hover:text-white p-1 rounded"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  <kbd className="hidden sm:inline-block text-[10px] font-mono bg-slate-950 text-slate-400 border border-slate-800 px-2 py-0.5 rounded-lg">
+                    ESC
+                  </kbd>
+                </div>
+
+                {/* Results List */}
+                <div className="max-h-96 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                  {filteredPaletteItems.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 text-xs font-semibold">
+                      No matching admin sections found for &quot;{paletteSearch}&quot;
+                    </div>
+                  ) : (
+                    filteredPaletteItems.map((item, idx) => {
+                      const Icon = item.icon;
+                      const isHighlighted = idx === selectedPaletteIndex;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => selectTab(item.id)}
+                          onMouseEnter={() => setSelectedPaletteIndex(idx)}
+                          className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all ${
+                            isHighlighted
+                              ? 'bg-red-600/15 border border-red-500/30 text-white'
+                              : 'hover:bg-slate-800/50 text-slate-300 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`p-2 rounded-xl shrink-0 ${isHighlighted ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                              <Icon size={16} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-white truncate">{item.label}</span>
+                                <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold px-1.5 py-0.2 rounded bg-slate-950/60 border border-slate-800">
+                                  {item.category}
+                                </span>
+                                {isActive && (
+                                  <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-black">
+                                    Current
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 truncate mt-0.5 font-medium">{item.desc}</p>
+                            </div>
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500 shrink-0 ml-2">
+                            Jump ↵
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer Guide */}
+                <div className="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="flex items-center gap-2">
+                    <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[9px]">↑↓</kbd> navigate
+                    <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[9px]">↵</kbd> select
+                    <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[9px]">esc</kbd> close
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-500">15 Admin Sections</span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Global Prediction & Audit Inspection Modal */}
         <PredictionDetailsModal

@@ -190,7 +190,7 @@ export const NewsCard: React.FC<{
     <article className="w-full">
       <motion.div
         layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        whileHover={{ backgroundColor: "rgba(249, 250, 251, 0.5)" }}
+        whileHover={{ backgroundColor: "rgba(15, 23, 42, 0.7)" }}
         className="flex gap-4 p-3 border-b border-gray-100 dark:border-gray-800 transition-all group"
       >
         {/* Thumbnail */}
@@ -198,8 +198,7 @@ export const NewsCard: React.FC<{
           {displayImage ? (
             <img 
               src={displayImage} 
-              alt=""
-              aria-hidden="true"
+              alt={news.title}
               referrerPolicy="no-referrer"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover" 
@@ -299,14 +298,9 @@ export const NewsCard: React.FC<{
 };
 
 // ─── Bookmark helpers ─────────────────────────────────────────────────────────
-
-const readBookmarks = (): string[] => {
-  try { return JSON.parse(localStorage.getItem('campusai_bookmarks') || '[]'); } catch { return []; }
-};
-
-const writeBookmarks = (ids: string[]) => {
-  try { localStorage.setItem('campusai_bookmarks', JSON.stringify(ids)); } catch {}
-};
+// NOTE: readBookmarks is an alias for the imported readBookmarkIds so that
+// the same localStorage key and format is used everywhere — no desync risk.
+const readBookmarks = readBookmarkIds;
 
 // ─── Relevant categories per role ────────────────────────────────────────────
 
@@ -672,13 +666,19 @@ const NewsGrid: React.FC<NewsGridProps> = ({
   // ── Bookmark toggle ─────────────────────────────────────────────────────────
 
   const toggleBookmark = useCallback((id: string) => {
-    setBookmarks(prev => {
-      const updated = prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id];
-      writeBookmarks(updated);
+    const item = newsList.find(n => n.id === id);
+    if (item) {
+      toggleBookmarkArticle(item);
+      setBookmarks(readBookmarkIds());
+    } else {
+      // Fallback if item not in current list
+      const current = readBookmarkIds();
+      const updated = current.includes(id) ? current.filter(i => i !== id) : [...current, id];
+      localStorage.setItem('campusai_bookmark_ids', JSON.stringify(updated));
+      setBookmarks(updated);
       window.dispatchEvent(new Event('campusai_bookmarks_updated'));
-      return updated;
-    });
-  }, []);
+    }
+  }, [newsList]);
 
   const handleEditNews = (news: NewsItem) => {
     setEditingNews(news);
