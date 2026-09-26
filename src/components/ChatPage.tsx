@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Sparkles, Send, Loader2, Trash2, Download, Volume2, VolumeX,
@@ -48,8 +49,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   user,
   onLoginRequest,
   onSignUpRequest,
-  onScholarPackRequest
-}) => {
+  onScholarPackRequest,
+}: ChatPageProps) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(() => getLocalProfile());
   const [input, setInput] = useState('');
@@ -744,7 +745,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
                 </button>
 
                 <VoiceInputButton
-                  onTranscript={(transcript) => {
+                  onTranscript={(transcript: string) => {
                     setInput(prev => prev ? `${prev} ${transcript}` : transcript);
                   }}
                 />
