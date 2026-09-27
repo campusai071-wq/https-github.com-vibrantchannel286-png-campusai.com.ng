@@ -171,6 +171,23 @@ export const AdminAdsAndPartners: React.FC = () => {
 
   useEffect(() => {
     loadAllData();
+
+    let debounceTimer: any = null;
+    const handleLiveTelemetry = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        getAllAdCampaigns().then(setAds);
+      }, 500);
+    };
+
+    window.addEventListener('campusai_ad_impression_recorded', handleLiveTelemetry);
+    window.addEventListener('campusai_ad_click_recorded', handleLiveTelemetry);
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('campusai_ad_impression_recorded', handleLiveTelemetry);
+      window.removeEventListener('campusai_ad_click_recorded', handleLiveTelemetry);
+    };
   }, []);
 
   const loadAllData = async () => {
@@ -583,12 +600,17 @@ export const AdminAdsAndPartners: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="mt-2 flex items-center gap-4 text-[10px] font-mono text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Eye size={12} className="text-cyan-400" /> {ad.impressions || 0} views
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MousePointerClick size={12} className="text-emerald-400" /> {ad.clicks || 0} clicks
+                    <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-gray-400">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <Eye size={12} className="text-cyan-400" /> {ad.impressions || 0} views
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MousePointerClick size={12} className="text-emerald-400" /> {ad.clicks || 0} clicks
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                        CTR: {((ad.impressions && ad.impressions > 0) ? (((ad.clicks || 0) / ad.impressions) * 100) : 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>

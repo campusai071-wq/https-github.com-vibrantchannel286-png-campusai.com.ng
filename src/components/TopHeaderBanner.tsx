@@ -16,14 +16,29 @@ export const TopHeaderBanner: React.FC<TopHeaderBannerProps> = ({
 
   useEffect(() => {
     let isMounted = true;
+    let rotationInterval: any = null;
 
     const loadBannerAd = () => {
       getActiveSponsoredAds('banner').then(ads => {
         if (!isMounted) return;
         if (ads && ads.length > 0) {
-          const randomAd = ads[Math.floor(Math.random() * ads.length)];
-          setActiveAd(randomAd);
-          recordAdImpression(randomAd.id);
+          const currentIndex = Math.floor(Math.random() * ads.length);
+          const initialAd = ads[currentIndex];
+          setActiveAd(initialAd);
+          recordAdImpression(initialAd.id);
+
+          if (ads.length > 1) {
+            if (rotationInterval) clearInterval(rotationInterval);
+            let idx = currentIndex;
+            rotationInterval = setInterval(() => {
+              if (!isMounted) return;
+              if (typeof document !== 'undefined' && document.hidden) return;
+              idx = (idx + 1) % ads.length;
+              const nextAd = ads[idx];
+              setActiveAd(nextAd);
+              recordAdImpression(nextAd.id);
+            }, 12000);
+          }
         } else {
           setActiveAd(null);
         }
@@ -38,21 +53,18 @@ export const TopHeaderBanner: React.FC<TopHeaderBannerProps> = ({
 
     window.addEventListener('campusai_ad_updated', handleUpdate);
     window.addEventListener('campusai_config_updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
-    window.addEventListener('focus', handleUpdate);
-    
-    // Poll every 8s in case of status activation
-    const interval = setInterval(loadBannerAd, 8000);
 
     return () => {
       isMounted = false;
+      if (rotationInterval) clearInterval(rotationInterval);
       window.removeEventListener('campusai_ad_updated', handleUpdate);
       window.removeEventListener('campusai_config_updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
-      window.removeEventListener('focus', handleUpdate);
-      clearInterval(interval);
     };
   }, []);
+
+  const handleBannerClick = (e: React.MouseEvent, ad: SponsoredAd) => {
+    recordAdClick(ad.id);
+  };
 
   // 1. If an active sponsored ad targeting 'banner' or 'all' exists:
   // Persistent, premium sponsor ribbon (no dismiss button - 100% impression delivery)
@@ -83,7 +95,7 @@ export const TopHeaderBanner: React.FC<TopHeaderBannerProps> = ({
               href={activeAd.targetUrl || '#'}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => recordAdClick(activeAd.id)}
+              onClick={(e) => handleBannerClick(e, activeAd)}
               className="px-3.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow hover:shadow-amber-500/30 active:scale-95"
             >
               <span>{activeAd.ctaText || 'Learn More'}</span>

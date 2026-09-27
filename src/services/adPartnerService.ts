@@ -248,27 +248,98 @@ export const updateAdCampaignStatus = async (adId: string, updates: Partial<Spon
   window.dispatchEvent(new CustomEvent('campusai_ad_updated', { detail: { adId, updates } }));
 };
 
-export const recordAdImpression = async (adId: string): Promise<void> => {
-  if (db) {
-    try {
+// ── In-memory debouncing and deduplication ledgers ──────────────────────────
+const impressionTimestamps = new Map<string, number>();
+const clickTimestamps = new Map<string, number>();
+const pendingImpressionIds = new Set<string>();
+const pendingClickIds = new Set<string>();
+
+const IMPRESSION_COOLDOWN_MS = 30000; // 30 seconds debounce per ad to avoid double-counting on re-renders/rotations
+const CLICK_COOLDOWN_MS = 3000;       // 3 seconds debounce per ad to avoid rapid accidental double-clicks
+
+export const recordAdImpression = async (adId: string): Promise<boolean> => {
+  if (!adId || adId.includes('sponsor_edupath_verified')) return false;
+
+  const now = Date.now();
+  const lastImpression = impressionTimestamps.get(adId) || 0;
+
+  // Debounce duplicate impressions within cooldown window
+  if (now - lastImpression < IMPRESSION_COOLDOWN_MS || pendingImpressionIds.has(adId)) {
+    return false;
+  }
+
+  impressionTimestamps.set(adId, now);
+  pendingImpressionIds.add(adId);
+
+  try {
+    // 1. Atomically increment impressions in Firestore
+    if (db) {
       await updateDoc(doc(db, 'ad_campaigns', adId), {
-        impressions: increment(1)
+        impressions: increment(1),
+        lastImpressionAt: new Date().toISOString()
+      }).catch(err => {
+        console.warn('Ad impression update warning:', err);
       });
-    } catch {
-      // Non-blocking telemetry
     }
+
+    // 2. Synchronize local cache immediately
+    try {
+      const localAds: SponsoredAd[] = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
+      const idx = localAds.findIndex(a => a.id === adId);
+      if (idx !== -1) {
+        localAds[idx].impressions = (localAds[idx].impressions || 0) + 1;
+        localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(localAds));
+      }
+    } catch {}
+
+    // 3. Dispatch event for live UI/Admin reflection
+    window.dispatchEvent(new CustomEvent('campusai_ad_impression_recorded', { detail: { adId } }));
+    return true;
+  } finally {
+    pendingImpressionIds.delete(adId);
   }
 };
 
-export const recordAdClick = async (adId: string): Promise<void> => {
-  if (db) {
-    try {
+export const recordAdClick = async (adId: string): Promise<boolean> => {
+  if (!adId || adId.includes('sponsor_edupath_verified')) return false;
+
+  const now = Date.now();
+  const lastClick = clickTimestamps.get(adId) || 0;
+
+  // Debounce double-clicks within cooldown window
+  if (now - lastClick < CLICK_COOLDOWN_MS || pendingClickIds.has(adId)) {
+    return false;
+  }
+
+  clickTimestamps.set(adId, now);
+  pendingClickIds.add(adId);
+
+  try {
+    // 1. Atomically increment clicks in Firestore
+    if (db) {
       await updateDoc(doc(db, 'ad_campaigns', adId), {
-        clicks: increment(1)
+        clicks: increment(1),
+        lastClickAt: new Date().toISOString()
+      }).catch(err => {
+        console.warn('Ad click update warning:', err);
       });
-    } catch {
-      // Non-blocking telemetry
     }
+
+    // 2. Synchronize local cache immediately
+    try {
+      const localAds: SponsoredAd[] = JSON.parse(localStorage.getItem(LOCAL_ADS_KEY) || '[]');
+      const idx = localAds.findIndex(a => a.id === adId);
+      if (idx !== -1) {
+        localAds[idx].clicks = (localAds[idx].clicks || 0) + 1;
+        localStorage.setItem(LOCAL_ADS_KEY, JSON.stringify(localAds));
+      }
+    } catch {}
+
+    // 3. Dispatch event for live UI/Admin reflection
+    window.dispatchEvent(new CustomEvent('campusai_ad_click_recorded', { detail: { adId } }));
+    return true;
+  } finally {
+    pendingClickIds.delete(adId);
   }
 };
 
