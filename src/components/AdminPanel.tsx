@@ -255,6 +255,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, []);
 
+  // Auto-scroll active tab into center view in mobile tab strip
+  useEffect(() => {
+    const el = document.getElementById(`mobile-tab-${activeTab}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeTab]);
+
   // ── Email Campaign state ──────────────────────────────────────────────────
   const [emailSubject, setEmailSubject] = useState('CampusAI Admission & Post-UTME Update');
   const [emailHtmlContent, setEmailHtmlContent] = useState(`<!DOCTYPE html>
@@ -1848,6 +1856,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </header>
 
+            {/* ── Mobile Horizontal Scrollable Tab Bar ── */}
+            <div className="lg:hidden bg-slate-950/95 border-b border-slate-800/80 px-2.5 py-2 shrink-0 z-20 backdrop-blur-md overflow-x-auto no-scrollbar flex items-center gap-1.5 scroll-smooth">
+              {allTabsFlat.map(item => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    id={`mobile-tab-${item.id}`}
+                    type="button"
+                    onClick={() => selectTab(item.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all active:scale-95 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-600/30 ring-1 ring-red-400/50'
+                        : 'bg-slate-900/90 text-slate-400 hover:text-slate-100 hover:bg-slate-800/90 border border-slate-800/80'
+                    }`}
+                  >
+                    <Icon size={14} className={isActive ? 'text-white' : 'text-slate-400'} />
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* ── Main Layout Body: Sidebar + Workspace ── */}
             <div className="flex-1 flex min-h-0 overflow-hidden relative">
 
@@ -1922,7 +1961,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* Mobile Drawer (Overlay + Drawer) */}
               <AnimatePresence>
                 {isMobileDrawerOpen && (
-                  <div className="fixed inset-0 z-50 lg:hidden flex">
+                  <div className="fixed inset-0 z-[200] lg:hidden flex">
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1945,12 +1984,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           </div>
                           <div>
                             <div className="text-xs font-black uppercase tracking-wider text-white">CampusAI Admin</div>
-                            <div className="text-[10px] text-slate-400">Architect Navigation</div>
+                            <div className="text-[10px] text-slate-400">All 15 Console Sections</div>
                           </div>
                         </div>
                         <button
+                          type="button"
                           onClick={() => setIsMobileDrawerOpen(false)}
                           className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-900"
+                          aria-label="Close Navigation Drawer"
                         >
                           <X size={18} />
                         </button>
@@ -1969,11 +2010,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               return (
                                 <button
                                   key={item.id}
+                                  type="button"
                                   onClick={() => selectTab(item.id)}
-                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left active:scale-[0.98] ${
                                     isActive
-                                      ? 'bg-red-600/20 text-white border border-red-500/30'
-                                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
+                                      ? 'bg-red-600/25 text-white border border-red-500/40 shadow-md shadow-red-600/10'
+                                      : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent'
                                   }`}
                                 >
                                   <Icon size={18} className={isActive ? 'text-red-500' : 'text-slate-400'} />
@@ -1982,6 +2024,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
                                       {item.badge}
                                     </span>
+                                  )}
+                                  {isActive && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
                                   )}
                                 </button>
                               );
@@ -2064,16 +2109,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                   {/* ── Active Section Header Banner ── */}
                   <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
                         <span>{currentTabConfig.category}</span>
                         <span>/</span>
                         <span className="text-red-400">{currentTabConfig.label}</span>
                       </div>
-                      <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                        {React.createElement(currentTabConfig.icon, { size: 22, className: 'text-red-500' })}
-                        {currentTabConfig.label}
-                      </h1>
+                      <div className="flex items-center justify-between gap-3">
+                        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 truncate">
+                          {React.createElement(currentTabConfig.icon, { size: 22, className: 'text-red-500 shrink-0' })}
+                          <span className="truncate">{currentTabConfig.label}</span>
+                        </h1>
+                        {/* Mobile quick button to open drawer */}
+                        <button
+                          type="button"
+                          onClick={() => setIsMobileDrawerOpen(true)}
+                          className="lg:hidden px-3 py-1.5 bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all active:scale-95 shadow-sm"
+                        >
+                          <Layers size={13} />
+                          <span>All Tabs (15)</span>
+                          <ChevronDown size={13} />
+                        </button>
+                      </div>
                       <p className="text-xs text-slate-400 mt-1 font-medium">
                         {currentTabConfig.desc}
                       </p>
@@ -4920,6 +4977,70 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
                 </div>
               )}
+                </div>
+
+                {/* ── Mobile Bottom Quick Navigation Dock ── */}
+                <div className="lg:hidden shrink-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-2 flex items-center justify-around z-30 shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => selectTab('analytics')}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all active:scale-95 ${
+                      activeTab === 'analytics'
+                        ? 'text-red-400 font-black'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Activity size={18} className={activeTab === 'analytics' ? 'text-red-500' : 'text-slate-400'} />
+                    <span className="text-[10px] tracking-tight">Analytics</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => selectTab('cutoffs')}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all active:scale-95 ${
+                      activeTab === 'cutoffs'
+                        ? 'text-red-400 font-black'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Layout size={18} className={activeTab === 'cutoffs' ? 'text-red-500' : 'text-slate-400'} />
+                    <span className="text-[10px] tracking-tight">Cutoffs</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => selectTab('content')}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all active:scale-95 ${
+                      activeTab === 'content'
+                        ? 'text-red-400 font-black'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Newspaper size={18} className={activeTab === 'content' ? 'text-red-500' : 'text-slate-400'} />
+                    <span className="text-[10px] tracking-tight">Editorial</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => selectTab('tool_users')}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all active:scale-95 ${
+                      activeTab === 'tool_users'
+                        ? 'text-red-400 font-black'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Calculator size={18} className={activeTab === 'tool_users' ? 'text-red-500' : 'text-slate-400'} />
+                    <span className="text-[10px] tracking-tight">Scholars</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileDrawerOpen(true)}
+                    className="flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95"
+                  >
+                    <Layers size={18} className="text-red-400" />
+                    <span className="text-[10px] tracking-tight font-bold">All (15)</span>
+                  </button>
                 </div>
               </main>
             </div>

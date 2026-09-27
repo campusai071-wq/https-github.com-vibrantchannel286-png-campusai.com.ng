@@ -741,6 +741,8 @@ const AppContent: React.FC = () => {
       setCurrentPage('chat');
     } else if (path.startsWith('/contact') || path.startsWith('/support')) {
       setCurrentPage('contact');
+    } else if (path.startsWith('/admin')) {
+      setCurrentPage('admin');
     } else {
       setCurrentPage('home');
     }
@@ -928,6 +930,10 @@ const AppContent: React.FC = () => {
         const el = document.getElementById('about');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+    } else if (p === 'admin' || p === '/admin') {
+      setCurrentPage('admin');
+      navigate('/admin');
+      window.scrollTo(0, 0);
     } else if (p.startsWith('/')) {
       navigate(p);
       window.scrollTo(0, 0);
@@ -960,6 +966,8 @@ const AppContent: React.FC = () => {
 
 
 
+  const isAdminPage = location.pathname.startsWith('/admin') || currentPage === 'admin';
+
   return (
     <div className={`min-h-screen transition-colors duration-500 ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
       
@@ -971,38 +979,42 @@ const AppContent: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <Navbar 
-        onNavigate={handleNavigate} 
-        currentPage={currentPage} 
-        user={user}
-        admin={adminState}
-        showImportantBanner={showImportantBanner}
-        theme={theme}
-        onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-        onLoginRequest={() => navigate('/login')}
-        onSignUpRequest={() => navigate('/signup')}
-        onShareRequest={() => setIsShareOpen(true)}
-        onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
-        onScholarPackRequest={() => setIsScholarPackOpen(true)}
-        onOpenSidebar={() => setIsSidebarOpen(true)}
-      />
-
-      <Suspense fallback={null}>
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          onNavigate={handleNavigate}
-          currentPage={currentPage}
+      {!isAdminPage && (
+        <Navbar 
+          onNavigate={handleNavigate} 
+          currentPage={currentPage} 
           user={user}
-          onLoginRequest={() => navigate('/login')}
-          onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
-          onScholarPackRequest={() => setIsScholarPackOpen(true)}
+          admin={adminState}
+          showImportantBanner={showImportantBanner}
           theme={theme}
           onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          onLoginRequest={() => navigate('/login')}
+          onSignUpRequest={() => navigate('/signup')}
+          onShareRequest={() => setIsShareOpen(true)}
+          onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+          onScholarPackRequest={() => setIsScholarPackOpen(true)}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
         />
-      </Suspense>
+      )}
 
-      <main className="pb-40">
+      {!isAdminPage && (
+        <Suspense fallback={null}>
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            onNavigate={handleNavigate}
+            currentPage={currentPage}
+            user={user}
+            onLoginRequest={() => navigate('/login')}
+            onInviteEarnRequest={() => setIsInviteEarnOpen(true)}
+            onScholarPackRequest={() => setIsScholarPackOpen(true)}
+            theme={theme}
+            onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          />
+        </Suspense>
+      )}
+
+      <main className={isAdminPage ? "min-h-screen" : "pb-40"}>
         <Suspense fallback={
           <div className="min-h-[40vh] bg-gray-950 flex flex-col items-center justify-center p-6 gap-3">
             <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1631,33 +1643,39 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* WHATSAPP STICKY BANNER */}
-      <div className="fixed bottom-20 right-3.5 md:right-8 md:bottom-24 z-[100] group flex items-center">
-        <a 
-          href="https://whatsapp.com/channel/0029VbD6bCD1NCraoIlpD218"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 md:p-4 rounded-full md:rounded-2xl shadow-2xl flex items-center gap-2.5 md:gap-3 hover:scale-105 active:scale-95 transition-all group border border-green-500/20"
-          title="Join WhatsApp Updates Channel"
-        >
-          <div className="flex items-center justify-center shrink-0">
-            <MessageSquare size={20} className="md:w-6 md:h-6 group-hover:scale-110 transition-transform duration-300" />
-          </div>
-          <div className="hidden md:block overflow-hidden max-w-xs transition-all duration-300">
-            <p className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Updates</p>
-            <p className="text-xs font-bold leading-none truncate pr-2">Join Channel 📲</p>
-          </div>
-        </a>
-      </div>
+      {!isAdminPage && (
+        <div className="fixed bottom-20 right-3.5 md:right-8 md:bottom-24 z-[100] group flex items-center">
+          <a 
+            href="https://whatsapp.com/channel/0029VbD6bCD1NCraoIlpD218"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 md:p-4 rounded-full md:rounded-2xl shadow-2xl flex items-center gap-2.5 md:gap-3 hover:scale-105 active:scale-95 transition-all group border border-green-500/20"
+            title="Join WhatsApp Updates Channel"
+          >
+            <div className="flex items-center justify-center shrink-0">
+              <MessageSquare size={20} className="md:w-6 md:h-6 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <div className="hidden md:block overflow-hidden max-w-xs transition-all duration-300">
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Updates</p>
+              <p className="text-xs font-bold leading-none truncate pr-2">Join Channel 📲</p>
+            </div>
+          </a>
+        </div>
+      )}
 
-      <Footer 
-        onNavigate={handleNavigate} 
-        onOpenLegal={(type: 'terms' | 'privacy' | 'cookies') => setLegalModal({ isOpen: true, type })} 
-        onOpenSupport={() => setIsSupportOpen(true)} 
-        isAdmin={isAuthorizedAdmin} 
-        socialLinks={socialLinks}
-      />
+      {!isAdminPage && (
+        <Footer 
+          onNavigate={handleNavigate} 
+          onOpenLegal={(type: 'terms' | 'privacy' | 'cookies') => setLegalModal({ isOpen: true, type })} 
+          onOpenSupport={() => setIsSupportOpen(true)} 
+          isAdmin={isAuthorizedAdmin} 
+          socialLinks={socialLinks}
+        />
+      )}
       
-      <MobileBottomNav activeTab={currentPage} user={user} onNavigate={handleNavigate} />
+      {!isAdminPage && (
+        <MobileBottomNav activeTab={currentPage} user={user} onNavigate={handleNavigate} />
+      )}
       
       <Suspense fallback={null}>
         <SupportModal 
@@ -1680,7 +1698,7 @@ const AppContent: React.FC = () => {
         <LegalModal isOpen={legalModal.isOpen} type={legalModal.type} onClose={() => setLegalModal({ ...legalModal, isOpen: false })} />
         <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} user={user} />
         {/* Floating Ask AI Button (Navigates directly to /chat page) */}
-        {currentPage !== 'chat' && (
+        {!isAdminPage && currentPage !== 'chat' && (
           <div className="fixed bottom-20 left-3.5 md:left-8 md:bottom-8 z-[150] group">
             <button
               id="campusai-floating-chat-bubble"
