@@ -36,6 +36,7 @@ import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME
 import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
 import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
+import { OAU_CUTOFFS_2025_2026, getOAUFaculties, OAU_SESSION, OAU_INSTITUTION_NAME, getOAUCutoffForCandidate } from '../data/oauCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick, trackResultSaved } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -646,12 +647,18 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
       "O'Level Points: Maximum of 10 points. Graded as: A1=2.0, B2=1.8, B3=1.6, C4=1.4, C5=1.2, C6=1.0. A 1-sitting result gets a bonus, whereas 2-sittings are capped at 9.0 max."
     ],
     cutoffs: [
-      { course: "Medicine & Surgery", score: "78.20+" },
-      { course: "Nursing Science", score: "70.90+" },
-      { course: "Pharmacy", score: "73.50+" },
-      { course: "Law", score: "74.10+" },
-      { course: "Computer Science with Economics", score: "69.50+" },
-      { course: "Civil Engineering", score: "68.40+" }
+      { course: "Medicine and Surgery", score: "82.475 (Merit)" },
+      { course: "Nursing Science", score: "77.354 (Merit)" },
+      { course: "Law", score: "76.075 (Merit)" },
+      { course: "Dentistry", score: "73.725 (Merit)" },
+      { course: "Pharmacy", score: "73.475 (Merit)" },
+      { course: "Computer Science with Mathematics", score: "67.73 (Merit) | 62.00 (Oyo)" },
+      { course: "Software Engineering", score: "66.77 (Merit) | 61.02 (Oyo)" },
+      { course: "Computer Engineering", score: "66.25 (Merit) | 56.65 (Oyo)" },
+      { course: "Accounting", score: "69.600 (Merit) | 65.80 (Oyo)" },
+      { course: "Economics", score: "62.73 (Merit) | 57.75 (Oyo)" },
+      { course: "Architecture", score: "70.575 (Merit) | 67.48 (Oyo)" },
+      { course: "Mechanical Engineering", score: "69.325 (Merit) | 64.53 (Oyo)" }
     ],
     postUtmeGuide: {
       format: "Computer-Based Test (CBT)",
@@ -1615,6 +1622,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [isDelsuCutoffsModalOpen, setIsDelsuCutoffsModalOpen] = useState(false);
   const [delsuCutoffSearch, setDelsuCutoffSearch] = useState('');
   const [delsuFacultyFilter, setDelsuFacultyFilter] = useState('ALL');
+
+  // ── OAU 2025/2026 Cutoffs Explorer State ──
+  const [isOAUCutoffsModalOpen, setIsOAUCutoffsModalOpen] = useState(false);
+  const [oauCutoffSearch, setOauCutoffSearch] = useState('');
+  const [oauFacultyFilter, setOauFacultyFilter] = useState('ALL');
+  const [oauModalStateFilter, setOauModalStateFilter] = useState<'merit' | 'osun' | 'oyo' | 'ogun' | 'ondo' | 'ekiti' | 'lagos' | 'elds'>('merit');
 
   // ── Advanced Calculator Features States ──
   const [simJamb, setSimJamb] = useState<number>(0);
@@ -2852,6 +2865,38 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         await new Promise(res => setTimeout(res, 350));
         setAiResult(null);
       }
+
+      // Deterministically enforce official stamped OAU cutoffs (both registered & guest)
+      if (isOau) {
+        const oauOfficial = getOAUCutoffForCandidate(activeCourse, stateOfOrigin);
+        if (oauOfficial.programme) {
+          const officialCutoff = oauOfficial.cutoff;
+          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+          const baseProb = diff >= 10 ? 98 : diff >= 5 ? 92 : diff >= 2 ? 86 : diff >= 0 ? 80 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -3 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+          const oauResultPayload = {
+            departmentalCutoff: `${officialCutoff}%`,
+            cutoff: `${officialCutoff}%`,
+            cutoffIsOfficial: true,
+            cutoffType: 'official_departmental_cutoff',
+            cutoffSource: 'Official OAU Faculty Dean Stamped Publication',
+            cutoffYear: OAU_SESSION,
+            cutoffQuotaUsed: oauOfficial.quotaLabel,
+            verdict,
+            probability: baseProb,
+            scoreDiff: diff,
+            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official OAU ${oauOfficial.quotaLabel} cutoff of ${officialCutoff}% (Merit: ${oauOfficial.programme.merit}%).`,
+            reliability: 'High',
+            predictionId
+          };
+
+          result = { ...(result || {}), ...oauResultPayload };
+          enrichedResult = { ...(enrichedResult || {}), ...oauResultPayload };
+          setAiResult(enrichedResult);
+        }
+      }
+
       setShowResults(true);
 
       // Increment persistent global calculations metric for site analytics
@@ -3319,6 +3364,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                           className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
                         >
                           <BookOpen size={11} /> View Official DELSU 2026/2027 Approved Departmental Cut-Off Marks (40+ Courses)
+                        </button>
+                      )}
+                      {(currentSchoolSlug === 'oau' || currentSchoolSlug === 'obafemi-awolowo' || isOau) && (
+                        <button
+                          type="button"
+                          onClick={() => setIsOAUCutoffsModalOpen(true)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 self-start sm:self-auto shrink-0 cursor-pointer"
+                        >
+                          <BookOpen size={11} /> View Official OAU 2025/2026 Stamped Cut-Off Marks (Merit, Catchment & ELDS)
                         </button>
                       )}
                     </div>
@@ -8913,6 +8967,212 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsDelsuCutoffsModalOpen(false)}
+                    className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* OAU 2025/2026 Cutoffs Explorer Modal */}
+        {isOAUCutoffsModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOAUCutoffsModalOpen(false)}
+              className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-5xl bg-gray-900 border border-yellow-500/20 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-yellow-950/60 to-gray-900 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 font-black">
+                    OAU
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">{OAU_INSTITUTION_NAME}</h3>
+                    <p className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest">{OAU_SESSION} Official Approved Departmental Cut-off Marks (Dean Stamped)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOAUCutoffsModalOpen(false)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Controls Bar */}
+              <div className="p-4 border-b border-white/5 bg-gray-950/60 flex flex-col gap-3 shrink-0">
+                <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+                  <div className="relative w-full md:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      value={oauCutoffSearch}
+                      onChange={(e) => setOauCutoffSearch(e.target.value)}
+                      placeholder="Search OAU course or faculty..."
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider shrink-0">Faculty:</span>
+                    <select
+                      value={oauFacultyFilter}
+                      onChange={(e) => setOauFacultyFilter(e.target.value)}
+                      className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500/50"
+                    >
+                      <option value="ALL">All Faculties ({OAU_CUTOFFS_2025_2026.length} Programmes)</option>
+                      {getOAUFaculties().map((fac, fIdx) => (
+                        <option key={fIdx} value={fac}>{fac}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quota Category Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider shrink-0 mr-1">View By Quota:</span>
+                  {[
+                    { key: 'merit', label: 'Merit (National)' },
+                    { key: 'osun', label: 'Osun (Catchment)' },
+                    { key: 'oyo', label: 'Oyo (Catchment)' },
+                    { key: 'ondo', label: 'Ondo (Catchment)' },
+                    { key: 'ogun', label: 'Ogun (Catchment)' },
+                    { key: 'ekiti', label: 'Ekiti (Catchment)' },
+                    { key: 'lagos', label: 'Lagos (Catchment)' },
+                    { key: 'elds', label: 'ELDS' },
+                  ].map(tab => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setOauModalStateFilter(tab.key as any)}
+                      className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                        oauModalStateFilter === tab.key
+                          ? 'bg-yellow-500 text-black shadow-md font-black'
+                          : 'bg-black/40 text-gray-400 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Body / Table */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {(() => {
+                  const filtered = OAU_CUTOFFS_2025_2026.filter(item => {
+                    const matchesSearch = item.programme.toLowerCase().includes(oauCutoffSearch.toLowerCase()) ||
+                                          item.faculty.toLowerCase().includes(oauCutoffSearch.toLowerCase());
+                    const matchesFaculty = oauFacultyFilter === 'ALL' || item.faculty === oauFacultyFilter;
+                    return matchesSearch && matchesFaculty;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <p className="text-xs font-black uppercase">No programmes found matching your search.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white/5 text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-white/5">
+                            <th className="p-3">Programme / Course</th>
+                            <th className="p-3">Faculty</th>
+                            <th className="p-3 text-center">
+                              {oauModalStateFilter === 'merit' ? 'Merit Cut-Off' : `${oauModalStateFilter.toUpperCase()} Cut-Off`}
+                            </th>
+                            <th className="p-3 text-center">Merit Baseline</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs">
+                          {filtered.map((item, idx) => {
+                            let selectedScore: number = item.merit;
+                            if (oauModalStateFilter === 'merit') {
+                              selectedScore = item.merit;
+                            } else if (oauModalStateFilter === 'elds') {
+                              selectedScore = typeof item.elds === 'number' ? item.elds : (item.elds.default ?? item.merit);
+                            } else {
+                              const cVal = item.catchment[oauModalStateFilter as keyof typeof item.catchment] ?? item.catchment.all;
+                              selectedScore = typeof cVal === 'number' ? cVal : item.merit;
+                            }
+
+                            return (
+                              <tr key={idx} className="hover:bg-white/[0.02] transition-all">
+                                <td className="p-3 font-bold text-white">{item.programme}</td>
+                                <td className="p-3 text-gray-400 text-[11px]">{item.faculty}</td>
+                                <td className="p-3 text-center">
+                                  <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg font-black text-xs font-mono">
+                                    {selectedScore.toFixed(3).replace(/\.?0+$/, '')}%
+                                  </span>
+                                </td>
+                                <td className="p-3 text-center text-gray-400 text-xs font-mono">
+                                  {item.merit.toFixed(3).replace(/\.?0+$/, '')}%
+                                </td>
+                                <td className="p-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const uObj = universityData.find((u: any) => u.slug === 'oau' || (u.name || '').toLowerCase().includes('awolowo')) || { name: OAU_INSTITUTION_NAME, slug: 'oau' };
+                                      setTargetUni(uObj);
+                                      setUniSearch(uObj.name);
+                                      setTargetCourse(item.programme);
+                                      if (['osun', 'oyo', 'ogun', 'ondo', 'ekiti', 'lagos'].includes(oauModalStateFilter)) {
+                                        setStateOfOrigin(oauModalStateFilter.charAt(0).toUpperCase() + oauModalStateFilter.slice(1));
+                                      }
+                                      setIsOAUCutoffsModalOpen(false);
+                                      window.scrollTo({ top: 400, behavior: 'smooth' });
+                                    }}
+                                    className="px-3 py-1 bg-yellow-500/10 hover:bg-yellow-500 text-yellow-400 hover:text-black border border-yellow-500/20 rounded-lg font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer ml-auto"
+                                  >
+                                    Calculate <ArrowRight size={10} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
+                <div className="flex items-center gap-2">
+                  <Info size={12} className="text-yellow-400" />
+                  <span>Obafemi Awolowo University (OAU) {OAU_SESSION} Official Approved Departmental Cut-Offs (50:40:10 Model)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://admissions.oauife.edu.ng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-yellow-400 hover:underline flex items-center gap-1"
+                  >
+                    OAU Admissions Portal <ExternalLink size={10} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsOAUCutoffsModalOpen(false)}
                     className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg transition-all cursor-pointer"
                   >
                     Close
