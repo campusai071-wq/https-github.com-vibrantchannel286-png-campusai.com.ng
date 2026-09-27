@@ -1,6 +1,24 @@
 User-agent: Mediapartners-Google
 Allow: /
 
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /public/
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+Allow: /*.svg$
+
+Disallow: /admin
+Disallow: /api/admin
+Disallow: /private/
+Disallow: /*?*filter=
+Disallow: /*?*session=
+
 User-agent: *
 Allow: /
 Allow: /assets/
@@ -21,4 +39,3 @@ Disallow: /*?*session=
 
 Sitemap: https://campusai.com.ng/sitemap.xml
 Sitemap: https://campusai.com.ng/news-sitemap.xml
-
