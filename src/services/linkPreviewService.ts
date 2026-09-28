@@ -59,7 +59,20 @@ export const fetchLinkPreviewsFromCloud = async (): Promise<LinkPreviewMap> => {
       const cloudMap = (data.previews || {}) as LinkPreviewMap;
       const merged = { ...localMap, ...cloudMap };
       if (typeof window !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+        } catch (err) {
+          // If storage exceeded, save lightweight version without massive base64s to local
+          const lightweight: LinkPreviewMap = {};
+          Object.entries(merged).forEach(([k, v]) => {
+            lightweight[k] = { ...v, imageUrl: v.imageUrl && v.imageUrl.length > 50000 ? '' : v.imageUrl };
+          });
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lightweight));
+          } catch (e2) {
+            console.warn('LocalStorage quota limit reached:', e2);
+          }
+        }
       }
       return merged;
     }
@@ -99,7 +112,23 @@ export const saveLinkPreviewImage = async (
   };
 
   if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedMap));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedMap));
+    } catch (e) {
+      console.warn('LocalStorage quota exceeded for link previews. Saving lightweight cache, cloud sync active:', e);
+      try {
+        const lightweightMap: LinkPreviewMap = {};
+        Object.entries(updatedMap).forEach(([k, v]) => {
+          lightweightMap[k] = {
+            ...v,
+            imageUrl: v.imageUrl && v.imageUrl.length > 50000 ? '' : v.imageUrl
+          };
+        });
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lightweightMap));
+      } catch (err) {
+        console.warn('Could not save lightweight local link previews cache:', err);
+      }
+    }
   }
 
   if (db) {
@@ -123,7 +152,11 @@ export const deleteLinkPreviewImage = async (path: string): Promise<LinkPreviewM
   if (currentMap[normalizedPath]) {
     delete currentMap[normalizedPath];
     if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentMap));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentMap));
+      } catch (e) {
+        console.warn('Failed to update local link previews storage:', e);
+      }
     }
     if (db) {
       try {
