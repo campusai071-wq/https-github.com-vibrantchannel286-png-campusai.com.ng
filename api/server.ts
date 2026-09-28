@@ -18,9 +18,9 @@ import { initializeApp as initClientApp, getApps as getClientApps } from "fireba
 import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
 import { initializeApp as initAdminApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp, FieldValue } from "firebase-admin/firestore";
-import { injectSEO as seoInject } from "./seo.js";
+import { injectSEO as seoInject, clearSeoCache } from "./seo.js";
 import { handleOgImageRequest } from "./ogImage.js";
-import { handleArticleImageRequest } from "./articleImage.js";
+import { handleArticleImageRequest, clearArticleImageCache } from "./articleImage.js";
 import universityData from "../src/data/universities.js";
 import { MOCK_NEWS } from "../src/constants.js";
 import { getCentersForState, getCampusesForState, getHostelsForState, STATE_COORDINATES } from "../src/data/cbtCentersData.js";
@@ -503,6 +503,41 @@ app.all("/api/health", (req, res) => {
     env: process.env.NODE_ENV,
     url: req.originalUrl
   });
+});
+
+// Dynamic Open Graph Image Generation for Social Media Crawlers (WhatsApp, Facebook, Twitter, LinkedIn)
+app.get(['/api/og-image', '/api/og-image.svg', '/api/og-image.png', '/og-image.svg', '/og-image.png'], handleOgImageRequest);
+
+// Dynamic Article Cover Image Handler for social media previews
+app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, adminDb, dbInstance));
+
+// Cache Purge & Social Scraper Sync API
+app.all("/api/admin/clear-seo-cache", (req: any, res: any) => {
+  try {
+    const slug = req.body?.slug || req.query?.slug;
+    clearSeoCache(slug);
+    clearArticleImageCache(slug);
+    return res.json({ success: true, message: "SEO & OpenGraph image caches purged successfully." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Trigger Facebook Graph Scraper Purge
+app.all("/api/admin/rescrape-social", async (req: any, res: any) => {
+  try {
+    const url = req.body?.url || req.query?.url || "https://campusai.com.ng";
+    clearSeoCache();
+    clearArticleImageCache();
+    
+    try {
+      await axios.post(`https://graph.facebook.com/?id=${encodeURIComponent(url)}&scrape=true`, {}, { timeout: 4000 });
+    } catch (fbErr) {}
+
+    return res.json({ success: true, message: `Re-scrape signal dispatched for ${url}` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // IndexNow Proxy Endpoint (bypasses browser CORS restrictions)
@@ -2270,6 +2305,8 @@ app.post("/api/admin/news/action", requireAdminToken as any, async (req: any, re
 
     if (action === "delete") {
       if (!id) return res.status(400).json({ success: false, error: "ID is required for deletion" });
+      clearSeoCache(id);
+      clearArticleImageCache(id);
       try {
         if (!newsCollection) throw new Error("No adminDb");
         await newsCollection.doc(id).delete();
@@ -2288,6 +2325,8 @@ app.post("/api/admin/news/action", requireAdminToken as any, async (req: any, re
     }
 
     if (action === "purge") {
+      clearSeoCache();
+      clearArticleImageCache();
       try {
         if (!newsCollection) throw new Error("No adminDb");
         const snapshot = await newsCollection.limit(500).get();
@@ -2315,6 +2354,8 @@ app.post("/api/admin/news/action", requireAdminToken as any, async (req: any, re
         return res.status(400).json({ success: false, error: "News content with title is required" });
       }
       const slug = news.slug || slugify(news.title);
+      clearSeoCache(slug);
+      clearArticleImageCache(slug);
       const todayStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Africa/Lagos" });
       let finalDate = news.date ? news.date.trim() : "";
       if (!finalDate || finalDate.includes("[") || finalDate.includes("]") || finalDate.includes("Insert") || toMs(finalDate) === 0) {
@@ -2352,6 +2393,12 @@ app.post("/api/admin/news/action", requireAdminToken as any, async (req: any, re
       if (!id || !updates) {
         return res.status(400).json({ success: false, error: "ID and updates are required" });
       }
+      const targetSlug = updates.slug || id;
+      clearSeoCache(targetSlug);
+      clearSeoCache(id);
+      clearArticleImageCache(targetSlug);
+      clearArticleImageCache(id);
+
       try {
         if (!newsCollection) throw new Error("No adminDb");
         let targetRef = newsCollection.doc(id);
@@ -6261,8 +6308,40 @@ app.post("/api/admin/keys/ping", requireAdminToken as any, async (req: any, res:
 // Dynamic Open Graph Image Generation for Social Media Crawlers
 app.get(['/api/og-image', '/api/og-image.svg', '/api/og-image.png', '/og-image.svg', '/og-image.png'], handleOgImageRequest);
 
-// Dynamic Article Cover Image Handler for social media previews
-app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, dbInstance));
+// Dynamic Article Cover Image Handler for social media previews (WhatsApp, Facebook, Twitter, LinkedIn)
+app.get(['/api/article-image', '/api/news-image'], (req, res) => handleArticleImageRequest(req, res, adminDb, dbInstance));
+
+// Cache Purge & Social Scraper Sync API
+app.post("/api/admin/clear-seo-cache", (req: any, res: any) => {
+  try {
+    const slug = req.body?.slug || req.query?.slug;
+    clearSeoCache(slug);
+    clearArticleImageCache(slug);
+    return res.json({ success: true, message: "SEO & OpenGraph image caches purged successfully." });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Trigger Facebook Graph Scraper Purge
+app.post("/api/admin/rescrape-social", async (req: any, res: any) => {
+  try {
+    const url = req.body?.url || "https://campusai.com.ng";
+    clearSeoCache();
+    clearArticleImageCache();
+    
+    // Call Facebook Scraper API to force refresh its cache for the URL
+    try {
+      await axios.post(`https://graph.facebook.com/?id=${encodeURIComponent(url)}&scrape=true`, {}, { timeout: 4000 });
+    } catch (fbErr) {
+      // Non-fatal if Facebook rate limits or requires app access token
+    }
+
+    return res.json({ success: true, message: `Re-scrape signal dispatched for ${url}` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Admin Send Email via Resend API
 app.post("/api/admin/send-email", requireAdminToken as any, async (req: any, res: any) => {
@@ -6441,7 +6520,7 @@ async function startServer() {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true, hmr: false, ws: false },
-        appType: "spa",
+        appType: "custom",
       });
 
       app.use(vite.middlewares);

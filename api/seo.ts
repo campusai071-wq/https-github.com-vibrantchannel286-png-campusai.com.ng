@@ -76,6 +76,19 @@ function renderMarkdownToHtml(markdown: string): string {
 const seoCache = new Map<string, { html: string; timestamp: number }>();
 const SEO_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
+export function clearSeoCache(slugOrPath?: string) {
+  if (slugOrPath) {
+    const raw = slugOrPath.trim();
+    const clean = raw.startsWith('/') ? raw : `/news/${raw}`;
+    seoCache.delete(clean);
+    seoCache.delete(clean.replace(/\/+$/, ''));
+    seoCache.delete('/news');
+    seoCache.delete('/');
+  } else {
+    seoCache.clear();
+  }
+}
+
 // Fast helper to run promises with a strict maximum timeout
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -129,8 +142,11 @@ export function generateFastSEOFallback(html: string, reqPath: string): string {
   let title = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
   let description = "Nigeria's premier academic platform: JAMB CBT exam simulator, 2026 university aggregate calculators, cutoff marks, syllabus explorer, and admission studio.";
   let h1Text = "JAMB 2026 Aggregate Calculator & Admission Portal";
+  let imageUrl = `${siteDomain}/og-image.png`;
+  let isArticle = false;
 
   if (cleanPath.startsWith('/news/')) {
+    isArticle = true;
     const rawSlug = cleanPath.split('/news/')[1];
     const slug = rawSlug ? decodeURIComponent(rawSlug).trim() : '';
     const formattedTitle = slug
@@ -150,24 +166,48 @@ export function generateFastSEOFallback(html: string, reqPath: string): string {
     title = `${formattedTitle} | CampusAI News`;
     description = formatSeoDescription(`Read verified updates on ${formattedTitle}. Latest JAMB cut-offs, screening alerts, and admission guidance on CampusAI Nigeria.`, formattedTitle);
     h1Text = formattedTitle;
+    imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
   } else if (cleanPath === '/calculator') {
     title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
     description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
     h1Text = "Official 2026 JAMB & University Aggregate Calculator";
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Aggregate Score Calculator")}&category=${encodeURIComponent("CampusAI Tools")}`;
   } else if (cleanPath.endsWith('-aggregate-calculator')) {
     const schoolSlug = cleanPath.replace(/^\//, '').replace(/-aggregate-calculator$/, '').toUpperCase();
     title = `${schoolSlug} Aggregate Score Calculator 2026 | CampusAI`;
     description = `Calculate your 2026 ${schoolSlug} post-UTME screening aggregate score automatically using verified institutional admission weighting formulas.`;
     h1Text = `${schoolSlug} Aggregate Score Calculator 2026`;
+    imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent(`${schoolSlug} Agg. Calculator`)}&category=${encodeURIComponent(schoolSlug)}`;
   }
 
   // Ensure canonical tag is strictly updated regardless of existing attributes
   let output = html.replace(/<link[^>]*rel=["']?canonical["']?[^>]*\/?>/gi, '');
-  output = output.replace('</head>', `  <link data-rh="true" rel="canonical" href="${canonical}">\n</head>`);
+  output = output.replace(/<title[^>]*>.*?<\/title>/gi, '');
+  output = output.replace(/<meta[^>]*name=["']description["'][^>]*\/?>/gi, '');
+  output = output.replace(/<meta[^>]*property=["']og:[^"']*["'][^>]*\/?>/gi, '');
+  output = output.replace(/<meta[^>]*name=["']twitter:[^"']*["'][^>]*\/?>/gi, '');
 
-  // Ensure title and description are strictly updated
-  output = output.replace(/<title[^>]*>.*?<\/title>/gi, `<title data-rh="true">${title}</title>`);
-  output = output.replace(/<meta[^>]*name=["']description["'][^>]*\/?>/gi, `<meta data-rh="true" name="description" content="${description}">`);
+  const fallbackMeta = `
+  <title data-rh="true">${title}</title>
+  <meta data-rh="true" name="description" content="${description}">
+  <link data-rh="true" rel="canonical" href="${canonical}">
+  <meta data-rh="true" property="og:type" content="${isArticle ? 'article' : 'website'}">
+  <meta data-rh="true" property="og:site_name" content="CampusAI Nigeria">
+  <meta data-rh="true" property="og:title" content="${title}">
+  <meta data-rh="true" property="og:description" content="${description}">
+  <meta data-rh="true" property="og:url" content="${canonical}">
+  <meta data-rh="true" property="og:image" content="${imageUrl}">
+  <meta data-rh="true" property="og:image:secure_url" content="${imageUrl}">
+  <meta data-rh="true" property="og:image:type" content="image/png">
+  <meta data-rh="true" property="og:image:width" content="1200">
+  <meta data-rh="true" property="og:image:height" content="630">
+  <meta data-rh="true" name="twitter:card" content="summary_large_image">
+  <meta data-rh="true" name="twitter:title" content="${title}">
+  <meta data-rh="true" name="twitter:description" content="${description}">
+  <meta data-rh="true" name="twitter:image" content="${imageUrl}">
+  `;
+
+  output = output.replace('</head>', `${fallbackMeta}\n</head>`);
 
   // Inject semantic h1 and main article wrapper into root if rendering news or calculator fallback
   if (cleanPath.startsWith('/news/') && h1Text) {
@@ -225,6 +265,11 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
               const snap = await adminDb.collection('news').where('slug', '==', slug).limit(1).get();
               if (!snap.empty) {
                 docData = snap.docs[0].data();
+              } else {
+                const idSnap = await adminDb.collection('news').where('id', '==', slug).limit(1).get();
+                if (!idSnap.empty) {
+                  docData = idSnap.docs[0].data();
+                }
               }
             }
           } catch (e) {
@@ -244,6 +289,12 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
               const querySnap = await getDocs(q);
               if (!querySnap.empty) {
                 docData = querySnap.docs[0].data();
+              } else {
+                const qId = query(collection(dbInstance, 'news'), where('id', '==', slug), limit(1));
+                const idSnap = await getDocs(qId);
+                if (!idSnap.empty) {
+                  docData = idSnap.docs[0].data();
+                }
               }
             }
           } catch (e) {
@@ -288,18 +339,18 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
           title = `${articleTitle} | CampusAI News`;
           description = formatSeoDescription(articleExcerpt, articleTitle);
 
-          const rawArticleImg = docData.image || (Array.isArray(docData.images) && docData.images.length > 0 ? docData.images[0] : null) || docData.imageUrl || docData.coverImage || docData.featuredImage;
-
-          if (typeof rawArticleImg === 'string' && rawArticleImg.trim()) {
-            const trimmedImg = rawArticleImg.trim();
-            if (trimmedImg.startsWith('http://') || trimmedImg.startsWith('https://')) {
-              imageUrl = trimmedImg;
-            } else {
-              imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
+          let version = Date.now();
+          if (docData.updatedAt) {
+            if (typeof docData.updatedAt.toMillis === 'function') version = docData.updatedAt.toMillis();
+            else if (typeof docData.updatedAt.toDate === 'function') version = docData.updatedAt.toDate().getTime();
+            else {
+              const parsed = new Date(docData.updatedAt).getTime();
+              if (!isNaN(parsed) && parsed > 0) version = parsed;
             }
-          } else {
-            imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
           }
+
+          // Dedicated high-performance OpenGraph link preview image endpoint for WhatsApp, Facebook, Twitter, and LinkedIn
+          imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}&v=${version}`;
 
           const renderedContent = renderMarkdownToHtml(articleBody);
 

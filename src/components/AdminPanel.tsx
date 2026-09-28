@@ -819,6 +819,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
   const [showPostForm, setShowPostForm]   = useState(false);
   const [newsFilter, setNewsFilter] = useState<'live' | 'pending'>('live');
+  const [newsSearchTerm, setNewsSearchTerm] = useState('');
   // ✅ FIX: newPost no longer stores a stale date — date is always computed fresh at publish time
   const [newPost, setNewPost] = useState<Partial<NewsItem>>({ category: 'National' });
   const [editingDateId, setEditingDateId]     = useState<string | null>(null);
@@ -3689,9 +3690,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     )}
                   </AnimatePresence>
 
+                  {/* Search Bar for Articles */}
+                  <div className="relative mb-4">
+                    <input
+                      type="text"
+                      placeholder="Search articles by headline, institution (e.g. EBSU), category, or slug..."
+                      value={newsSearchTerm}
+                      onChange={e => setNewsSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 text-gray-900 dark:text-white transition-all shadow-sm"
+                    />
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Search size={15} />
+                    </div>
+                    {newsSearchTerm && (
+                      <button
+                        onClick={() => setNewsSearchTerm('')}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
                   <div className="space-y-3">
                     {publishedNews
                       .filter(item => newsFilter === 'live' ? item.isLive : !item.isLive)
+                      .filter(item => {
+                        if (!newsSearchTerm.trim()) return true;
+                        const term = newsSearchTerm.toLowerCase();
+                        return (
+                          (item.title || '').toLowerCase().includes(term) ||
+                          (item.slug || '').toLowerCase().includes(term) ||
+                          (item.category || '').toLowerCase().includes(term) ||
+                          (item.excerpt || '').toLowerCase().includes(term) ||
+                          (item.id || '').toLowerCase().includes(term)
+                        );
+                      })
                       .slice(0, 1000).map(item => {
                       const itemTime = new Date(item.date).getTime();
                       const isFuture = !isNaN(itemTime) && itemTime > todayLagosMidnight;
@@ -5232,7 +5266,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4">Category</label>
                       <select 
@@ -5246,15 +5280,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4">Card Summary (Excerpt)</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4">Publication Date</label>
                       <input 
                         type="text"
-                        value={editingNews.excerpt || ''}
-                        onChange={e => setEditingNews({ ...editingNews, excerpt: e.target.value })}
+                        value={editingNews.date || ''}
+                        onChange={e => setEditingNews({ ...editingNews, date: e.target.value })}
+                        placeholder="e.g. September 27, 2026"
                         className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4">Card Summary (Excerpt)</label>
+                    <textarea 
+                      rows={2}
+                      value={editingNews.excerpt || ''}
+                      onChange={e => setEditingNews({ ...editingNews, excerpt: e.target.value })}
+                      className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all text-gray-900 dark:text-white resize-none"
                     />
                   </div>
-                </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-4">Official Source URL (Optional)</label>
+                    <input 
+                      type="url"
+                      value={editingNews.sourceUrl || ''}
+                      onChange={e => setEditingNews({ ...editingNews, sourceUrl: e.target.value })}
+                      placeholder="https://portal.institution.edu.ng/..."
+                      className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all text-gray-900 dark:text-white"
+                    />
+                  </div>
 
                 <ArticleImagesUploader
                   images={editingNews.images || (editingNews.image ? [editingNews.image] : [])}

@@ -10,6 +10,83 @@ export const ADMISSION_DATES = {
 
 export const MOCK_NEWS: NewsItem[] = [
   {
+    id: 'ebsu-extends-post-utme-registration-deadline-for-20262027-session',
+    slug: 'ebsu-extends-post-utme-registration-deadline-for-20262027-session',
+    title: 'EBSU Extends Post-UTME Registration Deadline for 2026/2027 Academic Session',
+    category: 'State',
+    date: 'September 25, 2026',
+    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1000',
+    excerpt: 'Ebonyi State University (EBSU), Abakaliki, has officially announced the extension of the online registration deadline for the 2026/2027 Post-UTME and Direct Entry screening exercise. Eligible candidates who scored 140 and above can now complete registration.',
+    fullContent: `# Ebonyi State University (EBSU) Extends 2026/2027 Post-UTME Screening Registration
+
+> **✅ OFFICIAL ADMISSION NOTICE:** Verified by the Undergraduate Admissions Unit, Ebonyi State University (EBSU), Abakaliki.
+
+The management of **Ebonyi State University (EBSU), Abakaliki**, has officially approved the **extension of the online application portal** for the 2026/2027 Post-UTME and Direct Entry (DE) screening exercise. This extension provides prospective candidates who chose EBSU as their first choice, as well as those wishing to make a change of institution to EBSU on the JAMB CAPS portal, adequate time to finalize their applications.
+
+---
+
+## 📌 Key Highlights & Extended Timetable
+
+| Parameter | Official Detail |
+| :--- | :--- |
+| **Institution** | Ebonyi State University (EBSU), Abakaliki |
+| **Academic Session** | 2026/2027 Session |
+| **General Minimum UTME Cut-off** | **140** (Faculty-specific benchmarks apply) |
+| **Application Fee** | **₦2,000** (Official Remita Processing Fee) |
+| **Application Portal** | [EBSU Portal (portal.ebsu.edu.ng)](https://portal.ebsu.edu.ng) |
+| **Mode of Screening** | Online Document & O'Level Verification Screening |
+
+---
+
+## 🏛️ Departmental Cut-off Mark Benchmarks
+
+While the baseline institutional cut-off score is **140**, specific competitive faculties and professional courses require higher benchmarks:
+
+1. **Faculty of Medicine & Health Sciences:**
+   - Medicine & Surgery (MBBS): **240+**
+   - Nursing Science: **220+**
+   - Medical Laboratory Science: **200+**
+   - Anatomy & Physiology: **170+**
+
+2. **Faculty of Law:**
+   - Civil Law: **220+**
+
+3. **Faculty of Management & Social Sciences:**
+   - Accounting, Economics, Business Management: **160+**
+   - Political Science, Mass Communication: **160+**
+
+4. **Faculty of Education, Agriculture & Natural Sciences:**
+   - General cut-off: **140+**
+
+---
+
+## 📝 Step-by-Step Registration Guide
+
+1. **Visit the Official EBSU Portal:**
+   Go to [https://portal.ebsu.edu.ng](https://portal.ebsu.edu.ng) and navigate to the **2026/2027 Admission Screening Application**.
+2. **Generate Invoice:**
+   Enter your **JAMB Registration Number** to generate an invoice containing your Remita Retrieval Reference (RRR).
+3. **Make Payment:**
+   Pay the statutory screening fee of **₦2,000** online via ATM card or at any commercial bank using the generated RRR.
+4. **Complete Application Form:**
+   Return to the portal, log in with your JAMB registration number, upload a clear passport photograph and verified O'Level (WAEC/NECO/NABTEB) results.
+5. **Upload O'Level Results to JAMB CAPS:**
+   Candidates must ensure their O'Level results are properly uploaded to their **JAMB CAPS profile** at an accredited CBT centre; failure to do so will preclude admission consideration.
+6. **Print Acknowledgement Slip:**
+   Review all details carefully, submit the application, and print your summary screening slip for physical documentation.
+
+---
+
+## 🛠️ Essential Candidate Tools on CampusAI
+
+- [Check EBSU Aggregate Score with our 2026 Calculator](https://campusai.com.ng/ebsu-aggregate-calculator)
+- [Check Official JAMB CAPS Admission Status](https://campusai.com.ng/jamb-caps)
+- [Explore 2026 Post-UTME Practice & CBT Exam Simulator](https://campusai.com.ng/cbt-simulator)`,
+    sourceUrl: 'https://portal.ebsu.edu.ng',
+    isImportant: true,
+    views: 14650
+  },
+  {
     id: 'waec-gce-timetable-2026-release',
     slug: 'waec-gce-timetable-2026-download-second-series-pdf',
     title: 'WAEC GCE Timetable 2026: Download Second Series Examination Schedule (PDF)',

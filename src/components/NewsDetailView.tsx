@@ -187,6 +187,11 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const [showShareSuccess, setShowShareSuccess] = useState(false);
   const [isCleaning, setIsCleaning]       = useState(false);
   const [isEditing, setIsEditing]         = useState(false);
+  const [editableTitle, setEditableTitle] = useState('');
+  const [editableCategory, setEditableCategory] = useState<string>('National');
+  const [editableExcerpt, setEditableExcerpt] = useState('');
+  const [editableDate, setEditableDate]   = useState('');
+  const [editableSourceUrl, setEditableSourceUrl] = useState('');
   const [editableContent, setEditableContent] = useState('');
   const [editableImages, setEditableImages]   = useState<string[]>([]);
   const [editableFeaturedImage, setEditableFeaturedImage] = useState<string>('');
@@ -235,33 +240,37 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
     fetchRelated();
   }, [news?.id, news?.category]); // news changes when slug changes or loadNews finishes
 
+  const sanitizeArticleContent = (rawText: string) => {
+    if (!rawText) return '';
+    return rawText
+      .replace(/As a result of Admission into our institution, determined Additional Evidence of requirements following Eastern higher completion milestones.*/gi, '')
+      .replace(/Minimum 135 year incorporating.*/gi, '')
+      .replace(/Across R ment Collect be fur.*/gi, '')
+      .replace(/Msd agreeing tweak validator.*/gi, '')
+      .replace(/eromin \^ earliest.*/gi, '')
+      .replace(/_ed promptly\)\$.*/gi, '')
+      .replace(/Welcome outSteel apart.*/gi, '')
+      .replace(/Candidate unconditional Pl age gorgeous.*/gi, '')
+      .replace(/Timroduce web र DO not written hmm.*/gi, '')
+      .replace(/html At trader injected trades Lil seats.*/gi, '')
+      .replace(/Admission Requirements \( eromin \^ earliest.*/gi, '')
+      .replace(/Kai wa Ọrganĩ Written Subject scores.*/gi, ' ')
+      .replace(/Merchant Proficiency Photo List scores.*/gi, ' ')
+      .replace(/pv lan commonly jointgroup positions.*/gi, ' ')
+      .replace(/Quick Action Checklist for 2026\/2026 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2025/2026 Post-UTME Candidates')
+      .replace(/ClassName|className|#html|lmore|Timroduce|hmm|il thereby|dan,K detox|\/|\\|:|\$|र| 준비|準備/gi, ' ')
+      .replace(/[\u0370-\u03FF\u1F00-\u1FFF]/g, '')
+      .replace(/\s\s+/g, ' ')
+      .trim();
+  };
+
   const handleCleanRubbish = async () => {
     if (!news || isCleaning) return;
     setIsCleaning(true);
     try {
-      const cleanContent = (news.fullContent || (news as any).content || '')
-        // New user-reported rubbish patterns
-        .replace(/As a result of Admission into our institution, determined Additional Evidence of requirements following Eastern higher completion milestones.*/gi, '')
-        .replace(/Minimum 135 year incorporating.*/gi, '')
-        .replace(/Across R ment Collect be fur.*/gi, '')
-        .replace(/Msd agreeing tweak validator.*/gi, '')
-        .replace(/eromin \^ earliest.*/gi, '')
-        .replace(/_ed promptly\)\$.*/gi, '')
-        .replace(/Welcome outSteel apart.*/gi, '')
-        .replace(/Candidate unconditional Pl age gorgeous.*/gi, '')
-        .replace(/Timroduce web र DO not written hmm.*/gi, '')
-        .replace(/html At trader injected trades Lil seats.*/gi, '')
-        .replace(/Admission Requirements \( eromin \^ earliest.*/gi, '')
-        .replace(/Kai wa Ọrganĩ Written Subject scores.*/gi, ' ')
-        .replace(/Merchant Proficiency Photo List scores.*/gi, ' ')
-        .replace(/pv lan commonly jointgroup positions.*/gi, ' ')
-        .replace(/Quick Action Checklist for 2026\/2026 Post-UTME Candidates.*/gi, 'Quick Action Checklist for 2025/2026 Post-UTME Candidates')
-        .replace(/ClassName|className|#html|lmore|Timroduce|hmm|il thereby|dan,K detox|\/|\\|:|\$|र| 준비|準備/gi, ' ')
-        .replace(/[\u0370-\u03FF\u1F00-\u1FFF]/g, '')
-        .replace(/\s\s+/g, ' ')
-        .trim();
+      const cleanContent = sanitizeArticleContent(news.fullContent || (news as any).content || '');
 
-      await updateNewsArticleContent(news.id, cleanContent);
+      await updateNewsArticleContent(news.id || news.slug || slug || '', cleanContent);
       setNews({ ...news, fullContent: cleanContent });
       setEditableContent(cleanContent);
       window.dispatchEvent(new Event('campusai_news_updated'));
@@ -276,19 +285,29 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   const handleManualSave = async () => {
     if (!news || isCleaning) return;
     setIsCleaning(true);
-    console.log("Saving news article...", news.id, editableContent);
+    const targetId = news.id || news.slug || slug || '';
+    console.log("Saving news article...", targetId, editableTitle);
     try {
-      const updatedFields = {
+      const updatedFields: Partial<NewsItem> = {
+        ...news,
+        title: editableTitle.trim() || news.title,
+        category: (editableCategory as any) || news.category || 'National',
+        excerpt: editableExcerpt.trim() || news.excerpt,
+        date: editableDate.trim() || news.date,
+        sourceUrl: editableSourceUrl.trim() || news.sourceUrl || '',
         fullContent: editableContent,
         images: editableImages,
-        image: editableFeaturedImage || editableImages[0] || ''
+        image: editableFeaturedImage || editableImages[0] || news.image || '',
+        isLive: true,
+        updatedAt: new Date().toISOString()
       };
-      await updateNewsItem(news.id, updatedFields);
+      await updateNewsItem(targetId, updatedFields);
       console.log("Successfully saved news article.");
-      setNews({ ...news, ...updatedFields });
+      setNews({ ...news, ...updatedFields } as NewsItem);
       setIsEditing(false);
       window.dispatchEvent(new Event('campusai_news_updated'));
-      alert("✅ Changes saved successfully.");
+      window.dispatchEvent(new Event('campusai_news_sync'));
+      alert("✅ Changes saved successfully to cloud.");
     } catch (e) {
       console.error("Failed to save changes:", e);
       alert("❌ Failed to save changes: " + (e instanceof Error ? e.message : String(e)));
@@ -298,7 +317,12 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
   };
 
   const startEditing = () => {
-    setEditableContent(news?.fullContent || '');
+    setEditableTitle(news?.title || '');
+    setEditableCategory(news?.category || 'National');
+    setEditableExcerpt(news?.excerpt || '');
+    setEditableDate(news?.date || '');
+    setEditableSourceUrl(news?.sourceUrl || '');
+    setEditableContent(news?.fullContent || (news as any)?.content || news?.excerpt || '');
     setEditableImages(allPictures);
     setEditableFeaturedImage(news?.image || allPictures[0] || '');
     setIsEditing(true);
@@ -1067,7 +1091,111 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
 
           <div className="markdown-body text-lg text-gray-800 dark:text-gray-200 leading-relaxed font-medium select-text pointer-events-auto">
             {isEditing ? (
-              <div className="space-y-6">
+              <div className="space-y-6 not-prose bg-gray-50 dark:bg-gray-900/60 p-6 md:p-8 rounded-[36px] border-2 border-blue-200 dark:border-blue-900/60 shadow-xl">
+                <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                      <Edit3 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white">Article Live Editor</h3>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Update headline, category, excerpt, and content</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleManualSave}
+                      disabled={isCleaning}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      {isCleaning ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+                      <span>Save Changes</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+                {/* Headline / Title */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Headline (Article Title)
+                  </label>
+                  <input
+                    type="text"
+                    value={editableTitle}
+                    onChange={(e) => setEditableTitle(e.target.value)}
+                    placeholder="Enter article headline..."
+                    className="w-full px-5 py-3.5 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-2xl text-base font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                  />
+                </div>
+
+                {/* Category & Date Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                      Category
+                    </label>
+                    <select
+                      value={editableCategory}
+                      onChange={(e) => setEditableCategory(e.target.value)}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      {['National', 'State', 'Federal', 'Private', 'JAMB', 'Scholarships', 'Jobs', 'Polytechnic', 'COE', 'NYSC', 'WAEC', 'NECO'].map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                      Publication Date
+                    </label>
+                    <input
+                      type="text"
+                      value={editableDate}
+                      onChange={(e) => setEditableDate(e.target.value)}
+                      placeholder="e.g. September 27, 2026"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Excerpt / Summary */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Card Summary (Excerpt)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editableExcerpt}
+                    onChange={(e) => setEditableExcerpt(e.target.value)}
+                    placeholder="Brief 2-sentence summary for search engines and social cards..."
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-2xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                  />
+                </div>
+
+                {/* Source URL */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    Official Source URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={editableSourceUrl}
+                    onChange={(e) => setEditableSourceUrl(e.target.value)}
+                    placeholder="https://portal.institution.edu.ng/..."
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-2xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                {/* Images Uploader */}
                 <ArticleImagesUploader
                   images={editableImages}
                   featuredImage={editableFeaturedImage}
@@ -1079,14 +1207,123 @@ const NewsDetailView: React.FC<NewsDetailViewProps> = ({
                     setEditableContent(prev => prev + `\n\n![Article Photo](${imgUrl})\n\n`);
                   }}
                 />
-                <textarea
-                  value={editableContent}
-                  onChange={(e) => setEditableContent(e.target.value)}
-                  className="w-full h-[500px] p-8 bg-gray-50 dark:bg-gray-900 rounded-[40px] border-2 border-blue-100 dark:border-blue-900 outline-none focus:border-blue-600 transition-all font-mono text-base leading-relaxed resize-none shadow-inner"
-                  placeholder="Paste or write the article content here in Markdown format..."
-                />
-                <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                  <Sparkles size={12} /> Markdown and formatting supported
+
+                {/* Social Media Link Preview Card (WhatsApp / Facebook / Twitter Diagnostic) */}
+                <div className="p-5 bg-blue-50/60 dark:bg-blue-950/30 rounded-3xl border border-blue-200 dark:border-blue-800/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                      <Share2 size={13} /> WhatsApp / Facebook Link Preview Card
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                      Auto-generated 1200×630 OpenGraph
+                    </span>
+                  </div>
+
+                  {/* WhatsApp/Facebook Card Preview */}
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-md max-w-md">
+                    <div className="aspect-[1.91/1] bg-gray-950 relative overflow-hidden flex items-center justify-center">
+                      {editableFeaturedImage || editableImages[0] ? (
+                        <img 
+                          src={editableFeaturedImage || editableImages[0]} 
+                          alt="Link preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-center p-4">
+                          <span className="text-xs font-black text-blue-400">CampusAI.ng Dynamic Banner</span>
+                          <p className="text-[10px] text-gray-400 mt-1 line-clamp-2">{editableTitle || news.title}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-900/90 border-t border-gray-100 dark:border-gray-800">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">CAMPUSAI.COM.NG</p>
+                      <h4 className="text-xs font-black text-gray-900 dark:text-white line-clamp-1 mt-0.5">
+                        {editableTitle || news.title}
+                      </h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
+                        {editableExcerpt || news.excerpt || "Verified Nigerian admissions updates, cut-off marks, and Post-UTME alerts."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await fetch('/api/admin/clear-seo-cache', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ slug: news.slug || news.id })
+                          });
+                          alert("✅ Link preview cache purged successfully! If sharing on Facebook, you can also click 'Refresh on Facebook Debugger'.");
+                        } catch {
+                          alert("Preview cache refreshed.");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      ⚡ Force Refresh Preview Cache
+                    </button>
+
+                    <a
+                      href={`https://developers.facebook.com/tools/debug/?q=${encodeURIComponent(window.location.origin + '/news/' + (news.slug || news.id))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1"
+                    >
+                      <span>Facebook Scraper Debugger ↗</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Markdown Editor */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                      Full Article Body (Markdown)
+                    </label>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                      Supports ## Headings, Tables, Lists, and Bold Text
+                    </span>
+                  </div>
+                  <textarea
+                    value={editableContent}
+                    onChange={(e) => setEditableContent(e.target.value)}
+                    className="w-full h-[520px] p-6 bg-white dark:bg-gray-950 rounded-[28px] border-2 border-gray-200 dark:border-gray-800 outline-none focus:border-blue-600 transition-all font-mono text-sm leading-relaxed resize-none shadow-inner text-gray-900 dark:text-gray-100"
+                    placeholder="Paste or write the article content here in Markdown format..."
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditableContent(sanitizeArticleContent(editableContent));
+                    }}
+                    className="text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 flex items-center gap-1.5"
+                  >
+                    <Sparkles size={14} /> Quick-Sanitize Rubbish
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="px-6 py-3 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-black text-xs uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleManualSave}
+                      disabled={isCleaning}
+                      className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                    >
+                      {isCleaning ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+                      <span>Save & Publish Changes</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : news.fullContent || (news as any).content ? (

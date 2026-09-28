@@ -1013,7 +1013,7 @@ export const updateNewsArticleContent = async (id: string, fullContent: string) 
 
   try {
     const newsRef = doc(db, "news", id);
-    await updateDoc(newsRef, { fullContent, updatedAt: Timestamp.now() });
+    await setDoc(newsRef, { fullContent, updatedAt: Timestamp.now() }, { merge: true });
     syncLocal();
   } catch (e: any) {
     console.warn(`Direct update failed for ID ${id}, trying slug-based update...`, e);
@@ -1026,7 +1026,7 @@ export const updateNewsArticleContent = async (id: string, fullContent: string) 
       
       if (!querySnapshot.empty) {
         const docRef = querySnapshot.docs[0].ref;
-        await updateDoc(docRef, { fullContent, updatedAt: Timestamp.now() });
+        await setDoc(docRef, { fullContent, updatedAt: Timestamp.now() }, { merge: true });
         syncLocal();
         console.log(`Slug-based update successful for slug: ${id}`);
         return;
