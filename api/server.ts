@@ -2007,13 +2007,20 @@ app.post("/api/aloc/analyze-score", async (req: any, res: any) => {
     weaknesses.push({ subject: "Accuracy & Pacing", topic: "Advanced Problem Solving", issue: "Refine speed and verify calculations under timed conditions.", fix: "Practice timed sectional past question drills." });
   }
 
+  const isRushed = avgSecondsPerQ < 10 || (totalScore === 0 && (timeTakenSeconds || 0) < 60);
+  const pacingText = isRushed
+    ? 'Warning: Test was completed extremely rapidly with 0 correct answers or insufficient time per question. This indicates a rushed submission rather than normal exam pacing.'
+    : (avgSecondsPerQ > 45 
+        ? 'Consider improving response speed to comfortably clear strict JAMB/WAEC timing constraints.' 
+        : 'Your pacing speed is optimal for real exam conditions!');
+
   const dynamicAnalysis = {
     performanceLevel,
     projectedScoreSummary: `Projected Aggregate: ${percentage}% (${totalScore} / ${totalQuestions} correct)`,
     overallDiagnosis: `You completed your ${examType.toUpperCase()} mock test session with an aggregate accuracy of ${percentage}%. Your average pacing was ${avgSecondsPerQ} seconds per question. Based on real-time psychometric evaluation, ${percentage >= 60 ? 'you are currently positioned on a competitive merit trajectory.' : 'targeted remediation on identified weak topics will significantly elevate your competitive ranking.'}`,
     strengths,
     weaknesses,
-    timeManagementAnalysis: `Average pacing: ${avgSecondsPerQ}s per question across ${totalQuestions} items (${Math.floor((timeTakenSeconds || 0) / 60)} minutes total elapsed time). ${avgSecondsPerQ > 45 ? 'Consider improving response speed to comfortably clear strict JAMB/WAEC timing constraints.' : 'Your pacing speed is optimal for real exam conditions!'}`,
+    timeManagementAnalysis: `Average pacing: ${avgSecondsPerQ}s per question across ${totalQuestions} items (${Math.floor((timeTakenSeconds || 0) / 60)} minutes total elapsed time). ${pacingText}`,
     personalizedActionPlan: [
       { day: "Day 1-2", focus: "Incorrect Questions Review", action: `Go through all flagged topic areas and re-attempt missed questions with step-by-step solutions.` },
       { day: "Day 3-5", focus: "Topic Study Hub Drill", action: "Utilize the Study Section and past question database to master core formulas and definitions." },

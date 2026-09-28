@@ -465,8 +465,12 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
   }, []);
 
   const coursesList = useMemo(() => {
-    return masterCourses.map((c: any) => c.title).sort();
-  }, []);
+    const list = masterCourses.map((c: any) => c.title);
+    if (targetCourse && !list.includes(targetCourse)) {
+      list.push(targetCourse);
+    }
+    return list.sort();
+  }, [targetCourse]);
 
   const prioritySubjects = useMemo(() => {
     const c = targetCourse.toLowerCase();
@@ -1290,7 +1294,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
           const data = await response.json();
 
           if (response.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
-            questionsArray = data.data.map((q: Question) => {
+            questionsArray = data.data.slice(0, limit).map((q: Question) => {
               if (q && q.id) sessionSeenQuestionIdsRef.current.add(String(q.id));
               
               // Validate that passage/section is truly a reading passage and not a leaked solution
@@ -2983,8 +2987,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                         <div>
                           <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Test Mode</label>
                           <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => setTestMode('practice')}
+                             <button
+                              onClick={() => {
+                                setTestMode('practice');
+                                setIsTimed(false);
+                              }}
                               className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
                                 testMode === 'practice'
                                   ? 'bg-slate-900 text-white border-slate-900'
@@ -2992,10 +2999,13 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                               }`}
                             >
                               Practice Mode
-                              <span className="block text-[10px] opacity-75 font-normal">Flexible Time & AI Hints</span>
+                              <span className="block text-[10px] opacity-75 font-normal">Untimed Practice & AI Hints</span>
                             </button>
                             <button
-                              onClick={() => setTestMode('full')}
+                              onClick={() => {
+                                setTestMode('full');
+                                setIsTimed(true);
+                              }}
                               className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
                                 testMode === 'full'
                                   ? 'bg-slate-900 text-white border-slate-900'
@@ -3627,6 +3637,7 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
                         isTimerRunning={isTimerRunning}
                         totalQuestions={totalQuestions}
                         totalAttempted={totalAttempted}
+                        isTimed={isTimed}
                         onTimeExpired={triggerSubmitTest}
                       />
                     )}

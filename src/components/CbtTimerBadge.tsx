@@ -7,6 +7,7 @@ export interface CbtTimerBadgeProps {
   isTimerRunning: boolean;
   totalQuestions: number;
   totalAttempted: number;
+  isTimed?: boolean;
   onTimeExpired: () => void;
 }
 
@@ -15,10 +16,11 @@ export const CbtTimerBadge: React.FC<CbtTimerBadgeProps> = ({
   isTimerRunning,
   totalQuestions,
   totalAttempted,
+  isTimed = true,
   onTimeExpired,
 }: CbtTimerBadgeProps) => {
   const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
-    if (!endTime) return 0;
+    if (!isTimed || !endTime) return 0;
     return Math.max(0, Math.floor((endTime - Date.now()) / 1000));
   });
 
@@ -28,7 +30,7 @@ export const CbtTimerBadge: React.FC<CbtTimerBadgeProps> = ({
   }, [onTimeExpired]);
 
   useEffect(() => {
-    if (!isTimerRunning || !endTime) return;
+    if (!isTimed || !isTimerRunning || !endTime) return;
 
     const tick = () => {
       const remainingMs = endTime - Date.now();
@@ -43,7 +45,7 @@ export const CbtTimerBadge: React.FC<CbtTimerBadgeProps> = ({
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [endTime, isTimerRunning]);
+  }, [endTime, isTimerRunning, isTimed]);
 
   const formatTime = (totalSec: number) => {
     const h = Math.floor(totalSec / 3600);
@@ -52,6 +54,17 @@ export const CbtTimerBadge: React.FC<CbtTimerBadgeProps> = ({
     if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+
+  if (!isTimed) {
+    return (
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="font-mono text-xs sm:text-sm font-bold bg-slate-800 text-emerald-400 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 shadow-inner select-none">
+          <Clock size={14} className="text-emerald-400" />
+          <span>Untimed Practice</span>
+        </div>
+      </div>
+    );
+  }
 
   const remainingQuestions = Math.max(1, totalQuestions - totalAttempted);
   const paceSeconds = Math.max(1, Math.round(secondsRemaining / remainingQuestions));
