@@ -97,6 +97,7 @@ import { getYabatechCutoffByCourse } from "../data/yabatechCutoffs2026_2027";
 import { getFuoyeCutoffByCourse } from "../data/fuoyeCutoffs2026_2027";
 import { getFulokojaCutoffByCourse } from "../data/fulokojaCutoffs2026_2027";
 import { getDelsuCutoffByCourse } from "../data/delsuCutoffs2026_2027";
+import { getOfficialInstitutionCutoff } from "../utils/officialCutoffProvider";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -477,8 +478,9 @@ export const getSystemPrompt = (
 You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusai.com.ng.
 
 - You are NOT Gemini, you are NOT ChatGPT. You are CampusAI.
-- Your knowledge cutoff is 2024/2026 Admission Cycle. Today's date is ${currentDate} [Africa/Lagos WAT].
-- **STRICT SESSION RULE (CRITICAL MANDATE)**: The active academic session is **2024/2026** (Today's date is ${currentDate}). You MUST frame all admission stage answers, Post-UTME forms, JAMB results, cutoffs, and screening statuses under **2024/2026**. You are STRICTLY FORBIDDEN from writing "2025/2025" or "2025/2025 academic session" or "2024" as the current stage when answering questions like "WHAT STAGE IS [SCHOOL] IN THE ADMISSION PROCESS NOW". Always cite the active 2024/2026 status provided in Level 1 & Level 3.
+- Your knowledge cutoff is 2026/2027 Admission Cycle. Today's date is ${currentDate} [Africa/Lagos WAT].
+- **STRICT SESSION RULE (CRITICAL MANDATE)**: The active academic session is **2026/2027** (Today's date is ${currentDate}). You MUST frame all admission stage answers, Post-UTME forms, JAMB results, cutoffs, and screening statuses under **2026/2027**. You are STRICTLY FORBIDDEN from writing "2024/2026" or "2025/2025" or "2024" as the current stage when answering questions like "WHAT STAGE IS [SCHOOL] IN THE ADMISSION PROCESS NOW". Always cite the active 2026/2027 status.
+- **PROHIBITED MARKETING & STALE PHRASES**: You must NEVER claim CampusAI is "Nigeria's first", "Nigeria number one", "#1 AI strategy", or claim "50+ institutions" (the platform covers over 283+ accredited tertiary institutions across Nigeria). Provide purely objective, verified academic data without promotional slogans.
 - Your sole mission is to help Nigerian students (UTME, Direct Entry, JUPEB, Inter-University Transfer) gain admission with 100% accurate, verified information.
 - Personality: Sharp, authoritative, empathetic, street-smart but academic. Use Nigerian student slang sparingly ("Omo", "Sharp", "No worry") but remain professional.
 - **DATA SOURCE & KNOWLEDGE BASE ROLE**: Your knowledge and responses are exclusively grounded in the **CampusAI Verified Knowledge Base** (containing official university guidelines, Post-UTME screening rules, and scraped portal documents for FUTA and Nigerian universities) and live web search grounding. If the user asks "where did you find these things?" or "where is your data from?", always explain that your knowledge is built upon the CampusAI Verified Knowledge Base rather than generic AI training data.
@@ -573,8 +575,8 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 ### 3. REAL-TIME GROUNDING ENGINE — OBEY THIS HIERARCHY
 1. **Level 1 (Highest Priority for Live Updates, Deadlines & Current Session News): ${liveIntel}**
    - Live real-time web search results retrieved directly on ${currentDate}.
-   - MUST BE USED as the absolute ground truth for current registration statuses, screening extension announcements, 2024/2026 deadlines, portal schedules, and breaking admission news.
-   - If a live search snippet in ${liveIntel} reports a current update (e.g. FUTA Post-UTME deadline extended, 2024/2026 screening dates, age requirements), YOU MUST DIRECTLY CITE AND USE THAT REAL-TIME INFORMATION in your answer! NEVER ignore live search snippets in favor of static offline text.
+   - MUST BE USED as the absolute ground truth for current registration statuses, screening extension announcements, 2026/2027 deadlines, portal schedules, and breaking admission news.
+   - If a live search snippet in ${liveIntel} reports a current update (e.g. FUTA Post-UTME deadline extended, 2026/2027 screening dates, age requirements), YOU MUST DIRECTLY CITE AND USE THAT REAL-TIME INFORMATION in your answer! NEVER ignore live search snippets in favor of static offline text.
 
 2. **Level 2 (User Corrections & Session Memory): ${userContext}**
    - Direct corrections and primary school selections supplied by the user in this active session.
@@ -904,7 +906,7 @@ export const fetchLiveNews = async (adminEmail: string): Promise<NewsItem[]> => 
         
         const todayStr = getNigerianDate();
         const prompt = `You are a Senior Investigative Education Journalist in Nigeria. 
-Based on today's date (${todayStr}), curate 5 HIGHLY AUTHORITATIVE and VERIFIED news articles for the 2024/2026 academic session.
+Based on today's date (${todayStr}), curate 5 HIGHLY AUTHORITATIVE and VERIFIED news articles for the 2026/2027 academic session.
 
 STRICT VERIFICATION GUIDELINES:
 1. SEARCH: Find actual news from official Nigerian education portals (.edu.ng, .gov.ng).
@@ -992,7 +994,7 @@ export const smartSearchAndVerifyNews = async (userQuery: string): Promise<Smart
          SEARCH RESULTS FOR CONTEXT:
          ${searchResults}`
       : `We could not retrieve live search results for: "${userQuery}".
-         As an elite educational journalist, use your search tool to find CURRENT data for the 2024/2026 session regarding "${userQuery}". 
+         As an elite educational journalist, use your search tool to find CURRENT data for the 2026/2027 session regarding "${userQuery}". 
          Focus on identifying the university, event (Post-UTME, Admission List), and official guidelines.`;
 
     const newsKey = (import.meta as any).env?.VITE_NEWS_GEMINI_KEY;
@@ -1873,7 +1875,7 @@ export const enforceAdmissionTiers = (
   const diff = score - effectiveCutoff;
   const quotaText = isELDS ? "ELDS quota" : isCatchment ? "Catchment quota" : "Merit quota";
 
-  const seasonalTimeline = `\n\n### 4. 2024/2026 Admission Season Context\n*   **Current Phase:** Post-UTME screening & admission list processing phase.\n*   **Registration Status:** Major institutions (including UNIBEN, FUTA, DELSU, OOU, etc.) have concluded Post-UTME registrations, while others remain active. Always verify current registration status on your institution's official portal.\n*   **Strategic Action:** If registration for your target school is closed, track your JAMB CAPS portal for screening score uploads, transfer offers, and official admission list releases. If your aggregate score is below cutoff, explore a JAMB Change of Course or Institution on CAPS while options remain open.`;
+  const seasonalTimeline = `\n\n### 4. 2026/2027 Admission Season Context\n*   **Current Phase:** Post-UTME screening & admission list processing phase.\n*   **Registration Status:** Major institutions (including UNILAG, UNIBEN, FUTA, DELSU, OOU, etc.) have concluded Post-UTME registrations, while others remain active. Always verify current registration status on your institution's official portal.\n*   **Strategic Action:** If registration for your target school is closed, track your JAMB CAPS portal for screening score uploads, transfer offers, and official admission list releases. If your aggregate score is below cutoff, explore a JAMB Change of Course or Institution on CAPS while options remain open.`;
 
   if (diff < 0 && (isARBool || isPendingBool)) {
     // Parse O'Level points from string
@@ -2055,7 +2057,7 @@ Securing primary merit admission with this margin is challenging. While suppleme
 ### 2. The Reality Check
 Your aggregate score of **${score}%** is significantly below the ${benchmarkLabel} of **${cutoffVal}%** (a **${Math.abs(diff).toFixed(2)} percentage-point difference**) under the **${quotaText}** for **${course}** at **${university}**.
 
-At this deficit, securing admission into this competitive programme is highly improbable. To avoid losing the entire 2024/2026 admission cycle, you should take immediate corrective action.
+At this deficit, securing admission into this competitive programme is highly improbable. To avoid losing the entire 2026/2027 admission cycle, you should take immediate corrective action.
 
 ### 3. Actionable Next Steps
 *   **Immediate JAMB Change of Course:** Change your course on JAMB CAPS to an alternative discipline where your score places you safely above the benchmark.
@@ -2186,6 +2188,16 @@ export const getCourseCutoffInfo = async (
     if (cachedResult) {
       console.log(`Using cached course cutoff check for ${university} - ${course}`);
       let manualOverride = await getCutoffOverride(university, course);
+      const officialCutoffMatch = getOfficialInstitutionCutoff(university, course, stateOfOrigin);
+      if (!manualOverride && officialCutoffMatch) {
+        manualOverride = {
+          institution: officialCutoffMatch.institution,
+          course: officialCutoffMatch.course,
+          departmentalCutoff: officialCutoffMatch.departmentalCutoff,
+          institutionalCutoff: officialCutoffMatch.institutionalCutoff,
+          explanation: officialCutoffMatch.explanation
+        };
+      }
       const nUni = university.toLowerCase().trim();
       const nCourse = course.toLowerCase().trim();
       if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
@@ -2362,6 +2374,16 @@ export const getCourseCutoffInfo = async (
     }
 
     let manualOverride = await getCutoffOverride(university, course);
+    const officialCutoffMatch = getOfficialInstitutionCutoff(university, course, stateOfOrigin);
+    if (!manualOverride && officialCutoffMatch) {
+      manualOverride = {
+        institution: officialCutoffMatch.institution,
+        course: officialCutoffMatch.course,
+        departmentalCutoff: officialCutoffMatch.departmentalCutoff,
+        institutionalCutoff: officialCutoffMatch.institutionalCutoff,
+        explanation: officialCutoffMatch.explanation
+      };
+    }
     const nUni = university.toLowerCase().trim();
     const nCourse = course.toLowerCase().trim();
     if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
@@ -2512,12 +2534,12 @@ export const getCourseCutoffInfo = async (
       institutionalCutoff: manualOverride?.institutionalCutoff || "160",
       cutoff: `${cutoffVal}%`,
       cutoffValue: cutoffVal,
-      cutoffType: manualOverride ? "official_departmental_cutoff" : "historical_closing_aggregate",
-      cutoffYear: new Date().getFullYear(),
-      cutoffSource: manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Historical Records & Live Web Search",
-      cutoffIsOfficial: !!manualOverride,
+      cutoffType: manualOverride || officialCutoffMatch ? "official_departmental_cutoff" : "online_web_benchmark",
+      cutoffYear: officialCutoffMatch?.cutoffYear || (manualOverride ? "2026/2027" : "Online"),
+      cutoffSource: officialCutoffMatch?.cutoffSource || (manualOverride ? (manualOverride.explanation || "Official Verified Ground Truth") : "Online (Web Search & AI Grounding)"),
+      cutoffIsOfficial: !!officialCutoffMatch || !!manualOverride,
       cutoffConfidence: manualOverride ? "high" : "medium",
-      cutoffQuotaUsed: quotaUsedText,
+      cutoffQuotaUsed: officialCutoffMatch?.cutoffQuotaUsed || quotaUsedText,
       scoreDiff: scoreDiffVal,
       mathBreakdown,
       scoreBreakdown: [
@@ -2710,13 +2732,15 @@ Return JSON:
     const parsed = safeJsonParse(response.text, {});
     if (parsed) {
       // 1. Enforce verified cutoff ground truths if manualOverride / official UI data is present
-      if (manualOverride) {
-        parsed.departmentalCutoff = manualOverride.departmentalCutoff;
-        parsed.cutoff = manualOverride.departmentalCutoff;
+      if (manualOverride || officialCutoffMatch) {
+        const activeMatch = manualOverride ? { departmentalCutoff: manualOverride.departmentalCutoff, institutionalCutoff: manualOverride.institutionalCutoff, explanation: manualOverride.explanation, cutoffYear: "2026/2027" } : officialCutoffMatch!;
+        parsed.departmentalCutoff = activeMatch.departmentalCutoff;
+        parsed.cutoff = activeMatch.departmentalCutoff;
         parsed.cutoffValue = cutoffVal;
         parsed.cutoffIsOfficial = true;
         parsed.cutoffType = "official_departmental_cutoff";
-        parsed.cutoffSource = manualOverride.explanation || "Verified Administrative System Ground Truth";
+        parsed.cutoffSource = activeMatch.explanation || (officialCutoffMatch ? officialCutoffMatch.cutoffSource : "Verified Administrative System Ground Truth");
+        parsed.cutoffYear = officialCutoffMatch?.cutoffYear || "2026/2027";
         parsed.cutoffConfidence = "high";
         parsed.reliability = "high";
         parsed.verdict = deterministicEvaluation.verdict;
@@ -2738,8 +2762,10 @@ Return JSON:
         parsed.departmentalCutoff = `${cleanDeptCutoff}%`;
         parsed.cutoff = `${cleanDeptCutoff}%`;
         parsed.cutoffValue = cleanDeptCutoff;
-        parsed.cutoffType = parsed.cutoffType || "historical_closing_aggregate";
-        parsed.cutoffSource = parsed.cutoffSource || "Historical Departmental Records & Live Web Search";
+        parsed.cutoffType = "online_web_benchmark";
+        parsed.cutoffSource = "Online (Web Search & AI Grounding)";
+        parsed.cutoffYear = "Online";
+        parsed.cutoffIsOfficial = false;
 
         // Re-evaluate candidate tiers against the actual searched cutoff
         const reEval = enforceAdmissionTiers(
@@ -2794,6 +2820,16 @@ Return JSON:
     }
     const cleanSubjects = Array.isArray(jambSubjects) ? jambSubjects.filter(Boolean) : [];
     let manualOverride = await getCutoffOverride(university, course);
+    const officialCutoffMatch = getOfficialInstitutionCutoff(university, course, stateOfOrigin);
+    if (!manualOverride && officialCutoffMatch) {
+      manualOverride = {
+        institution: officialCutoffMatch.institution,
+        course: officialCutoffMatch.course,
+        departmentalCutoff: officialCutoffMatch.departmentalCutoff,
+        institutionalCutoff: officialCutoffMatch.institutionalCutoff,
+        explanation: officialCutoffMatch.explanation
+      };
+    }
     const nUni = university.toLowerCase().trim();
     if (!manualOverride && (nUni.includes("ibadan") || nUni === "ui" || nUni.includes("university of ibadan"))) {
       const uiCutoff = getUICutoffByCourse(course);
@@ -2983,7 +3019,7 @@ export const getUniversityDetailedInfo = async (name: string): Promise<UniBio | 
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
-        contents: `Provide a detailed academic profile for "${name}" in Nigeria updated for the 2024/2026 academic session.
+        contents: `Provide a detailed academic profile for "${name}" in Nigeria updated for the 2026/2027 academic session.
 Return ONLY a JSON object with keys:
 - "bio": concise, engaging institutional summary (2-3 sentences)
 - "founded": year founded (e.g., "1948")
@@ -3398,9 +3434,9 @@ const prepareChatContext = async (sanitizedMessage: string, todayStr: string) =>
   let schoolReleaseContext = "";
   if (matchedRelease) {
     const { schoolName, data } = matchedRelease;
-    schoolReleaseContext = `VERIFIED 2024/2026 INSTITUTION ADMISSION RELEASE STATUS FOR ${schoolName.toUpperCase()}:
+    schoolReleaseContext = `VERIFIED 2026/2027 INSTITUTION ADMISSION RELEASE STATUS FOR ${schoolName.toUpperCase()}:
 - School: ${schoolName}
-- Academic Session: 2024/2026 Academic Session (CURRENT ACTIVE CYCLE)
+- Academic Session: 2026/2027 Academic Session (CURRENT ACTIVE CYCLE)
 - Current Stage/Status: ${data.statusText || 'Form Released / Screening Active'}
 - Official Details: ${data.details || 'Registration active on portal'}
 - Minimum Cutoff: ${data.cutoffScore || '180'}
@@ -3823,7 +3859,7 @@ export interface SyncedPostUtmeForm {
 export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]> => {
   try {
     const todayStr = getNigerianDate();
-    const query = `latest Nigerian higher institutions Post-UTME 2024/2026 screening forms registration out portal updates`;
+    const query = `latest Nigerian higher institutions Post-UTME 2026/2027 screening forms registration out portal updates`;
     const searchResults = await searchWeb(query, true);
 
     if (!searchResults || searchResults.includes("Search unavailable") || searchResults.length < 50) return [];
@@ -3832,10 +3868,10 @@ export const searchPostUtmeFormReleases = async (): Promise<SyncedPostUtmeForm[]
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
-        contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2024/2026.
+        contents: `You are an expert Nigerian higher admissions sync engine. Extract a verified list of institutions that have officially released their Post-UTME forms for 2026/2027.
 
 CRITICAL RULES:
-1. Only include institutions EXPLICITLY confirmed to have released 2024/2026 forms.
+1. Only include institutions EXPLICITLY confirmed to have released 2026/2027 forms.
 2. Extract the EXACT SPECIFIC OFFICIAL CUTOFF MARK for each university (e.g. 200 for UNILAG, 180 for FUTO, 195 for LASU, etc.). Do not assign generic estimates. If not specified, return "Not specified".
 3. Extract exact official registration deadline date if mentioned. If none is mentioned, leave deadlineDate null or undefined (do not assign default/fake deadlines).
 4. Extract official portal links (.edu.ng or .gov.ng only).
@@ -3922,7 +3958,7 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     else if (nameLower.includes("federal university, oye-ekiti") || nameLower.includes("fuoye")) acronym = "FUOYE";
 
     const brandQuery = acronym ? `("${schoolName}" OR "${acronym}")` : `"${schoolName}"`;
-    const query = `${brandQuery} "Post-UTME" 2024/2026 screening registration form out OR portal`;
+    const query = `${brandQuery} "Post-UTME" 2026/2027 screening registration form out OR portal`;
     const searchResults = await searchWeb(query, true);
 
     if (!searchResults || searchResults.includes("Search unavailable") || searchResults.length < 50) return null;
@@ -3931,10 +3967,10 @@ export const verifySingleSchoolPostUtme = async (schoolName: string): Promise<Sy
     const response = await runAIWithFallback(async (ai) => {
       return await ai.models.generateContent({
         model: DEFAULT_GEMINI_MODEL,
-        contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2024/2026 academic session.
+        contents: `You are an expert admissions verification engine. Verify whether the Post-UTME registration form for ${schoolName} (also known as ${acronym || 'its acronym'}) is officially open/active or announced for the 2026/2027 academic session.
 
 CRITICAL:
-1. Current date is ${todayStr}. 2024/2026 announcements from 2026 are current. 2025/2025 announcements are PAST.
+1. Current date is ${todayStr}. 2026/2027 announcements from 2026 are current. 2025/2025 announcements are PAST.
 2. Verify whether the form is active, pending, or CLOSED/EXPIRED.
 3. If the registration deadline has passed or portal is closed, set statusText to "Form Closed" or "Registration Closed".
 4. Official portal link must be .edu.ng or .gov.ng only.

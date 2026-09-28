@@ -37,6 +37,7 @@ import { FUOYE_CUTOFFS_2026_2027, getFuoyeCutoffByCourse, FUOYE_SESSION, FUOYE_I
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, getFulokojaCutoffByCourse, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
 import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, getDelsuCutoffByCourse, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
 import { OAU_CUTOFFS_2025_2026, getOAUFaculties, OAU_SESSION, OAU_INSTITUTION_NAME, getOAUCutoffForCandidate } from '../data/oauCutoffs2025_2026';
+import { getOfficialInstitutionCutoff } from '../utils/officialCutoffProvider';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick, trackResultSaved } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -2866,168 +2867,34 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         setAiResult(null);
       }
 
-      // Deterministically enforce official stamped OAU cutoffs (both registered & guest)
-      if (isOau) {
-        const oauOfficial = getOAUCutoffForCandidate(activeCourse, stateOfOrigin);
-        if (oauOfficial.programme) {
-          const officialCutoff = oauOfficial.cutoff;
-          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
-          const baseProb = diff >= 10 ? 98 : diff >= 5 ? 92 : diff >= 2 ? 86 : diff >= 0 ? 80 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
-          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -3 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+      // Deterministically enforce official stamped cutoffs across ALL verified institutions (both registered & guest)
+      const officialCutoffMatch = getOfficialInstitutionCutoff(targetUni?.name || activeUni.name, activeCourse, stateOfOrigin);
+      if (officialCutoffMatch) {
+        const officialCutoff = officialCutoffMatch.cutoff;
+        const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+        const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+        const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
 
-          const oauResultPayload = {
-            departmentalCutoff: `${officialCutoff}%`,
-            cutoff: `${officialCutoff}%`,
-            cutoffIsOfficial: true,
-            cutoffType: 'official_departmental_cutoff',
-            cutoffSource: 'Official OAU Faculty Dean Stamped Publication',
-            cutoffYear: OAU_SESSION,
-            cutoffQuotaUsed: oauOfficial.quotaLabel,
-            verdict,
-            probability: baseProb,
-            scoreDiff: diff,
-            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official OAU ${oauOfficial.quotaLabel} cutoff of ${officialCutoff}% (Merit: ${oauOfficial.programme.merit}%).`,
-            reliability: 'High',
-            predictionId
-          };
+        const officialResultPayload = {
+          departmentalCutoff: officialCutoffMatch.departmentalCutoff,
+          cutoff: officialCutoffMatch.departmentalCutoff,
+          cutoffValue: officialCutoff,
+          cutoffIsOfficial: true,
+          cutoffType: 'official_departmental_cutoff',
+          cutoffSource: officialCutoffMatch.cutoffSource,
+          cutoffYear: officialCutoffMatch.cutoffYear,
+          cutoffQuotaUsed: officialCutoffMatch.cutoffQuotaUsed,
+          verdict,
+          probability: baseProb,
+          scoreDiff: diff,
+          detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official ${officialCutoffMatch.institution} ${officialCutoffMatch.cutoffQuotaUsed} cutoff of ${officialCutoff}% (${officialCutoffMatch.cutoffYear} Academic Session). ${officialCutoffMatch.explanation}`,
+          reliability: 'High',
+          predictionId
+        };
 
-          result = { ...(result || {}), ...oauResultPayload };
-          enrichedResult = { ...(enrichedResult || {}), ...oauResultPayload };
-          setAiResult(enrichedResult);
-        }
-      }
-
-      // Deterministically enforce official stamped FUTA cutoffs (both registered & guest)
-      const isFutaUni = (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure');
-      if (isFutaUni) {
-        const futaCandidate = getFUTACutoffForCandidate(activeCourse, stateOfOrigin);
-        if (futaCandidate.programme) {
-          const officialCutoff = futaCandidate.cutoff;
-          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
-          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
-          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
-
-          const futaResultPayload = {
-            departmentalCutoff: `${officialCutoff}%`,
-            cutoff: `${officialCutoff}%`,
-            cutoffValue: officialCutoff,
-            cutoffIsOfficial: true,
-            cutoffType: 'official_departmental_cutoff',
-            cutoffSource: 'Official FUTA Admissions Unit Approved Aggregate Benchmarks (75:25)',
-            cutoffYear: FUTA_SESSION,
-            cutoffQuotaUsed: futaCandidate.quotaLabel,
-            verdict,
-            probability: baseProb,
-            scoreDiff: diff,
-            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official FUTA ${futaCandidate.quotaLabel} cutoff of ${officialCutoff}% (Merit: ${futaCandidate.programme.merit}%, Catchment: ${futaCandidate.programme.catchment}%, ELDS: ${futaCandidate.programme.elds}%). FUTA evaluates candidates strictly under the official 75:25 formula: UTME (75%) + O'Level (25%).`,
-            reliability: 'High',
-            predictionId
-          };
-
-          result = { ...(result || {}), ...futaResultPayload };
-          enrichedResult = { ...(enrichedResult || {}), ...futaResultPayload };
-          setAiResult(enrichedResult);
-        }
-      }
-
-      // Deterministically enforce official stamped UI cutoffs (both registered & guest)
-      const isUiUni = (targetUni?.name || '').toLowerCase().includes('ibadan') || (targetUni?.name || '').toLowerCase() === 'ui';
-      if (isUiUni) {
-        const uiProg = getUICutoffByCourse(activeCourse);
-        if (uiProg) {
-          const officialCutoff = isELDSState ? uiProg.elds : (isCatchmentState ? uiProg.catchment : uiProg.merit);
-          const quotaLabel = isELDSState ? `ELDS Quota (${stateOfOrigin})` : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota');
-          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
-          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
-          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
-
-          const uiResultPayload = {
-            departmentalCutoff: `${officialCutoff}%`,
-            cutoff: `${officialCutoff}%`,
-            cutoffValue: officialCutoff,
-            cutoffIsOfficial: true,
-            cutoffType: 'official_departmental_cutoff',
-            cutoffSource: 'Official UI Admissions Committee Approved Benchmarks (50:50)',
-            cutoffYear: UI_SESSION,
-            cutoffQuotaUsed: quotaLabel,
-            verdict,
-            probability: baseProb,
-            scoreDiff: diff,
-            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official UI ${quotaLabel} cutoff of ${officialCutoff}% (Merit: ${uiProg.merit}%, Catchment: ${uiProg.catchment}%, ELDS: ${uiProg.elds}%). UI uses the 50:50 composite scoring formula: (JAMB / 8) + (Post-UTME / 2).`,
-            reliability: 'High',
-            predictionId
-          };
-
-          result = { ...(result || {}), ...uiResultPayload };
-          enrichedResult = { ...(enrichedResult || {}), ...uiResultPayload };
-          setAiResult(enrichedResult);
-        }
-      }
-
-      // Deterministically enforce official stamped FUOYE cutoffs (both registered & guest)
-      const isFuoyeUni = (targetUni?.name || '').toLowerCase().includes('fuoye') || (targetUni?.name || '').toLowerCase().includes('oye-ekiti');
-      if (isFuoyeUni) {
-        const fuoyeProg = getFuoyeCutoffByCourse(activeCourse);
-        if (fuoyeProg) {
-          const officialCutoff = fuoyeProg.meritScore;
-          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
-          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
-          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
-
-          const fuoyeResultPayload = {
-            departmentalCutoff: `${officialCutoff}%`,
-            cutoff: `${officialCutoff}%`,
-            cutoffValue: officialCutoff,
-            cutoffIsOfficial: true,
-            cutoffType: 'official_departmental_cutoff',
-            cutoffSource: 'Official FUOYE Admissions Unit Merit Point Scale',
-            cutoffYear: FUOYE_SESSION,
-            cutoffQuotaUsed: 'National Merit Quota',
-            verdict,
-            probability: baseProb,
-            scoreDiff: diff,
-            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official FUOYE admission merit cutoff of ${officialCutoff}% for ${fuoyeProg.programme} (${fuoyeProg.faculty}).`,
-            reliability: 'High',
-            predictionId
-          };
-
-          result = { ...(result || {}), ...fuoyeResultPayload };
-          enrichedResult = { ...(enrichedResult || {}), ...fuoyeResultPayload };
-          setAiResult(enrichedResult);
-        }
-      }
-
-      // Deterministically enforce official stamped DELSU cutoffs (both registered & guest)
-      const isDelsuUni = (targetUni?.name || '').toLowerCase().includes('delsu') || (targetUni?.name || '').toLowerCase().includes('delta state');
-      if (isDelsuUni) {
-        const delsuProg = getDelsuCutoffByCourse(activeCourse);
-        if (delsuProg) {
-          const officialCutoff = delsuProg.cutoff;
-          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
-          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
-          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
-
-          const delsuResultPayload = {
-            departmentalCutoff: `${officialCutoff}%`,
-            cutoff: `${officialCutoff}%`,
-            cutoffValue: officialCutoff,
-            cutoffIsOfficial: true,
-            cutoffType: 'official_departmental_cutoff',
-            cutoffSource: 'Official DELSU Admissions Committee Approved Cut-off Marks (50:50)',
-            cutoffYear: DELSU_SESSION,
-            cutoffQuotaUsed: 'Official Departmental Benchmark',
-            verdict,
-            probability: baseProb,
-            scoreDiff: diff,
-            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official DELSU departmental cutoff of ${officialCutoff}% for ${delsuProg.programme} (${delsuProg.faculty}).`,
-            reliability: 'High',
-            predictionId
-          };
-
-          result = { ...(result || {}), ...delsuResultPayload };
-          enrichedResult = { ...(enrichedResult || {}), ...delsuResultPayload };
-          setAiResult(enrichedResult);
-        }
+        result = { ...(result || {}), ...officialResultPayload };
+        enrichedResult = { ...(enrichedResult || {}), ...officialResultPayload };
+        setAiResult(enrichedResult);
       }
 
       setShowResults(true);

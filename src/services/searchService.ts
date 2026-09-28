@@ -238,7 +238,7 @@ const DEDICATED_SCHOOL_CALCULATORS: Array<{
   { name: 'University of Benin (UNIBEN)', slug: 'uniben', formula: '50:50 Ratio (UTME / 8 + Post-UTME / 2)', keywords: ['uniben', 'benin', 'university of benin'] },
   { name: 'University of Ilorin (UNILORIN)', slug: 'unilorin', formula: '50:30:20 Ratio (UTME 50% + Post-UTME 30% + O\'Level 20%)', keywords: ['unilorin', 'ilorin', 'better by far', 'university of ilorin'] },
   { name: 'University of Nigeria, Nsukka (UNN)', slug: 'unn', formula: '90:10 Ratio (UTME Score * 0.9 + O\'Level Points * 0.1)', keywords: ['unn', 'nsukka', 'lion', 'university of nigeria'] },
-  { name: 'Federal University of Technology, Akure (FUTA)', slug: 'futa', formula: '50:50 Ratio (UTME / 8 + Post-UTME / 2)', keywords: ['futa', 'akure', 'federal university of technology akure'] },
+  { name: 'Federal University of Technology, Akure (FUTA)', slug: 'futa', formula: '75:25 Point-Based Screening Ratio (UTME 75% + O\'Level Points 25%)', keywords: ['futa', 'akure', 'federal university of technology akure'] },
   { name: 'Ahmadu Bello University (ABU Zaria)', slug: 'abu-zaria', formula: '50:50 Ratio (UTME Score / 8 + Post-UTME / 2)', keywords: ['abu', 'zaria', 'ahmadu bello university', 'abu zaria'] },
   { name: 'Federal University, Oye-Ekiti (FUOYE)', slug: 'fuoye', formula: '60:40 Ratio (UTME 60% + O\'Level 40% Online Screening)', keywords: ['fuoye', 'oye ekiti', 'oye-ekiti', 'federal university oye ekiti'] },
   { name: 'Delta State University (DELSU)', slug: 'delsu', formula: '50:50 Composite Screening Formula', keywords: ['delsu', 'abraka', 'delta state university'] },
