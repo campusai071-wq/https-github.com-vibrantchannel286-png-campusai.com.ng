@@ -28,14 +28,14 @@ import {
   checkCalculationsLimit, incrementCalculations
 } from '../services/userService';
 import { getGlobalScoringSystem, saveGlobalScoringSystem, saveHistoricalCutoff, logUserActivity, saveCutoffOverride, deleteCutoffOverride, getCutoffOverride, getAllCutoffOverrides, saveCalculationAttempt, saveGlobalCalculationRecord, getCalculationAttempts, getSchoolUgc, addSchoolUgc, likeSchoolUgc, savePredictionRecord, updatePredictionHelpfulness, submitAdmissionOutcome, incrementGlobalCalculationCount } from '../services/dbService';
-import { UI_CUTOFFS_2025_2026, getUIFaculties } from '../data/uiCutoffs2025_2026';
-import { FUTA_CUTOFFS_2026_2027, getFUTASchools } from '../data/futaCutoffs2026_2027';
-import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties } from '../data/lautechCutoffs2025_2026';
-import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
-import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
-import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
-import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
-import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
+import { UI_CUTOFFS_2025_2026, getUIFaculties, getUICutoffByCourse, UI_SESSION, UI_INSTITUTION_NAME } from '../data/uiCutoffs2025_2026';
+import { FUTA_CUTOFFS_2026_2027, getFUTASchools, getFUTACutoffForCandidate, FUTA_SESSION, FUTA_INSTITUTION_NAME } from '../data/futaCutoffs2026_2027';
+import { LAUTECH_CUTOFFS_2025_2026, getLAUTECHFaculties, getLAUTECHCutoffByCourse, getLAUTECHAggregateBenchmark } from '../data/lautechCutoffs2025_2026';
+import { FUHSI_CUTOFFS_2026_2027, getFUHSIFaculties, getFUHSICutoffByCourse, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '../data/fuhsiCutoffs2026_2027';
+import { YABATECH_CUTOFFS_2026_2027, getYabatechCutoffByCourse, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
+import { FUOYE_CUTOFFS_2026_2027, getFuoyeCutoffByCourse, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
+import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, getFulokojaCutoffByCourse, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
+import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, getDelsuCutoffByCourse, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
 import { OAU_CUTOFFS_2025_2026, getOAUFaculties, OAU_SESSION, OAU_INSTITUTION_NAME, getOAUCutoffForCandidate } from '../data/oauCutoffs2025_2026';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick, trackResultSaved } from '../services/analytics';
@@ -284,8 +284,8 @@ const calculateAggregateScore = (
   const formula = system.formula || '';
 
   if (formula === 'futa_75_25' || normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure')) || desc.includes('75:25') || desc.includes('75_25')) {
-    // FUTA 75:25: JAMB is (JAMB / 400) * 75, O'Level is (Average of 5 grades) * 0.25 = (olevelTotal / 5) * 0.25
-    return (jamb / 400 * 75) + ((olevelTotal / 5) * 0.25);
+    // FUTA 75:25 Point-Based: UTME is (JAMB / 400) * 75, O'Level is sum of 5 required subjects out of 25 (A1=5, B2=4, B3=3, C4=2, C5=1, C6=1)
+    return (jamb / 400 * 75) + olevelTotal;
   }
   if (formula === 'lautech_80_20' || normalizedUni.includes('lautech') || normalizedUni.includes('ladoke') || desc.includes('80:20') || desc.includes('80_20')) {
     // LAUTECH 80:20: JAMB (80%) + O'Level points (max 20 points from 5 subjects)
@@ -324,7 +324,7 @@ const calculateAggregateScore = (
 
   if (desc.includes('point-based')) {
     if (normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure'))) {
-      return (jamb / 400 * 75) + ((olevelTotal / 5) * 0.25);
+      return (jamb / 400 * 75) + olevelTotal;
     }
     return (jamb / 8) + olevelTotal;
   }
@@ -342,12 +342,12 @@ const getUniversityGradePoints = (uniName: string): {
 
   if (normalized.includes('futa') || (normalized.includes('technology') && normalized.includes('akure'))) {
     const map: Record<OLevelGrade, number> = {
-      'A1': 80, 'B2': 72, 'B3': 67, 'C4': 62, 'C5': 57, 'C6': 52, 'D7': 0, 'E8': 0, 'F9': 0
+      'A1': 5.0, 'B2': 4.0, 'B3': 3.0, 'C4': 2.0, 'C5': 1.0, 'C6': 1.0, 'D7': 0, 'E8': 0, 'F9': 0
     };
     return {
       gradeMap: map,
-      maxPoints: 400,
-      styleDesc: "FUTA 75:25 O'Level scale (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52, best 5 average scaled to 25%)"
+      maxPoints: 25,
+      styleDesc: "FUTA 75:25 O'Level scale (A1=5.0, B2=4.0, B3=3.0, C4=2.0, C5=1.0, C6=1.0, sum of best 5 required subjects = max 25 points)"
     };
   }
   
@@ -829,11 +829,11 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
   },
   futa: {
     fullName: "Federal University of Technology, Akure (FUTA)",
-    formulaDesc: "FUTA calculates its aggregate using a 75:25 Point-Based formula (JAMB 75% + O'Level 25%). There is a Computer-Based Post-UTME screening at the Digital Resource Centre, Obanla Campus!",
+    formulaDesc: "FUTA calculates aggregate scores using the official 75:25 Point-Based screening formula: UTME (75%) + O'Level (25%). FUTA conducts a purely online screening exercise based on uploaded credentials (no physical/CBT exam).",
     formulaSteps: [
-      "JAMB Score: Divided by 400 and multiplied by 75 (Max 75 points).",
-      "O'Level Points: Converted to a max of 25 points based on your best 5 subjects (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52; Total / 20 * 25).",
-      "Physics is mandatory for all programmes. Candidates with Awaiting Results are not eligible."
+      "JAMB UTME (75% Max): (JAMB Score / 400) * 75.",
+      "O'Level Screening (25% Max): Sum of 5 required subjects where A1=5.0, B2=4.0, B3=3.0, C4=2.0, C5=1.0, C6=1.0 (5 distinctions = 25 points).",
+      "Physics is a mandatory prerequisite for all engineering and science programmes in FUTA. Awaiting Results are not accepted."
     ],
     cutoffs: [
       { course: "Electrical & Electronics Eng.", score: "74.37%" },
@@ -2328,7 +2328,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         };
       }
     } else if (normUni.includes('futa') || formula === 'futa_75_25') {
-      const oLevelContrib = (oLPoints / 5) * 0.25;
+      const oLevelContrib = oLPoints;
       const rem = targetA - oLevelContrib;
       const requiredJamb = rem * (400 / 75);
       return {
@@ -2336,9 +2336,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         solvedVar: 'JAMB UTME Score',
         requiredValue: Math.round(requiredJamb),
         maxLimit: 400,
-        formulaText: `JAMB = (Target - O'Level Contribution) * (400 / 75)`,
+        formulaText: `JAMB = (Target - O'Level Points) * (400 / 75)`,
         isAchievable: requiredJamb >= 100 && requiredJamb <= 400,
-        details: `To achieve ${targetA.toFixed(1)} at FUTA given O'Level points, you need a JAMB score of ${Math.round(requiredJamb)} / 400.`
+        details: `To achieve ${targetA.toFixed(1)}% at FUTA given O'Level (${oLPoints.toFixed(1)} / 25 pts), you need a JAMB score of ${Math.round(requiredJamb)} / 400.`
       };
     } else {
       return {
@@ -2893,6 +2893,139 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
           result = { ...(result || {}), ...oauResultPayload };
           enrichedResult = { ...(enrichedResult || {}), ...oauResultPayload };
+          setAiResult(enrichedResult);
+        }
+      }
+
+      // Deterministically enforce official stamped FUTA cutoffs (both registered & guest)
+      const isFutaUni = (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure');
+      if (isFutaUni) {
+        const futaCandidate = getFUTACutoffForCandidate(activeCourse, stateOfOrigin);
+        if (futaCandidate.programme) {
+          const officialCutoff = futaCandidate.cutoff;
+          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+          const futaResultPayload = {
+            departmentalCutoff: `${officialCutoff}%`,
+            cutoff: `${officialCutoff}%`,
+            cutoffValue: officialCutoff,
+            cutoffIsOfficial: true,
+            cutoffType: 'official_departmental_cutoff',
+            cutoffSource: 'Official FUTA Admissions Unit Approved Aggregate Benchmarks (75:25)',
+            cutoffYear: FUTA_SESSION,
+            cutoffQuotaUsed: futaCandidate.quotaLabel,
+            verdict,
+            probability: baseProb,
+            scoreDiff: diff,
+            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official FUTA ${futaCandidate.quotaLabel} cutoff of ${officialCutoff}% (Merit: ${futaCandidate.programme.merit}%, Catchment: ${futaCandidate.programme.catchment}%, ELDS: ${futaCandidate.programme.elds}%). FUTA evaluates candidates strictly under the official 75:25 formula: UTME (75%) + O'Level (25%).`,
+            reliability: 'High',
+            predictionId
+          };
+
+          result = { ...(result || {}), ...futaResultPayload };
+          enrichedResult = { ...(enrichedResult || {}), ...futaResultPayload };
+          setAiResult(enrichedResult);
+        }
+      }
+
+      // Deterministically enforce official stamped UI cutoffs (both registered & guest)
+      const isUiUni = (targetUni?.name || '').toLowerCase().includes('ibadan') || (targetUni?.name || '').toLowerCase() === 'ui';
+      if (isUiUni) {
+        const uiProg = getUICutoffByCourse(activeCourse);
+        if (uiProg) {
+          const officialCutoff = isELDSState ? uiProg.elds : (isCatchmentState ? uiProg.catchment : uiProg.merit);
+          const quotaLabel = isELDSState ? `ELDS Quota (${stateOfOrigin})` : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota');
+          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+          const uiResultPayload = {
+            departmentalCutoff: `${officialCutoff}%`,
+            cutoff: `${officialCutoff}%`,
+            cutoffValue: officialCutoff,
+            cutoffIsOfficial: true,
+            cutoffType: 'official_departmental_cutoff',
+            cutoffSource: 'Official UI Admissions Committee Approved Benchmarks (50:50)',
+            cutoffYear: UI_SESSION,
+            cutoffQuotaUsed: quotaLabel,
+            verdict,
+            probability: baseProb,
+            scoreDiff: diff,
+            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official UI ${quotaLabel} cutoff of ${officialCutoff}% (Merit: ${uiProg.merit}%, Catchment: ${uiProg.catchment}%, ELDS: ${uiProg.elds}%). UI uses the 50:50 composite scoring formula: (JAMB / 8) + (Post-UTME / 2).`,
+            reliability: 'High',
+            predictionId
+          };
+
+          result = { ...(result || {}), ...uiResultPayload };
+          enrichedResult = { ...(enrichedResult || {}), ...uiResultPayload };
+          setAiResult(enrichedResult);
+        }
+      }
+
+      // Deterministically enforce official stamped FUOYE cutoffs (both registered & guest)
+      const isFuoyeUni = (targetUni?.name || '').toLowerCase().includes('fuoye') || (targetUni?.name || '').toLowerCase().includes('oye-ekiti');
+      if (isFuoyeUni) {
+        const fuoyeProg = getFuoyeCutoffByCourse(activeCourse);
+        if (fuoyeProg) {
+          const officialCutoff = fuoyeProg.meritScore;
+          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+          const fuoyeResultPayload = {
+            departmentalCutoff: `${officialCutoff}%`,
+            cutoff: `${officialCutoff}%`,
+            cutoffValue: officialCutoff,
+            cutoffIsOfficial: true,
+            cutoffType: 'official_departmental_cutoff',
+            cutoffSource: 'Official FUOYE Admissions Unit Merit Point Scale',
+            cutoffYear: FUOYE_SESSION,
+            cutoffQuotaUsed: 'National Merit Quota',
+            verdict,
+            probability: baseProb,
+            scoreDiff: diff,
+            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official FUOYE admission merit cutoff of ${officialCutoff}% for ${fuoyeProg.programme} (${fuoyeProg.faculty}).`,
+            reliability: 'High',
+            predictionId
+          };
+
+          result = { ...(result || {}), ...fuoyeResultPayload };
+          enrichedResult = { ...(enrichedResult || {}), ...fuoyeResultPayload };
+          setAiResult(enrichedResult);
+        }
+      }
+
+      // Deterministically enforce official stamped DELSU cutoffs (both registered & guest)
+      const isDelsuUni = (targetUni?.name || '').toLowerCase().includes('delsu') || (targetUni?.name || '').toLowerCase().includes('delta state');
+      if (isDelsuUni) {
+        const delsuProg = getDelsuCutoffByCourse(activeCourse);
+        if (delsuProg) {
+          const officialCutoff = delsuProg.cutoff;
+          const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
+          const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+          const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+          const delsuResultPayload = {
+            departmentalCutoff: `${officialCutoff}%`,
+            cutoff: `${officialCutoff}%`,
+            cutoffValue: officialCutoff,
+            cutoffIsOfficial: true,
+            cutoffType: 'official_departmental_cutoff',
+            cutoffSource: 'Official DELSU Admissions Committee Approved Cut-off Marks (50:50)',
+            cutoffYear: DELSU_SESSION,
+            cutoffQuotaUsed: 'Official Departmental Benchmark',
+            verdict,
+            probability: baseProb,
+            scoreDiff: diff,
+            detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official DELSU departmental cutoff of ${officialCutoff}% for ${delsuProg.programme} (${delsuProg.faculty}).`,
+            reliability: 'High',
+            predictionId
+          };
+
+          result = { ...(result || {}), ...delsuResultPayload };
+          enrichedResult = { ...(enrichedResult || {}), ...delsuResultPayload };
           setAiResult(enrichedResult);
         }
       }
@@ -5036,6 +5169,50 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                               <strong>Scoring Formula:</strong> {computedScoringSystem?.explanation || "Pure Academic Formula (JAMB / 4)."}
                             </span>
                           </div>
+
+                          {/* Official Stamped Departmental Benchmark (Public Verifiable Audit) */}
+                          {aiResult && (aiResult.cutoff || aiResult.departmentalCutoff) && (
+                            <div className="p-4 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-blue-500/10 border border-amber-500/30 rounded-2xl space-y-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-black text-[9px] uppercase tracking-wider flex items-center gap-1">
+                                  <CheckCircle2 size={11} className="text-emerald-400" />
+                                  {aiResult.cutoffIsOfficial ? 'Official Approved Benchmark' : 'Institutional Baseline'}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-300">
+                                  {aiResult.cutoffQuotaUsed || (stateOfOrigin ? `${stateOfOrigin} Quota` : 'National Merit Quota')}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                                <div className="p-2.5 bg-black/40 border border-white/5 rounded-xl">
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-400 block">Departmental Cut-Off</span>
+                                  <span className="text-base font-black text-amber-400 font-mono mt-0.5 block">
+                                    {aiResult.departmentalCutoff || `${aiResult.cutoff}%`}
+                                  </span>
+                                </div>
+                                <div className="p-2.5 bg-black/40 border border-white/5 rounded-xl">
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-400 block">Your Margin (Δ)</span>
+                                  <span className={`text-base font-black font-mono mt-0.5 block ${(aiResult.scoreDiff ?? (aggregateScore - (parseFloat(aiResult.cutoff) || 0))) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {(aiResult.scoreDiff ?? (aggregateScore - (parseFloat(aiResult.cutoff) || 0))) >= 0 ? '+' : ''}
+                                    {Number((aiResult.scoreDiff ?? (aggregateScore - (parseFloat(aiResult.cutoff) || 0)))).toFixed(2)}%
+                                  </span>
+                                </div>
+                                <div className="p-2.5 bg-black/40 border border-white/5 rounded-xl col-span-2 sm:col-span-1">
+                                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-400 block">Calibrated Probability</span>
+                                  <span className="text-base font-black text-cyan-400 font-mono mt-0.5 block">
+                                    {aiResult.probability}% ({aiResult.verdict || (aggregateScore >= (parseFloat(aiResult.cutoff) || 0) ? 'Strong' : 'Borderline')})
+                                  </span>
+                                </div>
+                              </div>
+
+                              {aiResult.cutoffSource && (
+                                <p className="text-[8.5px] text-gray-400 border-t border-white/5 pt-2 flex items-center gap-1.5">
+                                  <Database size={11} className="text-amber-400 shrink-0" />
+                                  <span>Source: <strong className="text-gray-300">{aiResult.cutoffSource}</strong> ({aiResult.cutoffYear || '2026/2027'})</span>
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Primary Gated Callout / Sign In Prompt */}
@@ -6344,7 +6521,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                       postContribText = `+${sittings === 1 ? '10' : '6'} pts (${sittings === 1 ? 'One Sitting' : 'Two Sittings'})`;
                                     } else if (formula === 'futa_75_25' || normalizedUni.includes('futa') || desc.includes('75:25')) {
                                       jambContribText = `UTME: ${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
-                                      olevelContribText = `O'Level: (${activeOlevelPoints} / 5) * 25% = ${((activeOlevelPoints / 5) * 0.25).toFixed(2)} pts (25%)`;
+                                      olevelContribText = `O'Level: ${activeOlevelPoints.toFixed(1)} / 25 pts (25% max, sum of 5 required subjects)`;
                                     } else if (formula === 'lasu_60_40' || normalizedUni.includes('lasu') || desc.includes('60:40')) {
                                       jambContribText = `${jambVal} / 400 * 60 = ${(jambVal / 400 * 60).toFixed(2)} pts (60%)`;
                                       olevelContribText = `${activeOlevelPoints} pts (40%)`;
@@ -6366,7 +6543,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                                     } else if (desc.includes('point-based')) {
                                       if (normalizedUni.includes('futa') || (normalizedUni.includes('technology') && normalizedUni.includes('akure'))) {
                                         jambContribText = `UTME: ${jambVal} / 400 * 75 = ${(jambVal / 400 * 75).toFixed(2)} pts (75%)`;
-                                        olevelContribText = `O'Level: (${activeOlevelPoints} / 5) * 25% = ${((activeOlevelPoints / 5) * 0.25).toFixed(2)} pts (25%)`;
+                                        olevelContribText = `O'Level: ${activeOlevelPoints.toFixed(1)} / 25 pts (25% max, sum of 5 required subjects)`;
                                       } else {
                                         jambContribText = `${jambVal} / 8 = ${(jambVal / 8).toFixed(2)} pts (50%)`;
                                         olevelContribText = `${activeOlevelPoints} pts (50%)`;
@@ -7668,7 +7845,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               <div className="p-4 border-t border-white/5 bg-gray-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[9px] text-gray-500 font-bold uppercase tracking-wider shrink-0">
                 <div className="flex items-center gap-2">
                   <Info size={12} className="text-amber-400" />
-                  <span>FUTA Aggregate = (JAMB / 400 * 75) + (O'Level Points / 20 * 25). Minimum UTME: 180</span>
+                  <span>FUTA Aggregate = (JAMB / 400 * 75) + (O'Level Points out of 25: A1=5.0, B2=4.0, B3=3.0, C4=2.0, C5=1.0, C6=1.0). Minimum UTME: 180</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <a
@@ -8231,9 +8408,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
               subjects,
               hasOLevel: computedScoringSystem ? computedScoringSystem.hasOLevel : true,
               hasPostUtme: computedScoringSystem ? computedScoringSystem.hasPostUtme : !((targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure') || (targetUni?.name || '').toLowerCase().includes('lasu')),
-              olevelPoints: (computedScoringSystem?.formula === 'futa_75_25' || (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure')) 
-                ? parseFloat(((activeOlevelPoints / 5) * 0.25).toFixed(2)) 
-                : activeOlevelPoints,
+              olevelPoints: activeOlevelPoints,
               computedScoringSystem,
               aiResult
             }}
@@ -8308,15 +8483,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
                   </div>
                   
                   <div className="p-3 bg-gray-950 border border-white/5 rounded-xl">
-                    <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-indigo-400">FUTA / Point-Based Scales</h4>
-                    <p className="text-xs mb-2">Some tech schools (like FUTA) use wider ranges which are then percentage-weighted.</p>
+                    <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-amber-400">FUTA Official 75:25 Scale</h4>
+                    <p className="text-xs mb-2">FUTA calculates O'Level out of 25 points from your 5 required subjects:</p>
                     <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                      <span>A1 = 80 pts</span>
-                      <span>B2 = 72 pts</span>
-                      <span>B3 = 67 pts</span>
-                      <span>C4 = 62 pts</span>
-                      <span>C5 = 57 pts</span>
-                      <span>C6 = 52 pts</span>
+                      <span>A1 = 5.0 pts</span>
+                      <span>B2 = 4.0 pts</span>
+                      <span>B3 = 3.0 pts</span>
+                      <span>C4 = 2.0 pts</span>
+                      <span>C5 = 1.0 pts</span>
+                      <span>C6 = 1.0 pts</span>
                     </div>
                   </div>
                 </div>

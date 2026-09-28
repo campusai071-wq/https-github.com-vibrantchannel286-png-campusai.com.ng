@@ -82,3 +82,59 @@ export const getFUTACutoffByCourse = (courseName: string): FUTACutoffProgramme |
   );
   return match || null;
 };
+
+const FUTA_CATCHMENT_STATES = ["ondo", "ekiti", "osun", "oyo", "ogun", "lagos"];
+const FUTA_ELDS_STATES = [
+  "adamawa", "bauchi", "bayelsa", "benue", "borno", "cross river", "ebonyi", "gombe",
+  "jigawa", "kaduna", "kano", "katsina", "kebbi", "kogi", "kwara", "nasarawa", "niger",
+  "plateau", "rivers", "sokoto", "taraba", "yobe", "zamfara"
+];
+
+export interface FUTACandidateCutoff {
+  programme: FUTACutoffProgramme | null;
+  cutoff: number;
+  quotaType: 'merit' | 'catchment' | 'elds';
+  quotaLabel: string;
+}
+
+export const getFUTACutoffForCandidate = (courseName: string, stateOfOrigin?: string): FUTACandidateCutoff => {
+  const prog = getFUTACutoffByCourse(courseName);
+  if (!prog) {
+    return {
+      programme: null,
+      cutoff: 60.0,
+      quotaType: 'merit',
+      quotaLabel: 'Institutional Minimum Baseline'
+    };
+  }
+
+  const s = (stateOfOrigin || '').toLowerCase().trim();
+
+  // 1. ELDS Check (Statutory 20% pool)
+  if (FUTA_ELDS_STATES.includes(s)) {
+    return {
+      programme: prog,
+      cutoff: prog.elds,
+      quotaType: 'elds',
+      quotaLabel: `FUTA ELDS Concession (${stateOfOrigin})`
+    };
+  }
+
+  // 2. Catchment Check (Statutory 35% pool - Ondo, Ekiti, Osun, Oyo, Ogun, Lagos)
+  if (FUTA_CATCHMENT_STATES.includes(s)) {
+    return {
+      programme: prog,
+      cutoff: prog.catchment,
+      quotaType: 'catchment',
+      quotaLabel: `FUTA Catchment Pool (${stateOfOrigin})`
+    };
+  }
+
+  // 3. National Merit (Statutory 45% open pool)
+  return {
+    programme: prog,
+    cutoff: prog.merit,
+    quotaType: 'merit',
+    quotaLabel: 'National Merit Pool'
+  };
+};

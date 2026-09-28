@@ -13,6 +13,7 @@ export interface UniversityData {
     hasPostUtme: boolean;
     hasOLevel: boolean;
     explanation: string;
+    formula?: string;
   };
   courses: string[];
 }
@@ -152,7 +153,8 @@ export const UNIVERSITIES_DB: Record<string, UniversityData> = {
       hasJamb: true,
       hasPostUtme: false,
       hasOLevel: true,
-      explanation: "FUTA uses a point-based aggregate system with a 75:25 ratio. UTME score is weighted at 75% ((JAMB / 400) * 75) and 5 relevant O'Level subject grades make up 25% (A1=80, B2=72, B3=67, C4=62, C5=57, C6=52). Minimum institutional cutoff is 180. Pass in Physics is mandatory for all courses. Awaiting results are not accepted."
+      formula: "futa_75_25",
+      explanation: "FUTA calculates aggregate scores using the official 75:25 Point-Based screening formula: UTME (75%) + O'Level (25%). UTME = (JAMB / 400) * 75, and 5 relevant O'Level subject grades make up 25 points (A1=5.0, B2=4.0, B3=3.0, C4=2.0, C5=1.0, C6=1.0). Minimum institutional cutoff is 180. Pass in Physics is mandatory. Awaiting results are not accepted."
     },
     courses: [
       "Agricultural Extension and Communication Technology", "Animal Production and Health", "Agricultural & Resource Economics",

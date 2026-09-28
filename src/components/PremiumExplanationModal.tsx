@@ -41,7 +41,7 @@ const PremiumExplanationModal: React.FC<PremiumExplanationModalProps> = ({ isOpe
           
           <div className="mb-6">
             <h3 className="text-2xl font-black dark:text-white mb-2 text-center">Unlock Premium Benefits</h3>
-            <p className="text-gray-500 text-center text-sm">Join 50+ students already inside</p>
+            <p className="text-gray-500 text-center text-sm">Join scholars preparing for 2026 admissions</p>
           </div>
 
           <div className="space-y-3 mb-8">

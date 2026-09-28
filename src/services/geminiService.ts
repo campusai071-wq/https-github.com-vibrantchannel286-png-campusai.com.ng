@@ -523,12 +523,12 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 **FUTA Official Scale (75:25 Point System):**
 | Grade | Points |
 |-------|--------|
-| A1    | 6      |
-| B2    | 5      |
-| B3    | 4      |
-| C4    | 3      |
-| C5    | 2      |
-| C6    | 1      |
+| A1    | 5.0    |
+| B2    | 4.0    |
+| B3    | 3.0    |
+| C4    | 2.0    |
+| C5    | 1.0    |
+| C6    | 1.0    |
 | D7-F9 | 0      |
 
 **Standard 4.0 Scale (for UNILAG, UNIBEN, etc.):**
@@ -543,7 +543,7 @@ You are **CampusAI**, the official 2026 Nigerian Academic Strategist for campusa
 | D7-F9 | 0      |
 
 **C. INSTITUTIONAL FORMULAS (APPLY EXACTLY)**
-- **FUTA (75:25):** UTME = (Score/400×75); O'Level = Sum of best 5 using A1=6, B2=5, B3=4, C4=3, C5=2, C6=1; Aggregate = UTME + O'Level (max 100)
+- **FUTA (75:25):** UTME = (Score/400×75); O'Level = Sum of 5 required subjects using A1=5.0, B2=4.0, B3=3.0, C4=2.0, C5=1.0, C6=1.0 (max 25); Aggregate = UTME + O'Level (max 100)
 - **UNILAG (50:30:20):** (UTME/400×50) + (Post-UTME/100×30) + (O'Level Points×2)
 - **UI (50:50):** (UTME/400×50) + (Post-UTME/100×50)
 - **LASU (15:45:40):** (JAMB×0.15) + O'Level (A1=8, B2=7, B3=6, C4=5, C5=4, C6=3) + Post-UTME
@@ -1210,7 +1210,7 @@ const calculateMaxAndTarget = (
   if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) {
     jambContrib = (jamb / 400 * 75);
     maxJambContrib = 75;
-    olevelContrib = (currentOLevelPoints / 50 * 25);
+    olevelContrib = currentOLevelPoints <= 25 ? currentOLevelPoints : (currentOLevelPoints / 50 * 25);
     maxOlevelContrib = 25;
     maxPostContrib = 0;
     postContrib = 0;
@@ -1330,7 +1330,7 @@ const calculateMaxAndTarget = (
 
   if (isAwaitingResult && hasOLevel && maxOlevelContrib > 0) {
     let olevelFactor = 1;
-    if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) olevelFactor = 25 / 50;
+    if (f.includes('futa') || normUni.includes('futa') || f.includes('75_25') || f.includes('75:25')) olevelFactor = 1;
     else if (f.includes('50:20:30') || f.includes('50_20_30')) olevelFactor = 30 / 50;
     else {
       olevelFactor = 1;
@@ -2204,12 +2204,13 @@ export const getCourseCutoffInfo = async (
       if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
         const futaCutoff = getFUTACutoffByCourse(course);
         if (futaCutoff) {
+          const targetCutoff = resolvedIsELDS ? futaCutoff.elds : (resolvedIsCatchment ? futaCutoff.catchment : futaCutoff.merit);
           manualOverride = {
             institution: "Federal University of Technology, Akure (FUTA)",
             course: futaCutoff.programme,
-            departmentalCutoff: `${futaCutoff.cutoff}%`,
+            departmentalCutoff: `${targetCutoff}%`,
             institutionalCutoff: "180",
-            explanation: `Official FUTA 2024/2026 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+            explanation: `Official FUTA 2026/2027 Cutoff: Merit (${futaCutoff.merit}%), Catchment (${futaCutoff.catchment}%), ELDS (${futaCutoff.elds}%) - School: ${futaCutoff.school} (${futaCutoff.code})`
           };
         }
       }
@@ -2379,12 +2380,13 @@ export const getCourseCutoffInfo = async (
     if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
       const futaCutoff = getFUTACutoffByCourse(course);
       if (futaCutoff) {
+        const targetCutoff = resolvedIsELDS ? futaCutoff.elds : (resolvedIsCatchment ? futaCutoff.catchment : futaCutoff.merit);
         manualOverride = {
           institution: "Federal University of Technology, Akure (FUTA)",
           course: futaCutoff.programme,
-          departmentalCutoff: `${futaCutoff.cutoff}%`,
+          departmentalCutoff: `${targetCutoff}%`,
           institutionalCutoff: "180",
-          explanation: `Official FUTA 2024/2026 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+          explanation: `Official FUTA 2026/2027 Cutoff: Merit (${futaCutoff.merit}%), Catchment (${futaCutoff.catchment}%), ELDS (${futaCutoff.elds}%) - School: ${futaCutoff.school} (${futaCutoff.code})`
         };
       }
     }
@@ -2809,12 +2811,13 @@ Return JSON:
     if (!manualOverride && (nUni.includes("futa") || nUni.includes("akure") || nUni.includes("technology, akure"))) {
       const futaCutoff = getFUTACutoffByCourse(course);
       if (futaCutoff) {
+        const targetCutoff = resolvedIsELDS ? futaCutoff.elds : (resolvedIsCatchment ? futaCutoff.catchment : futaCutoff.merit);
         manualOverride = {
           institution: "Federal University of Technology, Akure (FUTA)",
           course: futaCutoff.programme,
-          departmentalCutoff: `${futaCutoff.cutoff}%`,
+          departmentalCutoff: `${targetCutoff}%`,
           institutionalCutoff: "180",
-          explanation: `Official FUTA 2024/2026 Cutoff: ${futaCutoff.cutoff}% (${futaCutoff.code}) - ${futaCutoff.school}`
+          explanation: `Official FUTA 2026/2027 Cutoff: Merit (${futaCutoff.merit}%), Catchment (${futaCutoff.catchment}%), ELDS (${futaCutoff.elds}%) - School: ${futaCutoff.school} (${futaCutoff.code})`
         };
       }
     }

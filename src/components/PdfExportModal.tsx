@@ -212,7 +212,7 @@ AGGREGATE SCORE RESULT:
 STRATEGY & RECOMMENDATION:
 ${formatStrategyMarkdown(aiResult?.detailedStrategy || aiResult?.recommendation || 'Verified by CampusAI Intelligence Engine.')}
 ========================================
-Verified via CampusAI.ng (Nigeria's #1 Admission Predictor & Aggregate Calculator)
+Verified via CampusAI.ng (Official JAMB & University Aggregate Calculator)
     `.trim();
 
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });

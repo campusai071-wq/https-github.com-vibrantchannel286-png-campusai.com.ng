@@ -169,7 +169,7 @@ export function generateFastSEOFallback(html: string, reqPath: string): string {
     imageUrl = `${siteDomain}/api/article-image?slug=${encodeURIComponent(slug)}`;
   } else if (cleanPath === '/calculator') {
     title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
-    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
+    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, FUTA, and all accredited Nigerian institutions.";
     h1Text = "Official 2026 JAMB & University Aggregate Calculator";
     imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Aggregate Score Calculator")}&category=${encodeURIComponent("CampusAI Tools")}`;
   } else if (cleanPath.endsWith('-aggregate-calculator')) {
@@ -237,7 +237,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
   const canonical = `${siteDomain}${cleanPath || '/'}`;
 
   let title = "JAMB 2026 Aggregate Calculator & Admission Portal | CampusAI";
-  let description = "Check your 2026 admission chances with Nigeria's #1 AI strategist. Calculate aggregate scores, view official cutoff marks, and stay updated with verified JAMB news.";
+  let description = "Calculate your 2026 university aggregate score, check departmental cut-off marks, and verify admission requirements across Nigerian institutions.";
   let imageUrl = `${siteDomain}/og-image.png`;
   let isArticle = false;
   let articleAuthor = "Emmanuel Iweh";
@@ -428,7 +428,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
 
               <div style="margin-top: 48px; padding: 28px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 2px solid #bfdbfe; border-radius: 24px; text-align: center;">
                 <h3 style="font-size: 1.35rem; font-weight: 900; color: #1e3a8a; margin: 0 0 8px 0; text-transform: uppercase;">Calculate Your 2026 University Aggregate Score</h3>
-                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian institutions with CampusAI's official formula engine.</p>
+                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and accredited Nigerian institutions with CampusAI's official formula engine.</p>
                 <a href="${siteDomain}/calculator" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 14px rgba(37,99,235,0.3);">
                   Calculate Aggregate Score Now →
                 </a>
@@ -467,7 +467,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
 
               <div style="margin-top: 48px; padding: 28px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 2px solid #bfdbfe; border-radius: 24px; text-align: center;">
                 <h3 style="font-size: 1.35rem; font-weight: 900; color: #1e3a8a; margin: 0 0 8px 0; text-transform: uppercase;">Calculate Your 2026 University Aggregate Score</h3>
-                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian institutions with CampusAI's official formula engine.</p>
+                <p style="font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 20px 0; line-height: 1.5;">Check your admission chances across UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and accredited Nigerian institutions with CampusAI's official formula engine.</p>
                 <a href="${siteDomain}/calculator" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 14px rgba(37,99,235,0.3);">
                   Calculate Aggregate Score Now →
                 </a>
@@ -722,7 +722,7 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
     }
   } else if (cleanPath === '/calculator') {
     title = "Official 2026 JAMB & University Aggregate Calculator | CampusAI";
-    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, and 50+ other Nigerian institutions.";
+    description = "Calculate your 2026 university aggregate score automatically. Supports UNILAG, LASU, UI, OAU, UNIBEN, FUTA, and all accredited Nigerian institutions.";
     imageUrl = `${siteDomain}/api/og-image?title=${encodeURIComponent("Aggregate Score Calculator")}&category=${encodeURIComponent("CampusAI Tools")}`;
     jsonLd = {
       "@context": "https://schema.org",
@@ -737,14 +737,15 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
     serverBodyHtml = `
       <section style="max-width: 820px; margin: 0 auto; padding: 32px 20px; font-family: 'Inter', system-ui, sans-serif; text-align: center;">
         <h1 style="font-size: 2.25rem; font-weight: 900; color: #0f172a; margin-bottom: 12px;">2026 JAMB & University Aggregate Calculator</h1>
-        <p style="font-size: 1.1rem; color: #475569; max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6;">Calculate your admission chances for UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and 50+ Nigerian higher institutions instantly.</p>
+        <p style="font-size: 1.1rem; color: #475569; max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6;">Calculate your admission chances for UNILAG, LASU, UI, OAU, FUTA, UNIBEN, and accredited Nigerian higher institutions instantly.</p>
         <div style="padding: 24px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; text-align: left;">
           <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 12px;">Supported Institutional Formulas:</h3>
           <ul style="line-height: 1.8; color: #334155; font-size: 1rem; padding-left: 20px;">
-            <li><strong>50/50 JAMB-to-Post-UTME Ratio</strong> (UNILAG, LASU, FUTA, UNIBEN, etc.)</li>
-            <li><strong>O'Level Point Grading System</strong> (A1 = 10pts, B2 = 9pts, B3 = 8pts, etc.)</li>
-            <li><strong>Custom Percentage Ratio Mode</strong> for specialized state & private universities</li>
-            <li><strong>Catchment Area & ELDS Quota Assessment</strong></li>
+            <li><strong>75:25 Point-Based Screening Formula</strong> (FUTA)</li>
+            <li><strong>50:50 Composite Exam Formula</strong> (UI, UNIBEN, DELSU)</li>
+            <li><strong>50:30:20 Weighted Screening Model</strong> (UNILAG, UNILORIN, FUTMinna)</li>
+            <li><strong>60:40 Point Model & 10-Point Scales</strong> (LASU, FUOYE, OAU)</li>
+            <li><strong>Catchment Area & Statutory ELDS Quota Assessment</strong></li>
           </ul>
         </div>
       </section>

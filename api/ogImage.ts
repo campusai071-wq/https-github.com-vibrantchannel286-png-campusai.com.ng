@@ -153,7 +153,7 @@ export function generateOgImageSvg(titleParam?: string, categoryParam?: string, 
     </text>
 
     <text x="1040" y="10" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="900" fill="#34d399" text-anchor="end" letter-spacing="0.06em">
-      NIGERIA'S #1 ADMISSION STRATEGIST
+      OFFICIAL ADMISSION PORTAL &amp; CALCULATOR
     </text>
   </g>
 </svg>`;
