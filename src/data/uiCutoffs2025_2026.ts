@@ -13,7 +13,7 @@ export interface UICutoffProgramme {
   elds: number;
 }
 
-export const UI_SESSION = "2026/2026";
+export const UI_SESSION = "2025/2026";
 export const UI_INSTITUTION_NAME = "University of Ibadan (UI)";
 
 export const UI_CUTOFFS_2025_2026: UICutoffProgramme[] = [

@@ -2875,6 +2875,25 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
         const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
 
+        const isSurplus = diff >= 0;
+        const detailedStrategyMarkdown = `### 1. Verdict Summary
+- **Verdict Status:** **${verdict}**
+- **Admission Probability:** **${baseProb}%** (${isSurplus ? `Surplus of +${diff}% above departmental benchmark` : `${Math.abs(diff)}% deficit vs departmental benchmark`})
+
+### 2. The Reality Check
+Your calculated aggregate score of **${aggregateScore}%** was audited directly against the official **${officialCutoffMatch.institution}** **${officialCutoffMatch.cutoffQuotaUsed}** departmental cut-off mark of **${officialCutoff}%** for the **${officialCutoffMatch.cutoffYear}** academic session. 
+
+**Official Policy Details:** ${officialCutoffMatch.explanation}
+
+${isSurplus 
+  ? `With a positive margin of **+${diff}%** over the official departmental benchmark, you are in a highly competitive position for admission consideration under the merit/quota system.` 
+  : `Your aggregate score is **${Math.abs(diff)}%** below the official departmental cutoff of **${officialCutoff}%**. While primary merit admission requires caution, remain alert for supplementary lists, catchment adjustments, or change of course options.`}
+
+### 3. Actionable Next Steps
+*   **Monitor Official Portals:** Check your JAMB CAPS portal and the university's official admission screening portal daily for status updates ('Admission in Progress' or 'Approved').
+*   **Verify O'Level Uploads:** Ensure your WAEC/NECO results are correctly uploaded and verified on JAMB CAPS to prevent automatic system disqualification.
+*   **Prepare Backup Options:** If your score is close or slightly below the cutoff, keep a change of course or related department backup ready in case departmental quotas fill up rapidly.`;
+
         const officialResultPayload = {
           departmentalCutoff: officialCutoffMatch.departmentalCutoff,
           cutoff: officialCutoffMatch.departmentalCutoff,
@@ -2887,7 +2906,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           verdict,
           probability: baseProb,
           scoreDiff: diff,
-          detailedStrategy: `Your aggregate of ${aggregateScore}% was evaluated against the official ${officialCutoffMatch.institution} ${officialCutoffMatch.cutoffQuotaUsed} cutoff of ${officialCutoff}% (${officialCutoffMatch.cutoffYear} Academic Session). ${officialCutoffMatch.explanation}`,
+          detailedStrategy: detailedStrategyMarkdown,
           reliability: 'High',
           predictionId
         };
