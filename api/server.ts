@@ -3864,10 +3864,10 @@ app.get("/api/pdf/proxy-download", async (req: any, res: any) => {
       return res.send(finalBuffer);
     }
 
-    // 2. External URL: Attempt full external fetch (supports Google Drive virus scan bypass, Dropbox, etc.)
+    // 2. External URL: Attempt full external fetch (supports Google Drive virus scan bypass, Dropbox, direct institutional PDF links)
     const fetched = await fetchExternalPdf(rawUrl, requestedTitle);
     if (fetched) {
-      res.setHeader("Content-Type", fetched.contentType);
+      res.setHeader("Content-Type", fetched.contentType || "application/pdf");
       res.setHeader(
         "Content-Disposition",
         isInline ? `inline; filename="${safeFilename}"` : `attachment; filename="${safeFilename}"`
@@ -3876,8 +3876,14 @@ app.get("/api/pdf/proxy-download", async (req: any, res: any) => {
       return res.send(fetched.buffer);
     }
 
-    // 3. Fallback: Generate or recover authentic study document so it NEVER breaks
-    console.log(`[PDF Proxy] Serving generated authentic document for: ${requestedTitle}`);
+    // 3. If external fetch failed (e.g. CORS/hotlink block on school server), redirect directly to source so browser fetches the authentic file
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+      console.log(`[PDF Proxy] Direct redirecting to authentic source URL: ${rawUrl}`);
+      return res.redirect(302, rawUrl);
+    }
+
+    // 4. Internal fallback if file not on disk
+    console.log(`[PDF Proxy] Serving document for: ${requestedTitle}`);
     const fallback = generateOrRecoverStudyPdf(safeFilename, { title: requestedTitle });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

@@ -58,13 +58,19 @@ export const OfficialPdfDownloadCard: React.FC<OfficialPdfDownloadCardProps> = (
 
       const res = await fetch(targetUrl);
       if (!res.ok) {
-        // Fallback to synthetic vault download directly so user ALWAYS gets a real PDF
-        const fallbackUrl = `/api/pdf-store/file/${encodeURIComponent(cleanNameForHeading.toLowerCase().replace(/\s+/g, '-'))}?download=1&title=${encodeURIComponent(displayTitle)}`;
-        const fallbackRes = await fetch(fallbackUrl);
-        if (!fallbackRes.ok) throw new Error("Could not fetch document");
-        
-        const blob = await fallbackRes.blob();
-        triggerBlobDownload(blob, safeFilename);
+        // If proxy failed, trigger direct navigation download to the actual URL provided
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.download = safeFilename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          throw new Error("Could not fetch document");
+        }
       } else {
         const blob = await res.blob();
         triggerBlobDownload(blob, safeFilename);
@@ -73,19 +79,12 @@ export const OfficialPdfDownloadCard: React.FC<OfficialPdfDownloadCardProps> = (
       setDownloaded(true);
       setTimeout(() => setDownloaded(false), 6000);
     } catch (err: any) {
-      console.warn("[PDF Download] Proxy fetch failed, triggering direct fallback...", err);
-      // Last-ditch direct anchor navigation fallback
-      try {
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.download = safeFilename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      console.warn("[PDF Download] Proxy fetch failed, triggering direct anchor fallback...", err);
+      // Direct anchor navigation fallback to the original link
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
         setDownloaded(true);
-      } catch {
+      } else {
         setError("Download failed. Please check your internet connection.");
       }
     } finally {

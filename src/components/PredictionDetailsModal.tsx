@@ -146,15 +146,13 @@ export const getVerdictCategory = (record: {
   if (
     prob === 0 ||
     v.includes('disqualif') || 
-    v.includes('invalid') || 
+    v.includes('invalid subject') || 
     v.includes('ineligible') || 
-    v.includes('mismatch') || 
-    v.includes('deficit') ||
     strat.includes('disqualif') ||
     strat.includes('invalid subject combination') ||
     strat.includes('admission probability:** **0%') ||
     strat.includes('probability: 0%') ||
-    record.departmentalCutoff === 'N/A'
+    (record.departmentalCutoff === 'N/A' && !strat.includes('audited directly against the official'))
   ) {
     return 'disqualified';
   }
@@ -224,7 +222,8 @@ const sanitizeRecord = (
 ): DetailedCalculationRecord => {
   const strategy = String(data.detailedStrategy || '').toLowerCase();
   const rawVerdict = String(data.verdict || '');
-  const isDisqualified = 
+  const hasOfficialAudit = strategy.includes('audited directly against the official');
+  const isDisqualified = !hasOfficialAudit && (
     strategy.includes('disqualif') || 
     strategy.includes('invalid subject combination') ||
     strategy.includes('admission probability:** **0%') ||
@@ -232,8 +231,9 @@ const sanitizeRecord = (
     rawVerdict.toLowerCase().includes('disqualif') ||
     rawVerdict.toLowerCase().includes('invalid subject') ||
     rawVerdict.toLowerCase().includes('ineligible') ||
-    data.departmentalCutoff === 'N/A' ||
-    data.predictedProbability === 0;
+    (data.departmentalCutoff === 'N/A' && !data.cutoffIsOfficial) ||
+    data.predictedProbability === 0
+  );
 
   let finalVerdict = data.verdict;
   let finalProbability = typeof data.predictedProbability === 'number' ? data.predictedProbability : (data.aggregateScore >= 60 ? 75 : 45);
@@ -243,7 +243,17 @@ const sanitizeRecord = (
     finalProbability = 0;
   }
 
-  const cleanDeptCutoff = isDisqualified ? 'N/A' : formatSingleCleanCutoff(data.departmentalCutoff || data.cutoff, data.aggregateScore);
+  // If record has an official audit in detailedStrategy, extract the real official cutoff if departmentalCutoff was N/A
+  let effectiveCutoff = data.departmentalCutoff || data.cutoff;
+  if ((!effectiveCutoff || effectiveCutoff === 'N/A') && hasOfficialAudit) {
+    const cutoffMatch = strategy.match(/departmental cut-off mark of \*\*(\d+(\.\d+)?)%\*\*/i) ||
+                        strategy.match(/departmental cutoff of \*\*(\d+(\.\d+)?)%\*\*/i);
+    if (cutoffMatch) {
+      effectiveCutoff = `${cutoffMatch[1]}%`;
+    }
+  }
+
+  const cleanDeptCutoff = isDisqualified ? 'N/A' : formatSingleCleanCutoff(effectiveCutoff, data.aggregateScore);
 
   return {
     id: recordId,
@@ -973,10 +983,13 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                       
                       {/* Metric Score Breakdown Grid */}
                       {(() => {
-                        const isDisqualified = item.predictedProbability === 0 || 
+                        const hasOfficialAudit = (item.detailedStrategy || '').toLowerCase().includes('audited directly against the official');
+                        const isDisqualified = !hasOfficialAudit && (
+                          item.predictedProbability === 0 || 
                           (item.verdict && item.verdict.toLowerCase().includes('disqualif')) ||
-                          item.departmentalCutoff === 'N/A' ||
-                          (item.detailedStrategy && item.detailedStrategy.toLowerCase().includes('disqualif'));
+                          (item.departmentalCutoff === 'N/A' && !item.cutoffIsOfficial) ||
+                          (item.detailedStrategy && item.detailedStrategy.toLowerCase().includes('disqualif'))
+                        );
 
                         return (
                           <>
@@ -1182,12 +1195,14 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                         </div>
                       )}
 
-                      {/* Strategy & AI Insights */}
+                      {/* Strategy & Insights */}
                       {item.detailedStrategy && (
                         <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl space-y-2">
                           <h4 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
                             <TrendingUp size={14} className="text-emerald-500" />
-                            Detailed AI Strategy & Admission Assessment
+                            {item.isGuest || item.detailedStrategy.includes('audited directly against the official')
+                              ? 'Official Benchmark & Strategy Assessment'
+                              : 'Detailed AI Strategy & Admission Assessment'}
                           </h4>
                           <div className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50/80 dark:bg-gray-950 p-3 rounded-lg border border-gray-100 dark:border-gray-800/80">
                             {item.detailedStrategy}

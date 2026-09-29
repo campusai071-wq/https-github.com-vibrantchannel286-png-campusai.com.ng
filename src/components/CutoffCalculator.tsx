@@ -2926,17 +2926,17 @@ ${isSurplus
       let finalVerdict = result?.verdict || 'Guest Calculation Audit';
       let finalProbability = typeof result?.probability === 'number' ? result.probability : 50;
       let isDisqualified = false;
-      let parsedCutoffVal = 55;
+      let parsedCutoffVal = officialCutoffMatch ? officialCutoffMatch.cutoff : 55;
 
       if (result) {
         // Calculate deterministic values for authenticated users
         isDisqualified = result.probability === 0 || 
           (result.verdict && result.verdict.toLowerCase().includes('disqualif')) ||
-          result.departmentalCutoff === 'N/A' ||
+          (result.departmentalCutoff === 'N/A' && !result.cutoffIsOfficial) ||
           result.subjectCombinationValidation?.valid === false;
 
         const rawCutoffMatch = (result.departmentalCutoff || result.cutoff || '').toString().match(/(\d+(\.\d+)?)/);
-        parsedCutoffVal = rawCutoffMatch ? parseFloat(rawCutoffMatch[1]) : (isDisqualified ? 0 : 55);
+        parsedCutoffVal = rawCutoffMatch ? parseFloat(rawCutoffMatch[1]) : (isDisqualified ? 0 : (officialCutoffMatch ? officialCutoffMatch.cutoff : 55));
         if (parsedCutoffVal > 100 && (parseFloat(aggregateScore.toString()) || 0) <= 100) {
           // If a raw JAMB-scale cutoff (e.g. 220) was returned for a 100% aggregate university, scale appropriately
           parsedCutoffVal = parsedCutoffVal / 4;
@@ -2946,7 +2946,7 @@ ${isSurplus
           finalVerdict = result.verdict || 'Disqualified / Invalid Subject Combination';
           finalProbability = 0;
           parsedCutoffVal = 0;
-        } else if (parsedCutoffVal > 0) {
+        } else if (parsedCutoffVal > 0 && !officialCutoffMatch) {
           const deterministic = enforceAdmissionTiers(
             parseFloat(aggregateScore.toString()) || 0,
             parsedCutoffVal,
@@ -2964,9 +2964,12 @@ ${isSurplus
           );
           if (deterministic?.verdict) finalVerdict = deterministic.verdict;
           if (typeof deterministic?.probability === 'number') finalProbability = deterministic.probability;
+        } else if (officialCutoffMatch) {
+          finalVerdict = result.verdict;
+          finalProbability = result.probability;
         }
 
-        const cleanDeptCutoff = isDisqualified ? 'N/A' : `${Number(parsedCutoffVal.toFixed(2))}%`;
+        const cleanDeptCutoff = isDisqualified ? 'N/A' : (officialCutoffMatch ? officialCutoffMatch.departmentalCutoff : `${Number(parsedCutoffVal.toFixed(2))}%`);
         result.departmentalCutoff = cleanDeptCutoff;
         result.cutoff = cleanDeptCutoff;
         result.cutoffValue = parsedCutoffVal;
@@ -3004,19 +3007,19 @@ ${isSurplus
         usesPostUtme: effectiveUsesPostUtme,
         postUtmeNotUsed: !effectiveUsesPostUtme,
         verdict: finalVerdict,
-        confidence: result?.reliability || 'Medium',
+        confidence: result?.reliability || 'High',
         predictedProbability: finalProbability,
-        departmentalCutoff: isDisqualified ? 'N/A' : (result?.departmentalCutoff || `${Number(parsedCutoffVal.toFixed(2))}%`),
-        institutionalCutoff: result?.institutionalCutoff || '',
+        departmentalCutoff: isDisqualified ? 'N/A' : (result?.departmentalCutoff || (officialCutoffMatch ? officialCutoffMatch.departmentalCutoff : `${Number(parsedCutoffVal.toFixed(2))}%`)),
+        institutionalCutoff: result?.institutionalCutoff || (officialCutoffMatch ? officialCutoffMatch.institutionalCutoff : ''),
         stateOfOrigin: stateOfOrigin || '',
         isELDSState: !!isELDSState,
         isCatchmentState: !!isCatchmentState,
         cutoffType: result?.cutoffType || (result?.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
-        cutoffIsOfficial: !!result?.cutoffIsOfficial,
-        cutoffSource: result?.cutoffSource || '',
-        cutoffYear: result?.cutoffYear || '2026/2026',
+        cutoffIsOfficial: !!(result?.cutoffIsOfficial || officialCutoffMatch?.cutoffIsOfficial),
+        cutoffSource: result?.cutoffSource || officialCutoffMatch?.cutoffSource || '',
+        cutoffYear: result?.cutoffYear || officialCutoffMatch?.cutoffYear || '2026/2027',
         cutoffQuotaUsed: result?.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
-        scoreDiff: typeof result?.scoreDiff === 'number' ? result.scoreDiff : 0,
+        scoreDiff: typeof result?.scoreDiff === 'number' ? result.scoreDiff : (officialCutoffMatch ? parseFloat((aggregateScore - officialCutoffMatch.cutoff).toFixed(2)) : 0),
         predictionDate: new Date().toISOString().split('T')[0],
         detailedStrategy: result?.detailedStrategy || '',
         formulaExplanation: formulaText || '',
