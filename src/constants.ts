@@ -10,6 +10,147 @@ export const ADMISSION_DATES = {
 
 export const MOCK_NEWS: NewsItem[] = [
   {
+    id: 'fuoye-releases-2026-2027-admission-merit-points',
+    slug: 'fuoye-releases-2026-2027-admission-merit-points',
+    title: 'FUOYE Releases 2026/2027 Admission Merit Points for All Departments (Official Cut-Off Marks)',
+    category: 'Federal',
+    date: 'September 29, 2026',
+    image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1000',
+    excerpt: 'Federal University Oye-Ekiti (FUOYE) has officially published the approved departmental admission merit points for the 2026/2027 academic session. Medicine & Surgery leads at 81.40, Doctor of Pharmacy at 76.95, and Nursing at 75.85. See the full breakdown across all faculties.',
+    fullContent: `# Federal University Oye-Ekiti (FUOYE) Releases 2026/2027 Admission Merit Points
+
+> **✅ OFFICIAL ADMISSION BULLETINS:** Published by the Central Admissions Committee & Directorate of Academic Affairs, Federal University Oye-Ekiti (FUOYE). Official Source: [news.fuoye.edu.ng](https://news.fuoye.edu.ng/fuoye-releases-2026-2027-admission-merit-points/)
+
+The management of the **Federal University Oye-Ekiti (FUOYE)** has officially published the approved **2026/2027 Departmental Admission Merit Points (Cut-Off Marks)** across all undergraduate degree programmes.
+
+Prospective students who participated in the 2026 University Pre-Admission Screening Exercise (UPASE) can now check the official merit score requirements for their chosen courses.
+
+---
+
+## 🏛️ Comprehensive Departmental Merit Cut-Off Breakdown
+
+### 1. College of Medicine & Health Sciences
+| Academic Programme | Official Merit Point | Faculty / Campus |
+| :--- | :--- | :--- |
+| **Medicine & Surgery (MBBS)** | **81.40** | Basic Medical Sciences |
+| **Doctor of Pharmacy (Pharm.D)** | **76.95** | Pharmacy |
+| **Nursing Science** | **75.85** | Nursing Science |
+| **Radiography & Radiation Science** | **75.55** | Allied Health Sciences |
+| **Medical Laboratory Science (MLS)** | **73.95** | Allied Health Sciences |
+| **Physiology** | **67.20** | Basic Medical Sciences |
+| **Anatomy** | **67.10** | Basic Medical Sciences |
+
+---
+
+### 2. Faculty of Engineering & Technology (Ikole Campus)
+| Academic Programme | Official Merit Point | Notes |
+| :--- | :--- | :--- |
+| **Mechatronics Engineering** | **67.55** | Highly Competitive |
+| **Computer Engineering** | **65.35** | Ikole Campus |
+| **Civil Engineering** | **65.00** | Ikole Campus |
+| **Mechanical Engineering** | **64.45** | Ikole Campus |
+| **Electrical and Electronics Engineering** | **63.75** | Ikole Campus |
+| **Materials and Metallurgical Engineering** | **58.55** | Ikole Campus |
+| **Agricultural & Bio-Resources Engineering** | **57.45** | Ikole Campus |
+| **System Engineering** | **60.25** | Ikole Campus |
+| **Information & Communication Engineering** | **59.10** | Ikole Campus |
+
+---
+
+### 3. Faculty of Law & Arts
+| Academic Programme | Official Merit Point | Faculty |
+| :--- | :--- | :--- |
+| **Law** | **74.80** | Faculty of Law |
+| **History and International Studies** | **63.75** | Faculty of Arts |
+| **Theatre and Media Arts** | **63.45** | Faculty of Arts |
+| **English and Literary Studies** | **62.55** | Faculty of Arts |
+| **Linguistics and Languages** | **60.25** | Faculty of Arts |
+| **Philosophy** | **57.30** | Faculty of Arts |
+| **Religious Studies** | **52.95** | Faculty of Arts |
+
+---
+
+### 4. Faculty of Management Sciences & Social Sciences
+| Academic Programme | Official Merit Point | Faculty |
+| :--- | :--- | :--- |
+| **Criminology and Security Studies** | **68.15** | Social Sciences |
+| **Accounting** | **67.30** | Management Sciences |
+| **Mass Communication** | **66.75** | Communication & Media Studies |
+| **Business Administration** | **65.70** | Management Sciences |
+| **Economics** | **63.70** | Social Sciences |
+| **Political Science** | **62.30** | Social Sciences |
+| **Banking and Finance** | **62.15** | Management Sciences |
+| **Broadcasting / Journalism & Media Studies** | **61.05 - 61.20** | Communication Studies |
+| **Sociology** | **61.00** | Social Sciences |
+| **Public Administration** | **59.20** | Management Sciences |
+| **Psychology** | **58.15** | Social Sciences |
+
+---
+
+### 5. Faculty of Science & Computing
+| Academic Programme | Official Merit Point | Faculty |
+| :--- | :--- | :--- |
+| **Computer Science** | **65.20** | Computing & Statistics |
+| **Biochemistry** | **62.65** | Science |
+| **Microbiology** | **62.00** | Science |
+| **Software Engineering** | **62.00** | Computing & Statistics |
+| **Cyber Security** | **61.45** | Computing & Statistics |
+| **Architecture** | **59.60** | Environmental Design |
+| **Data Science and Analytics** | **57.70** | Computing & Statistics |
+| **Chemistry** | **57.65** | Science |
+| **Industrial Chemistry** | **55.25** | Science |
+| **Mathematics** | **55.00** | Science |
+| **Physics** | **52.35** | Science |
+| **Geophysics** | **51.75** | Science |
+
+---
+
+### 6. Faculty of Agriculture & Faculty of Education
+| Academic Programme | Official Merit Point | Faculty |
+| :--- | :--- | :--- |
+| **Food Science and Technology** | **62.00** | Agriculture |
+| **Business Education** | **58.60** | Education |
+| **Library and Information Science** | **58.50** | Education |
+| **English Language Education** | **58.45** | Education |
+| **Biology Education** | **56.30** | Education |
+| **Agricultural Economics and Extension** | **55.50** | Agriculture |
+| **Animal Production and Health** | **54.30** | Agriculture |
+| **Crop Science and Horticulture** | **53.50** | Agriculture |
+| **Adult Education** | **53.70** | Education |
+| **Physics Education** | **51.70** | Education |
+| **Educational Management** | **50.55** | Education |
+| **Mathematics Education** | **46.45** | Education |
+
+---
+
+## 🧮 How FUOYE Evaluates Candidate Screening Scores
+FUOYE operates a 100-point composite ranking structure without written physical examinations:
+* **UTME Component (60%)**: Computed as $(\\text{JAMB Score} \\div 400) \\times 60$.
+* **O'Level Component (30%)**: Derived from the applicant's 5 core prerequisite subjects:
+  * A1 = 6.0 pts
+  * B2 = 5.0 pts
+  * B3 = 4.0 pts
+  * C4 = 3.0 pts
+  * C5 = 2.0 pts
+  * C6 = 1.0 pt
+  *(Maximum O'Level sum = 30 points)*
+* **Sitting Advantage (10%)**:
+  * One sitting = **10 points**
+  * Two sittings = **6 points**
+
+$$\\text{Total Aggregate Score (100%)} = \\text{UTME (60%)} + \\text{O'Level Points (30%)} + \\text{Sitting Bonus (10%)}$$
+
+---
+
+## 📌 Instant Tools for FUOYE Applicants
+* 🔍 **[Calculate your exact FUOYE Aggregate Score](https://campusai.com.ng/fuoye-aggregate-calculator)**
+* 📋 **[Track Official JAMB CAPS Admission Status](https://campusai.com.ng/jamb-caps)**
+* 🏫 **[Explore All Nigerian Federal Universities Directory](https://campusai.com.ng/universities)**`,
+    sourceUrl: 'https://news.fuoye.edu.ng/fuoye-releases-2026-2027-admission-merit-points/',
+    isImportant: true,
+    views: 18450
+  },
+  {
     id: 'ebsu-extends-post-utme-registration-deadline-for-20262027-session',
     slug: 'ebsu-extends-post-utme-registration-deadline-for-20262027-session',
     title: 'EBSU Extends Post-UTME Registration Deadline for 2026/2027 Academic Session',
