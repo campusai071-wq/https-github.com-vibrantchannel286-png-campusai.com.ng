@@ -10,6 +10,7 @@ import SEO from './SEO';
 
 import NewsGrid from './NewsGrid';
 import NewsDetailView from './NewsDetailView';
+import NewsRouteResolver from './NewsRouteResolver';
 import Dashboard from './Dashboard';
 import PostUtmeReleaseHub from './PostUtmeReleaseHub';
 import UniversityDirectory from './UniversityDirectory';
@@ -1569,27 +1570,35 @@ const AppContent: React.FC = () => {
           } />
 
           <Route path="/news" element={
-            <div className="container mx-auto px-4 md:px-8 pt-24 pb-20 min-h-screen">
-              <SEO 
-                title="2025/2026 JAMB & Admission News Hub" 
-                description="Stay updated with official admission guidelines, Post-UTME registration dates, and university screening schedules for the 2026 Nigerian academic cycle."
-                canonical="/news"
-              />
-              <NewsGrid 
-                user={user} 
-                onReadArticle={openArticle} 
-                onLoginRequest={() => navigate('/login')} 
-              />
-            </div>
-          } />
-              
-          <Route path="/news/:slug" element={
-            <NewsDetailWrapper 
+            <NewsRouteResolver 
               user={user} 
               isAuthorizedAdmin={isAuthorizedAdmin} 
               news={news} 
               setIsAuthModalOpen={setIsAuthModalOpen} 
               closeArticle={closeArticle} 
+              openArticle={openArticle}
+            />
+          } />
+              
+          <Route path="/news/:slug" element={
+            <NewsRouteResolver 
+              user={user} 
+              isAuthorizedAdmin={isAuthorizedAdmin} 
+              news={news} 
+              setIsAuthModalOpen={setIsAuthModalOpen} 
+              closeArticle={closeArticle} 
+              openArticle={openArticle}
+            />
+          } />
+
+          <Route path="/news/category/:slug" element={
+            <NewsRouteResolver 
+              user={user} 
+              isAuthorizedAdmin={isAuthorizedAdmin} 
+              news={news} 
+              setIsAuthModalOpen={setIsAuthModalOpen} 
+              closeArticle={closeArticle} 
+              openArticle={openArticle}
             />
           } />
 
@@ -1642,26 +1651,23 @@ const AppContent: React.FC = () => {
         </Suspense>
       </main>
 
-      {/* WHATSAPP STICKY BANNER */}
+      {/* WHATSAPP STICKY FLOATING BUTTON */}
       {!isAdminPage && (
-        <div className="fixed bottom-20 right-3.5 md:right-8 md:bottom-24 z-[100] group flex items-center">
+        <div className="fixed bottom-20 right-3.5 sm:right-6 sm:bottom-20 z-[120] flex items-center">
           <a 
             href="https://whatsapp.com/channel/0029VbD6bCD1NCraoIlpD218"
             target="_blank"
             rel="noopener noreferrer"
-            className="relative bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white p-3 md:p-4 rounded-full md:rounded-2xl shadow-2xl flex items-center gap-2.5 md:gap-3 hover:scale-105 active:scale-95 transition-all group border border-green-500/20"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white p-2.5 sm:p-3 rounded-full shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all border border-emerald-400/30 opacity-95 hover:opacity-100"
             title="Join WhatsApp Updates Channel"
           >
-            <div className="flex items-center justify-center shrink-0">
-              <MessageSquare size={20} className="md:w-6 md:h-6 group-hover:scale-110 transition-transform duration-300" />
-            </div>
-            <div className="hidden md:block overflow-hidden max-w-xs transition-all duration-300">
-              <p className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Updates</p>
-              <p className="text-xs font-bold leading-none truncate pr-2">Join Channel 📲</p>
-            </div>
+            <MessageSquare size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline text-[10px] font-black uppercase tracking-wider pr-1">WhatsApp Channel</span>
           </a>
         </div>
       )}
+
+
 
       {!isAdminPage && (
         <Footer 

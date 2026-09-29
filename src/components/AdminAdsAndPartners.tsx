@@ -492,6 +492,69 @@ export const AdminAdsAndPartners: React.FC = () => {
       {/* ── 1. ADS TAB ── */}
       {activeSubTab === 'ads' && (
         <div className="space-y-6">
+          {/* ⚡ Top Header Ad Banner Speed Controller */}
+          <div className="p-5 bg-slate-900 border border-slate-800 rounded-3xl space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-black text-amber-400 flex items-center gap-2">
+                  <Sparkles size={16} className="text-amber-400" /> Top Sponsored Ad Banner Scrolling Speed
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Adjust the horizontal scrolling speed of the top sponsored ad/announcement banner.
+                </p>
+              </div>
+
+              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 shrink-0">
+                {(() => {
+                  const saved = typeof window !== 'undefined' ? localStorage.getItem('campusai_ad_banner_speed') : null;
+                  const speed = saved ? parseInt(saved, 10) : 150;
+                  return `${speed} Seconds Loop ${speed >= 150 ? '(Ultra Slow)' : speed <= 60 ? '(Fast)' : '(Standard)'}`;
+                })()}
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <input
+                type="range"
+                min="30"
+                max="300"
+                step="10"
+                defaultValue={typeof window !== 'undefined' ? (localStorage.getItem('campusai_ad_banner_speed') || '150') : '150'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  localStorage.setItem('campusai_ad_banner_speed', val);
+                  window.dispatchEvent(new Event('campusai_ad_speed_updated'));
+                  setActionNotice({ type: 'success', message: `Top Ad Banner speed updated to ${val} seconds per loop!` });
+                }}
+                className="w-full accent-amber-500 bg-slate-800 rounded-lg cursor-pointer h-2"
+              />
+
+              {/* Speed Preset Buttons */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {[
+                  { label: 'Normal (80s)', val: 80 },
+                  { label: 'Calm (120s)', val: 120 },
+                  { label: 'Ultra Slow (150s)', val: 150 },
+                  { label: 'Super Slow (200s)', val: 200 },
+                  { label: 'Crawling (250s)', val: 250 },
+                ].map((p) => (
+                  <button
+                    key={p.val}
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('campusai_ad_banner_speed', p.val.toString());
+                      window.dispatchEvent(new Event('campusai_ad_speed_updated'));
+                      setActionNotice({ type: 'success', message: `Top Ad Banner speed set to ${p.label}!` });
+                    }}
+                    className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all cursor-pointer active:scale-95"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="relative flex-1 sm:w-64">

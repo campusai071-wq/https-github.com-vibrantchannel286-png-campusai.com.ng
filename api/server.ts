@@ -14,6 +14,7 @@ import { OpenAI } from "openai";
 import { CohereClient } from "cohere-ai";
 import axios from "axios";
 import { TavilyClient } from "tavily";
+import Firecrawl from "@mendable/firecrawl-js";
 import { initializeApp as initClientApp, getApps as getClientApps } from "firebase/app";
 import { initializeFirestore, collection, getDocs, query, orderBy, limit, getCountFromServer, where, startAfter, doc, setDoc, updateDoc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
 import { initializeApp as initAdminApp, applicationDefault } from "firebase-admin/app";
@@ -986,7 +987,7 @@ async function generateGeminiContentWithModelFallback(
   ai: GoogleGenAI,
   params: { contents: any; config?: any; models?: string[] }
 ): Promise<any> {
-  const modelsToTry = params.models || ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+  const modelsToTry = params.models || ['gemini-flash-latest', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -5200,6 +5201,128 @@ Only output the JSON object or NO_UPDATES, no other text.`;
   } catch (error: any) {
     console.error(`[API Webhook] Error processing Firecrawl webhook:`, error.message);
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =============================================================================
+// FIRECRAWL AI AGENT ADMISSION RESEARCH ENDPOINT
+// =============================================================================
+app.post("/api/admin/firecrawl-research", express.json(), async (req: any, res: any) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const suppliedToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : (req.headers["x-admin-token"] || req.body?.adminToken);
+
+    if (suppliedToken !== ADMIN_TOKEN) {
+      return res.status(403).json({ success: false, error: "Unauthorized: Invalid admin credentials" });
+    }
+
+    const { targetQuery, universityName, customPrompt, autoPublish = false } = req.body;
+    const apiKey = process.env.FIRECRAWL_API_KEY || process.env.VITE_FIRECRAWL_API_KEY;
+
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: "FIRECRAWL_API_KEY is not configured in environment variables. Please add it to your server configuration."
+      });
+    }
+
+    const firecrawl = new Firecrawl({ apiKey });
+    const targetUni = universityName || targetQuery || "Nigerian Universities";
+    const prompt = customPrompt || `Research the latest official 2026/2027 admission information for ${targetUni}. Find:
+1. Official minimum JAMB cut-off mark
+2. Post-UTME eligibility mark
+3. Official departmental cut-off marks, if published
+4. Official aggregate-score formula
+5. O'Level contribution and whether two sittings are accepted
+6. Official source URL, publication date, and quotation.
+Do not invent figures or sources. If a formula or cut-off mark is not officially published, write: "Not officially published or not located."`;
+
+    console.log(`[Firecrawl Agent] Starting research for: ${targetUni}`);
+
+    let agentResult: any = null;
+    try {
+      if (typeof firecrawl.agent === 'function') {
+        const run: any = await firecrawl.agent({
+          prompt,
+          effort: "medium" as any,
+          schema: {
+            type: "object",
+            properties: {
+              markdown: { type: "string" },
+              university: { type: "string" },
+              minimum_jamb_cutoff: { type: "string" },
+              post_utme_eligibility: { type: "string" },
+              aggregate_formula: { type: "string" },
+              two_sittings: { type: "string" },
+              official_source_url: { type: "string" },
+              publication_date: { type: "string" }
+            },
+            required: ["markdown"]
+          } as any
+        });
+        agentResult = run?.data || run;
+      } else {
+        // Fallback: search and scrape via Firecrawl
+        const searchRes: any = await firecrawl.search(`${targetUni} 2026 2027 admission cut off post utme official site`, {
+          limit: 3
+        });
+        agentResult = {
+          markdown: `### ${targetUni} Admission Research\n\n${JSON.stringify(searchRes, null, 2)}`,
+          rawSearchResults: searchRes
+        };
+      }
+    } catch (agentErr: any) {
+      console.warn(`[Firecrawl Agent Call Warning] Falling back to search:`, agentErr.message);
+      const searchRes: any = await firecrawl.search(`${targetUni} 2026 2027 official admission cut off site`, {
+        limit: 3
+      });
+      agentResult = {
+        markdown: `### Research Results for ${targetUni}\n\nSearch completed via Firecrawl API.\n\n${JSON.stringify(searchRes, null, 2)}`,
+        searchRes
+      };
+    }
+
+    // Optional auto-draft into News feed
+    let createdNewsId: string | null = null;
+    if (autoPublish && agentResult) {
+      const markdownContent = agentResult.markdown || JSON.stringify(agentResult);
+      const cleanTitle = `Official 2026/2027 Admission & Cut-Off Guidelines: ${targetUni}`;
+      const newsDoc = {
+        title: cleanTitle,
+        content: markdownContent,
+        fullContent: markdownContent,
+        category: "Admission",
+        tags: [targetUni, "Cut-Off", "Post-UTME", "2026/2027"],
+        universities: [targetUni],
+        sourceUrl: agentResult.official_source_url || "https://campusai.com.ng",
+        source: "Firecrawl Official Research",
+        publishDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: "published",
+        isLive: true,
+        author: "CampusAI Research Desk"
+      };
+
+      if (adminDb) {
+        const docRef = await adminDb.collection("news").add(newsDoc);
+        createdNewsId = docRef.id;
+      } else {
+        const resData: any = await clientNewsWrite("publish", undefined, newsDoc);
+        createdNewsId = resData?.id || null;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Research for ${targetUni} completed successfully`,
+      data: agentResult,
+      newsId: createdNewsId
+    });
+
+  } catch (err: any) {
+    console.error("[Firecrawl Research Error]", err);
+    return res.status(500).json({ success: false, error: err.message || "Failed to execute Firecrawl research" });
   }
 });
 

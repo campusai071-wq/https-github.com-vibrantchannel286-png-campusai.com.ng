@@ -9,6 +9,7 @@ import { AdminState } from '../types';
 import { auth } from '../services/firebaseConfig';
 import { updateUserProfile } from '../services/userService';
 import TopHeaderBanner from './TopHeaderBanner';
+import TopNewsTickerBar from './TopNewsTickerBar';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -787,6 +788,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, s
             </div>
         </div>
       </div>
+
+      {/* 🚨 Live Breaking Admission News Ticker (Right under the header line) */}
+      <TopNewsTickerBar onNavigate={onNavigate} />
 
       {/* Mobile Menu Drawer */}
       <AnimatePresence>

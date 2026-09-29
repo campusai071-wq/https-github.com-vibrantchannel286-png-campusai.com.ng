@@ -573,12 +573,12 @@ export const JambCapsLiveTracker: React.FC<JambCapsLiveTrackerProps> = ({ onSele
               </p>
             </div>
             <a 
-              href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA"
+              href="https://buyresultsverificationcode.ng"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition-colors whitespace-nowrap"
             >
-              Generate Verification Code <ExternalLink size={12} />
+              Get Verification Code <ExternalLink size={12} />
             </a>
           </div>
 

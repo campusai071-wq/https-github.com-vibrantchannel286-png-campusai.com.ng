@@ -37,12 +37,12 @@ const faqs: FAQItem[] = [
       <>
         Uploading your WAEC, NECO, or NABTEB results on JAMB CAPS is mandatory for admission. To do this, you must first generate a unique Verification Code using your NIN. This code is required to purchase Result Verification PINs. You can{" "}
         <a 
-          href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA" 
+          href="https://buyresultsverificationcode.ng" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-blue-600 dark:text-cyan-400 font-bold hover:underline"
         >
-          generate your O'Level Verification Code here
+          get your official O'Level Result Verification Code here
         </a>.
       </>
     )

@@ -1,7 +1,7 @@
 
 export type UserRole = 'Pre-Admission' | 'In-Campus' | 'Graduate/Alumni' | 'School/Institution' | 'Super Admin' | 'Admin';
 
-export type UniversityCategory = 'All' | 'Federal' | 'State' | 'Private' | 'JAMB' | 'Polytechnic' | 'COE' | 'National' | 'Jobs' | 'Scholarships' | 'NYSC' | 'WAEC' | 'NECO';
+export type UniversityCategory = 'All' | 'Federal' | 'State' | 'Private' | 'JAMB' | 'Polytechnic' | 'COE' | 'National' | 'Jobs' | 'Scholarships' | 'NYSC' | 'WAEC' | 'NECO' | string;
 
 export type OLevelGrade = 'A1' | 'B2' | 'B3' | 'C4' | 'C5' | 'C6' | 'D7' | 'E8' | 'F9';
 
@@ -24,6 +24,8 @@ export interface NewsItem {
   videoScript?: string;
   tags?: string[];
   isImportant?: boolean;
+  isTicker?: boolean;
+  isPinned?: boolean;
   views?: number;
   likes?: number;
   shares?: number;

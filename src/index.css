@@ -16,7 +16,25 @@
   }
 }
 
-/* Core Web Vitals & Performance Optimizations */
+/* Custom Marquee Ticker Keyframes */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 150s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
 * {
   box-sizing: border-box;
 }

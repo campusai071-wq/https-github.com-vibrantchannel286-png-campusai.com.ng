@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Sparkles, ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Megaphone, Sparkles, ArrowRight, ExternalLink, ShieldCheck, X } from 'lucide-react';
 import { SponsoredAd } from '../types';
 import { getActiveSponsoredAds, recordAdClick, recordAdImpression } from '../services/adPartnerService';
 
@@ -13,10 +13,22 @@ export const TopHeaderBanner: React.FC<TopHeaderBannerProps> = ({
   onNavigate
 }) => {
   const [activeAd, setActiveAd] = useState<SponsoredAd | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [tickerSpeed, setTickerSpeed] = useState<number>(() => {
+    const saved = localStorage.getItem('campusai_ad_banner_speed');
+    return saved ? parseInt(saved, 10) : 150; // Default: ultra slow 150s for top ad banner
+  });
 
   useEffect(() => {
     let isMounted = true;
     let rotationInterval: any = null;
+
+    const handleSpeedUpdate = () => {
+      const saved = localStorage.getItem('campusai_ad_banner_speed');
+      if (saved) setTickerSpeed(parseInt(saved, 10));
+    };
+
+    window.addEventListener('campusai_ad_speed_updated', handleSpeedUpdate);
 
     const loadBannerAd = () => {
       getActiveSponsoredAds('banner').then(ads => {
@@ -59,81 +71,120 @@ export const TopHeaderBanner: React.FC<TopHeaderBannerProps> = ({
       if (rotationInterval) clearInterval(rotationInterval);
       window.removeEventListener('campusai_ad_updated', handleUpdate);
       window.removeEventListener('campusai_config_updated', handleUpdate);
+      window.removeEventListener('campusai_ad_speed_updated', handleSpeedUpdate);
     };
   }, []);
+
+  if (isDismissed) return null;
 
   const handleBannerClick = (e: React.MouseEvent, ad: SponsoredAd) => {
     recordAdClick(ad.id);
   };
 
   // 1. If an active sponsored ad targeting 'banner' or 'all' exists:
-  // Persistent, premium sponsor ribbon (no dismiss button - 100% impression delivery)
   if (activeAd) {
     return (
       <aside 
         aria-label="Sponsored Announcement"
-        className="relative z-40 bg-gradient-to-r from-amber-950 via-slate-900 to-indigo-950 text-white border-b border-amber-500/30 px-3 sm:px-6 py-2 shadow-md transition-all"
+        className="relative z-40 bg-gradient-to-r from-amber-950 via-slate-900 to-indigo-950 text-white border-b border-amber-500/30 px-2 sm:px-6 py-1.5 shadow-md transition-all text-[11px] sm:text-xs overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-            <span className="shrink-0 text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm font-black">
-              <ShieldCheck size={12} className="stroke-[2.5]" /> {activeAd.badgeText || 'VERIFIED SPONSOR'}
-            </span>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 text-[11px] sm:text-xs">
+          {/* Entire scrolling area is clickable and opens activeAd.targetUrl directly */}
+          <a
+            href={activeAd.targetUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => handleBannerClick(e, activeAd)}
+            className="relative flex-1 overflow-hidden flex items-center h-5 cursor-pointer hover:opacity-90 transition-opacity"
+            title="Click to open sponsored link"
+          >
+            <div 
+              style={{ animationDuration: `${tickerSpeed}s` }}
+              className="animate-marquee cursor-pointer gap-16"
+            >
+              <span className="inline-flex items-center gap-2 text-slate-100 font-medium text-[10px] sm:text-xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {activeAd.badgeText || 'SPONSORED AD'}
+                </span>
+                {activeAd.brandName && (
+                  <strong className="font-bold text-amber-300">
+                    {activeAd.brandName}:
+                  </strong>
+                )}
+                <span>{activeAd.title} {activeAd.description ? `— ${activeAd.description}` : ''}</span>
+              </span>
 
-            <div className="flex items-center gap-2 truncate">
-              <strong className="font-bold text-amber-200 shrink-0">
-                {activeAd.brandName}:
-              </strong>
-              <span className="truncate text-slate-200">
-                {activeAd.title} — {activeAd.description}
+              <span className="inline-flex items-center gap-2 text-slate-100 font-medium text-[10px] sm:text-xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {activeAd.badgeText || 'SPONSORED AD'}
+                </span>
+                {activeAd.brandName && (
+                  <strong className="font-bold text-amber-300">
+                    {activeAd.brandName}:
+                  </strong>
+                )}
+                <span>{activeAd.title} {activeAd.description ? `— ${activeAd.description}` : ''}</span>
               </span>
             </div>
-          </div>
+          </a>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <a
-              href={activeAd.targetUrl || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => handleBannerClick(e, activeAd)}
-              className="px-3.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow hover:shadow-amber-500/30 active:scale-95"
-            >
-              <span>{activeAd.ctaText || 'Learn More'}</span>
-              <ExternalLink size={12} />
-            </a>
-          </div>
+          {/* Tiny Dismiss Button */}
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="p-1 rounded text-amber-300/70 hover:text-white hover:bg-amber-500/20 transition-colors shrink-0 z-10"
+            title="Dismiss top banner"
+            aria-label="Dismiss banner"
+          >
+            <X size={13} />
+          </button>
         </div>
       </aside>
     );
   }
 
   // 2. If no active ad, but the Admin has toggled "Top Important Update Banner" ON:
-  // Authoritative admission announcement ribbon (controlled via Admin Dashboard)
   if (showImportantBanner) {
     return (
       <aside 
         aria-label="Important Admission Update"
-        className="relative z-40 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 text-white border-b border-cyan-500/30 px-3 sm:px-6 py-2 shadow-md transition-all"
+        className="relative z-40 bg-gradient-to-r from-blue-950 via-slate-900 to-cyan-950 text-white border-b border-cyan-500/30 px-2 sm:px-6 py-1.5 shadow-md transition-all text-[11px] sm:text-xs overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-            <span className="shrink-0 text-[10px] font-black uppercase tracking-wider bg-cyan-500 text-slate-950 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-              <Megaphone size={11} className="fill-slate-950" /> PINNED UPDATE
-            </span>
-
-            <p className="truncate text-slate-200 font-medium">
-              <strong className="text-cyan-300">2026/2027 Admissions:</strong> Post-UTME screening forms, cut-off marks, and verification tools are now active.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => onNavigate ? onNavigate('calculator') : (window.location.href = '/calculator')}
-              className="px-3.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow active:scale-95 cursor-pointer"
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 text-[11px] sm:text-xs">
+          {/* Entire banner is clickable to check cutoffs / open target tool */}
+          <div 
+            onClick={() => onNavigate ? onNavigate('calculator') : (window.location.href = '/calculator')}
+            className="relative flex-1 overflow-hidden flex items-center h-5 cursor-pointer hover:opacity-90 transition-opacity"
+            title="Click to check 2026/2027 Cut-Off marks"
+          >
+            <div 
+              style={{ animationDuration: `${tickerSpeed}s` }}
+              className="animate-marquee gap-16 cursor-pointer"
             >
-              Check Cut-Off <ArrowRight size={12} />
-            </button>
+              <span className="inline-flex items-center gap-2 text-slate-100 font-medium text-[10px] sm:text-xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                  ANNOUNCEMENT
+                </span>
+                <strong className="text-cyan-300 font-bold">2026/2027 Admissions:</strong> Official Post-UTME screening forms, cut-off marks, CAPS updates and aggregate tools are now active across all Nigerian universities.
+              </span>
+
+              <span className="inline-flex items-center gap-2 text-slate-100 font-medium text-[10px] sm:text-xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                  ANNOUNCEMENT
+                </span>
+                <strong className="text-cyan-300 font-bold">2026/2027 Admissions:</strong> Official Post-UTME screening forms, cut-off marks, CAPS updates and aggregate tools are now active across all Nigerian universities.
+              </span>
+            </div>
           </div>
+
+          {/* Tiny Dismiss Button */}
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="p-1 rounded text-cyan-300/70 hover:text-white hover:bg-cyan-500/20 transition-colors shrink-0 z-10"
+            title="Dismiss top banner"
+            aria-label="Dismiss banner"
+          >
+            <X size={13} />
+          </button>
         </div>
       </aside>
     );

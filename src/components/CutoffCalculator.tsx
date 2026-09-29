@@ -5092,10 +5092,30 @@ ${isSurplus
                               </div>
 
                               {aiResult.cutoffSource && (
-                                <p className="text-[8.5px] text-gray-400 border-t border-white/5 pt-2 flex items-center gap-1.5">
-                                  <Database size={11} className="text-amber-400 shrink-0" />
-                                  <span>Source: <strong className="text-gray-300">{aiResult.cutoffSource}</strong> ({aiResult.cutoffYear || '2026/2027'})</span>
-                                </p>
+                                <div className="space-y-2 border-t border-white/5 pt-2">
+                                  <p className="text-[8.5px] text-gray-400 flex items-center gap-1.5">
+                                    <Database size={11} className="text-amber-400 shrink-0" />
+                                    <span>Source: <strong className="text-gray-300">{aiResult.cutoffSource}</strong> ({aiResult.cutoffYear || '2026/2027'})</span>
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <a
+                                      href="https://ibass.jamb.gov.ng"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2.5 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 rounded-lg text-[9px] font-bold flex items-center gap-1 transition-all"
+                                    >
+                                      <ExternalLink size={10} /> Verify on JAMB IBASS
+                                    </a>
+                                    <a
+                                      href="https://www.jamb.gov.ng"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2.5 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 rounded-lg text-[9px] font-bold flex items-center gap-1 transition-all"
+                                    >
+                                      <ExternalLink size={10} /> Official University Portal
+                                    </a>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}
@@ -5771,12 +5791,12 @@ ${isSurplus
                                 Ensure your SSCE (WAEC/NECO/NABTEB) results are fully uploaded on JAMB CAPS. If not uploaded, JAMB will completely exclude you from the automated admission ranking pools. You can check your status at any registered JAMB CBT center.
                               </p>
                               <a 
-                                href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA" 
+                                href="https://buyresultsverificationcode.ng" 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 className="inline-flex items-center gap-1.5 mt-2 text-[9.5px] text-emerald-400 hover:text-emerald-300 font-bold transition-colors bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20"
                               >
-                                Generate Verification Code <ExternalLink size={10} />
+                                Get Verification Code <ExternalLink size={10} />
                               </a>
                             </div>
                           )}

@@ -1267,8 +1267,8 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       const activeSessionKey = `cbt_exam_${user?.uid || 'scholar'}_${requestTimestamp}`;
 
       for (const subjectKey of selectedSubjects) {
-        // According to JAMB standard: English has 60, others have 40 when testMode is 'full'
-        const limit = testMode === 'full' 
+        // Respect questionsPerSubject selected by user, unless testMode is full and official standard is active
+        const limit = (testMode === 'full' && examType === 'jamb' && questionsPerSubject >= 40)
            ? (subjectKey === 'english-language' ? 60 : 40)
            : questionsPerSubject;
 
@@ -1330,16 +1330,15 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setQuestionsBySubject(results);
       setActiveSubjectKey(selectedSubjects[0]);
 
+      const calculatedTotalQuestions = Object.values(results).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+
       let minutes = 0;
       if (typeof customMinutes === 'number' && customMinutes > 0) {
         minutes = customMinutes;
+      } else if (!isTimed) {
+        minutes = 0;
       } else {
-        // Set minutes according to authentic official standards:
-        // JAMB Full Exam: 120 minutes (2 hours) for 180 questions (English 60, other 3 subjects 40 each)
-        // WAEC Full Exam: 60 minutes per subject
-        // Post-UTME Full Exam: 45 minutes
-        // Practice Mode: 0.75 minutes per question (45 seconds)
-        minutes = Math.max(5, Math.round(totalQuestions * 0.75));
+        // Set minutes according to authentic official standards or calculated questions pacing (0.75 min/q)
         if (testMode === 'full') {
           if (examType === 'jamb') {
             minutes = 120;
@@ -1347,7 +1346,11 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             minutes = Math.max(60, selectedSubjects.length * 50);
           } else if (examType === 'post_utme') {
             minutes = 45;
+          } else {
+            minutes = Math.max(5, Math.round(calculatedTotalQuestions * 0.75));
           }
+        } else {
+          minutes = Math.max(5, Math.round(calculatedTotalQuestions * 0.75));
         }
       }
 
@@ -1356,8 +1359,6 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
       setTimeLeft(isTimed ? minutes * 60 : 999 * 60);
       setIsTimerRunning(true);
       setStarted(true);
-
-      const calculatedTotalQuestions = Object.values(results).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
       trackCbtInteraction({
         action: 'start',

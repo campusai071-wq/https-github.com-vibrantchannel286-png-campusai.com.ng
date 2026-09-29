@@ -263,17 +263,17 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                 </motion.button>
               )}
 
-              {/* Secondary Action 2: Generate Verification Code */}
+              {/* Secondary Action 2: Get O'Level Verification Code */}
               <motion.a 
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                href="https://buyresultsverificationcode.ng/?fbclid=IwY2xjawT83JFwZG9mAWV4dG4DYWVtAjEwAGJyaWQRMVl2M3BqODFFcTUwSGtwbWhzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe10oz4ePhZXWZvYxSjH_eeJsTj49p4KWzIzA7vTBCTYps-6xrG7536zJnmgk_aem_zxhBW4ca0ejN3YDJVPL6QA"
+                href="https://buyresultsverificationcode.ng"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 font-bold py-4 px-6 rounded-2xl transition-all text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-1.5"
-                title="Purchase or generate official WAEC/NECO/NABTEB verification code"
+                title="Get official WAEC/NECO O'Level Result Verification Code for JAMB CAPS"
               >
-                <span>Generate Verification Code</span>
+                <span>Get Verification Code</span>
                 <ExternalLink size={13} className="opacity-75" />
               </motion.a>
             </div>

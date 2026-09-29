@@ -314,6 +314,44 @@ export const searchInternalCampusAI = (rawQuery: string): UnifiedSearchResult[] 
   const isSyllabusIntent = normalizedQuery.includes('syllabus') || normalizedQuery.includes('curriculum') || normalizedQuery.includes('topics');
   const isPostUtmeIntent = normalizedQuery.includes('post utme') || normalizedQuery.includes('screening') || normalizedQuery.includes('form');
 
+  // 0. Numeric JAMB Score Intent Handler (e.g. '280', '310', '180')
+  const numMatch = normalizedQuery.match(/^(\d{3})$/);
+  if (numMatch) {
+    const scoreVal = parseInt(numMatch[1], 10);
+    if (scoreVal >= 100 && scoreVal <= 400) {
+      results.push({
+        score: 200,
+        item: {
+          id: `jamb-score-intent-${scoreVal}`,
+          title: `JAMB Score ${scoreVal} - Calculate Aggregate & Admission Chances`,
+          subtitle: `Instant 2026/2027 Aggregate Calculation for ${scoreVal} Marks`,
+          url: `/calculator?jamb=${scoreVal}`,
+          content: `Calculate your aggregate score and check your admission chances for UNILAG, UI, OAU, LASU, FUTA, UNIBEN, UNILORIN, UNN, ABU, and 280+ universities with a JAMB score of ${scoreVal}.`,
+          source: 'CampusAI Admissions Engine',
+          type: 'internal-calculator',
+          badge: 'JAMB Calculator',
+          isInternal: true,
+          isLocal: true
+        }
+      });
+      results.push({
+        score: 180,
+        item: {
+          id: `target-score-intent-${scoreVal}`,
+          title: `Target Cutoff Strategist for ${scoreVal} JAMB Score`,
+          subtitle: 'Reverse Aggregate Goal & Admission Forecaster',
+          url: `/target?jamb=${scoreVal}`,
+          content: `Forecast post-UTME scores needed to clear merit departmental cutoffs across top Nigerian universities for ${scoreVal} JAMB score.`,
+          source: 'CampusAI Admissions Engine',
+          type: 'internal-tool',
+          badge: 'Admission Target',
+          isInternal: true,
+          isLocal: true
+        }
+      });
+    }
+  }
+
   // 1. Core Platform Features
   for (const feat of CORE_PLATFORM_FEATURES) {
     let score = scoreMatch(feat.title, 1.2);

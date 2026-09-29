@@ -838,6 +838,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   } | null>(null);
   const [aiSources, setAiSources] = useState<string[]>([]);
 
+  // ── Firecrawl Official Agent Research ─────────────────────────────────────────
+  const [showFirecrawlAgentModal, setShowFirecrawlAgentModal] = useState(false);
+  const [firecrawlTargetUni, setFirecrawlTargetUni] = useState('University of Lagos (UNILAG)');
+  const [firecrawlCustomPrompt, setFirecrawlCustomPrompt] = useState('');
+  const [isFirecrawlRunning, setIsFirecrawlRunning] = useState(false);
+  const [firecrawlResult, setFirecrawlResult] = useState<any>(null);
+  const [firecrawlAutoPublish, setFirecrawlAutoPublish] = useState(false);
+
   // ── Users ───────────────────────────────────────────────────────────────────
   const [recentUsers, setRecentUsers]     = useState<UserProfile[]>([]);
   const [totalUserCount, setTotalUserCount] = useState(0);
@@ -1359,6 +1367,45 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       alert("Failed to publish AI blog post to cloud.");
     } finally {
       setIsContentLoading(false);
+    }
+  };
+
+  const handleRunFirecrawlAgent = async () => {
+    if (!firecrawlTargetUni.trim()) return;
+    setIsFirecrawlRunning(true);
+    setFirecrawlResult(null);
+    try {
+      const response = await axios.post(
+        getApiUrl('/api/admin/firecrawl-research'),
+        {
+          universityName: firecrawlTargetUni.trim(),
+          customPrompt: firecrawlCustomPrompt.trim() || undefined,
+          autoPublish: firecrawlAutoPublish
+        },
+        {
+          headers: {
+            'x-admin-token': SECRET_TOKEN
+          }
+        }
+      );
+
+      if (response.data && response.data.success) {
+        setFirecrawlResult(response.data.data);
+        if (firecrawlAutoPublish) {
+          await loadAdminNews();
+          window.dispatchEvent(new Event('campusai_news_updated'));
+          alert(`Official research complete and published to News! (ID: ${response.data.newsId || 'Saved'})`);
+        } else {
+          alert(`Official research for ${firecrawlTargetUni} completed successfully! Preview below.`);
+        }
+      } else {
+        alert(response.data.error || "Failed to complete Firecrawl research.");
+      }
+    } catch (err: any) {
+      console.error("[Firecrawl Agent Error]", err);
+      alert(`Firecrawl Agent Error: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setIsFirecrawlRunning(false);
     }
   };
 
@@ -3426,6 +3473,66 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* ── CONTENT TAB ── */}
               {activeTab === 'content' && (
                 <div className="space-y-8">
+                  {/* ⚡ News Ticker Scrolling Speed Controller */}
+                  <div className="p-5 bg-slate-900 border border-slate-800 rounded-3xl space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-cyan-400 flex items-center gap-2">
+                          <Sparkles size={16} className="text-cyan-400" /> Breaking News Ticker Scrolling Speed
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Adjust the horizontal scrolling speed of the top Breaking News ticker bar.
+                        </p>
+                      </div>
+
+                      <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-xl border border-cyan-500/20 shrink-0">
+                        {(() => {
+                          const saved = typeof window !== 'undefined' ? localStorage.getItem('campusai_news_ticker_speed') : null;
+                          const speed = saved ? parseInt(saved, 10) : 80;
+                          return `${speed} Seconds Loop ${speed >= 120 ? '(Calm)' : speed <= 45 ? '(Fast)' : '(Standard)'}`;
+                        })()}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <input
+                        type="range"
+                        min="20"
+                        max="240"
+                        step="5"
+                        defaultValue={typeof window !== 'undefined' ? (localStorage.getItem('campusai_news_ticker_speed') || '80') : '80'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          localStorage.setItem('campusai_news_ticker_speed', val);
+                          window.dispatchEvent(new Event('campusai_news_speed_updated'));
+                        }}
+                        className="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2"
+                      />
+
+                      {/* Speed Preset Buttons */}
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        {[
+                          { label: 'Fast (40s)', val: 40 },
+                          { label: 'Standard (60s)', val: 60 },
+                          { label: 'Calm (80s)', val: 80 },
+                          { label: 'Ultra Slow (120s)', val: 120 },
+                          { label: 'Crawling (180s)', val: 180 },
+                        ].map((p) => (
+                          <button
+                            key={p.val}
+                            type="button"
+                            onClick={() => {
+                              localStorage.setItem('campusai_news_ticker_speed', p.val.toString());
+                              window.dispatchEvent(new Event('campusai_news_speed_updated'));
+                            }}
+                            className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all cursor-pointer active:scale-95"
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"><Newspaper size={14} /> Feed Manager</h3>
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center items-start">
@@ -3457,6 +3564,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           onClick={() => {
                             setShowAIBlogForm(!showAIBlogForm);
                             setShowPostForm(false);
+                            setShowFirecrawlAgentModal(false);
                             setAiGeneratedPost(null);
                           }}
                           className="px-3 py-2 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1"
@@ -3465,11 +3573,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         </button>
                         <button
                           onClick={() => {
+                            setShowFirecrawlAgentModal(!showFirecrawlAgentModal);
+                            setShowPostForm(false);
+                            setShowAIBlogForm(false);
+                          }}
+                          className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-1 shadow-sm"
+                          title="Execute official university web research using Firecrawl AI Agent"
+                        >
+                          <Globe size={12} /> Firecrawl Agent
+                        </button>
+                        <button
+                          onClick={() => {
                             if (!showPostForm) {
                               setNewPost({ category: 'National' });
                             }
                             setShowPostForm(!showPostForm);
                             setShowAIBlogForm(false);
+                            setShowFirecrawlAgentModal(false);
                           }}
                           className="px-3 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase"
                         >
@@ -3685,6 +3805,107 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               Publish AI Generated Post to Cloud
                             </button>
                           </motion.div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {showFirecrawlAgentModal && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: 'auto', opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }}
+                        className="p-6 bg-amber-50/50 dark:bg-amber-950/15 rounded-3xl space-y-4 border border-amber-500/30"
+                      >
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <Globe size={14} /> Firecrawl Official AI Research Agent
+                          </h4>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-300">
+                            Executes a programmatic Firecrawl Agent run against official Nigerian university admission portals and JAMB databases to extract verified minimum cut-offs, departmental thresholds, and aggregate formulas.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-gray-400">Target University</label>
+                            <input 
+                              placeholder="e.g. Obafemi Awolowo University (OAU), UNILAG, or FUTA" 
+                              className="w-full p-3.5 bg-white dark:bg-gray-950 rounded-xl dark:text-white outline-none border border-gray-200 dark:border-gray-800 focus:border-amber-500 text-xs"
+                              value={firecrawlTargetUni} 
+                              onChange={e => setFirecrawlTargetUni(e.target.value)} 
+                              disabled={isFirecrawlRunning}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-gray-400">Execution Options</label>
+                            <div className="h-[46px] flex items-center px-4 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+                              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700 dark:text-gray-300">
+                                <input 
+                                  type="checkbox" 
+                                  checked={firecrawlAutoPublish} 
+                                  onChange={e => setFirecrawlAutoPublish(e.target.checked)}
+                                  className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-gray-300"
+                                />
+                                <span>Auto-publish verified report directly to News</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black uppercase text-gray-400">Custom Research Prompt (Optional)</label>
+                          <textarea 
+                            rows={3}
+                            placeholder="Leave blank to use official 2026/2027 schema for minimum cut-off, post-UTME eligibility, departmental cutoffs, and aggregate formulas..."
+                            className="w-full p-3 bg-white dark:bg-gray-950 rounded-xl dark:text-white outline-none border border-gray-200 dark:border-gray-800 focus:border-amber-500 text-xs font-mono"
+                            value={firecrawlCustomPrompt}
+                            onChange={e => setFirecrawlCustomPrompt(e.target.value)}
+                            disabled={isFirecrawlRunning}
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={handleRunFirecrawlAgent} 
+                            disabled={isFirecrawlRunning || !firecrawlTargetUni.trim()}
+                            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-md transition-all active:scale-95"
+                          >
+                            {isFirecrawlRunning ? (
+                              <>
+                                <Loader2 size={13} className="animate-spin" />
+                                Agent Running Multi-page Scrapes...
+                              </>
+                            ) : (
+                              <>
+                                <Globe size={13} />
+                                Start Official Web Agent Run
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {firecrawlResult && (
+                          <div className="mt-4 p-4 bg-white dark:bg-gray-950 rounded-2xl border border-amber-500/30 space-y-3">
+                            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-900 pb-2">
+                              <h5 className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                Official Agent Research Result
+                              </h5>
+                              {firecrawlResult.official_source_url && (
+                                <a 
+                                  href={firecrawlResult.official_source_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-[9px] text-blue-500 hover:underline flex items-center gap-1"
+                                >
+                                  Verified Source <ExternalLink size={10} />
+                                </a>
+                              )}
+                            </div>
+                            <div className="max-h-80 overflow-y-auto font-mono text-xs whitespace-pre-wrap p-3 bg-gray-50 dark:bg-gray-900 rounded-xl text-gray-800 dark:text-gray-200">
+                              {firecrawlResult.markdown || JSON.stringify(firecrawlResult, null, 2)}
+                            </div>
+                          </div>
                         )}
                       </motion.div>
                     )}

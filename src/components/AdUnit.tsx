@@ -160,20 +160,14 @@ const AdUnit: React.FC<AdUnitProps> = ({
       >
         <div className="flex items-center justify-between gap-2 mb-2">
           <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-            <ShieldCheck size={11} className="text-amber-400" /> {activeAd.badgeText || 'VERIFIED SPONSOR'}
+            <ShieldCheck size={11} className="text-amber-400" /> {activeAd.badgeText || 'SPONSORED AD'}
           </span>
           <div className="flex items-center gap-2">
-            {activeAd.amount && (
+            {Boolean(activeAd.amount && activeAd.amount > 0) && (
               <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 ₦{activeAd.amount.toLocaleString()}
               </span>
             )}
-            <button
-              onClick={handleNavigate}
-              className="text-[9px] font-bold text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider"
-            >
-              Advertise Here
-            </button>
           </div>
         </div>
 

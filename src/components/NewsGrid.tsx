@@ -951,7 +951,18 @@ const NewsGrid: React.FC<NewsGridProps> = ({
             </button>
             <div className="w-px bg-gray-100 dark:bg-gray-700 mx-1 my-1.5 shrink-0" />
             {['All', 'Federal', 'State', 'Private', 'JAMB', 'Polytechnic', 'COE', 'National', 'Jobs', 'Scholarships', 'NYSC', 'Bookmarks'].map(cat => (
-              <button key={cat} onClick={() => setFilter(cat as any)} className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-blue-600'}`}>
+              <button 
+                key={cat} 
+                onClick={() => {
+                  setFilter(cat as any);
+                  if (cat === 'All' || cat === 'Bookmarks') {
+                    navigate('/news');
+                  } else {
+                    navigate(`/news/${cat.toLowerCase()}`);
+                  }
+                }} 
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap cursor-pointer ${filter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-blue-600'}`}
+              >
                 {cat}
               </button>
             ))}

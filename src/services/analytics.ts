@@ -100,6 +100,30 @@ export const identifyUser = (user: {
   if (user.role) claritySet('user_role', user.role);
   if (user.is_premium !== undefined) claritySet('is_premium', user.is_premium ? 'true' : 'false');
   if (user.scholarCredits !== undefined) claritySet('scholar_credits', String(user.scholarCredits));
+
+  // Sync User-ID and User-Provided Data (UPD) to Google Analytics 4
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    try {
+      GA_MEASUREMENT_IDS.forEach((id) => {
+        window.gtag!('config', id, {
+          user_id: customId,
+          ...(user.email ? { user_data: { email: user.email } } : {})
+        });
+      });
+      window.gtag('set', 'user_properties', {
+        user_id: customId,
+        user_role: user.role || 'Scholar',
+        is_premium: user.is_premium ? 'true' : 'false'
+      });
+      if (user.email) {
+        window.gtag('set', 'user_data', {
+          email: user.email
+        });
+      }
+    } catch (err) {
+      console.warn('[GA] identifyUser error:', err);
+    }
+  }
 };
 
 // ─── Google Analytics & Dual-Dispatch Handlers ──────────────────────────────────

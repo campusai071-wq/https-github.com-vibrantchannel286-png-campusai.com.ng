@@ -747,7 +747,7 @@ const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ user, inline = false, isOpe
   return (
     <>
       {/* ── Floating Chat Button ── */}
-      <div className="fixed bottom-24 left-4 md:left-8 md:bottom-8 z-[150] group">
+      <div className="fixed bottom-20 left-3.5 sm:left-6 sm:bottom-20 z-[120] group">
         <span className={`absolute inset-0 rounded-full blur group-hover:scale-125 transition-all duration-500 animate-ping opacity-25 ${
           isUnderMaintenance ? 'bg-amber-500' : 'bg-blue-600'
         }`} />
