@@ -2666,6 +2666,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!activeUni && uniSearch) {
       activeUni = { name: uniSearch, slug: uniSearch.toLowerCase().replace(/\s+/g, '-') };
     }
+    if (!activeUni) {
+      activeUni = { name: "University of Lagos", slug: "unilag" };
+    }
     if (activeUni) {
       if (!targetUni || targetUni.name !== activeUni.name) {
         setTargetUni(activeUni);
@@ -2674,19 +2677,12 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         setUniSearch(activeUni.name);
       }
     }
-    const activeCourse = overrideCourse || targetCourse || courseSearch;
+    let activeCourse = overrideCourse || targetCourse || courseSearch;
 
-    // Smart auto-fallbacks to prevent drop-offs
-    let currentCourse = activeCourse;
-    if (!currentCourse && availableCourses.length > 0) {
-      const defaultCourse = availableCourses.find((c: string) => 
-        ['medicine', 'computer science', 'nursing', 'law', 'accounting'].some(k => c.toLowerCase().includes(k))
-      ) || availableCourses[0];
-      if (defaultCourse) {
-        setTargetCourse(defaultCourse);
-        setCourseSearch(defaultCourse);
-        currentCourse = defaultCourse;
-      }
+    if (!activeCourse) {
+      activeCourse = availableCourses[0] || "Computer Science";
+      setTargetCourse(activeCourse);
+      setCourseSearch(activeCourse);
     }
 
     if (!stateOfOrigin && activeUni) {
@@ -2694,8 +2690,8 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
       setStateOfOrigin(defaultState);
     }
 
-    if ((!jambSubject1 || !jambSubject2 || !jambSubject3) && currentCourse) {
-      const suggested = getSuggestedJambSubjects(currentCourse) || ['Mathematics', 'Physics', 'Chemistry'];
+    if ((!jambSubject1 || !jambSubject2 || !jambSubject3) && activeCourse) {
+      const suggested = getSuggestedJambSubjects(activeCourse) || ['Mathematics', 'Physics', 'Chemistry'];
       if (!jambSubject1) setJambSubject1(suggested[0]);
       if (!jambSubject2) setJambSubject2(suggested[1]);
       if (!jambSubject3) setJambSubject3(suggested[2]);
@@ -2705,7 +2701,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!activeUni) {
       errors.push("Please select a target Higher Institution.");
     }
-    if (!currentCourse) {
+    if (!activeCourse) {
       errors.push("Please select or search for your target Course of study.");
     }
 
@@ -2748,7 +2744,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
     const newHighlights: { [key: string]: boolean } = {};
     if (!activeUni) newHighlights['uni-search'] = true;
-    if (!currentCourse) newHighlights['course-search'] = true;
+    if (!activeCourse) newHighlights['course-search'] = true;
     if (!jambScore && !isAR && !isCOE) newHighlights['jamb-score'] = true;
     if (hasPostUtme && !isPostUtmePending && !postUtmeScore) newHighlights['post-utme-score'] = true;
 
