@@ -6688,6 +6688,72 @@ app.post("/api/admin/send-email", requireAdminToken as any, async (req: any, res
   }
 });
 
+// Send AI Calculation Result Email
+app.post("/api/send-calculation-email", async (req: any, res: any) => {
+  try {
+    const { email, university, course, aggregateScore, departmentalCutoff, verdict, probability, customPrompt } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Recipient email is required" });
+    }
+
+    const resendKey = process.env.RESEND_API_KEY;
+    if (!resendKey) {
+      return res.status(400).json({ success: false, error: "Resend API key is missing. Please configure RESEND_API_KEY." });
+    }
+
+    const resend = new Resend(resendKey);
+    const from = process.env.RESEND_FROM_EMAIL || 'CampusAI Admissions <noreply@campusai.com.ng>';
+    const subject = `🎓 CampusAI Admission Audit: Your ${university} (${course}) Result Report`;
+    
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #090d16; color: #ffffff; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h2 style="color: #10b981; margin: 0; font-size: 22px;">CampusAI Admission Audit</h2>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 4px;">Official Nigerian Tertiary Screening & Aggregate Report</p>
+        </div>
+        <p style="font-size: 14px; color: #e2e8f0;">Hello Scholar,</p>
+        <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">Here is your verified admission assessment result generated for <b>${university}</b> studying <b>${course}</b>:</p>
+        <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+          <p style="margin: 8px 0; font-size: 13px; color: #cbd5e1;"><b>Calculated Aggregate:</b> <span style="color: #38bdf8; font-size: 20px; font-weight: bold;">${aggregateScore}%</span></p>
+          <p style="margin: 8px 0; font-size: 13px; color: #cbd5e1;"><b>Departmental Cut-Off:</b> <span style="color: #f8fafc; font-weight: bold;">${departmentalCutoff}</span></p>
+          <p style="margin: 8px 0; font-size: 13px; color: #cbd5e1;"><b>Admission Status:</b> <span style="color: #10b981; font-weight: bold;">${verdict}</span> (${probability}% Success Probability)</p>
+        </div>
+        ${customPrompt ? `<div style="background: rgba(16, 185, 129, 0.05); padding: 14px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); margin-bottom: 20px;"><p style="font-size: 11px; color: #6ee7b7; margin: 0; font-style: italic;"><b>AI Mentor Guidance:</b> "${customPrompt}"</p></div>` : ''}
+        <p style="font-size: 12px; color: #94a3b8; line-height: 1.5;">Keep practicing on your CBT simulations and track your JAMB CAPS portal regularly for admission status updates.</p>
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); margin-top: 24px; padding-top: 16px; text-align: center;">
+          <p style="font-size: 10px; color: #64748b; margin: 0;">Powered by CampusAI.ng • Your Ultimate Admission Companion</p>
+        </div>
+      </div>
+    `;
+
+    const response = await resend.emails.send({
+      from,
+      to: [email],
+      subject,
+      html,
+    });
+
+    if (response.error) {
+      return res.status(400).json({ success: false, error: response.error.message });
+    }
+
+    // Trigger Resend Automation Event
+    try {
+      await resend.events.send({
+        event: 'admission_aggregate_calculated',
+        email: email,
+      });
+    } catch (eventErr) {
+      console.warn("[Resend Event Trigger Warning]:", eventErr);
+    }
+
+    return res.json({ success: true, message: "Result report emailed successfully!" });
+  } catch (err: any) {
+    console.error("[Send Calculation Email Error]:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Catch-all for undefined API routes
 app.use("/api", (req, res) => {
   console.warn(`[API 404] No route matched for ${req.method} ${req.originalUrl}`);
