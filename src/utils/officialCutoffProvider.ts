@@ -7,7 +7,7 @@ import { FUHSI_CUTOFFS_2026_2027, FUHSI_SESSION, FUHSI_INSTITUTION_NAME } from '
 import { FULOKOJA_CUTOFFS_2026_2027, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME } from '../data/fulokojaCutoffs2026_2027';
 import { FUOYE_CUTOFFS_2026_2027, FUOYE_SESSION, FUOYE_INSTITUTION_NAME } from '../data/fuoyeCutoffs2026_2027';
 import { FUTMINNA_CUTOFFS_2026_2027, FUTMINNA_SESSION, FUTMINNA_INSTITUTION_NAME } from '../data/futminnaCutoffs2026_2027';
-import { getLAUTECHCutoffByCourse } from '../data/lautechCutoffs2025_2026';
+import { getLAUTECHCutoffByCourse, LAUTECH_CUTOFFS_2025_2026 } from '../data/lautechCutoffs2025_2026';
 import { YABATECH_CUTOFFS_2026_2027, YABATECH_SESSION, YABATECH_INSTITUTION_NAME } from '../data/yabatechCutoffs2026_2027';
 
 export interface OfficialCutoffResult {
@@ -27,7 +27,11 @@ export interface OfficialCutoffResult {
 }
 
 function normalize(str: string): string {
-  return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (str || '')
+    .toLowerCase()
+    .replace(/\band\b/g, '')
+    .replace(/&/g, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /**
@@ -152,7 +156,7 @@ export function getOfficialInstitutionCutoff(
         cutoffQuotaUsed: oauCandidate.quotaLabel,
         isCatchment: oauCandidate.quotaType === 'catchment',
         isELDS: oauCandidate.quotaType === 'elds',
-        explanation: `Official OAU 2025/2026 Cutoff: Merit (${oauCandidate.programme.merit}%), Catchment (${oauCandidate.programme.catchment}%), ELDS (${oauCandidate.programme.elds}%)`
+        explanation: `Official OAU 2025/2026 Cutoff: Merit (${oauCandidate.programme.merit}%), Catchment for ${stateOfOrigin || 'State'} (${oauCandidate.cutoff}%)`
       };
     }
   }
@@ -345,6 +349,73 @@ export function getOfficialInstitutionCutoff(
         explanation: `Official YABATECH 2026/2027 Cutoff: ${found.meritScore}%`
       };
     }
+  }
+
+  return null;
+}
+
+/**
+ * Returns the verified, accredited undergraduate programmes for institutions
+ * with official datasets in CampusAI.ng.
+ */
+export function getOfficialInstitutionProgrammes(university: string): string[] | null {
+  if (!university) return null;
+  const nUni = normalize(university);
+
+  // 1. UNILAG
+  if (nUni.includes('unilag') || (nUni.includes('lagos') && (nUni.includes('university') || nUni.includes('fed')))) {
+    const depts = (unilagCutoffs as any).departments || [];
+    return depts.map((d: any) => d.name).sort();
+  }
+
+  // 2. FUTA
+  if (nUni.includes('futa') || (nUni.includes('akure') && (nUni.includes('technology') || nUni.includes('fed')))) {
+    return Array.from(new Set(FUTA_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 3. UI
+  if (nUni.includes('ibadan') || nUni === 'ui' || nUni.includes('universityofibadan')) {
+    return Array.from(new Set(UI_CUTOFFS_2025_2026.map(p => p.programme))).sort();
+  }
+
+  // 4. OAU
+  if (nUni.includes('oau') || nUni.includes('awolowo') || nUni.includes('ife')) {
+    return Array.from(new Set(OAU_CUTOFFS_2025_2026.map(p => p.programme))).sort();
+  }
+
+  // 5. DELSU
+  if (nUni.includes('delsu') || (nUni.includes('delta') && nUni.includes('university'))) {
+    return Array.from(new Set(DELSU_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 6. FUHSI
+  if (nUni.includes('fuhsi') || nUni.includes('ila') || nUni.includes('healthsciences')) {
+    return Array.from(new Set(FUHSI_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 7. FULOKOJA
+  if (nUni.includes('fulokoja') || nUni.includes('lokoja')) {
+    return Array.from(new Set(FULOKOJA_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 8. FUOYE
+  if (nUni.includes('fuoye') || nUni.includes('oyeekiti') || nUni.includes('oye')) {
+    return Array.from(new Set(FUOYE_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 9. FUTMINNA
+  if (nUni.includes('futminna') || nUni.includes('minna')) {
+    return Array.from(new Set(FUTMINNA_CUTOFFS_2026_2027.map(p => p.programme))).sort();
+  }
+
+  // 10. LAUTECH
+  if (nUni.includes('lautech') || nUni.includes('ladoke') || nUni.includes('ogbomoso')) {
+    return Array.from(new Set(LAUTECH_CUTOFFS_2025_2026.map(p => p.programme))).sort();
+  }
+
+  // 11. YABATECH
+  if (nUni.includes('yaba') || nUni.includes('yabatech')) {
+    return Array.from(new Set(YABATECH_CUTOFFS_2026_2027.map(p => p.programme))).sort();
   }
 
   return null;

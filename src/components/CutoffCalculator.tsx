@@ -37,7 +37,8 @@ import { FUOYE_CUTOFFS_2026_2027, getFuoyeCutoffByCourse, FUOYE_SESSION, FUOYE_I
 import { FULOKOJA_CUTOFFS_2026_2027, getFulokojaFaculties, getFulokojaCutoffByCourse, FULOKOJA_SESSION, FULOKOJA_INSTITUTION_NAME, FULOKOJA_APPROVAL_DATE } from '../data/fulokojaCutoffs2026_2027';
 import { DELSU_CUTOFFS_2026_2027, getDelsuFaculties, getDelsuCutoffByCourse, DELSU_SESSION, DELSU_INSTITUTION_NAME, DELSU_PORTAL_URL } from '../data/delsuCutoffs2026_2027';
 import { OAU_CUTOFFS_2025_2026, getOAUFaculties, OAU_SESSION, OAU_INSTITUTION_NAME, getOAUCutoffForCandidate } from '../data/oauCutoffs2025_2026';
-import { getOfficialInstitutionCutoff } from '../utils/officialCutoffProvider';
+import { getOfficialInstitutionCutoff, getOfficialInstitutionProgrammes } from '../utils/officialCutoffProvider';
+import { getVerifiedCoursesForCalculator } from '../services/jambInstitutionService';
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from '../utils/quotaMapping';
 import { trackCalculatorUsed, trackAdmissionAnalysis, trackInstitutionSearch, trackPremiumClick, trackResultSaved } from '../services/analytics';
 import AdUnit from './AdUnit';
@@ -1779,9 +1780,15 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         setStateOfOrigin(getInstitutionDefaultState(found.name, found.slug));
       }
 
+      const officialProg = getOfficialInstitutionProgrammes(found.name);
       const dbMatch = UNIVERSITIES_DB[found.name] || Object.values(UNIVERSITIES_DB).find(x => x.name.toLowerCase() === found.name.toLowerCase());
-      const coursesList = dbMatch?.courses || [];
+      const coursesList = (officialProg && officialProg.length > 0) ? officialProg : (dbMatch?.courses || []);
       setAvailableCourses(coursesList);
+
+      // Async live IBASS enrichment
+      getVerifiedCoursesForCalculator(found.name).then(live => {
+        if (live && live.length > 0) setAvailableCourses(live);
+      }).catch(() => {});
 
       // Auto-select standard popular course for the school if not set
       if (!targetCourse && !courseSearch && coursesList.length > 0) {
@@ -2077,9 +2084,17 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
     if (!targetUni) return;
     const run = async () => {
       setIsSyncing(true);
-      setAvailableCourses([]);
+      
       const slug = targetUni.slug || (targetUni.name || '').toLowerCase().replace(/\s+/g, '-');
       const localCacheKey = `campusai_formula_${slug}`;
+
+      // 0. Check verified curriculum ground truths FIRST (0ms, 100% verified, prevents stale hallucinated courses)
+      const officialDirect = getOfficialInstitutionProgrammes(targetUni.name);
+      if (officialDirect && officialDirect.length > 0) {
+        setAvailableCourses(officialDirect);
+      } else {
+        setAvailableCourses([]);
+      }
 
       const instantMatch =
         TOP_INSTITUTION_MAP[slug] ||
@@ -2093,7 +2108,10 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
           if (parsed && !instantMatch) {
             setScoringSystem(parsed as ScoringSystem);
           }
-          if (parsed?.courses && Array.isArray(parsed.courses)) {
+          if (officialDirect && officialDirect.length > 0) {
+            parsed.courses = officialDirect;
+            localStorage.setItem(localCacheKey, JSON.stringify(parsed));
+          } else if (parsed?.courses && Array.isArray(parsed.courses)) {
             setAvailableCourses(parsed.courses);
           }
         }
@@ -2110,7 +2128,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
         if (cached && !isStale) {
           if (!instantMatch) setScoringSystem(cached as ScoringSystem);
-          if (cached.courses && Array.isArray(cached.courses)) {
+          if (officialDirect && officialDirect.length > 0) {
+            setAvailableCourses(officialDirect);
+          } else if (cached.courses && Array.isArray(cached.courses)) {
             setAvailableCourses(cached.courses);
             localStorage.setItem(localCacheKey, JSON.stringify(cached));
           } else {
@@ -2126,7 +2146,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
             getUniversityCourses(targetUni.name),
             getUniversityScoringSystem(targetUni.name),
           ]);
-          setAvailableCourses(courses);
+          setAvailableCourses(officialDirect && officialDirect.length > 0 ? officialDirect : courses);
           if (!instantMatch) setScoringSystem(realSystem as ScoringSystem);
           if (realSystem) {
             const dataToSave = {
@@ -2392,6 +2412,7 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
 
   const admissionProbability = useMemo(() => {
     if (!aiResult) return 0;
+    if (aiResult.isOffered === false) return 0;
     if (typeof aiResult.probability === 'number') {
       let prob = aiResult.probability;
       if (prob > 0 && prob <= 1) {
@@ -2908,6 +2929,7 @@ ${isSurplus
           scoreDiff: diff,
           detailedStrategy: detailedStrategyMarkdown,
           reliability: 'High',
+          isOffered: true,
           predictionId
         };
 
@@ -2976,7 +2998,12 @@ ${isSurplus
         result.probability = finalProbability;
         result.verdict = finalVerdict;
 
-        enrichedResult = { ...result, predictionId };
+        // Absolute consistency guarantee: If the course is accredited or selected from verified list, isOffered is true
+        if (officialCutoffMatch || (availableCourses && availableCourses.length > 0 && availableCourses.some(c => c.toLowerCase().trim() === (activeCourse || '').toLowerCase().trim())) || !isDisqualified) {
+          result.isOffered = true;
+        }
+
+        enrichedResult = { ...result, isOffered: result.isOffered !== false, predictionId };
         setAiResult(enrichedResult);
 
         // GA4 Event: admission_analysis
@@ -3803,7 +3830,11 @@ ${isSurplus
                                   setUniSearch(u.name);
                                   setTargetCourse('');
                                   setCourseSearch('');
-                                  setAvailableCourses([]);
+                                  const instantCourses = getOfficialInstitutionProgrammes(u.name) || UNIVERSITIES_DB[u.name]?.courses || [];
+                                  setAvailableCourses(instantCourses);
+                                  getVerifiedCoursesForCalculator(u.name).then(live => {
+                                    if (live && live.length > 0) setAvailableCourses(live);
+                                  }).catch(() => {});
                                 }
                                 setIsUniDropdownOpen(false);
                               }}

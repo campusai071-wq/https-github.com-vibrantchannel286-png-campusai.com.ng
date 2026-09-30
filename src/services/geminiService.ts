@@ -97,7 +97,8 @@ import { getYabatechCutoffByCourse } from "../data/yabatechCutoffs2026_2027";
 import { getFuoyeCutoffByCourse } from "../data/fuoyeCutoffs2026_2027";
 import { getFulokojaCutoffByCourse } from "../data/fulokojaCutoffs2026_2027";
 import { getDelsuCutoffByCourse } from "../data/delsuCutoffs2026_2027";
-import { getOfficialInstitutionCutoff } from "../utils/officialCutoffProvider";
+import { getOfficialInstitutionCutoff, getOfficialInstitutionProgrammes } from "../utils/officialCutoffProvider";
+import { getVerifiedCoursesForCalculator } from "./jambInstitutionService";
 import { evaluateCandidateQuota, isStateELDS, isStateInCatchment } from "../utils/quotaMapping";
 
 // ... (keep the rest of the file, replacing runAIWithFallback calls)
@@ -2691,6 +2692,8 @@ You must explicitly classify what type of cutoff benchmark you are providing.
 - cutoffConfidence: "high", "medium", or "low"
 - DO NOT present estimated or historical benchmarks as guaranteed final cutoff points.
 
+- isOffered: boolean. Must be true for all accredited undergraduate programs, departments, or variant discipline names (e.g. Computer Science, Medicine, Law, Engineering fields). Only set to false if the institution fundamentally does not offer this discipline or faculty.
+
 Return JSON:
 {
   "institutionalCutoff": "string",
@@ -2748,6 +2751,7 @@ Return JSON:
         parsed.recommendation = deterministicEvaluation.recommendation;
         parsed.detailedStrategy = deterministicEvaluation.detailedStrategy;
         parsed.scoreDiff = Number((score - cutoffVal).toFixed(2));
+        parsed.isOffered = true;
       } else {
         // Adopt the model's online/historical extracted cutoff or the search-parsed cutoff
         let cleanDeptCutoff = cutoffVal;
@@ -3077,12 +3081,42 @@ export const getPostUtmeDates = async (university: string): Promise<PostUtmeInfo
 
 export const getUniversityCourses = async (institution: string): Promise<string[]> => {
   try {
+    // 1. Prioritize official verified curriculum programmes from official datasets FIRST (0ms, 100% verified)
+    const officialProgrammes = getOfficialInstitutionProgrammes(institution);
+    if (officialProgrammes && officialProgrammes.length > 0) {
+      await saveCachedUniversityCourses(institution, officialProgrammes);
+      return officialProgrammes;
+    }
+
     const cached = await getCachedUniversityCourses(institution);
-    if (cached && cached.length > 0) return cached;
+    if (cached && cached.length > 0) {
+      // Guard against stale polluted cache for specialized institutions (e.g. Technology universities having Accounting/Law)
+      const isTech = institution.toLowerCase().includes("technology") || institution.toLowerCase().includes("futa");
+      if (isTech && cached.some(c => c.toLowerCase() === "accounting" || c.toLowerCase() === "law")) {
+        console.warn("[getUniversityCourses] Discarding stale polluted cache for technology institution:", institution);
+      } else {
+        return cached;
+      }
+    }
+
+    // Query verified programmes real-time from JAMB IBASS API
+    try {
+      const ibassCourses = await getVerifiedCoursesForCalculator(institution);
+      if (ibassCourses && ibassCourses.length > 0) {
+        await saveCachedUniversityCourses(institution, ibassCourses);
+        return ibassCourses;
+      }
+    } catch (ibassErr) {
+      console.warn("JAMB IBASS course query fallback:", ibassErr);
+    }
 
     const nameLower = institution.toLowerCase();
     const dbMatch = getUniversityFromDB(institution);
     const staticCourses = dbMatch?.courses || [];
+    if (staticCourses.length > 0) {
+      await saveCachedUniversityCourses(institution, staticCourses);
+      return staticCourses;
+    }
 
     let dynamicCourses: string[] = [];
     if (!institution.toLowerCase().includes("ogun state college of nursing")) {

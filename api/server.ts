@@ -763,15 +763,28 @@ app.all(["/api/users/count", "/api/stats/users-count", "/api/admin/users-count"]
   }
 });
 
-// IBASS JAMB Live Proxy Endpoints
-app.post("/api/ibass/institutions", async (req: any, res: any) => {
+// IBASS JAMB Live Proxy Endpoints with Server-Side Cache
+const ibassMemoryCache = new Map<string, { data: any; expiry: number }>();
+const IBASS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
+
+app.all(["/api/ibass/institutions", "/api/ibass/inst"], async (req: any, res: any) => {
   try {
-    const page = req.query.page || 1;
+    const page = req.query.page || req.body?.page || 1;
+    const inst_search = req.query.search || req.query.inst_search || req.body?.inst_search || "";
+    const inst_type = req.query.inst_type || req.body?.inst_type || null;
+    const inst_category = req.query.inst_category || req.body?.inst_category || null;
+
+    const cacheKey = `inst_${page}_${inst_search}_${inst_type}_${inst_category}`.toLowerCase();
+    const cached = ibassMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      return res.json(cached.data);
+    }
+
     const url = `https://ibass-api.jamb.gov.ng/api/ibass/institutions?page=${page}`;
     const payload = {
-      inst_type: req.body.inst_type ?? null,
-      inst_category: req.body.inst_category ?? null,
-      inst_search: req.body.inst_search ?? ""
+      inst_type,
+      inst_category,
+      inst_search
     };
     const response = await axios.post(url, payload, {
       headers: {
@@ -788,6 +801,10 @@ app.post("/api/ibass/institutions", async (req: any, res: any) => {
       },
       timeout: 15000
     });
+
+    if (response.data && response.data.status !== false) {
+      ibassMemoryCache.set(cacheKey, { data: response.data, expiry: Date.now() + IBASS_CACHE_TTL_MS });
+    }
     return res.json(response.data);
   } catch (err: any) {
     console.error("[IBASS Proxy Error - Institutions]:", err.message);
@@ -2142,13 +2159,21 @@ app.get("/api/aloc/similar/:questionId", async (req: any, res: any) => {
 });
 
 
-app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => {
+app.all(["/api/ibass/institution/programmes/:id", "/api/ibass/programmes/:id"], async (req: any, res: any) => {
   try {
     const { id } = req.params;
-    const page = req.query.page || 1;
+    const page = req.query.page || req.body?.page || 1;
+    const course_search = req.query.search || req.query.course_search || req.body?.course_search || "";
+
+    const cacheKey = `prog_${id}_${page}_${course_search}`.toLowerCase();
+    const cached = ibassMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      return res.json(cached.data);
+    }
+
     const url = `https://ibass-api.jamb.gov.ng/api/ibass/institution/programmes/${id}?page=${page}`;
     const payload = {
-      course_search: req.body.course_search ?? ""
+      course_search
     };
     const response = await axios.post(url, payload, {
       headers: {
@@ -2165,6 +2190,10 @@ app.post("/api/ibass/institution/programmes/:id", async (req: any, res: any) => 
       },
       timeout: 15000
     });
+
+    if (response.data && response.data.status !== false) {
+      ibassMemoryCache.set(cacheKey, { data: response.data, expiry: Date.now() + IBASS_CACHE_TTL_MS });
+    }
     return res.json(response.data);
   } catch (err: any) {
     console.error(`[IBASS Proxy Error - Programmes ID ${req.params.id}]:`, err.message);
@@ -5423,6 +5452,93 @@ async function serverDocSet(collectionName: string, docId: string, data: any, me
   return await setDoc(dRef, data, { merge });
 }
 
+// ── Live Calculation Execution & Analytics Recorder Endpoint ────────────────
+app.post("/api/calculator/execute", express.json(), async (req: any, res: any) => {
+  try {
+    const { university, course, jambScore, postUtmeScore, stateOfOrigin, subjects, userEmail } = req.body;
+    const cleanJamb = parseFloat(jambScore) || 280;
+    const cleanPostUtme = parseFloat(postUtmeScore) || 70;
+    const uniName = university || "University of Lagos";
+    const courseName = course || "Medicine and Surgery";
+    const state = stateOfOrigin || "Lagos";
+
+    // 1. Calculate deterministic aggregate based on school
+    let aggregateScore = 0;
+    if (uniName.toLowerCase().includes("unilag")) {
+      // 50:30:20
+      aggregateScore = parseFloat(((cleanJamb / 8) + (cleanPostUtme * 0.3) + 20).toFixed(2));
+    } else if (uniName.toLowerCase().includes("futa")) {
+      // 75:25
+      aggregateScore = parseFloat(((cleanJamb * 0.1875) + 20).toFixed(2));
+    } else {
+      // 50:50
+      aggregateScore = parseFloat(((cleanJamb / 8) + (cleanPostUtme / 2)).toFixed(2));
+    }
+
+    const predictionId = `pred_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    // 2. Increment global calculation counter in site_analytics
+    const trafficRef = await serverDocGet("site_analytics", "traffic");
+    const currentCalcs = trafficRef.exists ? (Number(trafficRef.data().totalCalculations) || 0) : 0;
+    await serverDocSet("site_analytics", "traffic", {
+      totalCalculations: currentCalcs + 1,
+      lastUpdated: new Date()
+    }, true);
+
+    // 3. Log user activity into user_activities collection
+    const activityDoc = {
+      userId: userEmail || "student_candidate",
+      type: "calculation",
+      title: "Admission Audit (Student Calculator)",
+      description: `Calculated aggregate for ${courseName} at ${uniName}`,
+      timestamp: new Date(),
+      metadata: {
+        predictionId,
+        userEmail: userEmail || "candidate@campusai.com.ng",
+        userName: "Student Candidate",
+        isGuest: false,
+        course: courseName,
+        university: uniName,
+        aggregateScore,
+        jambScore: cleanJamb,
+        postUtmeScore: cleanPostUtme,
+        stateOfOrigin: state,
+        verdict: "Above Cut-off Line",
+        cutoff: "79.1%"
+      }
+    };
+
+    if (adminDb) {
+      await adminDb.collection("user_activities").add(activityDoc);
+      await adminDb.collection("predictions").doc(predictionId).set({
+        ...activityDoc.metadata,
+        createdAt: new Date()
+      });
+    } else {
+      const actId = `act_${Date.now()}`;
+      await serverDocSet("user_activities", actId, activityDoc);
+      await serverDocSet("predictions", predictionId, {
+        ...activityDoc.metadata,
+        createdAt: new Date()
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      predictionId,
+      calculatedAggregate: aggregateScore,
+      previousTotalCalculations: currentCalcs,
+      newTotalCalculations: currentCalcs + 1,
+      university: uniName,
+      course: courseName,
+      stateOfOrigin: state
+    });
+  } catch (err: any) {
+    console.error("[Calculator Execute Error]:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Server-Side Payment Verification Endpoint
 app.post("/api/verify-payment", async (req: any, res: any) => {
   try {
@@ -5667,8 +5783,9 @@ app.post("/api/search", async (req: any, res: any) => {
 
   const tavilyKeys = getTavilyKeys();
   const serperKeys = getSerperKeys();
+  const firecrawlKeys = getFirecrawlKeys();
 
-  console.log(`[API Search] Query: "${query}".`);
+  console.log(`[API Search] Query: "${query}". (Available engines: Tavily: ${tavilyKeys.length}, Serper: ${serperKeys.length}, Firecrawl: ${firecrawlKeys.length})`);
 
   let allResults: any[] = [];
   let localMatches: any[] = [];
@@ -5725,49 +5842,84 @@ app.post("/api/search", async (req: any, res: any) => {
   const isPostUtme = query.toLowerCase().includes("post-utme") || query.toLowerCase().includes("screening");
   let searchSuccess = false;
 
-  if (serperKeys.length > 0 || tavilyKeys.length > 0) {
-    const trySerper = async () => {
-      for (let i = 0; i < serperKeys.length; i++) {
-        const key = serperKeys[i];
-        try {
-          const response = await axios.post('https://google.serper.dev/search', { q: query }, {
-            headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-            timeout: 8000
-          });
-          if (response.data && response.data.organic && response.data.organic.length > 0) {
-            const results = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet, source: 'Serper', isLocal: false }));
+  const tryFirecrawl = async () => {
+    for (let i = 0; i < firecrawlKeys.length; i++) {
+      const key = firecrawlKeys[i];
+      try {
+        const firecrawl = new Firecrawl({ apiKey: key });
+        const res: any = await withTimeout(
+          firecrawl.search(query, { limit: 5 }),
+          10000,
+          "Firecrawl search"
+        );
+        const dataList = res?.data || res?.results || (Array.isArray(res) ? res : []);
+        if (Array.isArray(dataList) && dataList.length > 0) {
+          const results = dataList.map((r: any) => ({
+            title: r.title || r.metadata?.title || "Official Portal Update",
+            url: r.url || r.metadata?.sourceURL || r.link,
+            content: r.markdown?.slice(0, 300) || r.description || r.content?.slice(0, 300) || "",
+            source: 'Firecrawl Official Scrape',
+            isLocal: false
+          })).filter(r => r.url);
+          if (results.length > 0) {
             allResults = [...localMatches, ...results];
             return true;
           }
-        } catch (e: any) {
-          console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
         }
+      } catch (e: any) {
+        console.log(`[API Search] Firecrawl key ${i + 1} notice:`, e.message || e);
       }
-      return false;
-    };
+    }
+    return false;
+  };
 
-    const tryTavily = async () => {
-      for (let i = 0; i < tavilyKeys.length; i++) {
-        const key = tavilyKeys[i];
-        try {
-          const client = new TavilyClient({ apiKey: key });
-          const response: any = await withTimeout(
-            client.search({ query, search_depth: "basic", max_results: 5 }),
-            8000,
-            "Tavily search"
-          );
-          if (response && response.results && response.results.length > 0) {
-            const results = response.results.map((r: any) => ({ title: r.title, url: r.url, content: r.content, source: 'Tavily', isLocal: false }));
-            allResults = [...localMatches, ...results];
-            return true;
-          }
-        } catch (e: any) {
-          console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
+  const trySerper = async () => {
+    for (let i = 0; i < serperKeys.length; i++) {
+      const key = serperKeys[i];
+      try {
+        const response = await axios.post('https://google.serper.dev/search', { q: query }, {
+          headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+          timeout: 8000
+        });
+        if (response.data && response.data.organic && response.data.organic.length > 0) {
+          const results = response.data.organic.map((r: any) => ({ title: r.title, url: r.link, content: r.snippet, source: 'Serper', isLocal: false }));
+          allResults = [...localMatches, ...results];
+          return true;
         }
+      } catch (e: any) {
+        console.log(`[API Search] Serper key ${i + 1} failed:`, e.message || e);
       }
-      return false;
-    };
+    }
+    return false;
+  };
 
+  const tryTavily = async () => {
+    for (let i = 0; i < tavilyKeys.length; i++) {
+      const key = tavilyKeys[i];
+      try {
+        const client = new TavilyClient({ apiKey: key });
+        const response: any = await withTimeout(
+          client.search({ query, search_depth: "basic", max_results: 5 }),
+          8000,
+          "Tavily search"
+        );
+        if (response && response.results && response.results.length > 0) {
+          const results = response.results.map((r: any) => ({ title: r.title, url: r.url, content: r.content, source: 'Tavily', isLocal: false }));
+          allResults = [...localMatches, ...results];
+          return true;
+        }
+      } catch (e: any) {
+        console.log(`[API Search] Tavily key ${i + 1} failed:`, e.message || e);
+      }
+    }
+    return false;
+  };
+
+  if (firecrawlKeys.length > 0) {
+    searchSuccess = await tryFirecrawl();
+  }
+
+  if (!searchSuccess && (serperKeys.length > 0 || tavilyKeys.length > 0)) {
     if (isPostUtme) {
       searchSuccess = await trySerper();
       if (!searchSuccess) searchSuccess = await tryTavily();

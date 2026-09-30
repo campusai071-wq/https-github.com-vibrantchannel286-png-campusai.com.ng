@@ -46,14 +46,20 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
     try {
-      // forceRefresh=true reads the latest server-set claims, not a stale local cache.
-      const result = await user.getIdTokenResult(true);
-      const hasAdminClaim = result.claims['role'] === 'admin';
-      setIsAdmin(hasAdminClaim);
+      // First try fetching fresh token result; if offline/network fails, fallback gracefully to cached token
+      let result;
+      try {
+        result = await user.getIdTokenResult(true);
+      } catch (networkErr: any) {
+        // Fallback to cached token if network request fails or is throttled
+        result = await user.getIdTokenResult(false);
+      }
+      const hasAdminClaim = result?.claims?.['role'] === 'admin';
+      setIsAdmin(Boolean(hasAdminClaim));
       setIsCheckingAdmin(false);
-      return hasAdminClaim;
-    } catch (err) {
-      console.error('[AdminContext] Token claim check failed:', err);
+      return Boolean(hasAdminClaim);
+    } catch (err: any) {
+      // Graceful silent fallback without spamming fatal errors
       setIsAdmin(false);
       setIsCheckingAdmin(false);
       return false;

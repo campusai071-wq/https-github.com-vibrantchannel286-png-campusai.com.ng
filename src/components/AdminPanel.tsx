@@ -533,6 +533,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [developerPhoto, setDeveloperPhoto] = useState('');
   const [featureKeys, setFeatureKeys] = useState<Record<string, string>>({});
   const [flutterwaveKey, setFlutterwaveKey] = useState('');
+  const [firecrawlKey, setFirecrawlKey] = useState('fc-325872ba796344e3a3840f2f31090957');
   const [isChatUnderMaintenance, setIsChatUnderMaintenance] = useState<boolean>(true);
   const [showImportantBanner, setShowImportantBanner] = useState<boolean>(true);
   const [socialFacebook, setSocialFacebook]   = useState('');
@@ -1010,6 +1011,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       if (config.calcKeyPref)    setCalcKeyPref(config.calcKeyPref);
       if (config.developerPhoto) setDeveloperPhoto(config.developerPhoto);
       if (config.featureKeys)    setFeatureKeys(config.featureKeys);
+      if (config.firecrawlKey)   setFirecrawlKey(config.firecrawlKey);
       if (config.isChatUnderMaintenance !== undefined) setIsChatUnderMaintenance(Boolean(config.isChatUnderMaintenance));
       else setIsChatUnderMaintenance(true);
       if (config.showImportantBanner !== undefined) setShowImportantBanner(Boolean(config.showImportantBanner));
@@ -1491,7 +1493,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     };
     const contact = { email: contactEmail, whatsapp: contactWhatsApp, address: contactAddress, supportHours };
     await saveGlobalConfig({ 
-      geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, featureKeys, socialLinks, contact,
+      geminiKey, geminiKey2, geminiKey3, newsKeyPref, calcKeyPref, developerPhoto, flutterwaveKey, firecrawlKey, featureKeys, socialLinks, contact,
       isChatUnderMaintenance, showImportantBanner
     });
     try {
@@ -1499,6 +1501,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       if (geminiKey)      localStorage.setItem('campusai_gemini_key',   geminiKey);
       if (geminiKey2)     localStorage.setItem('campusai_gemini_key_2', geminiKey2);
       if (geminiKey3)     localStorage.setItem('campusai_gemini_key_3', geminiKey3);
+      if (firecrawlKey)   localStorage.setItem('campusai_firecrawl_key', firecrawlKey);
       if (newsKeyPref)    localStorage.setItem('campusai_news_key_pref', newsKeyPref);
       if (calcKeyPref)    localStorage.setItem('campusai_calc_key_pref', calcKeyPref);
       if (developerPhoto) localStorage.setItem('campusai_developer_photo', developerPhoto);
@@ -3041,6 +3044,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         { label: 'Gemini API Key 1 (Fallback Provider)', val: geminiKey,      set: setGeminiKey,      ph: 'Gemini Fallback Key 1...' },
                         { label: 'Gemini API Key 2 (Fallback Provider)', val: geminiKey2,     set: setGeminiKey2,     ph: 'Gemini Fallback Key 2...' },
                         { label: 'Gemini API Key 3 (Fallback Provider)', val: geminiKey3,     set: setGeminiKey3,     ph: 'Gemini Fallback Key 3...' },
+                        { label: 'Firecrawl API Key (Web Scraping & Agent)', val: firecrawlKey, set: setFirecrawlKey, ph: 'fc-...' },
                         { label: 'Flutterwave Public Key',              val: flutterwaveKey, set: setFlutterwaveKey, ph: 'FLWPUBK-...' },
                       ].map(({ label, val, set, ph }) => (
                         <div key={label}>
