@@ -161,7 +161,7 @@ export const UNILAG_CUTOFFS_2025: Record<string, number> = {
 export const UI_CUTOFFS_2025: Record<string, number> = {
   'Medicine & Surgery': 78.875,
   'Dentistry': 74.500,
-  'Nursing Science': 71.375,
+  'Nursing Science': 74.500,
   'Pharmacy': 69.125,
   'Physiotherapy': 65.125,
   'Medical Laboratory Science': 63.250,

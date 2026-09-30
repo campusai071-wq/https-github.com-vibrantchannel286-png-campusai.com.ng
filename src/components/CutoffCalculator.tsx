@@ -684,7 +684,7 @@ const SCHOOL_LANDING_DATA: Record<string, LandingData> = {
     ],
     cutoffs: [
       { course: "Medicine and Surgery", score: "78.875" },
-      { course: "Nursing Science", score: "71.375" },
+      { course: "Nursing Science", score: "74.500" },
       { course: "Law", score: "70.875" },
       { course: "Mechanical Engineering", score: "70.500" },
       { course: "Electrical & Electronics Engineering", score: "70.000" },

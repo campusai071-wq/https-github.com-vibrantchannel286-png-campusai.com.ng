@@ -129,12 +129,12 @@ export function getOfficialInstitutionCutoff(
         institutionalCutoff: "200",
         cutoffIsOfficial: true,
         cutoffType: 'official_departmental_cutoff',
-        cutoffSource: 'Official 2025-2026 Dataset (UI Admissions Committee Approved Benchmarks)',
+        cutoffSource: 'Official 2026-2027 Dataset (UI Admissions Committee Approved Benchmarks)',
         cutoffYear: UI_SESSION,
         cutoffQuotaUsed: quotaLabel,
         isCatchment,
         isELDS,
-        explanation: `Official UI 2025/2026 Cutoff: Merit (${uiProg.merit}%), Catchment (${uiProg.catchment}%), ELDS (${uiProg.elds}%)`
+        explanation: `Official UI 2026/2027 Cutoff: Merit (${uiProg.merit}%), Catchment (${uiProg.catchment}%), ELDS (${uiProg.elds}%)`
       };
     }
   }

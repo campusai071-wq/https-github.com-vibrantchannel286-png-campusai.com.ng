@@ -13,7 +13,7 @@ export interface UICutoffProgramme {
   elds: number;
 }
 
-export const UI_SESSION = "2025/2026";
+export const UI_SESSION = "2026/2027";
 export const UI_INSTITUTION_NAME = "University of Ibadan (UI)";
 
 export const UI_CUTOFFS_2025_2026: UICutoffProgramme[] = [
@@ -52,7 +52,7 @@ export const UI_CUTOFFS_2025_2026: UICutoffProgramme[] = [
   { faculty: "College of Medicine", programme: "Human Nutrition and Dietetics", merit: 55.625, catchment: 55.625, elds: 52.25 },
   { faculty: "College of Medicine", programme: "Medical Laboratory Science", merit: 63.25, catchment: 63.25, elds: 60.25 },
   { faculty: "College of Medicine", programme: "Medicine and Surgery", merit: 78.875, catchment: 78.875, elds: 77.375 },
-  { faculty: "College of Medicine", programme: "Nursing Science", merit: 71.375, catchment: 71.375, elds: 67.875 },
+  { faculty: "College of Medicine", programme: "Nursing Science", merit: 74.5, catchment: 74.5, elds: 71.0 },
   { faculty: "College of Medicine", programme: "Physiology", merit: 55.75, catchment: 55.75, elds: 55.5 },
   { faculty: "College of Medicine", programme: "Physiotherapy", merit: 65.125, catchment: 65.125, elds: 61.625 },
 
