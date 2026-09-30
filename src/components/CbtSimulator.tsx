@@ -319,6 +319,7 @@ interface CbtSimulatorProps {
 export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentConfig, onLoginRequest, onSignUpRequest, initialTab = 'cbt', initialStudyTab }: CbtSimulatorProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [isGuestTrialActive, setIsGuestTrialActive] = useState(false);
 
   // Navigation tabs: 'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor'
   const [activeTab, setActiveTab] = useState<'cbt' | 'history' | 'study' | 'target-system' | 'ai-advisor' | 'discussions'>(initialTab);
@@ -2231,27 +2232,36 @@ export default function CbtSimulator({ user, setIsScholarPackOpen, setPaymentCon
             </div>
           </div>
 
-          <div className="pt-4 flex flex-col sm:flex-row gap-3">
+          <div className="pt-4 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  if (onSignUpRequest) onSignUpRequest();
+                  else if (onLoginRequest) onLoginRequest();
+                  else navigate('/signup');
+                }}
+                className="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Create Free Account</span>
+                <ArrowRight size={16} />
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (onLoginRequest) onLoginRequest();
+                  else navigate('/login');
+                }}
+                className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
+              >
+                Log In
+              </button>
+            </div>
+
             <button
-              onClick={() => {
-                if (onSignUpRequest) onSignUpRequest();
-                else if (onLoginRequest) onLoginRequest();
-                else navigate('/signup');
-              }}
-              className="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              onClick={() => setIsGuestTrialActive(true)}
+              className="w-full py-3 px-6 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-2xl border border-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>Create Free Account</span>
-              <ArrowRight size={16} />
-            </button>
-            
-            <button
-              onClick={() => {
-                if (onLoginRequest) onLoginRequest();
-                else navigate('/login');
-              }}
-              className="py-3.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700 transition-all cursor-pointer"
-            >
-              Log In
+              <span>⚡ Try 10-Question Quick Trial Mock (Guest Mode)</span>
             </button>
           </div>
         </div>
