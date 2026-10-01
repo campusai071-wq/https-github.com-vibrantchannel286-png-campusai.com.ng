@@ -801,6 +801,7 @@ export const publishNewsUpdate = async (news: Omit<NewsItem, 'id'>) => {
     try {
       const docRef = await addDoc(collection(db, "news"), {
         ...news,
+        views: 0,
         date: finalDate,
         slug,
         isLive: true,
@@ -976,6 +977,25 @@ export const setImportantBannerArticle = async (targetId: string, currentNewsLis
     return true;
   } catch (err) {
     console.error("setImportantBannerArticle error:", err);
+    return false;
+  }
+};
+
+export const toggleNewsTickerStatus = async (newsId: string, currentTickerStatus?: boolean): Promise<boolean> => {
+  try {
+    let newStatus: boolean;
+    if (typeof currentTickerStatus === 'boolean') {
+      newStatus = !currentTickerStatus;
+    } else {
+      const list = getPublishedNews();
+      const current = list.find(n => n.id === newsId || n.slug === newsId);
+      newStatus = !(current && current.isTicker);
+    }
+    await updateNewsItem(newsId, { isTicker: newStatus });
+    window.dispatchEvent(new Event('campusai_news_updated'));
+    return newStatus;
+  } catch (err) {
+    console.error("toggleNewsTickerStatus error:", err);
     return false;
   }
 };
@@ -2015,6 +2035,9 @@ export const incrementAndGetArticleViews = async (newsId: string, initialViews?:
   localViews += 1;
   try {
     localStorage.setItem(localKey, localViews.toString());
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('campusai_views_updated'));
+    }
   } catch (e) {}
 
   const baseViews = (typeof initialViews === 'number' && initialViews > 0) ? initialViews : 0;

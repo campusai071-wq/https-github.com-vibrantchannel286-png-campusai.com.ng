@@ -309,13 +309,13 @@ const calculateAggregateScore = (
     return (jamb / 400 * 50) + (post / 100 * 20) + (olevelTotal / 50 * 30);
   }
   if (formula === '50:40:10' || formula === '50/40/10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
-    let postScaled: number;
-    if (oauScale === 'percent100') {
-      postScaled = (post / 100) * 40;
-    } else {
-      postScaled = post > 40 ? (post / 100) * 40 : post;
-    }
-    return (jamb / 8) + postScaled + olevelTotal;
+    // Official OAU 50:40:10 Structure:
+    // - JAMB: 50% max (JAMB / 8)
+    // - Post-UTME: 40% max (Direct exam score out of 40 marks: e.g. 28/40 = 28.00 pts)
+    // - O'Level: 10% max (5 subjects evaluated on 10-point scale: sum ÷ 5 = max 10.0 pts)
+    const postCapped = Math.min(Math.max(0, post), 40);
+    const olevelCapped = Math.min(Math.max(0, olevelTotal), 10);
+    return (jamb / 8) + postCapped + olevelCapped;
   }
   if (formula === '50:50' || formula === '50/50' || desc.includes('50:50') || desc.includes('50/50') || (desc.includes('50%') && desc.includes('50%'))) {
     return (jamb / 8) + (post / 2);
@@ -2884,9 +2884,9 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
         setAiResult(null);
       }
 
-      // Deterministically enforce official stamped cutoffs across ALL verified institutions (both registered & guest)
+      // Deterministically enforce official stamped cutoffs for authenticated users only
       const officialCutoffMatch = getOfficialInstitutionCutoff(targetUni?.name || activeUni.name, activeCourse, stateOfOrigin);
-      if (officialCutoffMatch) {
+      if (officialCutoffMatch && user) {
         const officialCutoff = officialCutoffMatch.cutoff;
         const diff = parseFloat((aggregateScore - officialCutoff).toFixed(2));
         const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
@@ -2932,6 +2932,11 @@ ${isSurplus
         result = { ...(result || {}), ...officialResultPayload };
         enrichedResult = { ...(enrichedResult || {}), ...officialResultPayload };
         setAiResult(enrichedResult);
+      } else if (!user) {
+        // Guests receive NO AI analysis or strategy - pure aggregate math only
+        result = null;
+        enrichedResult = null;
+        setAiResult(null);
       }
 
       setShowResults(true);
@@ -3019,8 +3024,8 @@ ${isSurplus
       savePredictionRecord({
         predictionId,
         userId: user?.uid || 'guest',
-        userEmail: user?.email || 'guest@campusai.com.ng',
-        userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar'),
+        userEmail: user?.email || '',
+        userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar (Anonymous)'),
         isGuest: !user,
         university: activeUni.name,
         course: activeCourse,
@@ -3029,22 +3034,22 @@ ${isSurplus
         postUtmeScore: cleanPostUtmeScore,
         usesPostUtme: effectiveUsesPostUtme,
         postUtmeNotUsed: !effectiveUsesPostUtme,
-        verdict: finalVerdict,
-        confidence: result?.reliability || 'High',
-        predictedProbability: finalProbability,
-        departmentalCutoff: isDisqualified ? 'N/A' : (result?.departmentalCutoff || (officialCutoffMatch ? officialCutoffMatch.departmentalCutoff : `${Number(parsedCutoffVal.toFixed(2))}%`)),
-        institutionalCutoff: result?.institutionalCutoff || (officialCutoffMatch ? officialCutoffMatch.institutionalCutoff : ''),
+        verdict: user ? finalVerdict : 'Guest Calculation (Math Only)',
+        confidence: user ? (result?.reliability || 'High') : 'Basic Math Calculation',
+        predictedProbability: user ? finalProbability : 0,
+        departmentalCutoff: user ? (isDisqualified ? 'N/A' : (result?.departmentalCutoff || (officialCutoffMatch ? officialCutoffMatch.departmentalCutoff : `${Number(parsedCutoffVal.toFixed(2))}%`))) : 'Locked (Guest)',
+        institutionalCutoff: user ? (result?.institutionalCutoff || (officialCutoffMatch ? officialCutoffMatch.institutionalCutoff : '')) : '',
         stateOfOrigin: stateOfOrigin || '',
         isELDSState: !!isELDSState,
         isCatchmentState: !!isCatchmentState,
-        cutoffType: result?.cutoffType || (result?.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark'),
-        cutoffIsOfficial: !!(result?.cutoffIsOfficial || officialCutoffMatch?.cutoffIsOfficial),
-        cutoffSource: result?.cutoffSource || officialCutoffMatch?.cutoffSource || '',
-        cutoffYear: result?.cutoffYear || officialCutoffMatch?.cutoffYear || '2026/2027',
-        cutoffQuotaUsed: result?.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota')),
-        scoreDiff: typeof result?.scoreDiff === 'number' ? result.scoreDiff : (officialCutoffMatch ? parseFloat((aggregateScore - officialCutoffMatch.cutoff).toFixed(2)) : 0),
+        cutoffType: user ? (result?.cutoffType || (result?.cutoffIsOfficial ? 'official_departmental_cutoff' : 'estimated_benchmark')) : 'guest_math_only',
+        cutoffIsOfficial: user ? !!(result?.cutoffIsOfficial || officialCutoffMatch?.cutoffIsOfficial) : false,
+        cutoffSource: user ? (result?.cutoffSource || officialCutoffMatch?.cutoffSource || '') : '',
+        cutoffYear: user ? (result?.cutoffYear || officialCutoffMatch?.cutoffYear || '2026/2027') : '',
+        cutoffQuotaUsed: user ? (result?.cutoffQuotaUsed || (isELDSState ? 'ELDS Quota' : (isCatchmentState ? `Catchment Quota (${stateOfOrigin})` : 'National Merit Quota'))) : 'N/A',
+        scoreDiff: user ? (typeof result?.scoreDiff === 'number' ? result.scoreDiff : (officialCutoffMatch ? parseFloat((aggregateScore - officialCutoffMatch.cutoff).toFixed(2)) : 0)) : 0,
         predictionDate: new Date().toISOString().split('T')[0],
-        detailedStrategy: result?.detailedStrategy || '',
+        detailedStrategy: user ? (result?.detailedStrategy || '') : '',
         formulaExplanation: formulaText || '',
         subjects: subjects.map(s => ({ name: s.name, grade: s.grade })),
         olevelsString: olevelsString || ''
@@ -4386,7 +4391,7 @@ ${isSurplus
                     <div className="flex items-center justify-between">
                       <p className="text-[8px] font-bold text-cyan-200 flex items-center gap-1.5">
                         <Sparkles size={11} className="text-cyan-400 shrink-0" />
-                        <span><strong>Simulation Mode Active:</strong> Simulating admission chances with a target score of <span className="text-cyan-300 font-black underline">{postUtmeScore || (isOau ? (oauScoreScale === 'raw40' ? '28' : '70') : '70')}{isOau ? (oauScoreScale === 'raw40' ? '/40' : '%') : '/100'}</span>.</span>
+                        <span><strong>Simulation Mode Active:</strong> Simulating admission chances with a target score of <span className="text-cyan-300 font-black underline">{postUtmeScore || (isOau ? '28' : '70')}{isOau ? ' / 40' : ' / 100'}</span>.</span>
                       </p>
                       <span className="text-[7px] font-black uppercase bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full shrink-0">
                         Target Simulation
@@ -4395,7 +4400,7 @@ ${isSurplus
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                       <span className="text-[7.5px] font-bold text-gray-400 uppercase tracking-wider">Quick test target score:</span>
                       {(isOau 
-                        ? (oauScoreScale === 'raw40' ? ['18', '20', '22', '25', '28', '30', '32', '35'] : ['50', '55', '60', '65', '70', '75', '80', '85'])
+                        ? ['18', '20', '22', '24', '26', '28', '30', '32', '35']
                         : ['55', '60', '65', '70', '75', '80', '85', '90']
                       ).map(pts => (
                         <button
@@ -4408,7 +4413,7 @@ ${isSurplus
                               : 'bg-black/40 text-gray-300 hover:bg-cyan-500/20 hover:text-white border border-white/5'
                           }`}
                         >
-                          {pts}{isOau ? (oauScoreScale === 'raw40' ? '/40' : '%') : '%'}
+                          {pts}{isOau ? ' / 40' : '%'}
                         </button>
                       ))}
                     </div>
@@ -4461,55 +4466,16 @@ ${isSurplus
                     <label htmlFor="post-utme-score" className="text-[8px] font-black uppercase text-gray-400 tracking-widest ml-1">
                       {isOau
                         ? (isPostUtmePending 
-                            ? `Simulated Post-UTME (${oauScoreScale === 'raw40' ? 'Max 40' : 'Percentage %'})` 
-                            : `OAU Post-UTME (${oauScoreScale === 'raw40' ? 'Score / 40' : 'Percentage %'})`)
+                            ? 'Simulated OAU Post-UTME (Score / 40)' 
+                            : 'OAU Post-UTME Exam Score (Score / 40)')
                         : (isPostUtmePending ? 'Simulated Target Post-UTME (Max 100)' : 'Post-UTME Score (Max 100)')}
                     </label>
                     <div className="flex items-center gap-1.5">
-                      {isOau && (
-                        <div className="flex items-center bg-black/70 p-0.5 rounded-lg border border-cyan-500/30">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (oauScoreScale !== 'raw40') {
-                                setOauScoreScale('raw40');
-                                if (postUtmeScore && parseFloat(postUtmeScore) > 40) {
-                                  const converted = ((parseFloat(postUtmeScore) / 100) * 40).toFixed(1).replace(/\.0$/, '');
-                                  setPostUtmeScore(converted);
-                                }
-                              }
-                            }}
-                            className={`px-2 py-0.5 rounded text-[7.5px] font-black uppercase transition-all cursor-pointer ${
-                              oauScoreScale === 'raw40'
-                                ? 'bg-cyan-500 text-black shadow-sm font-black'
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                            title="Enter raw score out of 40"
-                          >
-                            / 40
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (oauScoreScale !== 'percent100') {
-                                setOauScoreScale('percent100');
-                                if (postUtmeScore && parseFloat(postUtmeScore) <= 40 && parseFloat(postUtmeScore) > 0) {
-                                  const converted = ((parseFloat(postUtmeScore) / 40) * 100).toFixed(1).replace(/\.0$/, '');
-                                  setPostUtmeScore(converted);
-                                }
-                              }
-                            }}
-                            className={`px-2 py-0.5 rounded text-[7.5px] font-black uppercase transition-all cursor-pointer ${
-                              oauScoreScale === 'percent100'
-                                ? 'bg-cyan-500 text-black shadow-sm font-black'
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                            title="Enter score as percentage out of 100"
-                          >
-                            % / 100
-                          </button>
-                        </div>
-                      )}
+                      {isOau ? (
+                        <span className="text-[7.5px] font-black uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                          Official OAU Exam: Max 40 Marks
+                        </span>
+                      ) : null}
                       <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded ${isPostUtmePending ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-gray-500'}`}>
                         {isPostUtmePending ? 'Pending Mode' : 'Written'}
                       </span>
@@ -4517,8 +4483,8 @@ ${isSurplus
                   </div>
                   <input
                     id="post-utme-score" name="post-utme-score" type="number" 
-                    placeholder={isOau ? (oauScoreScale === 'raw40' ? (isPostUtmePending ? "28" : "e.g. 26") : (isPostUtmePending ? "70" : "e.g. 65")) : (isPostUtmePending ? "70" : "e.g. 74")}
-                    max={isOau ? (oauScoreScale === 'raw40' ? 40 : 100) : 100}
+                    placeholder={isOau ? (isPostUtmePending ? "28" : "e.g. 28") : (isPostUtmePending ? "70" : "e.g. 74")}
+                    max={isOau ? 40 : 100}
                     value={postUtmeScore}
                     onChange={e => {
                       setPostUtmeScore(e.target.value);
@@ -4536,14 +4502,12 @@ ${isSurplus
                   />
                   {isOau && (
                     <p className="text-[7.5px] text-cyan-400 font-semibold mt-1 text-center">
-                      {oauScoreScale === 'raw40'
-                        ? "📌 OAU raw score mode: 4 subjects × 10 marks = 40 max. (Toggle above if your score is in %)"
-                        : "📌 OAU percentage mode: Enter your score out of 100% (e.g. 62.5%). CampusAI will compute its 40% aggregate share."}
+                      📌 <strong>OAU Post-UTME is marked over 40</strong> (4 subjects × 10 marks = 40 max). Enter your official exam score (0 - 40, e.g. 22, 23, 27, 28). This directly contributes up to 40% of your aggregate.
                     </p>
                   )}
                   {highlightedFieldKeys['post-utme-score'] && (
                     <p className="text-[9px] font-black text-red-400 mt-1 uppercase tracking-wider text-center">
-                      {isOau ? `⚠️ Enter your OAU score (0 - ${oauScoreScale === 'raw40' ? 40 : 100}) or click Pending` : '⚠️ Enter screening score or click Pending'}
+                      {isOau ? '⚠️ Enter your OAU Post-UTME score (0 - 40 marks) or click Pending' : '⚠️ Enter screening score or click Pending'}
                     </p>
                   )}
                 </div>
@@ -5056,7 +5020,7 @@ ${isSurplus
                                 {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false) ? (
                                   <>
                                     {isPostUtmePending ? 'Pending' : (postUtmeScore ? `${postUtmeScore}` : '0')}
-                                    <span className="text-xs text-gray-500 font-normal">{isPostUtmePending ? ' (Projected)' : ' / 100'}</span>
+                                    <span className="text-xs text-gray-500 font-normal">{isPostUtmePending ? ' (Projected)' : (isOau ? ' / 40' : ' / 100')}</span>
                                   </>
                                 ) : (
                                   <span className="text-xs font-semibold text-gray-400">Not used</span>
@@ -5064,7 +5028,7 @@ ${isSurplus
                               </p>
                               <p className="text-[9px] text-gray-400 mt-1 font-medium leading-tight">
                                 {(!computedScoringSystem || computedScoringSystem.hasPostUtme !== false)
-                                  ? 'Institutional screening contribution'
+                                  ? (isOau ? 'OAU 40% direct contribution (40 marks max)' : 'Institutional screening contribution')
                                   : 'Not used in aggregate calculation'}
                               </p>
                             </div>
@@ -6215,11 +6179,11 @@ ${isSurplus
                               {computedScoringSystem?.hasPostUtme && (
                                 <div className="space-y-1">
                                   <div className="flex justify-between items-center text-[9px]">
-                                    <span className="text-gray-400 font-bold">Simulate Post-UTME:</span>
-                                    <span className="font-mono text-pink-300 font-black">{simPost}/100</span>
+                                    <span className="text-gray-400 font-bold">{isOau ? 'Simulate OAU Post-UTME (Max 40):' : 'Simulate Post-UTME:'}</span>
+                                    <span className="font-mono text-pink-300 font-black">{simPost}/{isOau ? '40' : '100'}</span>
                                   </div>
                                   <input
-                                    type="range" min="0" max="100" value={simPost}
+                                    type="range" min="0" max={isOau ? 40 : 100} value={simPost}
                                     onChange={e => setSimPost(parseInt(e.target.value))}
                                     className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-pink-400 outline-none"
                                   />
@@ -6471,8 +6435,8 @@ ${isSurplus
                                       olevelContribText = `${activeOlevelPoints} / 50 * 30 = ${(activeOlevelPoints / 50 * 30).toFixed(2)} pts (30%)`;
                                     } else if (formula === '50:40:10' || desc.includes('50:40:10') || normalizedUni.includes('awolowo') || normalizedUni.includes('oau')) {
                                       jambContribText = `${jambVal} / 8 = ${(jambVal / 8).toFixed(2)} pts (50%)`;
-                                      postContribText = `${postVal} / 100 * 40 = ${(postVal / 100 * 40).toFixed(2)} pts (40%)`;
-                                      olevelContribText = `${activeOlevelPoints} pts (10%)`;
+                                      postContribText = `${postVal} / 40 = ${postVal.toFixed(2)} pts (40% raw score out of 40)`;
+                                      olevelContribText = `${activeOlevelPoints.toFixed(2)} / 10 pts (10% max from 5 O'Level subjects)`;
                                     } else if (formula === 'lasu_point_based') {
                                       jambContribText = `${jambVal} / 8 = ${(jambVal / 8).toFixed(2)} pts (50%)`;
                                       olevelContribText = `${activeOlevelPoints} pts (50%)`;

@@ -156,21 +156,30 @@ const NewsEditModal: React.FC<NewsEditModalProps> = ({ isOpen, onClose, news, on
                   </select>
                 </div>
 
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between cursor-pointer" onClick={() => setFormData({ ...formData, isImportant: !formData.isImportant })}>
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-amber-500" /> Mark as Important Announcement
-                    </p>
-                    <p className="text-[10px] text-gray-500 dark:text-slate-400">
-                      Pins this article to the top of news feeds and highlights it.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(formData.isImportant)}
-                    onChange={e => setFormData({ ...formData, isImportant: e.target.checked })}
-                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
-                  />
+                <div className="flex flex-col gap-4 pt-4">
+                  <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-red-500/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.isTicker)}
+                      onChange={e => setFormData({ ...formData, isTicker: e.target.checked })}
+                      className="w-5 h-5 rounded text-red-600 focus:ring-red-500 border-gray-300"
+                    />
+                    <span className="text-sm font-black text-gray-800 dark:text-gray-200">
+                      🚨 Show in Top Breaking News Ticker
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-blue-500/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.isImportant)}
+                      onChange={e => setFormData({ ...formData, isImportant: e.target.checked })}
+                      className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-black text-gray-800 dark:text-gray-200">
+                      ⭐ Mark as Important Bulletin
+                    </span>
+                  </label>
                 </div>
 
                 <ArticleImagesUploader

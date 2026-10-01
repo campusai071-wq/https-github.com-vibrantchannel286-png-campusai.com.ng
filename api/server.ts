@@ -495,6 +495,10 @@ app.get("/api/diag/keys", requireAdminToken as any, (req, res) => {
   res.json({ counts: { gemini: gemini.length, tavily: tavily.length, serper: serper.length, firecrawl: firecrawl.length }, masked: { gemini, tavily, serper, firecrawl } });
 });
 
+app.get("/api/debug/caps", requireAdminToken as any, (req, res) => {
+  res.json((global as any).lastScrapedTables || { error: "No data captured yet" });
+});
+
 app.all("/api/health", (req, res) => {
   console.log(`[API Health] ${req.method} request received`);
   res.json({
@@ -4511,11 +4515,14 @@ function parseJambCapsData(payload: string | { markdown?: string; html?: string 
   const summaryTable = tables.find(t =>
     /admissions?['’"*\s]*summary/i.test(t.caption || "") ||
     /admissions?['’"*\s]*summary/i.test(t.context || "") ||
+    /summary/i.test(t.caption || "") ||
     t.headers.some(h => /summary/i.test(h)) ||
     (t.headers.some(h => /\(A\)/i.test(h)) && t.headers.some(h => /\(D\)/i.test(h)))
   );
 
   if (!summaryTable) {
+    // Store last scraped tables for debugging
+    (global as any).lastScrapedTables = tables.map(t => ({ caption: t.caption, headers: t.headers }));
     console.error("[CAPS Parser Debug] Available table captions:", tables.map(t => t.caption || "N/A"));
     console.error("[CAPS Parser Debug] Available table headers:", tables.map(t => t.headers));
     console.error("[CAPS Parser Error] 'ADMISSIONS' SUMMARY' table not located in scraped content!");

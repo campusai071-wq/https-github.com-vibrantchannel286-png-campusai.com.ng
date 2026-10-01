@@ -5,7 +5,7 @@ import {
   Calendar, RefreshCw, Newspaper, Brain, ShieldCheck, Box, Bookmark,
   BookmarkCheck, Plus, Database, Search, ArrowRight, Zap, Activity,
   Globe, Sparkles, Flame, Timer, Edit, Trash2, Image as ImageIcon, ThumbsUp,
-  Clock
+  Clock, Eye, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UniversityCategory, NewsItem } from '../types';
@@ -17,7 +17,8 @@ import {
   getCloudNewsCount, getUserActivities, getSyncTime,
   getEffectiveDateMs, sortNewsBySyncAndDate, getNewsSortTimestamp,
   readBookmarkIds, toggleBookmarkArticle, readLikedArticleIds,
-  getArticleLikesCount, toggleArticleLike
+  getArticleLikesCount, toggleArticleLike, toggleNewsTickerStatus,
+  getEffectiveArticleViews, incrementAndGetArticleViews
 } from '../services/dbService';
 import { getLocalProfile } from '../services/userService';
 import { formatNewsPostTime } from '../utils/dateUtils';
@@ -165,15 +166,34 @@ export const NewsCard: React.FC<{
   const [imgError, setImgError] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(() => getArticleLikesCount(news));
   const [isLiked, setIsLiked] = useState<boolean>(() => readLikedArticleIds().includes(news.id));
+  const [viewsCount, setViewsCount] = useState<number>(() => getEffectiveArticleViews(news));
+  const [isTicker, setIsTicker] = useState<boolean>(() => Boolean(news.isTicker));
+  const [isTickerLoading, setIsTickerLoading] = useState(false);
 
   useEffect(() => {
     const updateLikesState = () => {
       setLikesCount(getArticleLikesCount(news));
       setIsLiked(readLikedArticleIds().includes(news.id));
     };
+    const updateViewsState = () => {
+      setViewsCount(getEffectiveArticleViews(news));
+    };
+    const updateTickerState = () => {
+      setIsTicker(Boolean(news.isTicker));
+    };
+
     updateLikesState();
+    updateViewsState();
+    updateTickerState();
+
     window.addEventListener('campusai_likes_updated', updateLikesState);
-    return () => window.removeEventListener('campusai_likes_updated', updateLikesState);
+    window.addEventListener('campusai_views_updated', updateViewsState);
+    window.addEventListener('campusai_news_updated', updateTickerState);
+    return () => {
+      window.removeEventListener('campusai_likes_updated', updateLikesState);
+      window.removeEventListener('campusai_views_updated', updateViewsState);
+      window.removeEventListener('campusai_news_updated', updateTickerState);
+    };
   }, [news]);
 
   const displayImage = React.useMemo(() => {
@@ -218,6 +238,12 @@ export const NewsCard: React.FC<{
               {news.title}
             </a>
           </h3>
+
+          {/* View Count right after the title in the space before buttons */}
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-slate-400">
+            <Eye size={12} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
+            <span>{viewsCount.toLocaleString()} {viewsCount === 1 ? 'view' : 'views'}</span>
+          </div>
 
           <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest gap-2 mt-auto">
             <div className="flex items-center gap-1.5 truncate" title={formatNewsPostTime(news).dateTimeStr}>
@@ -266,26 +292,55 @@ export const NewsCard: React.FC<{
 
               {isAdmin && (
                 <div className="flex items-center gap-1 ml-1">
+                  {/* Pin to Top Banner */}
                   <button 
                     onClick={async (e) => { 
                       e.stopPropagation(); 
                       const { setImportantBannerArticle } = await import('../services/dbService');
                       await setImportantBannerArticle(news.id);
                     }} 
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1 rounded transition-colors cursor-pointer ${
                       news.isImportant 
                         ? 'text-amber-500 bg-amber-500/20 font-bold' 
-                        : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                        : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20'
                     }`} 
-                    title={news.isImportant ? "Featured on Top Banner" : "Pin to Top Banner"}
+                    title={news.isImportant ? "Featured on Top Banner (Click to unpin)" : "Pin to Top Banner"}
                   >
                     <Flame size={12} className={news.isImportant ? "fill-amber-500 text-amber-500" : ""} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); onEdit?.(); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded" title="Edit Article">
+
+                  {/* Edit Article */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(); }} 
+                    className="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded transition-colors cursor-pointer" 
+                    title="Edit Article"
+                  >
                     <Edit size={12} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="p-1 text-rose-500 hover:bg-rose-50 rounded" title="Delete Article">
-                    <Trash2 size={12} />
+
+                  {/* News Scrolling Ticker Button (replaces Delete Button) */}
+                  <button 
+                    onClick={async (e) => { 
+                      e.stopPropagation(); 
+                      if (isTickerLoading) return;
+                      setIsTickerLoading(true);
+                      const next = !isTicker;
+                      setIsTicker(next);
+                      news.isTicker = next;
+                      try {
+                        await toggleNewsTickerStatus(news.id, isTicker);
+                      } finally {
+                        setIsTickerLoading(false);
+                      }
+                    }} 
+                    className={`p-1 rounded transition-all cursor-pointer ${
+                      isTicker 
+                        ? 'text-cyan-400 bg-cyan-500/20 font-bold ring-1 ring-cyan-500/40 shadow-sm' 
+                        : 'text-gray-400 hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/30'
+                    }`} 
+                    title={isTicker ? "Scrolling on Homepage Ticker (Click to remove)" : "Add to Homepage News Scrolling Ticker"}
+                  >
+                    <Radio size={12} className={isTicker ? "animate-pulse text-cyan-400" : ""} />
                   </button>
                 </div>
               )}
@@ -350,7 +405,15 @@ const NewsGrid: React.FC<NewsGridProps> = ({
     });
   }, [user?.uid]);
 
+  const isUserAdmin = Boolean(
+    user?.email === 'eiweh123@gmail.com' ||
+    user?.role === 'Super Admin' ||
+    user?.role === 'Admin' ||
+    (typeof window !== 'undefined' && (localStorage.getItem('campusai_admin_token') || localStorage.getItem('campusai_admin_logged_in') === 'true'))
+  );
+
   const handleReadArticle = (news: NewsItem) => {
+    incrementAndGetArticleViews(news.id, news.views);
     if (user?.uid) {
         logUserActivity({
             userId: user.uid,
@@ -828,7 +891,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
                 isBookmarked={bookmarks.includes(news.id)}
                 isRelevant={rel.includes(news.category)}
                 onToggleBookmark={toggleBookmark}
-                isAdmin={user?.email === 'eiweh123@gmail.com'}
+                isAdmin={isUserAdmin}
                 onEdit={() => handleEditNews(news)}
                 onDelete={() => handleDeleteNews(news)}
               />
@@ -1023,7 +1086,7 @@ const NewsGrid: React.FC<NewsGridProps> = ({
                   isRelevant={rel.includes(news.category)}
                   onTagClick={tag => setSearchQuery(tag)}
                   onToggleBookmark={toggleBookmark}
-                  isAdmin={user?.email === 'eiweh123@gmail.com'}
+                  isAdmin={isUserAdmin}
                   onEdit={() => handleEditNews(news)}
                   onDelete={() => handleDeleteNews(news)}
                 />

@@ -6,7 +6,7 @@ import {
   Globe, Clock, Eye, Sliders, Plus, Search, FileJson, Sparkles, Info, Mail,
   Smartphone, Download, ArrowLeft, CheckCircle2, Edit, Youtube, Image as ImageIcon, FileText,
   ChevronDown, AlertTriangle, XCircle, Wrench, Megaphone, EyeOff, ToggleLeft, ToggleRight, Power, Layout, Calculator, BookOpen, GraduationCap, Copy,
-  Menu, ChevronLeft, ChevronRight, Command, Bell, Layers, ExternalLink, ChevronUp
+  Menu, ChevronLeft, ChevronRight, Command, Bell, Layers, ExternalLink, ChevronUp, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleImagesUploader } from './ArticleImagesUploader';
@@ -14,7 +14,7 @@ import { AdminState, NewsItem, UserProfile, UserRole, UserActivity, UniversityCa
 import universityData from '../data/universities';
 import {
   publishNewsUpdate, deleteNewsUpdate, purgeAllNews,
-  archiveNewsItems, getTickerHeadlines, getCloudNews,
+  archiveNewsItems, getTickerHeadlines, saveTickerHeadlines, getCloudNews,
   getGlobalConfig, saveGlobalConfig, saveGlobalScoringSystem,
   getGlobalScoringSystem, getASUUStatusFromDB, saveASUUStatusToDB,
   updateGlobalSyncMetadata, updateNewsItem, getAllUserActivities,
@@ -22,7 +22,8 @@ import {
   getAllCutoffOverrides, saveCutoffOverride, deleteCutoffOverride, CutoffOverride,
   getTestimonials, addTestimonial, deleteTestimonial, getFeedbackList,
   saveKnowledgeFragment, getPredictionAccuracyStats, getAdminNotifications, AdminNotification,
-  getAllCbtAttempts, getAllCgpaRecords, CbtHistoryRecord, CgpaHistoryRecord
+  getAllCbtAttempts, getAllCgpaRecords, CbtHistoryRecord, CgpaHistoryRecord,
+  toggleNewsTickerStatus
 } from '../services/dbService';
 import {
   getStoredLinkPreviews, fetchLinkPreviewsFromCloud, saveLinkPreviewImage,
@@ -85,7 +86,8 @@ export type AdminTab =
   | 'emails'
   | 'link_pictures'
   | 'stats'
-  | 'pdf_management';
+  | 'pdf_management'
+  | 'news_ticker';
 
 export interface TabItemConfig {
   id: AdminTab;
@@ -121,6 +123,7 @@ export const ADMIN_TAB_CATEGORIES: TabCategoryConfig[] = [
     category: 'Content & Admissions',
     items: [
       { id: 'content', label: 'News & Editorial', icon: Newspaper, desc: 'Publish, edit, sanitize & archive intelligence' },
+      { id: 'news_ticker', label: 'Scrolling News Ticker', icon: Zap, desc: 'Manage the homepage scrolling headlines' },
       { id: 'link_pictures', label: 'Link Pictures', icon: ImageIcon, desc: 'Social open-graph previews & banner cards' },
       { id: 'cutoffs', label: 'Cutoff Overrides', icon: Layout, desc: 'Custom university departmental score rules' },
       { id: 'admissions_kb', label: 'Admissions KB', icon: Sparkles, desc: 'Direct knowledge base explorer & cloud sync' },
@@ -154,14 +157,61 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   const SECRET_TOKEN = ADMIN_TOKEN;
 
+  // ── Tab ─────────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<AdminTab>('analytics');
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+
+  // ── News Ticker Management ──────────────────────────────────────────────────
+  const [tickerHeadlines, setTickerHeadlines] = useState<string[]>([]);
+  const [tickerNewsArticles, setTickerNewsArticles] = useState<NewsItem[]>([]);
+  const [tickerArticlesSearch, setTickerArticlesSearch] = useState('');
+  const [isTickerLoadingArticles, setIsTickerLoadingArticles] = useState(false);
+  
+  const loadTickerArticles = useCallback(async () => {
+    setIsTickerLoadingArticles(true);
+    try {
+      const news = await getCloudNews(true, true);
+      setTickerNewsArticles(news);
+    } catch (e) {
+      console.warn('Failed to load ticker articles:', e);
+    } finally {
+      setIsTickerLoadingArticles(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'news_ticker') {
+      getTickerHeadlines().then(setTickerHeadlines);
+      loadTickerArticles();
+    }
+  }, [activeTab, loadTickerArticles]);
+
+  const handleToggleArticleTicker = async (item: NewsItem) => {
+    const nextStatus = !item.isTicker;
+    setTickerNewsArticles(prev => prev.map(n => (n.id === item.id || n.slug === item.id) ? { ...n, isTicker: nextStatus } : n));
+    setPublishedNews(prev => prev.map(n => (n.id === item.id || n.slug === item.id) ? { ...n, isTicker: nextStatus } : n));
+    await toggleNewsTickerStatus(item.id, Boolean(item.isTicker));
+  };
+
+  const handleAddTickerHeadline = async () => {
+    const input = document.getElementById('newTickerHeadline') as HTMLInputElement;
+    if (!input.value || !input.value.trim()) return;
+    const newHeadlines = [...tickerHeadlines, input.value.trim()];
+    await saveTickerHeadlines(newHeadlines);
+    setTickerHeadlines(newHeadlines);
+    input.value = '';
+  };
+
+  const handleRemoveTickerHeadline = async (index: number) => {
+    const newHeadlines = tickerHeadlines.filter((_, i) => i !== index);
+    await saveTickerHeadlines(newHeadlines);
+    setTickerHeadlines(newHeadlines);
+  };
+
   // ── Auth state ──────────────────────────────────────────────────────────────
   const [loginToken, setLoginToken] = useState('');
   const [authFailed, setAuthFailed]   = useState(false);
   const [selectedUserForPredictions, setSelectedUserForPredictions] = useState<any>(null);
-
-  // ── Tab ─────────────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<AdminTab>('analytics');
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   // ── Dashboard Navigation & Command Palette State ─────────────────────────────
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -2626,25 +2676,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 dark:border-blue-500/10 rounded-3xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[9px] font-mono font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Daily Actives (DAU)</span>
-                        <Users size={14} className="text-blue-500 dark:text-blue-400" />
-                      </div>
-                      <p className="text-3xl font-black text-gray-900 dark:text-white">{activeTodayCount}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Active scholars in last 24h</p>
-                    </div>
-                    <div className="p-6 bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-3xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[9px] font-mono font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Global Directory</span>
-                        <Database size={14} className="text-amber-500 dark:text-amber-400" />
-                      </div>
-                      <p className="text-3xl font-black text-gray-900 dark:text-white">{totalUserCount}</p>
-                      <p className="text-[9px] text-gray-500 dark:text-slate-300 mt-2 font-mono uppercase">Registered scholar profiles</p>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <div className="p-6 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 dark:border-cyan-500/10 rounded-3xl relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl -mr-4 -mt-4" />
                       <div className="flex items-center justify-between mb-4">
@@ -2835,6 +2867,221 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                           ))}
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── SCROLLING NEWS TICKER TAB ── */}
+              {activeTab === 'news_ticker' && (
+                <div className="space-y-8 text-left">
+                  {/* Header & Speed Controller */}
+                  <div className="p-6 bg-slate-900 border border-slate-800 rounded-3xl space-y-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                      <div>
+                        <h3 className="text-base font-black text-cyan-400 flex items-center gap-2">
+                          <Radio size={18} className="text-cyan-400 animate-pulse" /> Breaking News Scrolling Ticker Hub
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Control which verified admission news articles and headlines scroll across the top of CampusAI.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={loadTickerArticles}
+                          disabled={isTickerLoadingArticles}
+                          className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <RefreshCw size={12} className={isTickerLoadingArticles ? "animate-spin text-cyan-400" : "text-cyan-400"} />
+                          Refresh List
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Speed Controller */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-300">Horizontal Marquee Speed</span>
+                        <span className="font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
+                          {(() => {
+                            const saved = typeof window !== 'undefined' ? localStorage.getItem('campusai_news_ticker_speed') : null;
+                            const speed = saved ? parseInt(saved, 10) : 80;
+                            return `${speed}s Loop`;
+                          })()}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="20"
+                        max="240"
+                        step="5"
+                        defaultValue={typeof window !== 'undefined' ? (localStorage.getItem('campusai_news_ticker_speed') || '80') : '80'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          localStorage.setItem('campusai_news_ticker_speed', val);
+                          window.dispatchEvent(new Event('campusai_news_speed_updated'));
+                        }}
+                        className="w-full accent-cyan-500 bg-slate-800 rounded-lg cursor-pointer h-2"
+                      />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {[
+                          { label: 'Fast (40s)', val: 40 },
+                          { label: 'Standard (60s)', val: 60 },
+                          { label: 'Calm (80s)', val: 80 },
+                          { label: 'Slow (120s)', val: 120 },
+                        ].map((p) => (
+                          <button
+                            key={p.val}
+                            type="button"
+                            onClick={() => {
+                              localStorage.setItem('campusai_news_ticker_speed', p.val.toString());
+                              window.dispatchEvent(new Event('campusai_news_speed_updated'));
+                            }}
+                            className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all cursor-pointer"
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 1: Published News Articles (One-Click Ticker Toggle) */}
+                  <div className="p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+                          <Newspaper size={16} className="text-blue-500" /> Published Articles in Ticker ({tickerNewsArticles.filter(n => n.isTicker).length} Active)
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Click "Add to Ticker" or "Remove" on any news article to control what scrolls on the homepage.
+                        </p>
+                      </div>
+
+                      <div className="relative max-w-xs w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
+                        <input
+                          type="text"
+                          placeholder="Search articles..."
+                          value={tickerArticlesSearch}
+                          onChange={(e) => setTickerArticlesSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 outline-none text-gray-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                      {isTickerLoadingArticles ? (
+                        <div className="py-8 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                          <Loader2 size={16} className="animate-spin text-cyan-500" /> Loading articles...
+                        </div>
+                      ) : tickerNewsArticles.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-gray-400 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                          No news articles found.
+                        </div>
+                      ) : (
+                        tickerNewsArticles
+                          .filter(item => !tickerArticlesSearch.trim() || item.title.toLowerCase().includes(tickerArticlesSearch.toLowerCase()))
+                          .map((item) => {
+                            const active = Boolean(item.isTicker);
+                            return (
+                              <div
+                                key={item.id}
+                                className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all ${
+                                  active
+                                    ? 'bg-cyan-500/10 border-cyan-500/30 dark:bg-cyan-950/20 dark:border-cyan-500/30'
+                                    : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200/60 dark:border-gray-800'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${active ? 'bg-cyan-400 animate-ping' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                      {item.title}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-0.5">
+                                      <span>{item.category || 'General'}</span>
+                                      <span>•</span>
+                                      <span>{item.views || 0} views</span>
+                                      {active && (
+                                        <span className="text-cyan-500 font-bold font-mono text-[9px] uppercase">
+                                          • Scrolling Now
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleArticleTicker(item)}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                                    active
+                                      ? 'bg-rose-500/15 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30'
+                                      : 'bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold shadow-sm'
+                                  }`}
+                                >
+                                  <Radio size={12} className={active ? "animate-pulse" : ""} />
+                                  {active ? 'Remove from Ticker' : 'Add to Ticker'}
+                                </button>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section 2: Custom Text Headlines */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <Plus size={14} className="text-cyan-400" /> Add Custom Text Headline
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Type an emergency broadcast headline to scroll continuously on the top ticker bar.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          id="newTickerHeadline"
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddTickerHeadline(); }}
+                          className="flex-1 px-4 py-2.5 text-xs border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:border-cyan-500"
+                          placeholder="e.g. JAMB 2026/2027 Registration Portal is officially open..."
+                        />
+                        <button
+                          onClick={handleAddTickerHeadline}
+                          className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shrink-0"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <Zap size={14} className="text-amber-400" /> Custom Emergency Headlines ({tickerHeadlines.length})
+                      </h4>
+                      {tickerHeadlines.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic py-4">No custom text headlines added yet.</p>
+                      ) : (
+                        <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {tickerHeadlines.map((headline, index) => (
+                            <li
+                              key={index}
+                              className="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl text-xs text-gray-800 dark:text-gray-200 border border-gray-200/50 dark:border-gray-700/50 gap-2"
+                            >
+                              <span className="truncate">{headline}</span>
+                              <button
+                                onClick={() => handleRemoveTickerHeadline(index)}
+                                className="text-rose-500 hover:text-rose-400 font-bold shrink-0 text-xs px-2 py-0.5 rounded hover:bg-rose-500/10 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 </div>

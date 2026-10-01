@@ -26,22 +26,30 @@ const TopNewsTickerBar: React.FC<TopNewsTickerBarProps> = ({ onNavigate }) => {
 
     window.addEventListener('campusai_news_speed_updated', handleSpeedUpdate);
 
-    getCloudNews().then((news) => {
-      if (!isMounted) return;
-      if (news && news.length > 0) {
-        // Filter news articles marked as ticker/pinned, or default to top 8 news items
-        const tickerItems = news.filter(n => n.isTicker || n.isPinned || n.isImportant);
-        if (tickerItems.length > 0) {
-          setTickerNews(tickerItems);
-        } else {
-          setTickerNews(news.slice(0, 8));
+    const loadTickerNews = () => {
+      getCloudNews().then((news) => {
+        if (!isMounted) return;
+        if (news && news.length > 0) {
+          // Explicitly prioritized articles toggled by admin with news scrolling button (isTicker)
+          const tickerItems = news.filter(n => n.isTicker);
+          if (tickerItems.length > 0) {
+            setTickerNews(tickerItems);
+          } else {
+            // Fallback to pinned / important articles, or recent top 8
+            const fallbackItems = news.filter(n => n.isPinned || n.isImportant);
+            setTickerNews(fallbackItems.length > 0 ? fallbackItems : news.slice(0, 8));
+          }
         }
-      }
-    }).catch(err => console.warn('[TopNewsTickerBar] error loading news:', err));
+      }).catch(err => console.warn('[TopNewsTickerBar] error loading news:', err));
+    };
+
+    loadTickerNews();
+    window.addEventListener('campusai_news_updated', loadTickerNews);
 
     return () => {
       isMounted = false;
       window.removeEventListener('campusai_news_speed_updated', handleSpeedUpdate);
+      window.removeEventListener('campusai_news_updated', loadTickerNews);
     };
   }, []);
 

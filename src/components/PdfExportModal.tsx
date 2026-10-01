@@ -184,10 +184,11 @@ const handleDownloadText = () => {
       ? `O-LEVEL (BEST 5) SUBJECTS:\n${subjects.map((s, idx) => `${idx + 1}. ${s.name}: ${s.grade}`).join('\n')}`
       : `O-LEVEL VERIFICATION:\n- Required subjects satisfied\n- Grades not collected because ${targetUni?.name || 'this institution'}'s aggregate calculation does not use individual O'Level grades.`;
 
+    const isOau = (targetUni?.name || '').toLowerCase().includes('oau') || (targetUni?.name || '').toLowerCase().includes('awolowo') || (targetUni?.name || '').toLowerCase().includes('ife');
     const isFuta = (targetUni?.name || '').toLowerCase().includes('futa') || (targetUni?.name || '').toLowerCase().includes('akure');
     const jambNum = parseFloat(jambScore || '0') || 0;
     const examScoresText = hasPostUtme
-      ? `- JAMB UTME Score: ${jambScore || '0'} / 400\n- Post-UTME Score: ${isPostUtmePending ? 'Pending Exam (Estimated 70%)' : `${postUtmeScore || '0'} / 100`}\n- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}`
+      ? `- JAMB UTME Score: ${jambScore || '0'} / 400\n- Post-UTME Score: ${isPostUtmePending ? (isOau ? 'Pending Exam (Estimated 28 / 40)' : 'Pending Exam (Estimated 70%)') : (isOau ? `${postUtmeScore || '0'} / 40` : `${postUtmeScore || '0'} / 100`)}\n- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}`
       : `- JAMB UTME Score: ${jambScore || '0'} / 400 (${isFuta ? `${(jambNum / 400 * 75).toFixed(2)} pts / 75%` : 'Screening Component'})\n- Screening Mode: Point-Based O'Level Screening (No Post-UTME Exam)\n- O'Level Screening Score: ${olevelPoints !== undefined ? `${olevelPoints} pts` : 'Verified'}\n- State of Origin / Quota: ${stateOfOrigin || 'Not Specified'}`;
 
     const textContent = `

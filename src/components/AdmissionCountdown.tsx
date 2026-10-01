@@ -7,9 +7,17 @@ const DEADLINES = [
   { name: 'Other Institutions', date: new Date('2026-12-31T23:59:59').getTime() },
 ];
 
+interface TimeLeft {
+  days?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+  name?: string;
+}
+
 export default function AdmissionCountdown() {
   const [currentDeadlineIndex, setCurrentDeadlineIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState<{ [key: string]: number }>({});
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({});
 
   useEffect(() => {
     const timer = setInterval(() => {

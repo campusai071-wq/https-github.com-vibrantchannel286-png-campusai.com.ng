@@ -255,14 +255,25 @@ const sanitizeRecord = (
 
   const cleanDeptCutoff = isDisqualified ? 'N/A' : formatSingleCleanCutoff(effectiveCutoff, data.aggregateScore);
 
+  const isActuallyGuest = Boolean(
+    isGuest || 
+    data.isGuest === true || 
+    !data.userId || 
+    data.userId === 'guest' || 
+    !data.userEmail || 
+    data.userEmail === 'guest@campusai.com.ng' || 
+    data.userEmail === 'guest' ||
+    (Number(data.aggregateScore) === 66 && (!data.userEmail || data.userEmail === 'guest@campusai.com.ng'))
+  );
+
   return {
     id: recordId,
     source,
     predictionId: recordId,
-    userId: data.userId || (isGuest ? 'guest' : ''),
-    userEmail: data.userEmail || '',
-    userName: data.userName || fallbackUserName || (isGuest ? 'Guest Scholar' : 'Registered Scholar'),
-    isGuest,
+    userId: data.userId || (isActuallyGuest ? 'guest' : ''),
+    userEmail: isActuallyGuest ? '' : (data.userEmail === 'guest@campusai.com.ng' ? '' : (data.userEmail || '')),
+    userName: isActuallyGuest ? 'Guest Scholar (Anonymous)' : (data.userName || fallbackUserName || 'Registered Scholar'),
+    isGuest: isActuallyGuest,
     university: data.university || 'Target University',
     course: data.course || 'Target Course',
     aggregateScore: data.aggregateScore ?? 0,
@@ -928,14 +939,18 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                           <Calendar size={12} /> {item.formattedDate}
                         </span>
                         {item.isGuest ? (
-                          <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 flex items-center gap-1">
-                            <Zap size={10} /> Guest Scholar
+                          <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+                            <Zap size={11} className="text-amber-500" /> GUEST CALCULATION (ANONYMOUS • NO ACCOUNT)
                           </span>
                         ) : item.userEmail ? (
-                          <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 flex items-center gap-1">
-                            <User size={10} /> {item.userEmail}
+                          <span className="text-[10px] font-black text-blue-700 dark:text-blue-300 bg-blue-500/15 px-2.5 py-0.5 rounded-md border border-blue-500/30 flex items-center gap-1.5 shadow-sm">
+                            <User size={11} className="text-blue-500" /> SIGNED-IN SCHOLAR: {item.userEmail}
                           </span>
-                        ) : null}
+                        ) : (
+                          <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 bg-indigo-500/15 px-2.5 py-0.5 rounded-md border border-indigo-500/30 flex items-center gap-1.5 shadow-sm">
+                            <User size={11} className="text-indigo-500" /> REGISTERED SCHOLAR
+                          </span>
+                        )}
                         {item.stateOfOrigin && (
                           <span className="text-[10px] font-bold text-gray-500 dark:text-slate-300 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md">
                             {item.stateOfOrigin}
@@ -1013,16 +1028,25 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                                   normUni.includes('lasu') || normUni.includes('fuoye') || normUni.includes('oye-ekiti') ||
                                   fExpl.includes('80:20') || fExpl.includes('75:25') || fExpl.includes('60:40') || fExpl.includes('lautech') || fExpl.includes('futa') || fExpl.includes('lasu') || fExpl.includes('fuoye') || fExpl.includes('pure_jamb');
 
+                                const isOauSchool = 
+                                  normUni.includes('oau') || 
+                                  normUni.includes('awolowo') || 
+                                  normUni.includes('ife') || 
+                                  fExpl.includes('50:40:10') || 
+                                  fExpl.includes('oau');
+
                                 return (
                                   <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl">
-                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Post-UTME</p>
+                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                                      {isOauSchool ? 'Post-UTME (Max 40)' : 'Post-UTME'}
+                                    </p>
                                     {isPostUtmeNotUsed ? (
                                       <p className="text-[10.5px] font-bold text-gray-500 dark:text-slate-300 mt-1 leading-snug">
                                         Not used in aggregate calculation
                                       </p>
                                     ) : (
                                       <p className="text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
-                                        {item.postUtmeScore ? `${item.postUtmeScore} / 100` : 'Pending / 0'}
+                                        {item.postUtmeScore ? (isOauSchool ? `${item.postUtmeScore} / 40` : `${item.postUtmeScore} / 100`) : 'Pending / 0'}
                                       </p>
                                     )}
                                   </div>
@@ -1196,19 +1220,47 @@ const PredictionDetailsModal: React.FC<PredictionDetailsModalProps> = ({
                       )}
 
                       {/* Strategy & Insights */}
-                      {item.detailedStrategy && (
+                      {item.isGuest ? (
+                        <div className="p-4 bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/30 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                              <Zap size={14} className="text-amber-500" />
+                              Guest Calculation • Math Calculation Only
+                            </h4>
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded border border-amber-500/30">
+                              AI Analysis Locked
+                            </span>
+                          </div>
+                          <p className="text-xs text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
+                            This score of <strong>{aggNum}%</strong> was calculated by an anonymous guest. Strategic admission forecasting, personalized AI advice, and probability roadmaps are strictly reserved for signed-in scholars to protect platform value and incentivize account creation.
+                          </p>
+                          {item.detailedStrategy && (
+                            <details className="mt-2 text-[11px]">
+                              <summary className="cursor-pointer text-amber-700 dark:text-amber-400 font-bold hover:underline">
+                                View Technical Audit Data
+                              </summary>
+                              <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50/80 dark:bg-gray-950 p-3 rounded-lg border border-gray-100 dark:border-gray-800/80 font-mono">
+                                {item.detailedStrategy}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      ) : item.detailedStrategy ? (
                         <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800 rounded-xl space-y-2">
-                          <h4 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                            <TrendingUp size={14} className="text-emerald-500" />
-                            {item.isGuest || item.detailedStrategy.includes('audited directly against the official')
-                              ? 'Official Benchmark & Strategy Assessment'
-                              : 'Detailed AI Strategy & Admission Assessment'}
-                          </h4>
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-black uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                              <TrendingUp size={14} className="text-emerald-500" />
+                              Authenticated Scholar AI Strategy & Assessment
+                            </h4>
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded border border-blue-500/20">
+                              Full Report Unlocked
+                            </span>
+                          </div>
                           <div className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50/80 dark:bg-gray-950 p-3 rounded-lg border border-gray-100 dark:border-gray-800/80">
                             {item.detailedStrategy}
                           </div>
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Confirmed Outcome Note if Available */}
                       {item.outcomeNote && (
