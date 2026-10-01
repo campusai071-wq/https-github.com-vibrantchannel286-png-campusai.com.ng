@@ -1028,6 +1028,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     setIsResettingTraffic(true);
     try {
       await resetTrafficStats();
+      try {
+        await fetch('/api/admin/recalibrate-traffic-and-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: admin.email, resetToReal: true })
+        });
+      } catch {}
       await loadAnalyticsData();
       setShowResetConfirm(false);
     } catch (e) {
@@ -1035,7 +1042,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     } finally {
       setIsResettingTraffic(false);
     }
-  }, [loadAnalyticsData]);
+  }, [loadAnalyticsData, admin.email]);
 
   const handlePurgeLogs = useCallback(async () => {
     setIsPurgingLogs(true);

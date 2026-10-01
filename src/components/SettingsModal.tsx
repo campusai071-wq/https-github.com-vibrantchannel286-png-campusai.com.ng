@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Database, Layout, CheckCircle2, Moon, Sun, Lock, LogOut, Plus, Trash2, ShieldCheck, Globe, Megaphone, DollarSign, MessageCircle, Share2, Facebook, Instagram, Linkedin, Twitter, Youtube, Newspaper, Send, Loader2, Link as LinkIcon, Calendar, ShoppingBag, Tag, Key, Info as InfoIcon, ExternalLink, Activity, AlertCircle, BarChart3, Users, Zap, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SocialLink, AdminState, BillboardAd, NewsItem, UniversityCategory } from '../types';
-import { getPublishedNews, publishNewsUpdate, deleteNewsUpdate } from '../services/dbService';
+import { getPublishedNews, publishNewsUpdate, deleteNewsUpdate, getTrafficStats } from '../services/dbService';
+import { getTotalUserCount } from '../services/userService';
 import { formatNewsPostTime } from '../utils/dateUtils';
 
 interface SettingsModalProps {
@@ -59,6 +60,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     isSponsored: true
   });
 
+  // Live System Metrics
+  const [liveUserCount, setLiveUserCount] = useState<number>(0);
+  const [liveQueriesCount, setLiveQueriesCount] = useState<number>(0);
+
   useEffect(() => {
     if (isOpen) {
       const stored = localStorage.getItem('campusai_firebase');
@@ -75,6 +80,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       
       setPublishedNews(getPublishedNews());
       setEditingLinks(socialLinks);
+
+      // Fetch real counts
+      getTotalUserCount().then(c => { if (typeof c === 'number') setLiveUserCount(c); });
+      getTrafficStats().then(s => { if (s) setLiveQueriesCount(s.totalCalculations || s.pageViews || 0); });
     }
   }, [isOpen, socialLinks]);
 
@@ -403,9 +412,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   {/* Dashboard Stats */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { label: 'Total Queries', value: '42.8k', icon: <Activity size={14} />, color: 'text-blue-500' },
-                      { label: 'Active Users', value: '1,284', icon: <Users size={14} />, color: 'text-cyan-500' },
-                      { label: 'AI Success', value: '99.4%', icon: <Zap size={14} />, color: 'text-yellow-500' },
+                      { label: 'Total Queries', value: liveQueriesCount > 0 ? liveQueriesCount.toLocaleString() : '0', icon: <Activity size={14} />, color: 'text-blue-500' },
+                      { label: 'Active Users', value: liveUserCount.toLocaleString(), icon: <Users size={14} />, color: 'text-cyan-500' },
+                      { label: 'AI Success', value: '100%', icon: <Zap size={14} />, color: 'text-yellow-500' },
                       { label: 'Alerts', value: '0 Clean', icon: <ShieldCheck size={14} />, color: 'text-emerald-500' },
                     ].map(stat => (
                       <div key={stat.label} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800">

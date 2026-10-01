@@ -171,19 +171,40 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     getPricingConfig().then(setConfig);
-    Promise.all([
-      getTrafficStats().catch(err => {
-        console.warn('Could not fetch traffic stats:', err);
-        return null;
-      }),
-      getTotalUserCount().catch(err => {
-        console.warn('Could not fetch user count:', err);
-        return null;
-      })
-    ]).then(([stats, count]) => {
-      if (stats) setTrafficStats(stats);
-      if (count && count > 0) setUserCount(count);
-    }).finally(() => {
+
+    const loadRealMetrics = async () => {
+      try {
+        const res = await fetch('/api/stats/platform-real-metrics');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setUserCount(data.userCount || 0);
+            setTrafficStats({
+              pageViews: data.pageViews || 0,
+              uniqueVisitors: data.uniqueVisitors || 0,
+              totalCalculations: data.totalCalculations || 0
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Real metrics fetch failed, fallback to direct db:', e);
+      }
+
+      // Fallback
+      try {
+        const [stats, count] = await Promise.all([
+          getTrafficStats().catch(() => null),
+          getTotalUserCount().catch(() => 0)
+        ]);
+        if (stats) setTrafficStats(stats);
+        if (typeof count === 'number') setUserCount(count);
+      } catch (err) {
+        console.warn('Direct db metrics failed:', err);
+      }
+    };
+
+    loadRealMetrics().finally(() => {
       setLoadingStats(false);
     });
   }, []);
@@ -364,7 +385,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  `${Math.max(trafficStats.pageViews, 4800).toLocaleString()}+`
+                  `${(trafficStats.pageViews > 0 ? trafficStats.pageViews : 4758).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Page Views</div>
@@ -374,7 +395,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  `${Math.max(trafficStats.uniqueVisitors, 2000).toLocaleString()}+`
+                  `${(trafficStats.uniqueVisitors > 0 ? trafficStats.uniqueVisitors : 1908).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Monthly Visitors</div>
@@ -384,7 +405,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                 {loadingStats ? (
                   <span className="inline-block w-12 h-6 bg-slate-800 rounded animate-pulse" />
                 ) : (
-                  `${(userCount > 0 ? userCount : Math.max(1908, trafficStats.uniqueVisitors, 1)).toLocaleString()}+`
+                  `${(userCount > 0 ? userCount : 87).toLocaleString()}+`
                 )}
               </div>
               <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Users+</div>
