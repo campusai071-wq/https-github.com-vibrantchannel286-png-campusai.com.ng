@@ -10,6 +10,7 @@ import { auth } from '../services/firebaseConfig';
 import { updateUserProfile } from '../services/userService';
 import TopHeaderBanner from './TopHeaderBanner';
 import TopNewsTickerBar from './TopNewsTickerBar';
+import AdmissionCountdown from './AdmissionCountdown';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -284,6 +285,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, s
         : 'bg-white/95 dark:bg-gray-950/95 border-b border-gray-200/80 dark:border-gray-800 backdrop-blur-md'
     }`}>
       {/* Top Banner: Sponsored Campaign or Pinned Announcement Ribbon */}
+      <AdmissionCountdown />
       <TopHeaderBanner showImportantBanner={showImportantBanner} onNavigate={onNavigate} />
 
       <div className={`container mx-auto px-3 sm:px-4 md:px-6 flex justify-between items-center gap-2 ${

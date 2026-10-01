@@ -8,26 +8,33 @@ const DEADLINES = [
 ];
 
 export default function AdmissionCountdown() {
+  const [currentDeadlineIndex, setCurrentDeadlineIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const timer = setInterval(() => {
+      // Cycle through deadlines every 10 seconds
       const now = new Date().getTime();
-      const nextDeadline = DEADLINES.find(d => d.date > now) || DEADLINES[DEADLINES.length - 1];
+      const index = Math.floor((now / 10000) % DEADLINES.length);
+      setCurrentDeadlineIndex(index);
+      
+      const nextDeadline = DEADLINES[index];
       const distance = nextDeadline.date - now;
 
-      setTimeLeft({
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000),
-        name: nextDeadline.name
-      });
+      if (distance > 0) {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+          name: nextDeadline.name
+        });
+      }
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  if (!timeLeft.days && !timeLeft.hours) return null;
+  if (!timeLeft.days && !timeLeft.hours && !timeLeft.minutes) return null;
 
   return (
     <div className="bg-blue-900 text-white py-2 px-4 flex items-center justify-center gap-2 text-xs font-bold text-center">

@@ -4509,8 +4509,8 @@ function parseJambCapsData(payload: string | { markdown?: string; html?: string 
 
   // PHASE 2 & 3: IDENTIFY ADMISSIONS' SUMMARY TABLE ANCHORED BY EXPLICIT LABELS
   const summaryTable = tables.find(t =>
-    /admissions?['’\s]*summary/i.test(t.caption) ||
-    /admissions?['’\s]*summary/i.test(t.context) ||
+    /admissions?['’"*\s]*summary/i.test(t.caption || "") ||
+    /admissions?['’"*\s]*summary/i.test(t.context || "") ||
     (t.headers.some(h => /\(A\)/i.test(h)) && t.headers.some(h => /\(D\)/i.test(h)))
   );
 
