@@ -7,7 +7,7 @@ import HeroSection from './HeroSection';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
 import SEO from './SEO';
-
+import AdmissionCountdown from './AdmissionCountdown';
 import NewsGrid from './NewsGrid';
 import NewsDetailView from './NewsDetailView';
 import NewsRouteResolver from './NewsRouteResolver';
@@ -971,7 +971,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-500 ${theme === 'dark' ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      
+      <AdmissionCountdown />
       <AnimatePresence>
         {!isOnline && (
           <motion.div initial={{ y: -100 }} animate={{ y: 0 }} exit={{ y: -100 }} className="fixed top-0 left-0 right-0 z-[1000] bg-orange-600 text-white px-4 py-2.5 flex items-center justify-center gap-3">
@@ -1209,6 +1209,17 @@ const AppContent: React.FC = () => {
                   initialCategory={directoryInitialCategory}
                 />
               </Suspense>
+            </div>
+          } />
+          
+          <Route path="/university-rankings" element={
+            <div className="pt-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+              <SEO 
+                title="Nigerian University Rankings 2027 | Global & Internal Metrics"
+                description="View the official Times Higher Education 2027 world rankings and CampusAI's proprietary institutional quality assessment."
+                canonical="/university-rankings"
+              />
+              <TopRankings onSelectUni={(slug) => navigate(`/calculator/${slug}`)} />
             </div>
           } />
 
