@@ -4511,10 +4511,13 @@ function parseJambCapsData(payload: string | { markdown?: string; html?: string 
   const summaryTable = tables.find(t =>
     /admissions?['’"*\s]*summary/i.test(t.caption || "") ||
     /admissions?['’"*\s]*summary/i.test(t.context || "") ||
+    t.headers.some(h => /summary/i.test(h)) ||
     (t.headers.some(h => /\(A\)/i.test(h)) && t.headers.some(h => /\(D\)/i.test(h)))
   );
 
   if (!summaryTable) {
+    console.error("[CAPS Parser Debug] Available table captions:", tables.map(t => t.caption || "N/A"));
+    console.error("[CAPS Parser Debug] Available table headers:", tables.map(t => t.headers));
     console.error("[CAPS Parser Error] 'ADMISSIONS' SUMMARY' table not located in scraped content!");
     throw new Error("ADMISSIONS' SUMMARY table could not be identified on official CAPS page.");
   }
