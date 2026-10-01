@@ -1381,10 +1381,85 @@ const CutoffCalculator: React.FC<CutoffCalculatorProps> = ({
   const [manualHasOLevel, setManualHasOLevel] = useState(true);
   const [manualFormula, setManualFormula] = useState('50:30:20');
 
-  // Target Score / Reverse Planner states
-  const [calcMode, setCalcMode] = useState<'forward' | 'reverse'>('forward');
+  // Target Score / Reverse Planner states & Direct Aggregate mode
+  const [calcMode, setCalcMode] = useState<'forward' | 'reverse' | 'direct'>('forward');
   const [targetAggregateInput, setTargetAggregateInput] = useState('70.0');
+  const [directAggregateInput, setDirectAggregateInput] = useState('68.5');
   const [reverseSolveFor, setReverseSolveFor] = useState<'jamb' | 'postUtme'>('jamb');
+
+  const handleCalculateDirectAggregate = async (parsedAgg: number) => {
+    setAggregateScore(parsedAgg);
+    setIsAnalysisLoading(true);
+    setAiResult(null);
+    setShowResults(true);
+    setFeedbackStatus('none');
+    setAdmissionStatus('none');
+
+    await new Promise(res => setTimeout(res, 300));
+
+    const predictionId = `pred_dir_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const officialCutoffMatch = getOfficialInstitutionCutoff(targetUni?.name || activeUni.name, targetCourse || activeCourse, stateOfOrigin);
+    
+    let result: any = null;
+    let enrichedResult: any = null;
+
+    if (officialCutoffMatch) {
+      const officialCutoff = officialCutoffMatch.cutoff;
+      const diff = parseFloat((parsedAgg - officialCutoff).toFixed(2));
+      const baseProb = diff >= 6 ? 96 : diff >= 3 ? 90 : diff >= 0 ? 82 : diff >= -2 ? 65 : diff >= -5 ? 45 : 20;
+      const verdict = diff >= 0 ? "Strong / Above Cut-off" : (diff >= -2.5 ? "Borderline / Competitive Catchment" : "Below Cut-off Line");
+
+      const officialResultPayload = {
+        departmentalCutoff: officialCutoffMatch.departmentalCutoff,
+        cutoff: officialCutoffMatch.departmentalCutoff,
+        cutoffValue: officialCutoff,
+        cutoffIsOfficial: true,
+        cutoffType: 'official_departmental_cutoff',
+        cutoffSource: officialCutoffMatch.cutoffSource,
+        cutoffYear: officialCutoffMatch.cutoffYear,
+        cutoffQuotaUsed: officialCutoffMatch.cutoffQuotaUsed,
+        verdict,
+        probability: baseProb,
+        scoreDiff: diff,
+        detailedStrategy: `### Direct Aggregate Audit (${parsedAgg}%)\n- **Target University:** ${targetUni?.name || activeUni.name}\n- **Target Course:** ${targetCourse || activeCourse}\n- **Verified Verdict:** ${verdict}\n- **Score Margin:** ${diff >= 0 ? `+${diff}% Surplus` : `${diff}% Deficit`} vs official cutoff of ${officialCutoff}%.`,
+        reliability: 'High',
+        isOffered: true,
+        predictionId
+      };
+      if (user) {
+        result = officialResultPayload;
+        enrichedResult = officialResultPayload;
+        setAiResult(enrichedResult);
+      } else {
+        setAiResult(null);
+      }
+    }
+
+    setIsAnalysisLoading(false);
+
+    savePredictionRecord({
+      predictionId,
+      userId: user?.uid || 'guest',
+      userEmail: user?.email || '',
+      userName: user?.displayName || (user ? 'Registered Scholar' : 'Guest Scholar (Direct Aggregate)'),
+      isGuest: !user,
+      university: targetUni?.name || activeUni.name,
+      course: targetCourse || activeCourse,
+      aggregateScore: parsedAgg,
+      jambScore: 0,
+      postUtmeScore: 0,
+      usesPostUtme: false,
+      postUtmeNotUsed: true,
+      verdict: result?.verdict || 'Direct Aggregate Audit',
+      confidence: 'High',
+      predictedProbability: result?.probability || 50,
+      departmentalCutoff: result?.departmentalCutoff || '70%',
+      stateOfOrigin: stateOfOrigin || '',
+      predictionDate: new Date().toISOString().split('T')[0],
+      detailedStrategy: user ? (result?.detailedStrategy || '') : '',
+      formulaExplanation: 'Direct Aggregate Score Input'
+    }).catch(err => console.error("Error saving direct prediction:", err));
+  };
 
   const currentSchoolSlug = useMemo(() => {
     const path = location.pathname;
@@ -4167,25 +4242,81 @@ ${isSurplus
               </div>
             )}
 
-            {/* Mode Toggle: Forward vs Target Score Planner */}
-            <div className="flex items-center justify-between bg-black/60 p-1.5 rounded-xl border border-white/10 mb-4">
+            {/* Mode Toggle: Forward vs Direct vs Target Score Planner */}
+            <div className="flex items-center justify-between bg-black/60 p-1.5 rounded-xl border border-white/10 mb-4 gap-1">
               <button
                 type="button"
                 onClick={() => setCalcMode('forward')}
-                className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${calcMode === 'forward' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 py-2.5 rounded-lg text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${calcMode === 'forward' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
               >
-                <span>📊 Calculate My Aggregate (Forward)</span>
+                <span>📊 Calculate</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcMode('direct')}
+                className={`flex-1 py-2.5 rounded-lg text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${calcMode === 'direct' ? 'bg-emerald-500 text-black font-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+              >
+                <span>⚡ Direct Check</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCalcMode('reverse')}
-                className={`flex-1 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${calcMode === 'reverse' ? 'bg-cyan-500 text-black font-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 py-2.5 rounded-lg text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${calcMode === 'reverse' ? 'bg-cyan-500 text-black font-black shadow-md' : 'text-gray-400 hover:text-white'}`}
               >
-                <span>🎯 Plan My Target Score (Reverse)</span>
+                <span>🎯 Target Plan</span>
               </button>
             </div>
 
-            {calcMode === 'reverse' ? (
+            {calcMode === 'direct' ? (
+              <div className="space-y-4 p-5 bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-teal-950/30 border border-emerald-500/30 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-400" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white">Direct Aggregate Admission Matcher</h4>
+                  </div>
+                  <span className="text-[7.5px] font-black uppercase bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full">
+                    Already Have Aggregate
+                  </span>
+                </div>
+                <p className="text-[9.5px] text-gray-300 leading-relaxed font-medium">
+                  Already calculated your aggregate score from your school's screening portal? Enter your score directly below, select your target university and course, and instantly check if your aggregate qualifies you for admission!
+                </p>
+
+                {/* Direct Aggregate Input */}
+                <div className="space-y-1.5">
+                  <label htmlFor="direct-aggregate-input" className="text-[8px] font-black uppercase text-gray-400 tracking-widest block">
+                    Your Calculated Aggregate Score (% out of 100)
+                  </label>
+                  <input
+                    id="direct-aggregate-input"
+                    name="direct-aggregate-input"
+                    type="number"
+                    step="0.1"
+                    min="20"
+                    max="100"
+                    value={directAggregateInput}
+                    onChange={e => setDirectAggregateInput(e.target.value)}
+                    placeholder="e.g. 68.5"
+                    className="w-full p-3 bg-black/50 border border-emerald-500/30 rounded-xl font-black text-xl text-center text-emerald-300 outline-none focus:border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parsedAgg = parseFloat(directAggregateInput);
+                    if (isNaN(parsedAgg) || parsedAgg <= 0) {
+                      alert("Please enter a valid aggregate score percentage.");
+                      return;
+                    }
+                    handleCalculateDirectAggregate(parsedAgg);
+                  }}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Zap size={15} /> Check Admission Status With My Aggregate ({directAggregateInput || '0'}%)
+                </button>
+              </div>
+            ) : calcMode === 'reverse' ? (
               <div className="space-y-4 p-5 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-blue-950/30 border border-cyan-500/30 rounded-2xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
