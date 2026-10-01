@@ -230,6 +230,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, s
   ];
 
   const moreNavItems = [
+    { name: 'About Us', icon: <Info size={16} />, id: 'about' },
     { name: 'Advertise With Us', icon: <Sparkles size={16} />, id: 'advertise' },
     { name: 'Partner Network', icon: <ShieldCheck size={16} />, id: 'partners' },
     { name: 'Chat Advisor', icon: <Brain size={16} />, id: 'chat' },
@@ -245,6 +246,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, user, admin, s
 
   const allNavItems = [
     { name: 'Home', icon: <Home size={18} />, id: 'home' },
+    { name: 'About Us', icon: <Info size={18} />, id: 'about' },
     { name: 'Advertise With Us', icon: <Sparkles size={18} />, id: 'advertise' },
     { name: 'Partner Network', icon: <ShieldCheck size={18} />, id: 'partners' },
     { name: 'Chat Advisor', icon: <Brain size={18} />, id: 'chat' },

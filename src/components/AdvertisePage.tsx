@@ -70,7 +70,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
   const [targetUrl, setTargetUrl] = useState('');
   const [badgeText, setBadgeText] = useState('Verified Sponsor');
   const [imageUrl, setImageUrl] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'paystack' | 'whatsapp' | 'flutterwave'>('flutterwave');
+  const [paymentMethod, setPaymentMethod] = useState<'flutterwave' | 'whatsapp'>('flutterwave');
   const [formError, setFormError] = useState<string | null>(null);
   const [payingAdId, setPayingAdId] = useState<string | null>(null);
   const [payingAdAmount, setPayingAdAmount] = useState<number>(5000);
@@ -909,7 +909,7 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                   <label className="block text-xs font-black text-slate-300 uppercase tracking-wider mb-3">
                     Preferred Payment / Activation Option
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('flutterwave')}
@@ -927,21 +927,6 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
 
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('bank_transfer')}
-                      className={`p-4 rounded-2xl text-left border transition-all ${
-                        paymentMethod === 'bank_transfer'
-                          ? 'bg-blue-950/40 border-blue-500 text-white ring-1 ring-blue-500'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-black text-xs text-blue-400 mb-1">
-                        <Building2 size={16} /> Direct Bank Transfer
-                      </div>
-                      <div className="text-[11px] text-slate-400">Pay directly to our verified bank account.</div>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setPaymentMethod('whatsapp')}
                       className={`p-4 rounded-2xl text-left border transition-all ${
                         paymentMethod === 'whatsapp'
@@ -952,37 +937,10 @@ export const AdvertisePage: React.FC<AdvertisePageProps> = ({ onNavigate }) => {
                       <div className="flex items-center gap-2 font-black text-xs text-[#25D366] mb-1">
                         <MessageSquare size={16} /> WhatsApp / Negotiate
                       </div>
-                      <div className="text-[11px] text-slate-400">Discuss custom terms or discount on WhatsApp.</div>
+                      <div className="text-[11px] text-slate-400">Discuss custom terms or campaign specifics on WhatsApp.</div>
                     </button>
                   </div>
                 </div>
-
-                {paymentMethod === 'bank_transfer' && (
-                  <div className="p-4 rounded-2xl bg-blue-950/20 border border-blue-800/40">
-                    <div className="text-xs font-bold text-blue-300 mb-2">CampusAI Bank Account Details:</div>
-                    {config.accountNumber ? (
-                      <div className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <div>
-                          <div className="text-xs text-slate-400">{config.bankName}</div>
-                          <div className="text-sm font-black text-white font-mono">{config.accountNumber}</div>
-                          <div className="text-[10px] text-slate-500">{config.accountName}</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleCopyAccount}
-                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1 transition-all"
-                        >
-                          {copiedAccount ? <Check size={12} /> : <Copy size={12} />}
-                          {copiedAccount ? 'Copied!' : 'Copy'}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-slate-300">
-                        Official bank account details are provided upon request. Please click Negotiate on WhatsApp or submit to receive account info.
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                   <button

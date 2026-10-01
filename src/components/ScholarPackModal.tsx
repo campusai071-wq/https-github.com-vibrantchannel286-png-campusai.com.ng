@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, X, Check, Zap, ShieldCheck, ArrowRight, Sparkles, Loader2, CreditCard, Tag, Building2, RefreshCw } from 'lucide-react';
+import { Crown, X, Check, Zap, Sparkles, Loader2, CreditCard, Tag } from 'lucide-react';
 import { useFlutterwave } from 'flutterwave-react-v3';
 
 // Manual definition for closePaymentModal since the library export fails in Vite
@@ -12,8 +11,7 @@ const closePaymentModal = () => {
   }
 };
 import { updateUserProfile, isUserAdmin } from '../services/userService';
-import { db, MASTER_CONFIG } from '../services/firebaseConfig';
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { MASTER_CONFIG } from '../services/firebaseConfig';
 import { trackPremiumClick, trackPaymentStarted, trackPurchase } from '../services/analytics';
 
 interface ScholarPackModalProps {
@@ -28,11 +26,16 @@ interface ScholarPackModalProps {
   };
 }
 
-const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, user, paymentConfig = { type: 'pack', amount: 500, label: 'Scholar Pack 2026' } }) => {
+const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  user, 
+  paymentConfig = { type: 'pack', amount: 500, label: 'Scholar Pack 2026' } 
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [guestEmail, setGuestEmail] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
-  const [activeTab, setActiveTab] = useState<'card' | 'voucher' | 'transfer'>('card');
+  const [showVoucher, setShowVoucher] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -94,7 +97,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
 
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
-      setStatusMessage({ type: 'error', text: 'Please enter a voucher code (e.g. CAMPUSAI2026)' });
+      setStatusMessage({ type: 'error', text: 'Please enter a valid voucher or promo code.' });
       return;
     }
     setIsProcessing(true);
@@ -106,52 +109,21 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
         body: JSON.stringify({
           uid: user?.uid,
           email: activeEmail,
-          voucherCode: voucherCode.trim(),
-          method: 'voucher'
+          voucherCode: voucherCode.trim().toUpperCase()
         })
       });
       const data = await res.json();
       if (data.success) {
-        await applyEntitlementLocally(data.creditsAdded || 5);
-        setStatusMessage({ type: 'success', text: data.message || 'Voucher redeemed successfully!' });
+        await applyEntitlementLocally(10);
+        setStatusMessage({ type: 'success', text: 'Voucher applied! Scholar credits activated.' });
         setTimeout(() => {
           onClose();
         }, 1500);
       } else {
-        setStatusMessage({ type: 'error', text: data.error || 'Invalid voucher code.' });
+        setStatusMessage({ type: 'error', text: data.error || 'Invalid or expired voucher code.' });
       }
     } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleBankTransferConfirm = async () => {
-    setIsProcessing(true);
-    setStatusMessage(null);
-    try {
-      const res = await fetch('/api/activate-premium', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user?.uid,
-          email: activeEmail,
-          method: 'bank_transfer'
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        await applyEntitlementLocally(5);
-        setStatusMessage({ type: 'success', text: 'Transfer verified! Scholar Pack Activated.' });
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        setStatusMessage({ type: 'error', text: data.error || 'Transfer verification failed.' });
-      }
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err.message });
+      setStatusMessage({ type: 'error', text: err.message || 'Failed to apply voucher code.' });
     } finally {
       setIsProcessing(false);
     }
@@ -162,7 +134,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     tx_ref: `campusai-${Date.now()}`,
     amount: paymentConfig.amount,
     currency: 'NGN',
-    payment_options: 'card,mobilemoney,ussd',
+    payment_options: 'card,banktransfer,ussd,mobilemoney',
     customer: {
       email: activeEmail,
       phone_number: '',
@@ -183,7 +155,6 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     setIsProcessing(true);
     setStatusMessage(null);
     
-    // GA4 Event: payment_started
     trackPaymentStarted({
       item_name: paymentConfig.label,
       amount: paymentConfig.amount,
@@ -219,7 +190,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
               });
               const verifyData = await verifyRes.json();
               if (!verifyData.success) {
-                setStatusMessage({ type: 'error', text: "Verification warning: " + (verifyData.error || "Please restore access") });
+                setStatusMessage({ type: 'error', text: "Verification notice: " + (verifyData.error || "Please restore access") });
               }
             } catch (apiErr: any) {
               console.error("Payment API verification error:", apiErr);
@@ -231,7 +202,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
               onClose();
             }, 1500);
           } else {
-            setStatusMessage({ type: 'error', text: "Payment was not successful. Try Voucher or Bank Transfer." });
+            setStatusMessage({ type: 'error', text: "Payment was not completed. Please try again." });
           }
           setIsProcessing(false);
           closePaymentModal();
@@ -243,7 +214,7 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
     } catch (e: any) {
       console.error("Flutterwave initialization error:", e);
       setIsProcessing(false);
-      setStatusMessage({ type: 'error', text: "Payment window could not open in this browser. Please use Redeem Voucher or Bank Transfer below." });
+      setStatusMessage({ type: 'error', text: "Payment window could not open. Please check your connection." });
     }
   };
 
@@ -345,30 +316,18 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                     </div>
                   )}
 
-                  {/* Payment Method Selector Tabs */}
-                  <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('card')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'card' ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
-                    >
-                      <CreditCard size={14} /> Online
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('voucher')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'voucher' ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
-                    >
-                      <Tag size={14} /> Voucher
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('transfer')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'transfer' ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
-                    >
-                      <Building2 size={14} /> Transfer
-                    </button>
-                  </div>
+                  {!user?.email && (
+                    <div className="space-y-1 text-left">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Your Email for Receipt & Activation</label>
+                      <input
+                        type="email"
+                        placeholder="student@example.com"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-500 text-slate-800 dark:text-white"
+                      />
+                    </div>
+                  )}
 
                   {statusMessage && (
                     <div className={`p-3.5 rounded-2xl text-xs font-medium ${statusMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'}`}>
@@ -376,75 +335,63 @@ const ScholarPackModal: React.FC<ScholarPackModalProps> = ({ isOpen, onClose, us
                     </div>
                   )}
 
-                  {activeTab === 'card' && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-gray-500 leading-relaxed">
-                        Pay with Debit Card, USSD, or Bank Account securely powered by Flutterwave.
-                      </p>
-                      
-                      <button 
-                        onClick={handleUpgrade}
-                        disabled={isProcessing}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <><CreditCard size={18} /> Pay ₦{paymentConfig.amount} with Card</>}
-                      </button>
-                    </div>
-                  )}
+                  {/* Single Clean Flutterwave Direct Checkout */}
+                  <div className="space-y-4">
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Instant and secure checkout via Flutterwave. Supports Debit Cards, USSD, Bank Transfer, and Mobile Money.
+                    </p>
+                    
+                    <button 
+                      onClick={handleUpgrade}
+                      disabled={isProcessing}
+                      className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <><CreditCard size={18} /> Pay ₦{paymentConfig.amount} with Flutterwave</>}
+                    </button>
+                  </div>
 
-                  {activeTab === 'voucher' && (
-                    <div className="space-y-3">
-                      <p className="text-xs text-gray-500">
-                        Have a scholarship or promo code? Enter it below for instant activation.
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="e.g. CAMPUSAI2026"
-                          value={voucherCode}
-                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                          className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold tracking-wider uppercase focus:outline-none focus:border-blue-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVoucherRedeem}
-                          disabled={isProcessing}
-                          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all disabled:opacity-50"
-                        >
-                          {isProcessing ? <Loader2 className="animate-spin" size={16} /> : 'Apply'}
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-gray-400">
-                        Try code: <span className="font-mono text-blue-500 font-bold">CAMPUSAI2026</span>
-                      </p>
-                    </div>
-                  )}
-
-                  {activeTab === 'transfer' && (
-                    <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 text-left">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400 font-bold uppercase">Bank</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">OPay / Moniepoint</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400 font-bold uppercase">Account Name</span>
-                        <span className="font-bold text-gray-800 dark:text-gray-200">CampusAI Admission</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400 font-bold uppercase">Amount</span>
-                        <span className="font-black text-emerald-600">₦{paymentConfig.amount}</span>
-                      </div>
+                  {/* Promo Voucher Accordion */}
+                  <div className="pt-2">
+                    {!showVoucher ? (
                       <button
                         type="button"
-                        onClick={handleBankTransferConfirm}
-                        disabled={isProcessing}
-                        className="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+                        onClick={() => setShowVoucher(true)}
+                        className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1 mx-auto md:mx-0"
                       >
-                        {isProcessing ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
-                        I Have Sent ₦{paymentConfig.amount} — Activate Now
+                        <Tag size={12} /> Have a scholarship or promo code?
                       </button>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900/80 rounded-2xl border border-gray-200 dark:border-gray-800 text-left">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black uppercase text-gray-400">Promo / Scholarship Code</label>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowVoucher(false)} 
+                            className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            Hide
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="e.g. CAMPUSAI_PROMO"
+                            value={voucherCode}
+                            onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                            className="flex-1 px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold tracking-wider uppercase focus:outline-none focus:border-blue-500 text-slate-800 dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVoucherRedeem}
+                            disabled={isProcessing}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {isProcessing ? <Loader2 className="animate-spin" size={14} /> : 'Apply'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-800 text-center space-y-2">
                     <button 

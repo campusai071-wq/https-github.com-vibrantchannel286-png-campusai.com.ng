@@ -440,26 +440,18 @@ export const CbtCenterLocator: React.FC = () => {
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                OpenStreetMap (Free)
+                OpenStreetMap
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (googleMapsApiKey) {
-                    setMapEngine('google');
-                  } else {
-                    const searchTerm = query.trim() || `${selectedState} CBT centers and universities`;
-                    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerm)}`;
-                    window.open(gmapsUrl, '_blank', 'noopener,noreferrer');
-                  }
-                }}
+                onClick={() => setMapEngine('google')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   mapEngine === 'google'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Google Maps ↗
+                Google Maps
               </button>
             </div>
           </div>

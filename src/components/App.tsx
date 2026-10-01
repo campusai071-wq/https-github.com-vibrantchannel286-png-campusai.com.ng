@@ -525,9 +525,9 @@ const AppContent: React.FC = () => {
         const { getLocalProfile, isUserAdmin } = await import('../services/userService');
         const { identifyUser } = await import('../services/analytics');
         const localProfile = getLocalProfile();
-        const isAdmin = isUserAdmin(firebaseUser?.email) || isUserAdmin(localProfile);
+        const isAdmin = isUserAdmin(firebaseUser?.email);
         if (localProfile && localProfile.uid === firebaseUser.uid) {
-           setUser({ ...firebaseUser, ...localProfile, ...(isAdmin ? { is_premium: true, role: 'Super Admin', scholarCredits: Math.max(localProfile.scholarCredits || 0, 100) } : {}) });
+           setUser({ ...firebaseUser, ...localProfile, is_premium: isAdmin ? true : Boolean(localProfile.is_premium), role: isAdmin ? 'Super Admin' : (localProfile.role || 'Pre-Admission'), scholarCredits: isAdmin ? 100 : (localProfile.scholarCredits || 0) });
         } else {
            setUser({ ...firebaseUser, role: isAdmin ? 'Super Admin' : 'Pre-Admission', is_premium: isAdmin, scholarCredits: isAdmin ? 100 : 0 });
         }
@@ -1623,6 +1623,26 @@ const AppContent: React.FC = () => {
           <Route path="/cookies" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
           <Route path="/cookie-policy" element={<><SEO title="Cookie Policy" canonical="/cookies" /><LegalSection type="cookies" /></>} />
           
+          <Route path="/about" element={
+            <div className="pt-24 min-h-screen">
+              <SEO 
+                title="About CampusAI.ng | Nigeria's Leading Admissions Intelligence Platform" 
+                description="Learn about CampusAI.ng, our mission to empower Nigerian students with accurate aggregate calculators, cut-off marks, and JAMB admission intelligence."
+                canonical="/about"
+              />
+              <AboutSection />
+            </div>
+          } />
+          <Route path="/about-us" element={
+            <div className="pt-24 min-h-screen">
+              <SEO 
+                title="About CampusAI.ng | Nigeria's Leading Admissions Intelligence Platform" 
+                description="Learn about CampusAI.ng, our mission to empower Nigerian students with accurate aggregate calculators, cut-off marks, and JAMB admission intelligence."
+                canonical="/about"
+              />
+              <AboutSection />
+            </div>
+          } />
           <Route path="/status" element={<><SEO title="System Status" canonical="/status" /><StatusPage /></>} />
           <Route path="/advertise" element={<AdvertisePage onNavigate={handleNavigate} />} />
           <Route path="/advertise-with-us" element={<AdvertisePage onNavigate={handleNavigate} />} />

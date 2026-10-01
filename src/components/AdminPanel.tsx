@@ -4560,21 +4560,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                                 </span>
                               </p>
                             </div>
-                            <button
-                              onClick={async e => {
-                                e.stopPropagation();
-                                if (window.confirm(`Grant 5 Scholar Credits to ${u.displayName}?`)) {
-                                  await updateUserProfile({ scholarCredits: (u.scholarCredits || 0) + 5, is_premium: true }, u.uid);
-                                  await loadUsers();
-                                }
-                              }}
-                              className="mt-2 px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[7px] font-black uppercase hover:bg-amber-500 hover:text-white transition-all border border-amber-500/20"
-                            >
-                              Grant 5 SP
-                            </button>
+                            <div className="flex items-center gap-1.5 mt-2">
+                              {u.is_premium && u.email !== 'eiweh123@gmail.com' && (
+                                <button
+                                  onClick={async e => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`Revoke Scholar Pack and reset ${u.displayName} to Free Tier?`)) {
+                                      await updateUserProfile({ scholarCredits: 0, is_premium: false }, u.uid);
+                                      await loadUsers();
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-red-500/10 text-red-500 rounded-lg text-[7px] font-black uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
+                                >
+                                  Revoke SP
+                                </button>
+                              )}
+                              <button
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Grant 5 Scholar Credits to ${u.displayName}?`)) {
+                                    await updateUserProfile({ scholarCredits: (u.scholarCredits || 0) + 5, is_premium: true }, u.uid);
+                                    await loadUsers();
+                                  }
+                                }}
+                                className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[7px] font-black uppercase hover:bg-amber-500 hover:text-white transition-all border border-amber-500/20"
+                              >
+                                Grant 5 SP
+                              </button>
+                            </div>
                             <button
                               onClick={() => setSelectedUserForPredictions(u)}
-                              className="mt-2 px-2 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[7px] font-black uppercase hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+                              className="mt-1 px-2 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[7px] font-black uppercase hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
                             >
                               View Predictions
                             </button>

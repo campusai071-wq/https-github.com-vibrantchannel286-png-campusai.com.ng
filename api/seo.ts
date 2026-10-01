@@ -877,11 +877,8 @@ async function generateInjectedSEO(html: string, reqPath: string, adminDb: any, 
     }
   }
 
-  // Inject Server Rendered Body into <div id="root"> and <noscript> for crawlers, AI bots, and non-JS clients
+  // Inject Server Rendered Body into <noscript> for crawlers, AI bots, and non-JS clients without breaking client preloader
   if (serverBodyHtml) {
-    if (html.includes('<div id="root">')) {
-      html = html.replace(/<div id="root">[\s\S]*<\/div>(?=\s*<script)/i, `<div id="root">\n${serverBodyHtml}\n</div>`);
-    }
     if (html.includes('<noscript>')) {
       html = html.replace(/<noscript>[\s\S]*?<\/noscript>/i, `<noscript>\n${serverBodyHtml}\n</noscript>`);
     }

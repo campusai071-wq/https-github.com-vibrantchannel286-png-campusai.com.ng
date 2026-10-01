@@ -16,9 +16,7 @@ export const ADMIN_EMAILS = ['eiweh123@gmail.com'];
 export const isUserAdmin = (profileOrEmail?: any): boolean => {
   if (!profileOrEmail) return false;
   const email = typeof profileOrEmail === 'string' ? profileOrEmail : profileOrEmail.email;
-  const role = typeof profileOrEmail === 'object' ? profileOrEmail.role : undefined;
   if (email && ADMIN_EMAILS.includes(email.toLowerCase().trim())) return true;
-  if (role === 'Super Admin' || role === 'Admin') return true;
   return false;
 };
 
@@ -181,16 +179,19 @@ export const syncAndValidateProfile = async (
         merged.lifetime_calculations = finalCalculations;
         merged.lifetime_cbt_tests = Math.max(local.lifetime_cbt_tests || 0, cloud.lifetime_cbt_tests || 0);
         merged.lifetime_cgpa_calculations = Math.max(local.lifetime_cgpa_calculations || 0, cloud.lifetime_cgpa_calculations || 0);
-        merged.is_premium = Boolean(local.is_premium || cloud.is_premium);
-        merged.scholarCredits = Math.max(local.scholarCredits || 0, cloud.scholarCredits || 0);
-        merged.premium_activated_at = local.premium_activated_at || cloud.premium_activated_at;
+        merged.is_premium = Boolean(cloud.is_premium);
+        merged.scholarCredits = typeof cloud.scholarCredits === 'number' ? cloud.scholarCredits : 0;
+        merged.premium_activated_at = cloud.premium_activated_at || local.premium_activated_at;
       }
 
       // Check admin status and guarantee full premium entitlement
-      if (isUserAdmin(merged)) {
+      if (isUserAdmin(merged) || isUserAdmin(resolvedEmail)) {
         merged.is_premium = true;
         merged.scholarCredits = Math.max(merged.scholarCredits || 0, 100);
         merged.role = 'Super Admin';
+      } else {
+        merged.is_premium = Boolean(cloud.is_premium);
+        merged.scholarCredits = typeof cloud.scholarCredits === 'number' ? cloud.scholarCredits : 0;
       }
 
       const validation = validateUserProfile(merged);
@@ -212,24 +213,24 @@ export const syncAndValidateProfile = async (
     } else {
       // Create new user record in cloud
       const baseLocal: Partial<UserProfile> = isSameUser ? local : {};
-      const isAdminUser = isUserAdmin(resolvedEmail) || isUserAdmin(baseLocal);
+      const isAdminUser = isUserAdmin(resolvedEmail);
       const newProfile: UserProfile = {
         ...baseLocal,
         uid: uid,
         email: resolvedEmail,
         displayName: resolvedDisplayName,
         photoURL: resolvedPhotoURL,
-        role: isAdminUser ? 'Super Admin' : (meta?.role || (baseLocal.role as UserRole) || 'Pre-Admission'),
-        is_premium: isAdminUser ? true : Boolean(baseLocal.is_premium),
+        role: isAdminUser ? 'Super Admin' : (meta?.role || 'Pre-Admission'),
+        is_premium: isAdminUser ? true : false,
         daily_requests: 0,
-        scholarCredits: isAdminUser ? 100 : (baseLocal.scholarCredits || 0),
+        scholarCredits: isAdminUser ? 100 : 0,
         meritUsageCount: 0,
         lifetime_calculations: baseLocal.lifetime_calculations || 0,
         createdAt: new Date().toISOString(),
         last_active: new Date().toISOString()
       };
-      if (baseLocal.premium_activated_at || isAdminUser) {
-        newProfile.premium_activated_at = baseLocal.premium_activated_at || new Date().toISOString();
+      if (isAdminUser) {
+        newProfile.premium_activated_at = new Date().toISOString();
       }
       await setDoc(userRef, newProfile).catch(e => handleFirestoreError(e, OperationType.CREATE, `users/${uid}`));
       localStorage.setItem(QUOTA_KEY, stringify(newProfile));
@@ -353,13 +354,14 @@ export const subscribeToUserProfile = (uid: string, callback: (profile: UserProf
       const cloudData = snapshot.data();
       const local = getLocalProfile();
       
+      const isAdmin = isUserAdmin(cloudData?.email || local?.email);
       const merged: UserProfile = {
         ...local,
         ...cloudData,
         uid: uid,
-        is_premium: Boolean(local.is_premium || cloudData.is_premium),
-        scholarCredits: Math.max(local.scholarCredits || 0, cloudData.scholarCredits || 0),
-        premium_activated_at: local.premium_activated_at || cloudData.premium_activated_at,
+        is_premium: isAdmin ? true : Boolean(cloudData.is_premium),
+        scholarCredits: isAdmin ? 100 : (typeof cloudData.scholarCredits === 'number' ? cloudData.scholarCredits : 0),
+        premium_activated_at: cloudData.premium_activated_at || local.premium_activated_at,
       };
       
       localStorage.setItem(QUOTA_KEY, stringify(merged));

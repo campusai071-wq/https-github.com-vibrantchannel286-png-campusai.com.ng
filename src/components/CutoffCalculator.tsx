@@ -14,7 +14,7 @@ import {
   Target, GraduationCap, Loader2, Sparkles, RefreshCw, Brain, Search,
   ShieldCheck, BookOpen, ArrowRight, Lock, Activity, Check, Lightbulb,
   Share2, Calculator, X, ChevronDown, Award, Plus, Info, MessageCircle, AlertCircle,
-  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn, CheckCircle2, BookmarkCheck } from 'lucide-react';
+  Wallet, Crown, MapPin, History, Database, Sliders, ExternalLink, Printer, Upload, Clock, TriangleAlert, FileText, LogIn, CheckCircle2, BookmarkCheck, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OLevelGrade } from '../types';
 import Markdown from 'react-markdown';
